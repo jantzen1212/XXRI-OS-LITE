@@ -1,0 +1,7 @@
+#!/bin/busybox ash
+if [ -f /var/log/autologin ] ; then
+    exec /sbin/getty 38400 tty1
+else
+    touch /var/log/autologin
+    exec login -f root
+fi

@@ -1,0 +1,195 @@
+#!/bin/busybox ash
+# install2disk - install the running Tiny Core-based system onto a disk
+# partition as a traditional writable root filesystem.
+#
+# The installed system boots through the same kernel + core.gz pair; the
+# disk is selected by the kernel command line:
+#     APPEND initrd=core.gz root=UUID=<uuid> rootwait
+# /init then fscks, mounts and switch_roots onto it.  Without root= the
+# system boots in classic RAM mode; the 'ramroot' boot code forces RAM
+# mode even when root= is present.
+#
+# Usage: install2disk /dev/DEVICE [--format] [--swap /dev/DEVICE] [--yes]
+#   --format    run mkfs.ext4 on the target first (DESTROYS existing data)
+#   --swap DEV  run mkswap on DEV and add it to the installed /etc/fstab
+#   --yes       do not ask for confirmation
+#
+# This script does NOT install a bootloader (none ships in the base
+# system).  Point your existing bootloader at the same vmlinuz and
+# core.gz used today and add the printed root= parameter.
+
+. /etc/init.d/tc-functions
+useBusybox
+checkroot
+
+fail() {
+	echo "install2disk: ERROR: $1" >&2
+	exit 1
+}
+
+TARGET="" SWAPDEV="" FORMAT="" ASSUME_YES=""
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--format) FORMAT=1 ;;
+		--swap) shift; SWAPDEV="$1" ;;
+		--yes) ASSUME_YES=1 ;;
+		-*) echo "install2disk: unknown option: $1" >&2; exit 1 ;;
+		*) TARGET="$1" ;;
+	esac
+	shift
+done
+
+if [ -z "$TARGET" ]; then
+	echo "Usage: install2disk /dev/DEVICE [--format] [--swap /dev/DEVICE] [--yes]" >&2
+	exit 1
+fi
+[ -b "$TARGET" ] || fail "$TARGET is not a block device."
+grep -q "^$TARGET " /proc/mounts && fail "$TARGET is mounted; unmount it first."
+if [ -n "$SWAPDEV" ]; then
+	[ -b "$SWAPDEV" ] || fail "swap device $SWAPDEV is not a block device."
+	grep -q "^$SWAPDEV " /proc/swaps && fail "$SWAPDEV is in use as swap."
+	[ "$SWAPDEV" = "$TARGET" ] && fail "swap and target are the same device."
+fi
+
+TARGETFS="$(blkid -o export "$TARGET" 2>/dev/null | awk -F= '/^TYPE/{print $2}')"
+if [ -z "$FORMAT" ]; then
+	case "$TARGETFS" in
+		ext2|ext3|ext4) ;;
+		*)
+			echo "install2disk: $TARGET carries filesystem '${TARGETFS:-none}'." >&2
+			echo "Re-run with --format to create ext4 (DESTROYS all data on $TARGET)." >&2
+			exit 1
+		;;
+	esac
+fi
+
+echo "Target partition : $TARGET${FORMAT:+ (will be formatted ext4)}"
+[ -n "$SWAPDEV" ] && echo "Swap partition   : $SWAPDEV (will be formatted as swap)"
+echo "System source    : running root filesystem"
+if [ -z "$ASSUME_YES" ]; then
+	echo -n "Type exactly 'yes' to proceed: "
+	read ANS
+	[ "$ANS" = "yes" ] || { echo "Aborted."; exit 1; }
+fi
+
+XXRILABEL="XXRIROOT"
+if [ -n "$FORMAT" ]; then
+	echo "Formatting $TARGET as ext4 (label $XXRILABEL)..."
+	mkfs.ext4 -q -L "$XXRILABEL" "$TARGET" || fail "mkfs.ext4 failed on $TARGET"
+	TARGETFS="ext4"
+else
+	# Ensure the auto-detect label is present on the existing filesystem.
+	tune2fs -L "$XXRILABEL" "$TARGET" >/dev/null 2>&1
+fi
+
+MNT="/mnt/install2disk.$$"
+mkdir -p "$MNT"
+mount -o rw "$TARGET" "$MNT" || fail "cannot mount $TARGET"
+
+echo -n "Copying system files ... "
+COPYLIST=""
+for e in /*; do
+	n="${e#/}"
+	case "$n" in
+		proc|sys|dev|tmp|run|mnt|lost+found) continue ;;
+	esac
+	COPYLIST="$COPYLIST $n"
+done
+tar -C / -cf - $COPYLIST | tar -C "$MNT" -xf - || fail "system copy failed"
+echo "Done."
+
+# Runtime trees excluded from the copy.
+for d in proc sys dev tmp run mnt; do
+	mkdir -p "$MNT/$d"
+done
+chmod 1777 "$MNT/tmp"
+mkdir -p "$MNT/dev/pts" "$MNT/dev/shm" "$MNT/var/run" "$MNT/var/lock"
+rm -rf "$MNT/var/run/"* 2>/dev/null
+
+# Static fallback device nodes (normally hidden under devtmpfs).
+[ -e "$MNT/dev/console" ] || mknod -m 600 "$MNT/dev/console" c 5 1
+[ -e "$MNT/dev/null" ]    || mknod -m 666 "$MNT/dev/null"    c 1 3
+[ -e "$MNT/dev/zero" ]    || mknod -m 666 "$MNT/dev/zero"    c 1 5
+[ -e "$MNT/dev/tty" ]     || mknod -m 666 "$MNT/dev/tty"     c 5 0
+[ -e "$MNT/dev/tty0" ]    || mknod -m 620 "$MNT/dev/tty0"    c 4 0
+i=1
+while [ $i -le 6 ]; do
+	[ -e "$MNT/dev/tty$i" ] || mknod -m 620 "$MNT/dev/tty$i" c 4 $i
+	i=$((i + 1))
+done
+
+# Per-session state that must not be carried onto the installed system.
+rm -f "$MNT/var/log/autologin"
+rm -f "$MNT/etc/sysconfig/backup_device" "$MNT/etc/sysconfig/text" \
+      "$MNT/etc/sysconfig/xonly" "$MNT/etc/sysconfig/superuser" \
+      "$MNT/etc/sysconfig/noautologin" "$MNT/etc/sysconfig/showapps" 2>/dev/null
+rm -f "$MNT/usr/local/tce.installed/"* 2>/dev/null
+
+# Persistent extension store: /tce on the installed root.  Copy the live
+# TCE directory (extensions + onboot.lst) so the installed system keeps
+# the same applications.
+TCUSER="tc"
+[ -s /etc/sysconfig/tcuser ] && read TCUSER < /etc/sysconfig/tcuser
+LIVETCE="$(readlink /etc/sysconfig/tcedir 2>/dev/null)"
+mkdir -p "$MNT/tce/optional" "$MNT/tce/ondemand"
+if [ -n "$LIVETCE" ] && [ -d "$LIVETCE" ] && [ "$LIVETCE" != "/tce" ]; then
+	echo -n "Copying extensions from $LIVETCE ... "
+	cp -a "$LIVETCE/." "$MNT/tce/" 2>/dev/null
+	echo "Done."
+fi
+[ -f "$MNT/tce/onboot.lst" ] || touch "$MNT/tce/onboot.lst"
+rm -f "$MNT/tce/mydata.tgz" "$MNT/tce/mydata.tgz.bfe" 2>/dev/null
+chown -R "$TCUSER":staff "$MNT/tce" 2>/dev/null
+chmod -R g+w "$MNT/tce" 2>/dev/null
+rm -f "$MNT/etc/sysconfig/tcedir"
+ln -sf /tce "$MNT/etc/sysconfig/tcedir"
+
+# Swap.
+SWAPLINE=""
+if [ -n "$SWAPDEV" ]; then
+	echo "Formatting $SWAPDEV as swap..."
+	mkswap "$SWAPDEV" >/dev/null || fail "mkswap failed on $SWAPDEV"
+	SWAPUUID="$(blkid -o export "$SWAPDEV" 2>/dev/null | awk -F= '/^UUID/{print $2}')"
+	if [ -n "$SWAPUUID" ]; then
+		SWAPLINE="UUID=$SWAPUUID    none         swap    defaults          0 0"
+	else
+		SWAPLINE="$SWAPDEV    none         swap    defaults          0 0"
+	fi
+fi
+
+# Authoritative fstab for the installed system (never regenerated at boot).
+ROOTUUID="$(blkid -o export "$TARGET" 2>/dev/null | awk -F= '/^UUID/{print $2}')"
+[ -n "$ROOTUUID" ] || fail "cannot read the UUID of $TARGET"
+{
+	echo "# /etc/fstab - generated once by install2disk; edits persist."
+	echo "proc            /proc        proc    defaults          0 0"
+	echo "sysfs           /sys         sysfs   defaults          0 0"
+	echo "devpts          /dev/pts     devpts  defaults          0 0"
+	echo "tmpfs           /dev/shm     tmpfs   defaults          0 0"
+	echo "tmpfs           /tmp         tmpfs   defaults          0 0"
+	echo "tmpfs           /run         tmpfs   defaults          0 0"
+	echo "LABEL=$XXRILABEL  /          $TARGETFS    defaults,noatime  0 1"
+	[ -n "$SWAPLINE" ] && echo "$SWAPLINE"
+} > "$MNT/etc/fstab"
+
+sync
+umount "$MNT" || fail "cannot unmount $MNT cleanly"
+rmdir "$MNT"
+
+echo
+echo "Installation finished."
+echo
+echo "Root filesystem: LABEL=$XXRILABEL  UUID=$ROOTUUID"
+echo
+echo "No bootloader was installed (none ships with the base system)."
+echo "Point your existing bootloader at the SAME vmlinuz and core.gz you"
+echo "boot today.  The updated /init auto-detects the installed root by its"
+echo "$XXRILABEL label, so NO root= parameter is required:"
+echo
+echo "    LABEL installed"
+echo "      KERNEL /boot/vmlinuz"
+echo "      INITRD /boot/core.gz"
+echo "      APPEND loglevel=3"
+echo
+echo "(You may still pin it explicitly with root=LABEL=$XXRILABEL or"
+echo " root=UUID=$ROOTUUID.)  The 'ramroot' boot code forces classic RAM mode."
