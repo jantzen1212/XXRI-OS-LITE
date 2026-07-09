@@ -1,0 +1,127 @@
+#!/bin/sh
+mount proc
+grep -qw multivt /proc/cmdline && sed -i s/^#tty/tty/ /etc/inittab
+
+# ------------------------------------------------------------------------
+# Writable disk-root boot (installed XXRI system)
+#
+# Priority:
+#   1. ramroot on cmdline            -> force the classic RAM boot below.
+#   2. root=DEV|UUID=..|LABEL=..      -> pivot to that filesystem.
+#   3. no root= given                -> auto-detect a filesystem labelled
+#                                       XXRIROOT and pivot to it.
+# Anything that fails falls through to the RAM boot, so a live CD with no
+# installed disk still comes up (and can run install2disk).
+# ------------------------------------------------------------------------
+ROOTSPEC="" ROOTFSTYPE="" ROOTDELAY=15 ROOTWAIT="" RAMROOT="" EXPLICIT=""
+for i in `cat /proc/cmdline`; do
+	case $i in
+		root=*) ROOTSPEC=${i#*=}; EXPLICIT=1 ;;
+		rootfstype=*) ROOTFSTYPE=${i#*=} ;;
+		rootdelay=*) ROOTDELAY=${i#*=} ;;
+		rootwait) ROOTWAIT=1 ;;
+		ramroot) RAMROOT=1 ;;
+	esac
+done
+
+# Auto-detect: no explicit root= -> look briefly for the installed label.
+XXRILABEL="XXRIROOT"
+if [ -z "$RAMROOT" ] && [ -z "$EXPLICIT" ]; then
+	ROOTSPEC="LABEL=$XXRILABEL"
+	ROOTDELAY=2
+fi
+
+if [ -n "$ROOTSPEC" ] && [ -z "$RAMROOT" ]; then
+	grep -q ' /sys ' /proc/mounts || mount -t sysfs sysfs /sys 2>/dev/null
+	grep -q ' /dev devtmpfs' /proc/mounts || mount -t devtmpfs devtmpfs /dev 2>/dev/null
+
+	# No udev yet.  Load drivers for present hardware, and -- because this
+	# kernel has no devtmpfs -- create block-device nodes by hand from
+	# /proc/partitions so blkid/e2fsck have real nodes to open.
+	coldplug() {
+		for a in /sys/bus/*/devices/*/modalias; do
+			[ -r "$a" ] && modprobe -q `cat $a` 2>/dev/null
+		done
+	}
+	populate_dev() {
+		while read pmaj pmin pblk pname; do
+			case "$pname" in ""|name) continue ;; esac
+			[ -e "/dev/$pname" ] || mknod "/dev/$pname" b "$pmaj" "$pmin" 2>/dev/null
+		done < /proc/partitions
+	}
+
+	resolve_root() {
+		case "$ROOTSPEC" in
+			UUID=*|LABEL=*) blkid -lt "$ROOTSPEC" -o device 2>/dev/null ;;
+			/dev/*) [ -b "$ROOTSPEC" ] && echo "$ROOTSPEC" ;;
+			*) [ -b "/dev/$ROOTSPEC" ] && echo "/dev/$ROOTSPEC" ;;
+		esac
+	}
+
+	coldplug; populate_dev
+	ROOTDEV="`resolve_root`"
+	SLEPT=0
+	while [ -z "$ROOTDEV" ]; do
+		if [ -z "$ROOTWAIT" ] && [ $SLEPT -ge $ROOTDELAY ]; then break; fi
+		sleep 1
+		SLEPT=$((SLEPT + 1))
+		coldplug; populate_dev
+		ROOTDEV="`resolve_root`"
+	done
+
+	if [ -n "$ROOTDEV" ]; then
+		[ -n "$ROOTFSTYPE" ] || ROOTFSTYPE="`blkid -o export $ROOTDEV 2>/dev/null | awk -F= '/^TYPE/{print $2}'`"
+		[ -n "$ROOTFSTYPE" ] && modprobe -q "$ROOTFSTYPE" 2>/dev/null
+		case "$ROOTFSTYPE" in
+			ext2|ext3|ext4)
+				e2fsck -p "$ROOTDEV"
+				[ $? -ge 4 ] && echo "init: WARNING: errors on $ROOTDEV were not fully repaired."
+			;;
+		esac
+		if [ -n "$ROOTFSTYPE" ]; then
+			mount -o rw,noatime -t "$ROOTFSTYPE" "$ROOTDEV" /mnt 2>/dev/null
+		else
+			mount -o rw,noatime "$ROOTDEV" /mnt 2>/dev/null
+		fi
+		if [ "$?" = 0 ]; then
+			if [ -e /mnt/sbin/init ] && [ -e /mnt/etc/inittab ]; then
+				echo "init: switching to installed root $ROOTDEV ($ROOTFSTYPE)."
+				grep -q ' /mnt/dev devtmpfs' /proc/mounts || \
+					mount -t devtmpfs devtmpfs /mnt/dev 2>/dev/null
+				mkdir -p /mnt/dev/pts /mnt/dev/shm 2>/dev/null
+				# Guarantee a console on the new root before udev runs there
+				# (this kernel has no devtmpfs to auto-create it).
+				[ -e /mnt/dev/console ] || mknod /mnt/dev/console c 5 1 2>/dev/null
+				[ -e /mnt/dev/null ] || mknod /mnt/dev/null c 1 3 2>/dev/null
+				umount /sys 2>/dev/null
+				umount proc
+				exec /sbin/switch_root /mnt /sbin/init
+			fi
+			umount /mnt 2>/dev/null
+			[ -n "$EXPLICIT" ] && echo "init: $ROOTDEV holds no system; falling back to RAM boot."
+		else
+			[ -n "$EXPLICIT" ] && echo "init: cannot mount $ROOTDEV; falling back to RAM boot."
+		fi
+	else
+		[ -n "$EXPLICIT" ] && echo "init: root device $ROOTSPEC not found; falling back to RAM boot."
+	fi
+	umount /sys 2>/dev/null
+fi
+
+# --- Classic RAM boot (live/installer medium; unchanged) -----------------
+if ! grep -qw noembed /proc/cmdline; then
+
+  inodes=`grep MemFree /proc/meminfo | awk '{printf("%d\n", $2/3)}'`
+
+  mount / -o remount,size=90%,nr_inodes=$inodes
+  umount proc
+  exec /sbin/init
+fi
+umount proc
+if mount -t tmpfs -o size=90% tmpfs /mnt; then
+  if tar -C / --exclude=mnt -cf - . | tar -C /mnt/ -xf - ; then
+    mkdir /mnt/mnt
+    exec /sbin/switch_root mnt /sbin/init
+  fi
+fi
+exec /sbin/init
