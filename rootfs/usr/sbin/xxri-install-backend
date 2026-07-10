@@ -1,0 +1,324 @@
+#!/bin/busybox ash
+# xxri-install-backend - installation engine for the xxri OS Lite installer.
+#
+# The graphical installer (xxri-installer) is a pure frontend: every disk
+# operation goes through this backend.  The system-copy step is delegated
+# unchanged to /usr/sbin/install2disk (the Phase 1-3 installer), so the
+# writable-ext4 / XXRIROOT / persistence architecture is untouched.
+#
+# Subcommands
+#   list-disks              DISK|/dev/sda|Model|SizeMiB|removable|fs-summary
+#   list-parts              PART|/dev/sda1|SizeMiB|fstype|label
+#   run <config-file>       perform the installation
+#
+# run streams a machine protocol on stdout (one record per line):
+#   P|<percent>|<current operation>     progress update
+#   L|<text>                            log detail
+#   E|<message>                         fatal error (backend has cleaned up)
+#   DONE|<root-uuid>                    success
+#
+# Config file (sh syntax):
+#   MODE=auto|manual        auto: whole DISK is repartitioned; manual: PART
+#   DISK=/dev/sdX           (auto)
+#   PART=/dev/sdX1          (manual)
+#   USERNAME= PASSWORD= HOSTNAME= AUTOLOGIN=1|0
+#   TZSTR=WIB-7  LANGUAGE=en_US  KEYMAP=us
+
+fail() { echo "E|$1"; cleanup; exit 1; }
+say()  { echo "P|$1|$2"; }
+log()  { echo "L|$1"; }
+
+MNT=""
+cleanup() {
+	[ -n "$MNT" ] && grep -q " $MNT " /proc/mounts && umount "$MNT" 2>/dev/null
+	[ -n "$MNT" ] && rmdir "$MNT" 2>/dev/null
+}
+
+# ---------------------------------------------------------------- disks --
+disk_model() {
+	m="$(cat /sys/block/$1/device/model 2>/dev/null | tr -s ' ' | sed 's/^ //;s/ $//')"
+	v="$(cat /sys/block/$1/device/vendor 2>/dev/null | tr -s ' ' | sed 's/^ //;s/ $//')"
+	case "$m" in "$v"*) v="";; esac
+	echo "${v:+$v }${m:-Disk}"
+}
+
+disk_mib() {
+	s=$(cat /sys/block/$1/size 2>/dev/null || echo 0)
+	echo $(( s / 2048 ))
+}
+
+fs_summary() { # whole-disk fs summary from its partitions
+	out=""
+	for p in /sys/block/$1/$1*; do
+		[ -d "$p" ] || continue
+		t="$(blkid -o export /dev/${p##*/} 2>/dev/null | awk -F= '/^TYPE/{print $2}')"
+		[ -n "$t" ] && out="${out:+$out,}$t"
+	done
+	[ -n "$out" ] || out="empty"
+	echo "$out"
+}
+
+list_disks() {
+	for b in /sys/block/*; do
+		d=${b##*/}
+		case "$d" in loop*|ram*|sr*|fd*|zram*|dm-*) continue;; esac
+		[ "$(cat $b/size 2>/dev/null || echo 0)" -gt 0 ] || continue
+		rm=$(cat $b/removable 2>/dev/null || echo 0)
+		echo "DISK|/dev/$d|$(disk_model $d)|$(disk_mib $d)|$rm|$(fs_summary $d)"
+	done
+}
+
+list_parts() {
+	for b in /sys/block/*; do
+		d=${b##*/}
+		case "$d" in loop*|ram*|sr*|fd*|zram*|dm-*) continue;; esac
+		for p in $b/$d*; do
+			[ -d "$p" ] || continue
+			pn=${p##*/}
+			s=$(cat $p/size 2>/dev/null || echo 0)
+			eval "$(blkid -o export /dev/$pn 2>/dev/null | grep -E '^(TYPE|LABEL)=' )"
+			echo "PART|/dev/$pn|$(( s / 2048 ))|${TYPE:-none}|${LABEL:-}"
+			TYPE=""; LABEL=""
+		done
+	done
+}
+
+# ------------------------------------------------------------ partition --
+part_of_disk() { # first partition node name for a disk
+	case "$1" in
+		*nvme*|*mmcblk*) echo "${1}p1" ;;
+		*) echo "${1}1" ;;
+	esac
+}
+
+auto_partition() { # $1 = /dev/sdX  -> creates single bootable primary
+	say 6 "Creating partition table on $1"
+	# o=new DOS table; n p 1 <first> <last> = whole disk; a 1 = bootable
+	# (busybox fdisk always prompts for the partition number); w=write
+	printf 'o\nn\np\n1\n\n\na\n1\nw\n' | fdisk "$1" >/dev/null 2>&1
+	sync
+	AUTOPART="$(part_of_disk ${1##*/})"
+	AUTOPART="/dev/$AUTOPART"
+	i=0
+	while [ ! -b "$AUTOPART" ] && [ $i -lt 40 ]; do
+		mdev -s 2>/dev/null
+		sleep 0.25
+		i=$((i+1))
+	done
+	[ -b "$AUTOPART" ] || fail "partition $AUTOPART did not appear after partitioning"
+}
+
+set_bootflag() { # $1 disk, $2 partnum - idempotent ('a' is a toggle)
+	PDEV="$(part_of_disk ${1##*/})"; PDEV="/dev/${PDEV%1}$2"
+	fdisk -l "$1" 2>/dev/null | awk -v p="$PDEV" '$1==p && $2=="*"{f=1} END{exit !f}' \
+		&& return 0
+	printf 'a\n%s\nw\n' "$2" | fdisk "$1" >/dev/null 2>&1 || true
+	sync
+}
+
+# ------------------------------------------------------------- install --
+format_target() { # $1 partition - explicit features: extlinux (syslinux
+	# 6.03) cannot read metadata_csum/64bit/orphan_file filesystems, and
+	# the bootloader lives inside this filesystem.
+	mkfs.ext4 -F -q -L XXRIROOT \
+		-O ^metadata_csum,^metadata_csum_seed,^64bit,^orphan_file \
+		"$1" 2>/tmp/xxri-mkfs.err || fail "mkfs.ext4 failed on $1"
+	sync
+}
+
+copy_system() { # $1 partition; delegates to install2disk with df progress
+	SRC_KB=$(df -k / | awk 'NR==2{print $3}')
+	[ "$SRC_KB" -gt 0 ] || SRC_KB=1
+	say 14 "Copying system files"
+	/usr/sbin/install2disk "$1" --yes > /tmp/xxri-i2d.log 2>&1 &
+	I2D=$!
+	while kill -0 $I2D 2>/dev/null; do
+		M=$(awk '$2 ~ /^\/mnt\/install2disk/ {print $2; exit}' /proc/mounts)
+		if [ -n "$M" ]; then
+			USED=$(df -k "$M" 2>/dev/null | awk 'NR==2{print $3}')
+			[ -n "$USED" ] && [ "$USED" -gt 0 ] && {
+				pct=$(( 14 + USED * 62 / SRC_KB ))
+				[ $pct -gt 76 ] && pct=76
+				say $pct "Copying system files"
+			}
+		fi
+		sleep 1
+	done
+	wait $I2D
+	RC=$?
+	if [ $RC -ne 0 ]; then
+		log "$(tail -3 /tmp/xxri-i2d.log | tr '\n' ' ')"
+		fail "system copy failed (install2disk exit $RC)"
+	fi
+	say 78 "System files copied"
+}
+
+mount_target() {
+	MNT="/mnt/xxri-target.$$"
+	mkdir -p "$MNT"
+	mount -o rw "$1" "$MNT" || fail "cannot mount $1 for configuration"
+}
+
+configure_user() {
+	say 80 "Creating your account"
+	OLDUSER="xxri"
+	[ -s "$MNT/etc/sysconfig/tcuser" ] && read OLDUSER < "$MNT/etc/sysconfig/tcuser"
+	NEWUSER="${USERNAME:-xxri}"
+	if [ "$NEWUSER" != "$OLDUSER" ]; then
+		sed -i "s|^$OLDUSER:|$NEWUSER:|; s|/home/$OLDUSER|/home/$NEWUSER|" "$MNT/etc/passwd"
+		sed -i "s|^$OLDUSER:|$NEWUSER:|" "$MNT/etc/shadow"
+		sed -i "s|\b$OLDUSER\b|$NEWUSER|g" "$MNT/etc/group"
+		[ -d "$MNT/home/$OLDUSER" ] && mv "$MNT/home/$OLDUSER" "$MNT/home/$NEWUSER"
+		echo "$NEWUSER" > "$MNT/etc/sysconfig/tcuser"
+		# sudo rights follow the account (replaces the live-user rule)
+		sed -i "s|^$OLDUSER\b|$NEWUSER|" "$MNT/etc/sudoers" 2>/dev/null
+	fi
+	mkdir -p "$MNT/home/$NEWUSER"
+	if [ -n "$PASSWORD" ]; then
+		echo "$NEWUSER:$PASSWORD" | chroot "$MNT" /usr/sbin/chpasswd -m 2>/dev/null \
+			|| fail "could not set the account password"
+	fi
+	if [ "${AUTOLOGIN:-1}" = "1" ]; then
+		rm -f "$MNT/etc/sysconfig/noautologin" "$MNT/etc/sysconfig/noautologin.persist"
+	else
+		# root/.profile skips autologin when this file is non-empty; it
+		# truncates it each time, so bootsync re-arms it from the flag.
+		echo manual > "$MNT/etc/sysconfig/noautologin"
+		touch "$MNT/etc/sysconfig/noautologin.persist"
+		grep -q noautologin.persist "$MNT/opt/bootsync.sh" 2>/dev/null || cat >> "$MNT/opt/bootsync.sh" <<'EOF'
+
+# xxri-installer: permanent "ask for login" choice.
+[ -f /etc/sysconfig/noautologin.persist ] && echo manual > /etc/sysconfig/noautologin
+EOF
+	fi
+}
+
+configure_system() {
+	say 84 "Applying hostname and locale"
+	H="${HOSTNAME:-xxri}"
+	echo "$H" > "$MNT/etc/hostname"
+	if grep -q '^127.0.0.1' "$MNT/etc/hosts" 2>/dev/null; then
+		sed -i "s|^127.0.0.1.*|127.0.0.1    $H localhost|" "$MNT/etc/hosts"
+	else
+		echo "127.0.0.1    $H localhost" >> "$MNT/etc/hosts"
+	fi
+	[ -n "$TZSTR" ]    && echo "TZ=$TZSTR" > "$MNT/etc/sysconfig/timezone"
+	[ -n "$LANGUAGE" ] && echo "LANG=$LANGUAGE" > "$MNT/etc/sysconfig/language"
+	[ -n "$KEYMAP" ]   && echo "KEYMAP=$KEYMAP" > "$MNT/etc/sysconfig/keymap"
+}
+
+find_kernel_src() {
+	# live ISO: the boot medium is mounted and /etc/sysconfig/cde points
+	# into it; installed system: /boot on the root fs.
+	if [ -s /etc/sysconfig/cde ]; then
+		CDE="$(cat /etc/sysconfig/cde)"
+		B="$(dirname "$CDE")/boot"
+		[ -f "$B/vmlinuz" ] && [ -f "$B/core.gz" ] && { echo "$B"; return; }
+	fi
+	[ -f /boot/vmlinuz ] && [ -f /boot/core.gz ] && { echo /boot; return; }
+	for m in /mnt/*/boot; do
+		[ -f "$m/vmlinuz" ] && [ -f "$m/core.gz" ] && { echo "$m"; return; }
+	done
+	echo ""
+}
+
+install_bootloader() { # $1 partition, $2 disk, $3 partnum
+	say 88 "Installing bootloader (extlinux)"
+	KSRC="$(find_kernel_src)"
+	[ -n "$KSRC" ] || fail "cannot locate vmlinuz/core.gz to install"
+	mkdir -p "$MNT/boot/extlinux"
+	cp -f "$KSRC/vmlinuz" "$MNT/boot/vmlinuz" || fail "kernel copy failed"
+	cp -f "$KSRC/core.gz" "$MNT/boot/core.gz" || fail "initrd copy failed"
+	cp -f /usr/local/share/syslinux/menu.c32 \
+	      /usr/local/share/syslinux/libutil.c32 \
+	      /usr/local/share/syslinux/libcom32.c32 "$MNT/boot/extlinux/"
+	cat > "$MNT/boot/extlinux/extlinux.conf" <<EOF
+DEFAULT xxri
+UI menu.c32
+PROMPT 0
+TIMEOUT 30
+
+MENU TITLE xxri OS Lite
+MENU COLOR screen       37;40   #80EFEDF8 #00000000 std
+MENU COLOR border       35;40   #FFED6CE0 #00000000 std
+MENU COLOR title        35;1;40 #FFED6CE0 #00000000 std
+MENU COLOR unsel        37;40   #FFF2EFFC #00000000 std
+MENU COLOR sel          37;45;1 #FFFFFFFF #FF8371F7 all
+MENU COLOR hotkey       35;1;40 #FFED6CE0 #00000000 std
+MENU COLOR hotsel       37;45;1 #FFFFC0F2 #FF8371F7 all
+MENU COLOR tabmsg       34;40   #FF9C8EF9 #00000000 std
+MENU COLOR timeout_msg  34;40   #FF9C8EF9 #00000000 std
+MENU COLOR timeout      35;1;40 #FFED6CE0 #00000000 std
+
+LABEL xxri
+MENU LABEL xxri OS Lite
+KERNEL /boot/vmlinuz
+INITRD /boot/core.gz
+APPEND loglevel=3
+
+LABEL xxri-verbose
+MENU LABEL xxri OS Lite (verbose boot)
+KERNEL /boot/vmlinuz
+INITRD /boot/core.gz
+APPEND loglevel=6
+EOF
+	/usr/local/sbin/extlinux --install "$MNT/boot/extlinux" >/dev/null 2>&1 \
+		|| fail "extlinux installation failed"
+	say 94 "Writing MBR boot code"
+	dd if=/usr/local/share/syslinux/mbr.bin of="$2" bs=440 count=1 conv=notrunc 2>/dev/null \
+		|| fail "MBR write failed on $2"
+	set_bootflag "$2" "$3"
+}
+
+# ------------------------------------------------------------------ run --
+run_install() {
+	[ -r "$1" ] || fail "config file missing"
+	. "$1"
+	[ "$(id -u)" = 0 ] || fail "backend must run as root"
+
+	if [ "$MODE" = "auto" ]; then
+		[ -b "$DISK" ] || fail "target disk $DISK not found"
+		# refuse to nuke the disk we are running from
+		LIVE=$(awk '$2=="/" {print $1}' /proc/mounts)
+		case "$LIVE" in "$DISK"*) fail "cannot install onto the running system disk";; esac
+		for p in $(awk -v d="$DISK" '$1 ~ d {print $1}' /proc/mounts); do
+			umount "$p" 2>/dev/null
+		done
+		say 3 "Preparing $DISK"
+		auto_partition "$DISK"
+		PART="$AUTOPART"
+		DISKDEV="$DISK"; PARTNUM=1
+	else
+		[ -b "$PART" ] || fail "target partition $PART not found"
+		case "$PART" in
+			*nvme*p[0-9]*|*mmcblk*p[0-9]*) DISKDEV="${PART%p[0-9]*}"; PARTNUM="${PART##*p}" ;;
+			*) DISKDEV="$(echo "$PART" | sed 's/[0-9]*$//')"; PARTNUM="$(echo "$PART" | sed 's/^.*[^0-9]//')" ;;
+		esac
+		LIVE=$(awk '$2=="/" {print $1}' /proc/mounts)
+		[ "$LIVE" = "$PART" ] && fail "cannot install onto the running root partition"
+		umount "$PART" 2>/dev/null
+	fi
+
+	say 10 "Formatting $PART (ext4, label XXRIROOT)"
+	format_target "$PART"
+	copy_system "$PART"
+
+	mount_target "$PART"
+	configure_user
+	configure_system
+	install_bootloader "$PART" "$DISKDEV" "$PARTNUM"
+
+	say 97 "Finalizing"
+	sync
+	UUID="$(blkid -o export "$PART" 2>/dev/null | awk -F= '/^UUID/{print $2}')"
+	cleanup
+	say 100 "Installation complete"
+	echo "DONE|$UUID"
+}
+
+case "$1" in
+	list-disks) list_disks ;;
+	list-parts) list_parts ;;
+	run) shift; run_install "$1" ;;
+	*) echo "usage: xxri-install-backend list-disks|list-parts|run <cfg>" >&2; exit 1 ;;
+esac
