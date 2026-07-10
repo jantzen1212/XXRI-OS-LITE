@@ -1,0 +1,477 @@
+#!/bin/busybox ash
+# xxri-app - native AppImage runtime for xxri OS Lite (Phase 6).
+#
+# The single backend for everything AppImage: detection, permission
+# helper, launching, desktop integration, registry and removal.  The
+# future Software Center / Updates / Installed-Apps pages call these
+# same subcommands instead of re-implementing anything.
+#
+#   xxri-app open <file>          full flow: perm -> integrate -> launch
+#   xxri-app launch <id|file>     mount + run (friendly error dialogs)
+#   xxri-app integrate <file>     extract icon/desktop, register, move
+#   xxri-app remove <id> [--purge]   clean removal (--purge deletes file)
+#   xxri-app list                 registry table (ID|NAME|VERSION|FILE)
+#   xxri-app info <id>            full registry record
+#   xxri-app watch                folder watcher (started by the session)
+#
+# No FUSE required: the embedded squashfs (type 2) or ISO9660 (type 1)
+# payload is loop-mounted read-only with the same kernel machinery the
+# xxri package system already uses.  All root operations go through
+# sudo (the desktop user is NOPASSWD, exactly like xxri-pkg).
+
+REG_DIR=/usr/local/share/xxri-apps
+APP_DIRS_SYS="/opt/appimages"
+LOG=/tmp/xxri-app.log
+DIALOG=/usr/local/bin/xxri-dialog
+
+log() { echo "[$(date '+%H:%M:%S')] $*" >> "$LOG"; }
+
+dlg() { # mode title body [primary secondary] -> exit code of dialog
+	m="$1"; t="$2"; b="$(printf '%b' "$3")"
+	if [ -n "$DISPLAY" ] && [ -x "$DIALOG" ]; then
+		# pass only the buttons that were actually given, so info/error
+		# dialogs never render an empty extra button.
+		if   [ -n "$5" ]; then "$DIALOG" "$m" "$t" "$b" "$4" "$5"
+		elif [ -n "$4" ]; then "$DIALOG" "$m" "$t" "$b" "$4"
+		else                   "$DIALOG" "$m" "$t" "$b"
+		fi
+		return $?
+	fi
+	# headless fallback (never raw errors on the desktop path)
+	echo "xxri-app: $t: $b" >&2
+	[ "$m" = "ask" ] && return 1
+	return 0
+}
+
+# busybox on xxri has no 'stat' applet; use portable substitutes.
+fsize() { wc -c < "$1" 2>/dev/null; }
+fkey()  { ls -dln "$1" 2>/dev/null | awk '{print $5"-"$6"-"$7"-"$8}'; }
+
+user_home() {
+	U="$(id -un)"
+	[ "$U" = root ] && [ -s /etc/sysconfig/tcuser ] && U="$(cat /etc/sysconfig/tcuser)"
+	eval echo "~$U"
+}
+
+# ----------------------------------------------------------- id helpers --
+sanitize() { echo "$1" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9._-]/-/g; s/--*/-/g; s/^-//; s/-$//'; }
+
+id_of_file() { # default id from filename
+	b="${1##*/}"
+	b="${b%.AppImage}"; b="${b%.appimage}"
+	b="$(echo "$b" | sed 's/[-_.]\(x86_64\|i[3-6]86\|amd64\|aarch64\|armhf\)$//')"
+	sanitize "$b"
+}
+
+reg_get() { # id key
+	[ -f "$REG_DIR/$1.reg" ] && sed -n "s/^$2=//p" "$REG_DIR/$1.reg" | head -1
+}
+reg_find_by_file() { # path -> id
+	for r in "$REG_DIR"/*.reg; do
+		[ -f "$r" ] || continue
+		f="$(sed -n 's/^FILE=//p' "$r" | head -1)"
+		[ "$f" = "$1" ] && { basename "$r" .reg; return 0; }
+	done
+	return 1
+}
+
+# ------------------------------------------------------- ELF inspection --
+byte_at() { hexdump -s "$2" -n 1 -e '1/1 "%u"' "$1" 2>/dev/null; }
+
+check_magic() { # file -> 0 if ELF
+	[ "$(byte_at "$1" 0)" = 127 ] || return 1
+	[ "$(byte_at "$1" 1)" = 69 ]  || return 1   # E
+	[ "$(byte_at "$1" 2)" = 76 ]  || return 1   # L
+	[ "$(byte_at "$1" 3)" = 70 ]  || return 1   # F
+	return 0
+}
+elf_machine() { # file -> e_machine decimal
+	lo="$(byte_at "$1" 18)"; hi="$(byte_at "$1" 19)"
+	echo $(( hi * 256 + lo ))
+}
+elf_class() { byte_at "$1" 4; }   # 1=ELF32 2=ELF64
+
+payload_offset() { # file -> squashfs offset (ELF section-header math)
+	if [ "$(elf_class "$1")" = 1 ]; then
+		shoff=$(hexdump -s 32 -n 4 -e '1/4 "%u"' "$1")
+		shsz=$(hexdump  -s 46 -n 2 -e '1/2 "%u"' "$1")
+		shnum=$(hexdump -s 48 -n 2 -e '1/2 "%u"' "$1")
+	else
+		shoff=$(hexdump -s 40 -n 8 -e '1/8 "%u"' "$1")
+		shsz=$(hexdump  -s 58 -n 2 -e '1/2 "%u"' "$1")
+		shnum=$(hexdump -s 60 -n 2 -e '1/2 "%u"' "$1")
+	fi
+	[ -n "$shoff" ] && [ -n "$shnum" ] || return 1
+	echo $(( shoff + shsz * shnum ))
+}
+payload_is_squash() { # file offset
+	m="$(hexdump -s "$2" -n 4 -e '4/1 "%c"' "$1" 2>/dev/null)"
+	[ "$m" = "hsqs" ]
+}
+
+# ----------------------------------------------------------- validation --
+# sets: VAL_ERR_TITLE VAL_ERR_BODY on failure
+validate() { # file
+	VAL_ERR_TITLE=""; VAL_ERR_BODY=""
+	sz="$(fsize "$1")"; [ -n "$sz" ] || sz=0
+	if [ ! -r "$1" ] || [ "$sz" -lt 4096 ]; then
+		VAL_ERR_TITLE="Application cannot be opened"
+		VAL_ERR_BODY="The file looks incomplete or damaged. If it is still downloading, wait for the download to finish."
+		return 1
+	fi
+	if ! check_magic "$1"; then
+		VAL_ERR_TITLE="Not a valid application"
+		VAL_ERR_BODY="This file is not a usable AppImage. It may be corrupted - try downloading it again."
+		return 1
+	fi
+	M="$(elf_machine "$1")"
+	if [ "$M" != 3 ]; then
+		case "$M" in
+			62)  A="64-bit Intel/AMD (x86_64)";;
+			40)  A="32-bit ARM";;
+			183) A="64-bit ARM (aarch64)";;
+			*)   A="an unsupported processor";;
+		esac
+		VAL_ERR_TITLE="Built for a different computer"
+		VAL_ERR_BODY="This application was built for $A. xxri OS Lite runs 32-bit Intel (i686) software, so it cannot start here. Look for an i686 build of the same application."
+		return 1
+	fi
+	return 0
+}
+
+# -------------------------------------------------------------- mounting --
+do_mount() { # file -> echoes mountpoint
+	f="$1"
+	off="$(payload_offset "$f")" || off=0
+	[ -n "$off" ] || off=0
+	mp="/tmp/xxri-app/mnt.$$.$(date +%s)"
+	mkdir -p "$mp"
+	# ensure loop + squashfs are available (installed systems don't
+	# loop-mount at boot, so these may not be loaded yet)
+	sudo modprobe loop 2>/dev/null
+	sudo modprobe squashfs 2>/dev/null
+	# Type 2 (squashfs at offset): set up a loop device at that offset and
+	# mount it read-only.  losetup -o is more portable than mount offset=
+	# on busybox, and this is the same loop+squashfs path tce already uses.
+	if payload_is_squash "$f" "$off"; then
+		loop="$(sudo losetup -f 2>/dev/null)"
+		if [ -n "$loop" ] && sudo losetup -o "$off" "$loop" "$f" 2>>"$LOG"; then
+			if sudo mount -r -t squashfs "$loop" "$mp" 2>>"$LOG"; then
+				echo "$loop" > "$mp.loop"
+				echo "$mp"; return 0
+			fi
+			sudo losetup -d "$loop" 2>/dev/null
+		fi
+	fi
+	# Type 1 (ISO9660) or unusual layout: whole-file loop mount.
+	if sudo mount -o loop,ro -t iso9660 "$f" "$mp" 2>>"$LOG"; then
+		echo "$mp"; return 0
+	fi
+	rmdir "$mp" 2>/dev/null
+	return 1
+}
+do_umount() {
+	sudo umount "$1" 2>>"$LOG"
+	if [ -f "$1.loop" ]; then
+		sudo losetup -d "$(cat "$1.loop")" 2>/dev/null
+		rm -f "$1.loop"
+	fi
+	rmdir "$1" 2>/dev/null
+	rmdir /tmp/xxri-app 2>/dev/null
+}
+
+# ---------------------------------------------------------------- launch --
+cmd_launch() { # id or file
+	f="$1"
+	id=""
+	if [ -f "$REG_DIR/$1.reg" ]; then
+		id="$1"
+		f="$(reg_get "$1" FILE)"
+	fi
+	if [ ! -e "$f" ]; then
+		dlg error "Application not found" "The application file is missing:\n$f\n\nIt may have been moved or deleted. Remove the entry and integrate the AppImage again."
+		return 1
+	fi
+	if ! validate "$f"; then
+		dlg error "$VAL_ERR_TITLE" "$VAL_ERR_BODY"
+		return 1
+	fi
+	[ -x "$f" ] || chmod +x "$f" 2>/dev/null || sudo chmod +x "$f" 2>>"$LOG"
+	mp="$(do_mount "$f")"
+	if [ -z "$mp" ]; then
+		dlg error "Application cannot be opened" "The application package could not be read. The file may be corrupted - try downloading it again."
+		return 1
+	fi
+	if [ ! -x "$mp/AppRun" ] && [ ! -f "$mp/AppRun" ]; then
+		do_umount "$mp"
+		dlg error "Damaged application" "This AppImage is missing its startup program (AppRun). The package appears to be damaged."
+		return 1
+	fi
+	[ -n "$id" ] || id="$(reg_find_by_file "$f")" 2>/dev/null
+	if [ -n "$id" ] && [ -f "$REG_DIR/$id.reg" ]; then
+		sudo sh -c "sed -i 's|^LAST_LAUNCH=.*|LAST_LAUNCH=$(date '+%Y-%m-%d %H:%M')|' '$REG_DIR/$id.reg'"
+	fi
+	log "launch $f (mount $mp)"
+	(
+		cd "$(user_home)" || cd /
+		APPDIR="$mp" APPIMAGE="$f" "$mp/AppRun" >>"$LOG" 2>&1
+		RC=$?
+		log "exit $RC for $f"
+		do_umount "$mp"
+		if [ $RC -ge 126 ] && [ $RC -ne 130 ] && [ $RC -ne 143 ]; then
+			dlg error "Application error" "The application closed unexpectedly. It may not be compatible with xxri OS Lite."
+		fi
+	) &
+	return 0
+}
+
+# ------------------------------------------------------------- integrate --
+extract_field() { # desktopfile key
+	sed -n "s/^$2=//p" "$1" 2>/dev/null | head -1
+}
+
+cmd_integrate() { # file [--quiet]
+	f="$1"
+	if ! validate "$f"; then
+		dlg error "$VAL_ERR_TITLE" "$VAL_ERR_BODY"
+		return 1
+	fi
+	mp="$(do_mount "$f")"
+	if [ -z "$mp" ]; then
+		dlg error "Application cannot be opened" "The application package could not be read. The file may be corrupted - try downloading it again."
+		return 1
+	fi
+
+	src_desktop="$(ls "$mp"/*.desktop 2>/dev/null | head -1)"
+	name=""; version=""; cats="Utility;"
+	if [ -n "$src_desktop" ]; then
+		name="$(extract_field "$src_desktop" Name)"
+		version="$(extract_field "$src_desktop" X-AppImage-Version)"
+		c="$(extract_field "$src_desktop" Categories)"; [ -n "$c" ] && cats="$c"
+	fi
+	[ -n "$name" ] || { name="${f##*/}"; name="${name%.AppImage}"; name="${name%.appimage}"; }
+	[ -n "$version" ] || version="$(echo "${f##*/}" | sed -n 's/.*[-_]\([0-9][0-9a-z.]*\)[-.].*/\1/p')"
+	[ -n "$version" ] || version="unknown"
+	id="$(id_of_file "$f")"
+	[ -n "$id" ] || id="app-$(date +%s)"
+
+	# icon: .DirIcon or Icon=<name>.png from the payload root
+	icon_src=""
+	[ -f "$mp/.DirIcon" ] && icon_src="$mp/.DirIcon"
+	if [ -z "$icon_src" ] && [ -n "$src_desktop" ]; then
+		ic="$(extract_field "$src_desktop" Icon)"
+		[ -n "$ic" ] && [ -f "$mp/$ic.png" ] && icon_src="$mp/$ic.png"
+	fi
+	[ -z "$icon_src" ] && icon_src="$(ls "$mp"/*.png 2>/dev/null | head -1)"
+
+	# keep the user's folders tidy: Downloads -> ~/Applications
+	HOMEDIR="$(user_home)"
+	dest="$f"
+	case "$f" in
+		"$HOMEDIR"/Downloads/*)
+			mkdir -p "$HOMEDIR/Applications"
+			dest="$HOMEDIR/Applications/${f##*/}"
+			[ -e "$dest" ] && dest="$HOMEDIR/Applications/$(date +%s)-${f##*/}"
+			if mv "$f" "$dest" 2>>"$LOG"; then f="$dest"; else dest="$f"; fi
+		;;
+	esac
+	chmod +x "$f" 2>/dev/null || sudo chmod +x "$f" 2>>"$LOG"
+
+	icon_path="/usr/local/share/pixmaps/xxri-app-$id.png"
+	if [ -n "$icon_src" ]; then
+		sudo cp -f "$icon_src" "$icon_path" 2>>"$LOG" || icon_src=""
+	fi
+	[ -n "$icon_src" ] || { sudo cp -f /usr/local/share/pixmaps/xxri-app-generic.png "$icon_path" 2>>"$LOG"; }
+
+	desktop_path="/usr/local/share/applications/xxri-app-$id.desktop"
+	sudo sh -c "cat > '$desktop_path'" <<EOF
+[Desktop Entry]
+Name=$name
+Exec=xxri-app launch $id
+Type=Application
+Icon=xxri-app-$id
+X-FullPathIcon=$icon_path
+X-XXRI-AppImage=$f
+Categories=$cats
+EOF
+
+	sudo mkdir -p "$REG_DIR"
+	sudo sh -c "cat > '$REG_DIR/$id.reg'" <<EOF
+ID=$id
+NAME=$name
+FILE=$f
+VERSION=$version
+ICON=$icon_path
+DESKTOP=$desktop_path
+LOCATION=${f%/*}
+INSTALLED=$(date '+%Y-%m-%d %H:%M')
+LAST_LAUNCH=never
+INTEGRATED=1
+EOF
+	do_umount "$mp"
+
+	# register with the desktop (menu + dock) and reload the dock
+	desktop.sh "xxri-app-$id" >/dev/null 2>&1
+	[ -n "$DISPLAY" ] && wbar.sh >/dev/null 2>&1
+	log "integrated $id ($name $version) -> $desktop_path"
+	echo "$id"
+	return 0
+}
+
+mark_declined() { # file
+	id="$(id_of_file "$1")"
+	sudo mkdir -p "$REG_DIR"
+	sudo sh -c "cat > '$REG_DIR/$id.reg'" <<EOF
+ID=$id
+NAME=${1##*/}
+FILE=$1
+VERSION=unknown
+ICON=
+DESKTOP=
+LOCATION=${1%/*}
+INSTALLED=$(date '+%Y-%m-%d %H:%M')
+LAST_LAUNCH=never
+INTEGRATED=0
+EOF
+}
+
+# ------------------------------------------------------------------ open --
+cmd_open() { # file : the double-click / detection entry point
+	f="$1"
+	[ -e "$f" ] || { dlg error "File not found" "$f"; return 1; }
+	if ! validate "$f"; then
+		dlg error "$VAL_ERR_TITLE" "$VAL_ERR_BODY"
+		return 1
+	fi
+	base="${f##*/}"
+	if [ ! -x "$f" ]; then
+		if dlg ask "Make this application executable?" \
+			"\"$base\" is an application, but it does not have permission to run yet." \
+			"Make executable" "Cancel"; then
+			chmod +x "$f" 2>/dev/null || sudo chmod +x "$f" 2>>"$LOG"
+		else
+			return 1
+		fi
+	fi
+	id="$(reg_find_by_file "$f")" || id=""
+	if [ -z "$id" ]; then
+		guess="$(id_of_file "$f")"
+		[ -f "$REG_DIR/$guess.reg" ] && id="$guess"
+	fi
+	if [ -z "$id" ]; then
+		if dlg ask "Integrate this application?" \
+			"Do you want to integrate \"$base\" into xxri OS Lite? It will appear in the dock and the application menu, and it will be moved to your Applications folder." \
+			"Integrate" "Just run it"; then
+			id="$(cmd_integrate "$f" | tail -1)"
+			[ -n "$id" ] || return 1
+			cmd_launch "$id"
+			return $?
+		else
+			mark_declined "$f"
+		fi
+	fi
+	if [ -n "$id" ] && [ -f "$REG_DIR/$id.reg" ] && [ "$(reg_get "$id" INTEGRATED)" = 1 ]; then
+		cmd_launch "$id"
+	else
+		cmd_launch "$f"
+	fi
+}
+
+# ---------------------------------------------------------------- remove --
+cmd_remove() { # id [--purge]
+	id="$1"; purge="$2"
+	[ -f "$REG_DIR/$id.reg" ] || { echo "xxri-app: no such application: $id" >&2; return 1; }
+	f="$(reg_get "$id" FILE)"
+	dsk="$(reg_get "$id" DESKTOP)"
+	icon="$(reg_get "$id" ICON)"
+	name="$(reg_get "$id" NAME)"
+	HOMEDIR="$(user_home)"
+	# dock icon
+	wbar_rm_icon "xxri-app-$id" >/dev/null 2>&1
+	# flwm menu entry: remove ONLY this app's item (writeFLWMitem names the
+	# file after the app Name), never the whole menu.
+	[ -n "$name" ] && rm -f "$HOMEDIR/.wmx/Applications/$name" 2>/dev/null
+	[ -n "$dsk" ]  && sudo rm -f "$dsk"
+	[ -n "$icon" ] && sudo rm -f "$icon"
+	sudo rm -f "$REG_DIR/$id.reg"
+	if [ "$purge" = "--purge" ] && [ -n "$f" ] && [ -e "$f" ]; then
+		rm -f "$f" 2>/dev/null || sudo rm -f "$f"
+	fi
+	# refresh the running desktop without wiping other apps' entries
+	[ -n "$DISPLAY" ] && { flwm_restart >/dev/null 2>&1; wbar.sh >/dev/null 2>&1; }
+	log "removed $id${purge:+ (purged $f)}"
+	return 0
+}
+
+cmd_remove_ui() { # id : dialog-driven removal
+	id="$1"
+	name="$(reg_get "$id" NAME)"; [ -n "$name" ] || name="$id"
+	f="$(reg_get "$id" FILE)"
+	if dlg ask "Remove $name?" \
+		"This removes the application from the dock and menu. The AppImage file itself:\n$f" \
+		"Remove and delete file" "Keep the file"; then
+		cmd_remove "$id" --purge
+	else
+		cmd_remove "$id"
+	fi
+	dlg info "Application removed" "\"$name\" has been removed from xxri OS Lite."
+}
+
+# ------------------------------------------------------------------ list --
+cmd_list() {
+	for r in "$REG_DIR"/*.reg; do
+		[ -f "$r" ] || continue
+		id="$(basename "$r" .reg)"
+		[ "$(reg_get "$id" INTEGRATED)" = 1 ] || continue
+		echo "$id|$(reg_get "$id" NAME)|$(reg_get "$id" VERSION)|$(reg_get "$id" FILE)|$(reg_get "$id" LAST_LAUNCH)"
+	done
+}
+cmd_info() { [ -f "$REG_DIR/$1.reg" ] && cat "$REG_DIR/$1.reg"; }
+
+# ----------------------------------------------------------------- watch --
+seen_key() { fkey "$1"; }
+
+cmd_watch() {
+	HOMEDIR="$(user_home)"
+	SEEN_DIR="$HOMEDIR/.cache/xxri-app"
+	SEEN="$SEEN_DIR/seen"
+	mkdir -p "$SEEN_DIR" "$HOMEDIR/Applications" "$HOMEDIR/Downloads" 2>/dev/null
+	touch "$SEEN"
+	# pre-seed: everything present at session start is "known", except
+	# files that are not in the registry yet get one chance to be offered
+	while :; do
+		for d in "$HOMEDIR/Downloads" "$HOMEDIR/Applications" $APP_DIRS_SYS; do
+			[ -d "$d" ] || continue
+			for f in "$d"/*.AppImage "$d"/*.appimage; do
+				[ -f "$f" ] || continue
+				k="$(seen_key "$f"):$f"
+				grep -qF "$k" "$SEEN" 2>/dev/null && continue
+				# skip files still growing (download in progress)
+				s1="$(fsize "$f")"; sleep 2
+				s2="$(fsize "$f")"
+				[ "$s1" = "$s2" ] || continue
+				echo "$(seen_key "$f"):$f" >> "$SEEN"
+				reg_find_by_file "$f" >/dev/null 2>&1 && continue
+				g="$(id_of_file "$f")"
+				[ -f "$REG_DIR/$g.reg" ] && continue
+				log "watch: new AppImage $f"
+				cmd_open "$f"
+			done
+		done
+		sleep 4
+	done
+}
+
+# ------------------------------------------------------------------ main --
+mkdir -p /tmp/xxri-app 2>/dev/null
+case "$1" in
+	open)      shift; cmd_open "$1" ;;
+	launch)    shift; cmd_launch "$1" ;;
+	integrate) shift; cmd_integrate "$1" ;;
+	remove)    shift; cmd_remove "$@" ;;
+	remove-ui) shift; cmd_remove_ui "$1" ;;
+	list)      cmd_list ;;
+	info)      shift; cmd_info "$1" ;;
+	watch)     cmd_watch ;;
+	*) echo "usage: xxri-app open|launch|integrate|remove|remove-ui|list|info|watch" >&2; exit 1 ;;
+esac
