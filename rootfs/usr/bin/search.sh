@@ -1,5 +1,5 @@
 #!/bin/busybox ash
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 cd /tmp
 SEARCH="NAME"
@@ -11,7 +11,7 @@ fi
 [ -z "$1" ] && exit 1
 
 fetchtags() {
-	tce-fetch.sh tags.db.gz || exit 1
+	xxri-pkg-fetch.sh tags.db.gz || exit 1
 	gunzip -f tags.db.gz
 	touch tags.db
 }

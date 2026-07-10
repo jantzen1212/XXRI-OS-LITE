@@ -20,7 +20,8 @@ export PS1 PAGER FILEMGR EDITOR MANPAGER
 
 export BACKUP=1
 [ "`id -un`" = "`cat /etc/sysconfig/tcuser`" ] && echo "$BACKUP" | sudo tee /etc/sysconfig/backup >/dev/null 2>&1
-export FLWM_TITLEBAR_COLOR="58:7D:AA"
+# xxri OS Lite design system: light card titlebars (#FAF9FE)
+export FLWM_TITLEBAR_COLOR="FA:F9:FE"
 
 if [ -f "$HOME/.ashrc" ]; then
    export ENV="$HOME/.ashrc"

@@ -1,0 +1,56 @@
+# xxri OS Lite - GTK2 theme
+# Palette from the official design language: surface #EFEDF8, card #FAF9FE,
+# ink #1C1B24, accent #ED6CE0 -> #8371F7.
+
+gtk-font-name = "Avenir Next 10"
+gtk-icon-theme-name = "xxri"
+gtk-cursor-theme-name = "xxri-cursors"
+
+style "xxri-default" {
+  bg[NORMAL]        = "#EFEDF8"
+  bg[PRELIGHT]      = "#F7F5FC"
+  bg[ACTIVE]        = "#E3DFF2"
+  bg[INSENSITIVE]   = "#EFEDF8"
+  bg[SELECTED]      = "#8371F7"
+
+  fg[NORMAL]        = "#1C1B24"
+  fg[PRELIGHT]      = "#1C1B24"
+  fg[ACTIVE]        = "#1C1B24"
+  fg[INSENSITIVE]   = "#9A96AC"
+  fg[SELECTED]      = "#FFFFFF"
+
+  base[NORMAL]      = "#FFFFFF"
+  base[PRELIGHT]    = "#FAF9FE"
+  base[ACTIVE]      = "#E9E5F6"
+  base[INSENSITIVE] = "#F2F0F9"
+  base[SELECTED]    = "#8371F7"
+
+  text[NORMAL]      = "#1C1B24"
+  text[PRELIGHT]    = "#1C1B24"
+  text[ACTIVE]      = "#1C1B24"
+  text[INSENSITIVE] = "#9A96AC"
+  text[SELECTED]    = "#FFFFFF"
+
+  GtkButton::default_border = { 0, 0, 0, 0 }
+  GtkRange::trough_border = 0
+  GtkWidget::focus_line_width = 1
+  GtkMenu::horizontal-padding = 6
+  GtkMenu::vertical-padding = 6
+}
+
+style "xxri-menu" = "xxri-default" {
+  bg[NORMAL] = "#FAF9FE"
+  bg[PRELIGHT] = "#8371F7"
+  fg[PRELIGHT] = "#FFFFFF"
+  xthickness = 8
+  ythickness = 6
+}
+
+style "xxri-tooltip" = "xxri-default" {
+  bg[NORMAL] = "#1C1B24"
+  fg[NORMAL] = "#F2EFFC"
+}
+
+class "GtkWidget" style "xxri-default"
+widget_class "*<GtkMenu>*" style "xxri-menu"
+widget "gtk-tooltip*" style "xxri-tooltip"

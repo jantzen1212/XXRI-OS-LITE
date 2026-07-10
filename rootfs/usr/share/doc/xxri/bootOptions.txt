@@ -1,4 +1,4 @@
-Tiny Core accepts the following persistence options:
+xxri OS Lite accepts the following persistence options:
 
 tce={hda1|sda1}            Specify Restore TCE apps directory
 restore={hda1|sda1|floppy} Specify saved configuration location
@@ -25,7 +25,7 @@ nodhcp                     Skip the dhcp request at boot
 noutc                      BIOS is using localtime
 pause                      Pause at completion of boot messages
  
-Tiny Core accepts the following additional boot time options:
+xxri OS Lite accepts the following additional boot time options:
 
  Color            640x480     800x600      1024x768     1280x1024
    256    8 bit     769         771           773          775

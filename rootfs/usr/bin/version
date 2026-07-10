@@ -4,13 +4,13 @@
 #
 # Multiarch support added by bmarkus, 28.10.2013
 
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 RESULTS="$(getFullVer)"
 while getopts clsm OPTION
 do
   case ${OPTION} in
-    c) LATEST=`wget -q -O - $(cat /opt/tcemirror)/latest-$(getBuild) 2>/dev/null`
+    c) LATEST=`wget -q -O - $(cat /opt/xxri-mirror)/latest-$(getBuild) 2>/dev/null`
        if [ "$?" == 0 ]; then
        		RUNNING="${RESULTS##*-}"
        		if [ "$LATEST" != "$RUNNING" ]; then

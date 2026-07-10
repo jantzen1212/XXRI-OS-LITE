@@ -1,10 +1,10 @@
-NAME=TinyCore
+NAME="xxri OS Lite"
 VERSION="16.0"
-ID=tinycore
+ID=xxri
 VERSION_ID=16.0
-PRETTY_NAME="TinyCoreLinux 16.0"
+PRETTY_NAME="xxri OS Lite 16.0"
 ANSI_COLOR="0;34"
-CPE_NAME="cpe:/o:tinycore:tinycore_linux:16.0"
-HOME_URL="http://tinycorelinux.net/"
-SUPPORT_URL="http://forum.tinycorelinux.net/"
-BUG_REPORT_URL="http://forum.tinycorelinux.net/"
+CPE_NAME="cpe:/o:xxri:xxri_os_lite:16.0"
+HOME_URL="https://xxri-os.org/"
+SUPPORT_URL="https://xxri-os.org/support/"
+BUG_REPORT_URL="https://xxri-os.org/bugs/"

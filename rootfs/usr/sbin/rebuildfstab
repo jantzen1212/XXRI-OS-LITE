@@ -3,7 +3,7 @@
 # Changes by other authors over the years, see git
 # Larger rewrite by Richard A. Rost  March 5, 2023
 
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 
 PATH="/bin:/sbin:/usr/bin:/usr/sbin"

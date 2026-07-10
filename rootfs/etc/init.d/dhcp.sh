@@ -1,7 +1,7 @@
 #!/bin/sh
 # The DHCP portion is now separated out, in order to not slow the boot down
 # only to wait for slow network cards
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 
 # This waits until all devices have registered
 /sbin/udevadm settle --timeout=5

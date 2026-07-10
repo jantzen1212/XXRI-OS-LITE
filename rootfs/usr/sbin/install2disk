@@ -1,5 +1,5 @@
 #!/bin/busybox ash
-# install2disk - install the running Tiny Core-based system onto a disk
+# install2disk - install the running xxri-OS-Lite-based system onto a disk
 # partition as a traditional writable root filesystem.
 #
 # The installed system boots through the same kernel + core.gz pair; the
@@ -18,7 +18,7 @@
 # system).  Point your existing bootloader at the same vmlinuz and
 # core.gz used today and add the printed root= parameter.
 
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 checkroot
 
@@ -128,8 +128,8 @@ rm -f "$MNT/usr/local/tce.installed/"* 2>/dev/null
 # Persistent extension store: /tce on the installed root.  Copy the live
 # TCE directory (extensions + onboot.lst) so the installed system keeps
 # the same applications.
-TCUSER="tc"
-[ -s /etc/sysconfig/tcuser ] && read TCUSER < /etc/sysconfig/tcuser
+XXRI_USER="tc"
+[ -s /etc/sysconfig/tcuser ] && read XXRI_USER < /etc/sysconfig/tcuser
 LIVETCE="$(readlink /etc/sysconfig/tcedir 2>/dev/null)"
 mkdir -p "$MNT/tce/optional" "$MNT/tce/ondemand"
 if [ -n "$LIVETCE" ] && [ -d "$LIVETCE" ] && [ "$LIVETCE" != "/tce" ]; then
@@ -139,7 +139,7 @@ if [ -n "$LIVETCE" ] && [ -d "$LIVETCE" ] && [ "$LIVETCE" != "/tce" ]; then
 fi
 [ -f "$MNT/tce/onboot.lst" ] || touch "$MNT/tce/onboot.lst"
 rm -f "$MNT/tce/mydata.tgz" "$MNT/tce/mydata.tgz.bfe" 2>/dev/null
-chown -R "$TCUSER":staff "$MNT/tce" 2>/dev/null
+chown -R "$XXRI_USER":staff "$MNT/tce" 2>/dev/null
 chmod -R g+w "$MNT/tce" 2>/dev/null
 rm -f "$MNT/etc/sysconfig/tcedir"
 ln -sf /tce "$MNT/etc/sysconfig/tcedir"

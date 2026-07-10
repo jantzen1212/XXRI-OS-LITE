@@ -2,11 +2,11 @@
 # Set hostname
 # Originally a function contributed by henk.1955 
 # Now callable via /opt/bootsync.sh when no boot host= is specified.
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 HOSTNAME="$(getbootparam host 2>/dev/null)"
 [ -n "$HOSTNAME" ] || HOSTNAME="$1"
-[ -n "$HOSTNAME" ] || HOSTNAME="box"
+[ -n "$HOSTNAME" ] || HOSTNAME="xxri"
 echo -n "${GREEN}Setting hostname to ${MAGENTA}$HOSTNAME${NORMAL} "
 rm -f /etc/hostname
 echo $HOSTNAME >/etc/hostname

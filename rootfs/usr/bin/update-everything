@@ -14,7 +14,7 @@ export PATH
 main()
 {
 	rm -rf "$TMPDIR"; mkdir "$TMPDIR"; cd "$TMPDIR"
-	. /etc/init.d/tc-functions
+	. /etc/init.d/xxri-functions
 	getMirror
 
 	echo "Downloading and preparing databases..."
@@ -28,9 +28,9 @@ main()
 	if $DEP_FILES_CHANGED; then
 		echo "Stale .dep file(s) saved to /tmp/changed-depfiles"
 		echo "Building package database..."
-		tce-audit builddb
+		xxri-pkg-audit builddb
 		echo "Looking for missing dependencies..."
-		tce-audit fetchmissing
+		xxri-pkg-audit fetchmissing
 	fi
 
 	remove_deprecated_extensions
@@ -39,7 +39,7 @@ main()
 	read junk
 
 	echo "Updating extensions..."
-	tce-update --skip-dependency-check
+	xxri-pkg-update --skip-dependency-check
 
 	rm -rf "$TMPDIR"
 	exit 0

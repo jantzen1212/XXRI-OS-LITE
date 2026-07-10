@@ -1,5 +1,5 @@
 #!/bin/sh
-# RC Script for Tiny Core Linux
+# RC Script for xxri OS Lite
 # (c) Robert Shingledecker 2004-2012
 
 # Mount /proc.
@@ -13,5 +13,5 @@
 
 clear
 
-/etc/init.d/tc-config
+/etc/init.d/xxri-config
 

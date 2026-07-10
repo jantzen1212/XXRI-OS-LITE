@@ -9,6 +9,6 @@
 if [ -s /etc/hostname ]; then
 	/bin/hostname -F /etc/hostname
 else
-	/usr/bin/sethostname box
+	/usr/bin/sethostname xxri
 fi
 /opt/bootlocal.sh &
