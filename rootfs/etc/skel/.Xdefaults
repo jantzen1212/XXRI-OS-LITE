@@ -1,0 +1,47 @@
+! xxri OS Lite design system - X resources
+! Palette: surface #EFEDF8 / card #FAF9FE / ink #1C1B24
+!          accent gradient #ED6CE0 (pink) -> #8371F7 (purple) -> #2E7CF6 (blue)
+
+! ---- FLTK applications (dialogs, editor, control panel, popups) ----
+fltk*background: #EFEDF8
+fltk*foreground: #1C1B24
+fltk*scheme: gtk+
+Text*background: #FFFFFF
+Text*foreground: #1C1B24
+Text*selectBackground: #8371F7
+Text*selectForeground: #FFFFFF
+Xft.dpi: 96.0
+
+! ---- Terminal (aterm): dark glass panel from the design language ----
+Aterm*scrollBar: true
+Aterm*scrollBar_right: true
+Aterm*transparent: true
+Aterm*title: xxri Terminal
+Aterm*font: 9x15
+Aterm*boldFont: 9x15bold
+Aterm*saveLines: 2000
+Aterm*foreground: #F2EFFC
+Aterm*background: #16112B
+Aterm*shading: 35
+Aterm*tinting: #16112B
+Aterm*fading: 70
+Aterm*cursorColor: #ED6CE0
+Aterm*pointerColor: #8371F7
+Aterm*borderColor: #16112B
+! xxri terminal palette (normal 0-7 / bright 8-15)
+Aterm*color0: #16112B
+Aterm*color1: #F25E86
+Aterm*color2: #3FBF8F
+Aterm*color3: #F2A65E
+Aterm*color4: #2E7CF6
+Aterm*color5: #ED6CE0
+Aterm*color6: #46C8E0
+Aterm*color7: #E6E2F5
+Aterm*color8: #55506E
+Aterm*color9: #FF7FA0
+Aterm*color10: #5BDCA9
+Aterm*color11: #FFC07E
+Aterm*color12: #6FA5FF
+Aterm*color13: #F792EC
+Aterm*color14: #6FDFF2
+Aterm*color15: #FFFFFF

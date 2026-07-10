@@ -1,7 +1,7 @@
 #!/bin/busybox ash
 # /etc/init.d/rc.shutdown - used by /etc/inittab to shutdown the system.
 #
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 
 clear 
@@ -34,15 +34,15 @@ if [ -s /tmp/audit_marked.lst ]; then
    for F in `cat /tmp/audit_marked.lst`; do
       echo "${YELLOW}$F"
       rm -f "$F"*
-      FROMDIR=`dirname "$F"` && TCEDIR=${FROMDIR%/*}
+      FROMDIR=`dirname "$F"` && XXRI_PACKAGE_DIR=${FROMDIR%/*}
       EXTN=`basename "$F"`; APP=${EXTN%.tcz}
-      LIST="$TCEDIR"/copy2fs.lst; ONBOOT="${TCEDIR}/${ONBOOTNAME}"; XWBAR="$TCEDIR"/xwbar.lst
+      LIST="$XXRI_PACKAGE_DIR"/copy2fs.lst; ONBOOT="${XXRI_PACKAGE_DIR}/${ONBOOTNAME}"; XWBAR="$XXRI_PACKAGE_DIR"/xwbar.lst
       if grep -w "$EXTN" "$LIST" >/dev/null 2>&1; then sed -i '/'"$EXTN"'/d' "$LIST"; fi
       if grep -w "$EXTN" "$ONBOOT" >/dev/null 2>&1; then sed -i '/'"$EXTN"'/d' "$ONBOOT"; fi
       if grep -w "$EXTN" "$XWBAR" >/dev/null 2>&1; then sed -i '/'"$EXTN"'/d' "$XWBAR"; fi
       [ -s "$FROMDIR"/tce.db ] && rm -f "$FROMDIR"/tce.db
       [ -s "$FROMDIR"/tce.lst ] && rm -f "$FROMDIR"/tce.lst
-      rm -f "$TCEDIR"/ondemand/$APP* 2>/dev/null 
+      rm -f "$XXRI_PACKAGE_DIR"/ondemand/$APP* 2>/dev/null 
    done
    rm -f /tmp/audit_marked.lst
    sync; sleep 1; sync; sleep 1

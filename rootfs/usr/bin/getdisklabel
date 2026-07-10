@@ -1,5 +1,5 @@
 #!/bin/busybox ash
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 [ -n "$1" ] || exit 1
 DEVINFO="$(blkid -s LABEL $1)"

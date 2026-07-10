@@ -8,7 +8,7 @@ if [ -f "$NOAUTOLOGIN" ]; then
 else
 	if [ ! -f /etc/sysconfig/superuser ]; then 
 		clear
-		TCUSER="$(cat /etc/sysconfig/tcuser)"
-		exec /bin/login -f "$TCUSER"
+		XXRI_USER="$(cat /etc/sysconfig/tcuser)"
+		exec /bin/login -f "$XXRI_USER"
 	fi
 fi

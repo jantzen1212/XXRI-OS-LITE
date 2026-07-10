@@ -1,6 +1,6 @@
 # ~/.ashrc: Executed by SHells.
 #
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 if [ -n "$DISPLAY" ]
 then
 	`which editor >/dev/null` && EDITOR=editor || EDITOR=vi

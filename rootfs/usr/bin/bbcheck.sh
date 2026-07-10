@@ -1,5 +1,5 @@
 #!/bin/busybox ash
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 busybox | sed '1,/functions:$/d' \
 | tr -d ' \t\n' | tr ',' '\n' | while read F ; do

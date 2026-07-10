@@ -1,15 +1,15 @@
 #!/bin/sh
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 BOOTLIST=`getbootparam lst` || BOOTLIST="onboot.lst"
-TCEDIR=/etc/sysconfig/tcedir
-[ -s "$TCEDIR"/"$BOOTLIST" ] || exit 1
-for B in $(cat "$TCEDIR"/"$BOOTLIST")
+XXRI_PACKAGE_DIR=/etc/sysconfig/tcedir
+[ -s "$XXRI_PACKAGE_DIR"/"$BOOTLIST" ] || exit 1
+for B in $(cat "$XXRI_PACKAGE_DIR"/"$BOOTLIST")
 do
-	if [ -s "$TCEDIR"/optional/"$B".dep ]
+	if [ -s "$XXRI_PACKAGE_DIR"/optional/"$B".dep ]
 	then
-		for D in $(cat "$TCEDIR"/optional/"$B".dep)
+		for D in $(cat "$XXRI_PACKAGE_DIR"/optional/"$B".dep)
 		do
-			if grep -q "^$D$" "$TCEDIR"/"$BOOTLIST"
+			if grep -q "^$D$" "$XXRI_PACKAGE_DIR"/"$BOOTLIST"
 			then
 				echo "$D" not needed a dep of "$B"
 			fi

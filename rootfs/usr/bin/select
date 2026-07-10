@@ -2,7 +2,7 @@
 # (c) Robert Shingledecker 2009
 # $1 is title, $2 is file to read from, $3 is offset 0 or 1 (1 default)
 #
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 #
 [ -z "$2" ] && exit 1

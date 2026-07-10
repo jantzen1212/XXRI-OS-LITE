@@ -1,0 +1,4 @@
+# xxri OS Lite dock - frosted pill, Avenir Next labels
+i: /usr/local/share/xxri-theme/wbar-bg.png
+t: /usr/local/share/fonts/xxri/AvenirNext-DemiBold/11
+c: wbar -above-desk -bpress -pos bottom -isize 40 -idist 6 -zoomf 1.6 -nanim 5 -jumpf 1.0

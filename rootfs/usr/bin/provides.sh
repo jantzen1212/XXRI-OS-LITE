@@ -1,5 +1,5 @@
 #!/bin/busybox ash
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 
 VERSION="Version 0.3 Nov 25, 2024"
@@ -18,9 +18,9 @@ MMINoverride="$PROVIDESUPDATE"
 # Overide busybox awk with GNU awk.
 [ -e /usr/local/bin/awk ] && alias awk='/usr/local/bin/awk'
 
-TCEDIR="/etc/sysconfig/tcedir"
+XXRI_PACKAGE_DIR="/etc/sysconfig/tcedir"
 DB="provides.db"
-LIST="$TCEDIR"/"$DB"
+LIST="$XXRI_PACKAGE_DIR"/"$DB"
 
 # Search for exact match. 0=No  1=Yes.
 Exact=0
@@ -104,7 +104,7 @@ UpdateProvidesDB()
 	/bin/ping -A -W 1 -c 2 8.8.8.8 2>&1 > /dev/null || return
 
 	getMirror
-	cd "$TCEDIR"
+	cd "$XXRI_PACKAGE_DIR"
 	if zsync -i "$LIST" -q "$MIRROR"/"$DB".zsync
 	then
 		rm -f "$DB".zs-old

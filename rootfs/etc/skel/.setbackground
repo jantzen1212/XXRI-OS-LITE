@@ -1,0 +1,3 @@
+#!/bin/sh
+# xxri OS Lite official wallpaper (assets/wallpapers, design source of truth).
+hsetroot -fill /usr/local/share/xxri-theme/wallpapers/xxri-os-lite.jpg

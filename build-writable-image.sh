@@ -46,7 +46,7 @@ trap 'rm -rf "$STAGE" "$STAGESH"' EXIT
 # root ownership + setuid), THEN re-apply the base setuid bits.
 cat > "$STAGESH" <<STAGESCRIPT
 set -e
-STAGE="$STAGE"; ROOTFS="$ROOTFS"; CDE="$CDE"; IMG="$IMG"; LABEL="$LABEL"; SIZE="$SIZE"
+STAGE="$STAGE"; ROOTFS="$ROOTFS"; CDE="$CDE"; IMG="$IMG"; LABEL="$LABEL"; SIZE="$SIZE"; ASSETS="$HERE/assets"
 
 echo ">> 1 copy base rootfs"
 cp -a "\$ROOTFS/." "\$STAGE/" 2>/dev/null || true    # sudo/visudo may be unreadable
@@ -60,6 +60,40 @@ if command -v unsquashfs >/dev/null 2>&1 && [ -f "\$CDE/onboot.lst" ]; then
 		[ -f "\$tcz" ] && unsquashfs -n -f -d "\$STAGE" "\$tcz" >/dev/null 2>&1 || true
 	done < "\$CDE/onboot.lst"
 fi
+
+echo ">> 2c de-brand the baked desktop (wallpaper logo + launcher/menu text)"
+# Replace the "core" wallpaper logo with the xxri wordmark (single-point:
+# skel/.setbackground centers /usr/local/share/pixmaps/logo.png).
+if [ -f "\$ASSETS/logo.png" ] && [ -f "\$STAGE/usr/local/share/pixmaps/logo.png" ]; then
+	cp -f "\$ASSETS/logo.png" "\$STAGE/usr/local/share/pixmaps/logo.png"
+fi
+# Rebrand visible Tiny Core text in launcher .desktop files, menus and the
+# fltk menu config (Name=/comments only; Exec=/binaries are left intact).
+find "\$STAGE/usr/local/share/applications" "\$STAGE/usr/local/share/flwm" \
+     "\$STAGE/etc/skel" -type f 2>/dev/null | while read df; do
+	case "\$df" in
+		*.desktop|*.menu|*menu*|*.jwmrc*|*flwm*)
+			sed -i 's/Tiny Core Linux/xxri OS Lite/g; s/TinyCore/xxri OS Lite/g; s/Tiny Core/xxri OS Lite/g; s/^Name=tc-wbarconf/Name=Wbar Config/' "\$df" 2>/dev/null || true
+		;;
+	esac
+done
+# The desktop.sh username fallback ("tc") -> xxri (only used if xxri-user/tcuser is absent).
+[ -f "\$STAGE/usr/local/bin/desktop.sh" ] && \
+	sed -i 's/USER="tc"/USER="xxri"/g' "\$STAGE/usr/local/bin/desktop.sh" 2>/dev/null || true
+
+echo ">> 2d apply the xxri design system over the baked desktop"
+# Phase 4: the design-system files live in rootfs/ but share paths with
+# files inside the desktop extensions (skel dotfiles, wbar's dot.wbar, the
+# launcher pixmaps), so the unsquashfs in step 2 just clobbered them.
+# Re-apply the rootfs versions; at live-ISO boot the same files win
+# naturally because the extension loader never overwrites existing files.
+cp -a "\$ROOTFS/etc/skel/." "\$STAGE/etc/skel/"
+cp -f "\$ROOTFS/usr/local/share/wbar/dot.wbar" "\$STAGE/usr/local/share/wbar/dot.wbar" 2>/dev/null || true
+for px in aterm editor cpanel apps flrun mnttool exittc gear core; do
+	[ -f "\$ROOTFS/usr/local/share/pixmaps/\$px.png" ] && \
+		cp -f "\$ROOTFS/usr/local/share/pixmaps/\$px.png" "\$STAGE/usr/local/share/pixmaps/\$px.png"
+done
+chown -R 0:0 "\$STAGE/etc/skel"
 
 echo ">> 3 re-apply base setuid bits (chown cleared them)"
 chmod 4755 "\$STAGE/bin/busybox.suid" 2>/dev/null || true

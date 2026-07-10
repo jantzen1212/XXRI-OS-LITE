@@ -1,10 +1,10 @@
 #!/bin/busybox ash
 # (c) Robert Shingledecker 2012
 # Load cde from iso file 
-# At boot - called from tc-config with: iso=sdb1
+# At boot - called from xxri-config with: iso=sdb1
 # After boot in /opt/bootsync.sh with /usr/bin/fromISOfile sdb1
 # After boot from command line with: sudo fromISOfile sdb1
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 checkroot
 [ -z "$1" ] && exit 1
@@ -69,9 +69,9 @@ if [ -s "$CDELIST" ]; then
 		FILE="$LOADFROM/$FILE"
 		BASENAME=`basename "$FILE"`
 		APPNAME="${BASENAME%.tcz}"
-		if [ ! -f "$TCEINSTALLED"/"$APPNAME" ]; then
+		if [ ! -f "$XXRI_PKG_INSTALLED"/"$APPNAME" ]; then
 			FLAGS=" -i -b "
-			su "$USER" -c 'tce-load '"$FLAGS"' '"$FILE"
+			su "$USER" -c 'xxri-pkg '"$FLAGS"' '"$FILE"
 			if [ -s /tmp/aberr ]; then
 				echo "occured while loading: " "$FILE" >> /tmp/aberr
 				umount /mnt/cdrom

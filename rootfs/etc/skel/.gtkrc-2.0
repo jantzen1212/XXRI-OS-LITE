@@ -1,0 +1,7 @@
+# xxri OS Lite - GTK2 user configuration
+gtk-theme-name = "xxri"
+gtk-icon-theme-name = "xxri"
+gtk-cursor-theme-name = "xxri-cursors"
+gtk-cursor-theme-size = 24
+gtk-font-name = "Avenir Next 10"
+include "/usr/local/share/themes/xxri/gtk-2.0/gtkrc"

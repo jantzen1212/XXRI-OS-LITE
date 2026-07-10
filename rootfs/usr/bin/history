@@ -1,5 +1,5 @@
 #!/bin/busybox ash
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 #
 # Fake history command for Ash.

@@ -8,7 +8,7 @@
 #
 #  Most of this script was copied from provides.sh.  Rich.
 
-. /etc/init.d/tc-functions
+. /etc/init.d/xxri-functions
 useBusybox
 
 unset FUZZY
@@ -28,14 +28,14 @@ case $TARGET in
         ;;
 esac
 
-TCEDIR="/etc/sysconfig/tcedir"
+XXRI_PACKAGE_DIR="/etc/sysconfig/tcedir"
 DB="dep.db"
 DBGZ="$DB.gz"
 
 # This downloads a fresh copy of dep.db.gz if any of the following are true:
 # 1. The file does not exist.
 # 2. The file is older than 1 hour (3600 seconds).
-cd "$TCEDIR"
+cd "$XXRI_PACKAGE_DIR"
 if [ -f "$DBGZ" ]
 then
         # Compute number of seconds since provides.db modified (downloaded).
@@ -49,7 +49,7 @@ fi
 if [ ! -f "$DBGZ" ]
 then
         getMirror
-        wget -q -O "$TCEDIR"/"$DBGZ" "$MIRROR"/"$DBGZ"
+        wget -q -O "$XXRI_PACKAGE_DIR"/"$DBGZ" "$MIRROR"/"$DBGZ"
         # Make sure it has a current timestamp.
         touch "$DBGZ"
 fi
@@ -63,8 +63,8 @@ cd - > /dev/null
 # 2. If first search succeeds, a slower search is done in fields 2 through last (which are the extension's actual dependencies)
 if [ -n "$FUZZY" ]; then
     TARGET="${TARGET%.tcz}"
-    awk 'BEGIN {FS="\n";RS=""} {if ( $0 ~ /'$TARGET'/ ) { for (i=2; i <= NF; i++) { if ( $i ~ /'$TARGET'/ ) {print $1; next} } } }' "$TCEDIR"/"$DB"
+    awk 'BEGIN {FS="\n";RS=""} {if ( $0 ~ /'$TARGET'/ ) { for (i=2; i <= NF; i++) { if ( $i ~ /'$TARGET'/ ) {print $1; next} } } }' "$XXRI_PACKAGE_DIR"/"$DB"
 else
     TARGET="${TARGET%.tcz}.tcz"
-    awk 'BEGIN {FS="\n";RS=""} {if ( $0 ~ /'$TARGET'/ ) { for (i=2; i <= NF; i++) { if ( $i == "'$TARGET'" ) {print $1} } } }' "$TCEDIR"/"$DB"
+    awk 'BEGIN {FS="\n";RS=""} {if ( $0 ~ /'$TARGET'/ ) { for (i=2; i <= NF; i++) { if ( $i == "'$TARGET'" ) {print $1} } } }' "$XXRI_PACKAGE_DIR"/"$DB"
 fi

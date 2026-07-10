@@ -1,0 +1,17 @@
+[Icon Theme]
+Name=xxri
+Comment=xxri OS Lite icon theme
+Inherits=hicolor
+Directories=64x64/apps,scalable/apps
+
+[64x64/apps]
+Size=64
+Context=Applications
+Type=Fixed
+
+[scalable/apps]
+Size=64
+MinSize=16
+MaxSize=512
+Context=Applications
+Type=Scalable
