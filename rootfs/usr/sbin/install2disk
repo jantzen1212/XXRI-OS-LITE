@@ -125,6 +125,16 @@ rm -f "$MNT/etc/sysconfig/backup_device" "$MNT/etc/sysconfig/text" \
       "$MNT/etc/sysconfig/noautologin" "$MNT/etc/sysconfig/showapps" 2>/dev/null
 rm -f "$MNT/usr/local/tce.installed/"* 2>/dev/null
 
+# Phase 8.1: the installer lives ONLY on the Live ISO.  Strip every trace of it
+# from the installed root - launcher, icon, GUI binary, auto-start hook and any
+# pre-built menu entry - so it can never appear on the desktop, dock or menu.
+rm -f "$MNT/usr/local/share/applications/xxri-installer.desktop" \
+      "$MNT/usr/local/share/pixmaps/xxri-installer.png" \
+      "$MNT/usr/local/bin/xxri-installer" \
+      "$MNT/etc/skel/.X.d/xxri-installer-live" 2>/dev/null
+rm -f "$MNT"/home/*/.X.d/xxri-installer-live 2>/dev/null
+rm -f "$MNT"/home/*/.wmx/*/InstallxxriOSLite "$MNT"/home/*/.wmx/*/Install* 2>/dev/null
+
 # Persistent extension store: /tce on the installed root.  Copy the live
 # TCE directory (extensions + onboot.lst) so the installed system keeps
 # the same applications.

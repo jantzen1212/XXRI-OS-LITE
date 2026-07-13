@@ -1,4 +1,8 @@
-Xvesa -br -screen 1024x768x32 -shadow -2button -mouse /dev/input/mice,5 -fp /usr/local/share/fonts/xxri/,/usr/local/lib/X11/fonts/misc/ -nolisten tcp -I >/dev/null 2>&1 &
+# Screen resolution: honour an `xres=WxH` boot code (e.g. xres=1366x768) so
+# the desktop adapts to the panel; default to 1024x768 when unset/invalid.
+XRES=$(sed -n 's/.*\bxres=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /proc/cmdline 2>/dev/null | head -1)
+[ -n "$XRES" ] || XRES=1024x768
+Xvesa -br -screen ${XRES}x32 -shadow -2button -mouse /dev/input/mice,5 -fp /usr/local/share/fonts/xxri/,/usr/local/lib/X11/fonts/misc/ -nolisten tcp -I >/dev/null 2>&1 &
 export XPID=$!
 waitforX || ! echo failed in waitforX || exit
 # xxri OS Lite design system: flwm takes its palette from the standard FLTK

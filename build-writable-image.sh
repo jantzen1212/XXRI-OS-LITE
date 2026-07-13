@@ -89,7 +89,27 @@ echo ">> 2d apply the xxri design system over the baked desktop"
 # naturally because the extension loader never overwrites existing files.
 cp -a "\$ROOTFS/etc/skel/." "\$STAGE/etc/skel/"
 cp -f "\$ROOTFS/usr/local/share/wbar/dot.wbar" "\$STAGE/usr/local/share/wbar/dot.wbar" 2>/dev/null || true
-for px in aterm editor cpanel apps flrun mnttool exittc gear core; do
+cp -f "\$ROOTFS/usr/local/bin/wbar_setup.sh" "\$STAGE/usr/local/bin/wbar_setup.sh" 2>/dev/null || true
+# desktop.sh: xxri build the menu only (dot.wbar is the sole dock source).
+cp -f "\$ROOTFS/usr/local/bin/desktop.sh" "\$STAGE/usr/local/bin/desktop.sh" 2>/dev/null || true
+# wbar.sh: xxri launch wbar with no fragile .wbarconf string surgery (Phase 8.2).
+cp -f "\$ROOTFS/usr/local/bin/wbar.sh" "\$STAGE/usr/local/bin/wbar.sh" 2>/dev/null || true
+chmod 0755 "\$STAGE/usr/local/bin/wbar.sh" 2>/dev/null || true
+# Phase 8.1: xxri Settings fully replaces the Tiny Core control panel and its
+# stand-alone config launchers - drop their .desktop files and the duplicate
+# gear pixmap so they never reach the dock or the Applications/SystemTools menu.
+for junk in cpanel tc-cpanel tc-config appsaudit services settime tc-wbarconf; do
+	rm -f "\$STAGE/usr/local/share/applications/tinycore-\$junk.desktop" \
+	      "\$STAGE/usr/local/share/applications/\$junk.desktop"
+done
+rm -f "\$STAGE/usr/local/share/pixmaps/cpanel.png"
+# This ext4 image IS an installed system - the installer belongs to the Live
+# ISO only.  Strip its launcher, icon, GUI binary and auto-start hook.
+rm -f "\$STAGE/usr/local/share/applications/xxri-installer.desktop" \
+      "\$STAGE/usr/local/share/pixmaps/xxri-installer.png" \
+      "\$STAGE/usr/local/bin/xxri-installer" \
+      "\$STAGE/etc/skel/.X.d/xxri-installer-live" 2>/dev/null
+for px in aterm editor apps flrun mnttool exittc gear core; do
 	[ -f "\$ROOTFS/usr/local/share/pixmaps/\$px.png" ] && \
 		cp -f "\$ROOTFS/usr/local/share/pixmaps/\$px.png" "\$STAGE/usr/local/share/pixmaps/\$px.png"
 done

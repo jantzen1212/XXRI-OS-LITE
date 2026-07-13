@@ -1,0 +1,277 @@
+#!/bin/busybox ash
+# xxri-network - network backend (xxri Hardware Layer).
+#
+#   xxri-network status|list [--json]
+#   xxri-network scan [IFACE] [--json]
+#   xxri-network connect SSID [PSK] [IFACE]     (wifi, saves a profile)
+#   xxri-network connect --profile NAME
+#   xxri-network dhcp IFACE | static IFACE IP/PREFIX GW [DNS]
+#   xxri-network disconnect [IFACE]
+#   xxri-network profiles [--json] | forget NAME
+#   xxri-network reconnect | auto               (auto = boot-time)
+#
+# Ethernet uses busybox udhcpc/ifconfig (the existing boot path is kept);
+# WiFi uses wpa_supplicant + wpa_cli (structured output, no screen-scrape).
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+PROF_DIR="$XXRI_CFG_DIR/network"
+WPA_RUN=/var/run/wpa_supplicant
+
+is_wifi() { [ -d "/sys/class/net/$1/wireless" ] || [ -d "/sys/class/net/$1/phy80211" ]; }
+ifaces()  { for i in /sys/class/net/*; do n="${i##*/}"; [ "$n" = lo ] && continue; echo "$n"; done; }
+ip_of()   { ifconfig "$1" 2>/dev/null | sed -n 's/.*inet addr:\([0-9.]*\).*/\1/p' | head -1; }
+mask_of() { ifconfig "$1" 2>/dev/null | sed -n 's/.*Mask:\([0-9.]*\).*/\1/p' | head -1; }
+mac_of()  { sf "/sys/class/net/$1/address"; }
+gw_of()   { route -n 2>/dev/null | awk '$1=="0.0.0.0"{print $2; exit}'; }
+dns_of()  { sed -n 's/^nameserver //p' /etc/resolv.conf 2>/dev/null | tr '\n' ' '; }
+wifi_ssid() { wpa_cli -i "$1" status 2>/dev/null | sed -n 's/^ssid=//p'; }
+wifi_state(){ wpa_cli -i "$1" status 2>/dev/null | sed -n 's/^wpa_state=//p'; }
+
+ensure_drivers() {
+	for d in $(pci_by_class 0x02); do hw_load_driver "$d"; done
+	for u in /sys/bus/usb/devices/*:*; do
+		case "$(sf "$u/bInterfaceClass")" in 02|e0|ff) hw_load_driver "$u";; esac
+	done
+}
+
+cmd_status() {
+	a_new
+	for n in $(ifaces); do
+		t=ethernet; is_wifi "$n" && t=wifi
+		st="$(sf "/sys/class/net/$n/operstate")"
+		car="$(sf "/sys/class/net/$n/carrier")"
+		j_new
+		j_str interface "$n"; j_str type "$t"; j_str state "${st:-unknown}"
+		j_bool carrier "${car:-0}"
+		j_str mac "$(mac_of "$n")"; j_str ip "$(ip_of "$n")"; j_str netmask "$(mask_of "$n")"
+		if [ "$t" = wifi ]; then
+			j_str ssid "$(wifi_ssid "$n")"; j_str wpa_state "$(wifi_state "$n")"
+		fi
+		a_add "$(j_obj)"
+		if [ $JSON = 0 ]; then
+			line="$n ($t): ${st:-unknown}"
+			ip="$(ip_of "$n")"; [ -n "$ip" ] && line="$line  ip=$ip"
+			[ "$t" = wifi ] && line="$line  ssid=$(wifi_ssid "$n")"
+			echo "$line"
+		fi
+	done
+	if [ $JSON = 1 ]; then
+		j_new; j_raw interfaces "$(a_out)"
+		j_str gateway "$(gw_of)"; j_str dns "$(dns_of)"
+		j_root network "\"status\":$(j_obj)"
+	else
+		echo "gateway: $(gw_of)   dns: $(dns_of)"
+	fi
+}
+cmd_list() { cmd_status; }
+
+wifi_iface() { # first wifi iface, loading drivers if needed
+	for n in $(ifaces); do is_wifi "$n" && { echo "$n"; return 0; }; done
+	ensure_drivers; sleep 1
+	for n in $(ifaces); do is_wifi "$n" && { echo "$n"; return 0; }; done
+	return 1
+}
+
+wpa_up() { # make sure wpa_supplicant runs on $1
+	[ -S "$WPA_RUN/$1" ] && return 0
+	sudo_if ifconfig "$1" up 2>/dev/null
+	sudo_if wpa_supplicant -B -i "$1" -C "$WPA_RUN" -Dnl80211,wext 2>/dev/null
+	sleep 1
+	[ -S "$WPA_RUN/$1" ]
+}
+
+no_wifi() {
+	if [ $JSON = 1 ]; then
+		j_new; j_bool available 0
+		j_str reason "no wireless interface detected"
+		j_str hint "check 'xxri-hardware firmware' for missing WiFi firmware; drivers are included (wireless kernel package)"
+		j_root network "\"wifi\":$(j_obj)"
+	else
+		echo "No wireless interface found. If the adapter needs firmware, xxri-hardware firmware will show what is missing."
+	fi
+}
+
+cmd_scan() {
+	IF="$1"; case "$IF" in --json|"") IF="$(wifi_iface)";; esac
+	[ -n "$IF" ] || { no_wifi; return 1; }
+	if ! have wpa_supplicant; then no_wifi; return 1; fi
+	wpa_up "$IF" || { no_wifi; return 1; }
+	wpa_cli -i "$IF" scan >/dev/null 2>&1
+	sleep 3
+	# wpa_cli scan_results: bssid \t freq \t signal \t flags \t ssid
+	a_new
+	wpa_cli -i "$IF" scan_results 2>/dev/null | tail -n +2 | while IFS='	' read -r bssid freq sig flags ssid; do
+		[ -n "$bssid" ] || continue
+		sec=open
+		case "$flags" in *WPA*|*RSN*) sec=wpa;; *WEP*) sec=wep;; esac
+		if [ $JSON = 1 ]; then
+			j_new; j_str ssid "$ssid"; j_str bssid "$bssid"
+			j_num signal "$sig"; j_num freq "$freq"; j_str security "$sec"
+			echo "	$(j_obj)"
+		else
+			echo "$ssid  [$sec]  signal=$sig  $bssid"
+		fi
+	done > "$XXRI_TMP/scan.$$"
+	if [ $JSON = 1 ]; then
+		nets="$(sed 's/^	//' "$XXRI_TMP/scan.$$" | tr '\n' ',' | sed 's/,$//')"
+		j_new; j_str interface "$IF"; j_raw networks "[$nets]"
+		j_root network "\"scan\":$(j_obj)"
+	else
+		cat "$XXRI_TMP/scan.$$"
+	fi
+	rm -f "$XXRI_TMP/scan.$$"
+}
+
+profile_write() { # NAME TYPE(wifi|ethernet) IFACE SSID PSK MODE(dhcp|static) [IP GW DNS]
+	sudo_if mkdir -p "$PROF_DIR"
+	sudo_if sh -c "cat > '$PROF_DIR/$1.conf'" <<EOF
+NAME=$1
+TYPE=$2
+IFACE=$3
+SSID=$4
+PSK=$5
+MODE=$6
+IP=$7
+GW=$8
+DNS=$9
+AUTOCONNECT=1
+EOF
+}
+
+cmd_connect() {
+	if [ "$1" = "--profile" ]; then
+		[ -r "$PROF_DIR/$2.conf" ] || { echo "no such profile: $2" >&2; return 1; }
+		. "$PROF_DIR/$2.conf"
+		if [ "$TYPE" = wifi ]; then
+			do_wifi_connect "$SSID" "$PSK" "$IFACE" saved
+		else
+			[ "$MODE" = static ] && cmd_static "$IFACE" "$IP" "$GW" "$DNS" || cmd_dhcp "$IFACE"
+		fi
+		return $?
+	fi
+	do_wifi_connect "$1" "$2" "$3"
+}
+
+do_wifi_connect() { # SSID PSK IFACE [saved]
+	SSID="$1"; PSK="$2"; IF="$3"
+	[ -n "$IF" ] || IF="$(wifi_iface)" || { no_wifi; return 1; }
+	wpa_up "$IF" || { no_wifi; return 1; }
+	id=$(wpa_cli -i "$IF" add_network 2>/dev/null | tail -1)
+	wpa_cli -i "$IF" set_network "$id" ssid "\"$SSID\"" >/dev/null
+	if [ -n "$PSK" ]; then
+		wpa_cli -i "$IF" set_network "$id" psk "\"$PSK\"" >/dev/null
+	else
+		wpa_cli -i "$IF" set_network "$id" key_mgmt NONE >/dev/null
+	fi
+	wpa_cli -i "$IF" enable_network "$id" >/dev/null
+	wpa_cli -i "$IF" select_network "$id" >/dev/null
+	# wait for association
+	i=0
+	while [ $i -lt 20 ]; do
+		[ "$(wifi_state "$IF")" = COMPLETED ] && break
+		sleep 1; i=$((i+1))
+	done
+	if [ "$(wifi_state "$IF")" != COMPLETED ]; then
+		if [ $JSON = 1 ]; then
+			j_new; j_bool connected 0; j_str ssid "$SSID"; j_str reason "association failed (wrong password or out of range)"
+			j_root network "\"connect\":$(j_obj)"
+		else echo "could not associate with $SSID"; fi
+		return 1
+	fi
+	sudo_if udhcpc -i "$IF" -n -q -s /usr/share/udhcpc/default.script >/dev/null 2>&1
+	[ "$4" = saved ] || profile_write "$(echo "$SSID" | tr -c 'A-Za-z0-9._-' '-')" wifi "$IF" "$SSID" "$PSK" dhcp
+	if [ $JSON = 1 ]; then
+		j_new; j_bool connected 1; j_str ssid "$SSID"; j_str interface "$IF"; j_str ip "$(ip_of "$IF")"
+		j_root network "\"connect\":$(j_obj)"
+	else
+		echo "connected to $SSID on $IF (ip $(ip_of "$IF"))"
+	fi
+}
+
+cmd_dhcp() {
+	IF="${1:-eth0}"
+	sudo_if ifconfig "$IF" up
+	sudo_if udhcpc -i "$IF" -n -q -s /usr/share/udhcpc/default.script >/dev/null 2>&1
+	is_wifi "$IF" || profile_write "$IF" ethernet "$IF" "" "" dhcp
+	JSON=$JSON cmd_status
+}
+
+cmd_static() { # IFACE IP/PREFIX GW [DNS]
+	IF="$1"; IPP="$2"; GW="$3"; DNS="${4:-8.8.8.8}"
+	IP="${IPP%/*}"; PFX="${IPP#*/}"; [ "$PFX" = "$IPP" ] && PFX=24
+	# prefix -> netmask
+	m=""; f=$((PFX)); for o in 1 2 3 4; do
+		if [ $f -ge 8 ]; then m="$m${m:+.}255"; f=$((f-8))
+		else m="$m${m:+.}$(( 256 - (1 << (8-f)) ))"; f=0; fi
+	done
+	sudo_if ifconfig "$IF" "$IP" netmask "$m" up
+	[ -n "$GW" ] && sudo_if route add default gw "$GW" "$IF" 2>/dev/null
+	sudo_if sh -c "echo 'nameserver $DNS' > /etc/resolv.conf"
+	profile_write "$IF-static" "$(is_wifi "$IF" && echo wifi || echo ethernet)" "$IF" "" "" static "$IPP" "$GW" "$DNS"
+	JSON=$JSON cmd_status
+}
+
+cmd_disconnect() {
+	IF="$1"; [ -n "$IF" ] || IF="$(wifi_iface)"
+	[ -n "$IF" ] || return 0
+	if is_wifi "$IF"; then wpa_cli -i "$IF" disconnect >/dev/null 2>&1; fi
+	sudo_if ifconfig "$IF" 0.0.0.0 2>/dev/null
+	sudo_if ifconfig "$IF" down 2>/dev/null
+	echo "$IF disconnected"
+}
+
+cmd_profiles() {
+	a_new
+	for p in "$PROF_DIR"/*.conf; do
+		[ -f "$p" ] || continue
+		( . "$p"
+		  if [ "$JSON" = 1 ]; then
+			j_new; j_str name "$NAME"; j_str type "$TYPE"; j_str iface "$IFACE"
+			j_str ssid "$SSID"; j_str mode "$MODE"; j_bool autoconnect "${AUTOCONNECT:-1}"
+			echo "	$(j_obj)"
+		  else
+			echo "$NAME ($TYPE $MODE)${SSID:+ ssid=$SSID}"
+		  fi )
+	done > "$XXRI_TMP/prof.$$"
+	if [ $JSON = 1 ]; then
+		l="$(sed 's/^	//' "$XXRI_TMP/prof.$$" | tr '\n' ',' | sed 's/,$//')"
+		j_root network "\"profiles\":[$l]"
+	else cat "$XXRI_TMP/prof.$$"; fi
+	rm -f "$XXRI_TMP/prof.$$"
+}
+
+cmd_forget() { sudo_if rm -f "$PROF_DIR/$1.conf"; echo "profile $1 removed"; }
+
+cmd_reconnect() {
+	for p in "$PROF_DIR"/*.conf; do
+		[ -f "$p" ] || continue
+		( . "$p"; [ "${AUTOCONNECT:-1}" = 1 ] || exit
+		  JSON=0 cmd_connect --profile "$NAME" >/dev/null 2>&1 )
+	done
+	JSON=$JSON cmd_status
+}
+
+cmd_auto() {
+	# boot path: the existing /etc/init.d/dhcp.sh already brings up wired
+	# DHCP; here we only add saved profiles (wifi / static overrides).
+	ensure_drivers
+	cmd_reconnect
+}
+
+case "$1" in
+	status) cmd_status ;;
+	list) cmd_list ;;
+	scan) shift; cmd_scan "$@" ;;
+	connect) shift; cmd_connect "$@" ;;
+	dhcp) shift; cmd_dhcp "$@" ;;
+	static) shift; cmd_static "$@" ;;
+	disconnect) shift; cmd_disconnect "$@" ;;
+	profiles) cmd_profiles ;;
+	forget) shift; cmd_forget "$@" ;;
+	reconnect) cmd_reconnect ;;
+	auto) cmd_auto ;;
+	*) echo "usage: xxri-network status|scan|connect SSID [PSK]|connect --profile N|dhcp IF|static IF IP/PFX GW [DNS]|disconnect|profiles|forget N|reconnect|auto [--json]" >&2; exit 1 ;;
+esac

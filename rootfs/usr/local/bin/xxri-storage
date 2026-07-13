@@ -1,0 +1,179 @@
+#!/bin/busybox ash
+# xxri-storage - storage backend (xxri Hardware Layer).
+#
+#   xxri-storage list [--json]           disks + partitions + mounts
+#   xxri-storage info DEV [--json]
+#   xxri-storage mount DEV | unmount DEV
+#   xxri-storage health DEV [--json]     (smartmontools)
+#   xxri-storage watch                   automount daemon (session)
+#
+# Enumeration is pure sysfs (same rules the installer backend uses);
+# mounts go to /media/<label-or-device>.
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+MEDIA=/media
+
+disk_model() {
+	m="$(sf "/sys/block/$1/device/model" | tr -s ' ' | sed 's/^ //;s/ $//')"
+	v="$(sf "/sys/block/$1/device/vendor" | tr -s ' ' | sed 's/^ //;s/ $//')"
+	case "$m" in "$v"*) v="";; esac
+	echo "${v:+$v }${m:-Disk}"
+}
+is_usb() { readlink "/sys/block/$1" 2>/dev/null | grep -q '/usb'; }
+mnt_of() { awk -v d="/dev/$1" '$1==d{print $2; exit}' /proc/mounts; }
+fs_of()  { blkid "/dev/$1" 2>/dev/null | sed -n 's/.*TYPE="\([^"]*\)".*/\1/p'; }
+lbl_of() { blkid "/dev/$1" 2>/dev/null | sed -n 's/.*LABEL="\([^"]*\)".*/\1/p'; }
+
+real_disks() {
+	for b in /sys/block/*; do
+		d="${b##*/}"
+		case "$d" in loop*|ram*|sr*|fd*|zram*|dm-*) continue;; esac
+		[ "$(sf "$b/size")" -gt 0 ] 2>/dev/null || continue
+		echo "$d"
+	done
+}
+parts_of() { for p in /sys/block/$1/$1*; do [ -d "$p" ] && echo "${p##*/}"; done; }
+
+part_json() { # partname
+	p="$1"; m="$(mnt_of "$p")"
+	used=""; free=""
+	if [ -n "$m" ]; then
+		set -- $(df -k "$m" 2>/dev/null | awk 'NR==2{print $3, $4}')
+		used="$1"; free="$2"
+	fi
+	j_new
+	j_str device "/dev/$p"
+	j_num size_mb "$(( $(sf "/sys/class/block/$p/size") / 2048 ))"
+	j_str fs "$(fs_of "$p")"; j_str label "$(lbl_of "$p")"
+	j_str mountpoint "$m"
+	j_bool mounted "$([ -n "$m" ] && echo 1 || echo 0)"
+	[ -n "$used" ] && j_num used_kb "$used"
+	[ -n "$free" ] && j_num free_kb "$free"
+	j_obj
+}
+
+cmd_list() {
+	a_new
+	for d in $(real_disks); do
+		pa=""; TXTP=""
+		for p in $(parts_of "$d"); do
+			pa="$pa${pa:+,}$(part_json "$p")"
+			m="$(mnt_of "$p")"
+			TXTP="$TXTP    /dev/$p  $(( $(sf "/sys/class/block/$p/size") / 2048 ))MB  $(fs_of "$p") ${m:+-> $m}\n"
+		done
+		j_new
+		j_str device "/dev/$d"; j_str model "$(disk_model "$d")"
+		j_num size_mb "$(( $(sf "/sys/block/$d/size") / 2048 ))"
+		j_bool usb "$(is_usb "$d" && echo 1 || echo 0)"
+		j_bool removable "$(sf "/sys/block/$d/removable")"
+		j_raw partitions "[$pa]"
+		a_add "$(j_obj)"
+		if [ $JSON = 0 ]; then
+			echo "/dev/$d  $(disk_model "$d")  $(( $(sf "/sys/block/$d/size") / 2048 ))MB$(is_usb "$d" && echo ' [USB]')"
+			printf "$TXTP"
+		fi
+	done
+	[ $JSON = 1 ] && j_root storage "\"disks\":$(a_out)"
+	return 0
+}
+
+cmd_info() {
+	p="${1#/dev/}"
+	[ -e "/sys/class/block/$p" ] || { echo "no such device: $1" >&2; return 1; }
+	if [ $JSON = 1 ]; then j_root storage "\"info\":$(part_json "$p")"
+	else
+		echo "device : /dev/$p"
+		echo "size   : $(( $(sf "/sys/class/block/$p/size") / 2048 )) MB"
+		echo "fs     : $(fs_of "$p")   label: $(lbl_of "$p")"
+		m="$(mnt_of "$p")"; echo "mounted: ${m:-no}"
+		[ -n "$m" ] && df -h "$m" | awk 'NR==2{print "usage  : "$3" used, "$4" free ("$5")"}'
+	fi
+}
+
+cmd_mount() {
+	p="${1#/dev/}"
+	[ -b "/dev/$p" ] || { echo "no such device: $1" >&2; return 1; }
+	m="$(mnt_of "$p")"
+	[ -n "$m" ] && { echo "already mounted at $m"; return 0; }
+	fs="$(fs_of "$p")"
+	[ -n "$fs" ] || { echo "no filesystem on /dev/$p" >&2; return 1; }
+	l="$(lbl_of "$p")"; mp="$MEDIA/${l:-$p}"
+	sudo_if mkdir -p "$mp"
+	if sudo_if mount "/dev/$p" "$mp" 2>/dev/null; then
+		echo "mounted /dev/$p at $mp"
+	else
+		sudo_if rmdir "$mp" 2>/dev/null
+		echo "mount failed for /dev/$p ($fs)" >&2; return 1
+	fi
+}
+
+cmd_unmount() {
+	p="${1#/dev/}"
+	m="$(mnt_of "$p")"
+	[ -n "$m" ] || { echo "/dev/$p is not mounted"; return 0; }
+	sync
+	if sudo_if umount "$m" 2>/dev/null; then
+		sudo_if rmdir "$m" 2>/dev/null
+		echo "safely unmounted /dev/$p"
+	else
+		echo "device is busy - close applications using $m first" >&2
+		return 1
+	fi
+}
+
+cmd_health() {
+	p="${1#/dev/}"; d="/dev/${p%%[0-9]*}"
+	if ! have smartctl; then
+		if [ $JSON = 1 ]; then
+			j_new; j_bool available 0; j_str reason "smartmontools not installed"
+			j_root storage "\"health\":$(j_obj)"
+		else echo "health check unavailable (smartmontools missing)"; fi
+		return 0
+	fi
+	out="$(sudo_if smartctl -H "$d" 2>/dev/null)"
+	st=unknown
+	echo "$out" | grep -qi 'PASSED\|OK' && st=passed
+	echo "$out" | grep -qi 'FAILED' && st=failed
+	echo "$out" | grep -qi 'Unavailable\|not available\|Operation not supported' && st=unsupported
+	if [ $JSON = 1 ]; then
+		j_new; j_bool available "$([ "$st" != unsupported ] && echo 1 || echo 0)"
+		j_str device "$d"; j_str status "$st"
+		j_root storage "\"health\":$(j_obj)"
+	else echo "$d SMART health: $st"; fi
+}
+
+cmd_watch() {
+	# automount daemon: poll for new partitions with filesystems (USB
+	# plug-in) and mount them under /media; unmount is via the API.
+	SEEN="$XXRI_TMP/storage.seen"
+	: > "$SEEN"
+	for d in $(real_disks); do for p in $(parts_of "$d"); do echo "$p" >> "$SEEN"; done; done
+	while :; do
+		for d in $(real_disks); do
+			# whole-disk filesystems (partitionless sticks) count too
+			cand="$(parts_of "$d")"; [ -n "$cand" ] || cand="$d"
+			for p in $cand; do
+				grep -qx "$p" "$SEEN" 2>/dev/null && continue
+				echo "$p" >> "$SEEN"
+				is_usb "$d" || continue
+				[ -n "$(fs_of "$p")" ] || continue
+				JSON=0 cmd_mount "$p" >/dev/null 2>&1 && \
+					logger -t xxri-storage "automounted /dev/$p" 2>/dev/null
+			done
+		done
+		sleep 3
+	done
+}
+
+case "$1" in
+	list) cmd_list ;;
+	info) shift; cmd_info "$@" ;;
+	mount) shift; cmd_mount "$@" ;;
+	unmount|umount) shift; cmd_unmount "$@" ;;
+	health) shift; cmd_health "$@" ;;
+	watch) cmd_watch ;;
+	*) echo "usage: xxri-storage list|info DEV|mount DEV|unmount DEV|health DEV|watch [--json]" >&2; exit 1 ;;
+esac

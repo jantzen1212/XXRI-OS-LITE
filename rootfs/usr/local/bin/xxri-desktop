@@ -1,0 +1,205 @@
+#!/bin/busybox ash
+# xxri-desktop - desktop style & session preferences backend (Phase 8).
+#
+# The Settings frontend never edits dotfiles or calls hsetroot/wbar
+# directly; everything routes through here (same contract as the Phase 7
+# hardware layer).
+#
+#   xxri-desktop status [--json]
+#   xxri-desktop wallpaper set FILE [fill|full|center|tile]
+#   xxri-desktop wallpaper scale SCALE
+#   xxri-desktop dock position top|bottom | dock size N(24..56)
+#   xxri-desktop accent set '#RRGGBB'
+#   xxri-desktop appearance set light|dark      (dark: stored, future)
+#   xxri-desktop hostname set NAME
+#   xxri-desktop autologin set on|off
+#   xxri-desktop language set CODE | region set TZSTRING LABEL
+#   xxri-desktop datetime [--json] | ntp-sync
+#   xxri-desktop themes [--json]                (icon/cursor themes)
+#   xxri-desktop reset | restart-session
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+HOMEDIR="$(eval echo ~$(cat /etc/sysconfig/tcuser 2>/dev/null || echo xxri))"
+WALL_DIR=/usr/local/share/xxri-theme/wallpapers
+
+wp_file()  { cfg_get desktop WALLPAPER "$WALL_DIR/xxri-os-lite.jpg"; }
+wp_scale() { cfg_get desktop WALLPAPER_SCALE fill; }
+dock_pos() { sed -n 's/.*-pos \([a-z]*\).*/\1/p' "$HOMEDIR/.wbarconf" 2>/dev/null | head -1; }
+dock_size(){ sed -n 's/.*-isize \([0-9]*\).*/\1/p' "$HOMEDIR/.wbarconf" 2>/dev/null | head -1; }
+
+apply_wallpaper() {
+	f="$(wp_file)"; s="$(wp_scale)"
+	printf '#!/bin/sh\nhsetroot -%s "%s"\n' "$s" "$f" > "$HOMEDIR/.setbackground"
+	chmod +x "$HOMEDIR/.setbackground"
+	[ -n "$DISPLAY" ] && "$HOMEDIR/.setbackground" >/dev/null 2>&1
+}
+
+cmd_wallpaper() {
+	case "$1" in
+		set)
+			[ -r "$2" ] || { echo "wallpaper file not readable: $2" >&2; return 1; }
+			cfg_set desktop WALLPAPER "$2"
+			[ -n "$3" ] && cfg_set desktop WALLPAPER_SCALE "$3"
+			apply_wallpaper; echo "wallpaper: $2 ($(wp_scale))" ;;
+		scale)
+			case "$2" in fill|full|center|tile) ;; *) echo "scale: fill|full|center|tile" >&2; return 1;; esac
+			cfg_set desktop WALLPAPER_SCALE "$2"; apply_wallpaper; echo "wallpaper scale: $2" ;;
+		get|*) echo "$(wp_file) ($(wp_scale))" ;;
+	esac
+}
+
+reload_dock() { [ -n "$DISPLAY" ] && wbar.sh >/dev/null 2>&1; }
+
+cmd_dock() {
+	case "$1" in
+		position)
+			case "$2" in top|bottom) ;; *) echo "position: top|bottom" >&2; return 1;; esac
+			sed -i "s/-pos [a-z]*/-pos $2/" "$HOMEDIR/.wbarconf" 2>/dev/null
+			reload_dock; echo "dock position: $2" ;;
+		size)
+			[ "$2" -ge 24 ] 2>/dev/null && [ "$2" -le 56 ] || { echo "size: 24..56" >&2; return 1; }
+			sed -i "s/-isize [0-9]*/-isize $2/" "$HOMEDIR/.wbarconf" 2>/dev/null
+			reload_dock; echo "dock size: $2" ;;
+		get|*) echo "position=$(dock_pos) size=$(dock_size)" ;;
+	esac
+}
+
+cmd_accent() {
+	case "$1" in
+		set)
+			case "$2" in \#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]) ;;
+				*) echo "accent: #RRGGBB" >&2; return 1;; esac
+			cfg_set desktop ACCENT "$2"
+			sed -i "s/^Text\*selectBackground:.*/Text*selectBackground: $2/" "$HOMEDIR/.Xdefaults" 2>/dev/null
+			echo "accent: $2 (applies to newly started applications)" ;;
+		*) echo "$(cfg_get desktop ACCENT '#8371F7')" ;;
+	esac
+}
+
+cmd_appearance() {
+	case "$1" in
+		set)
+			case "$2" in light|dark) ;; *) echo "appearance: light|dark" >&2; return 1;; esac
+			cfg_set desktop APPEARANCE "$2"
+			[ "$2" = dark ] && echo "dark appearance is stored and will apply when the dark theme ships" \
+				|| echo "appearance: light" ;;
+		*) echo "$(cfg_get desktop APPEARANCE light)" ;;
+	esac
+}
+
+cmd_hostname() {
+	case "$1" in
+		set)
+			echo "$2" | grep -qE '^[A-Za-z0-9-]+$' || { echo "invalid hostname" >&2; return 1; }
+			sudo_if /usr/bin/sethostname "$2" >/dev/null
+			echo "hostname: $2" ;;
+		*) hostname ;;
+	esac
+}
+
+cmd_autologin() {
+	case "$1" in
+		set)
+			if [ "$2" = on ]; then
+				sudo_if rm -f /etc/sysconfig/noautologin /etc/sysconfig/noautologin.persist
+				echo "autologin: on"
+			else
+				sudo_if sh -c 'echo manual > /etc/sysconfig/noautologin; touch /etc/sysconfig/noautologin.persist'
+				sudo_if sh -c 'grep -q noautologin.persist /opt/bootsync.sh || printf "\n# xxri-settings: ask for login each boot\n[ -f /etc/sysconfig/noautologin.persist ] && echo manual > /etc/sysconfig/noautologin\n" >> /opt/bootsync.sh'
+				echo "autologin: off"
+			fi ;;
+		*) [ -f /etc/sysconfig/noautologin.persist ] && echo off || echo on ;;
+	esac
+}
+
+cmd_language() {
+	case "$1" in
+		set) sudo_if sh -c "echo 'LANG=$2' > /etc/sysconfig/language"; echo "language: $2" ;;
+		*) sed -n 's/^LANG=//p' /etc/sysconfig/language 2>/dev/null || echo en_US ;;
+	esac
+}
+cmd_region() {
+	case "$1" in
+		set)
+			sudo_if sh -c "echo 'TZ=$2' > /etc/sysconfig/timezone"
+			[ -n "$3" ] && cfg_set desktop REGION_LABEL "$3"
+			echo "region: ${3:-$2}" ;;
+		*) echo "$(cfg_get desktop REGION_LABEL "$(sed -n 's/^TZ=//p' /etc/sysconfig/timezone 2>/dev/null)")" ;;
+	esac
+}
+
+cmd_datetime() {
+	if [ $JSON = 1 ]; then
+		j_new; j_str date "$(date '+%Y-%m-%d')"; j_str time "$(date '+%H:%M')"
+		j_str timezone "$(sed -n 's/^TZ=//p' /etc/sysconfig/timezone 2>/dev/null)"
+		j_str region "$(cfg_get desktop REGION_LABEL '')"
+		j_root desktop "\"datetime\":$(j_obj)"
+	else date; fi
+}
+cmd_ntp() { sudo_if /etc/init.d/settime.sh >/dev/null 2>&1 & echo "time sync started (needs network)"; }
+
+cmd_themes() {
+	if [ $JSON = 1 ]; then
+		j_new
+		j_str icon_theme "xxri"; j_str cursor_theme "xxri-cursors"
+		j_raw icon_themes '["xxri"]'; j_raw cursor_themes '["xxri-cursors"]'
+		j_root desktop "\"themes\":$(j_obj)"
+	else echo "icons: xxri   cursors: xxri-cursors"; fi
+}
+
+cmd_status() {
+	if [ $JSON = 1 ]; then
+		j_new
+		j_str wallpaper "$(wp_file)"; j_str wallpaper_scale "$(wp_scale)"
+		j_str dock_position "$(dock_pos)"; j_num dock_size "$(dock_size)"
+		j_str accent "$(cfg_get desktop ACCENT '#8371F7')"
+		j_str appearance "$(cfg_get desktop APPEARANCE light)"
+		j_str hostname "$(hostname)"
+		j_str autologin "$(JSON=0 cmd_autologin)"
+		j_str language "$(JSON=0 cmd_language)"
+		j_str region "$(JSON=0 cmd_region)"
+		j_root desktop "\"status\":$(j_obj)"
+	else
+		echo "wallpaper: $(wp_file) ($(wp_scale))"
+		echo "dock: $(dock_pos) $(dock_size)px   accent: $(cfg_get desktop ACCENT '#8371F7')"
+		echo "hostname: $(hostname)   autologin: $(JSON=0 cmd_autologin)"
+	fi
+}
+
+cmd_reset() {
+	for f in .Xdefaults .setbackground .wbarconf .gtkrc-2.0; do
+		[ -f "/etc/skel/$f" ] && cp -f "/etc/skel/$f" "$HOMEDIR/$f"
+	done
+	cp -rf /etc/skel/.config "$HOMEDIR/" 2>/dev/null
+	sudo_if rm -f "$(cfg_file desktop)"
+	[ -n "$DISPLAY" ] && { "$HOMEDIR/.setbackground" >/dev/null 2>&1; wbar.sh >/dev/null 2>&1; }
+	echo "desktop settings reset to defaults"
+}
+
+cmd_restart() {
+	sudo_if rm -f /var/log/autologin /tmp/.X11-unix/X0
+	sudo_if sh -c '(sleep 1; pkill Xvesa; sleep 2; pkill -KILL -t tty1) >/dev/null 2>&1 &'
+	echo "desktop session restarting..."
+}
+
+case "$1" in
+	status|"") cmd_status ;;
+	wallpaper) shift; cmd_wallpaper "$@" ;;
+	dock) shift; cmd_dock "$@" ;;
+	accent) shift; cmd_accent "$@" ;;
+	appearance) shift; cmd_appearance "$@" ;;
+	hostname) shift; cmd_hostname "$@" ;;
+	autologin) shift; cmd_autologin "$@" ;;
+	language) shift; cmd_language "$@" ;;
+	region) shift; cmd_region "$@" ;;
+	datetime) shift; cmd_datetime "$@" ;;
+	ntp-sync) cmd_ntp ;;
+	themes) cmd_themes ;;
+	reset) cmd_reset ;;
+	restart-session) cmd_restart ;;
+	--json) cmd_status ;;
+	*) echo "usage: xxri-desktop status|wallpaper|dock|accent|appearance|hostname|autologin|language|region|datetime|ntp-sync|themes|reset|restart-session" >&2; exit 1 ;;
+esac

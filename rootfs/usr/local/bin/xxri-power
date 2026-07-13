@@ -1,0 +1,171 @@
+#!/bin/busybox ash
+# xxri-power - power backend (xxri Hardware Layer).
+#
+#   xxri-power info|battery|ac [--json]
+#   xxri-power capabilities [--json]
+#   xxri-power brightness [get|set N|up|down]
+#   xxri-power governor [get|set NAME|list]
+#   xxri-power suspend | shutdown | restart
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+PS=/sys/class/power_supply
+BL=""
+for b in /sys/class/backlight/*; do [ -e "$b" ] && BL="$b" && break; done
+
+bat_paths() { for p in $PS/*; do [ "$(sf "$p/type")" = Battery ] && echo "$p"; done; }
+ac_paths()  { for p in $PS/*; do [ "$(sf "$p/type")" = Mains ] && echo "$p"; done; }
+
+cmd_battery() {
+	a_new; n=0
+	for p in $(bat_paths); do
+		n=$((n+1))
+		j_new
+		j_str name "${p##*/}"
+		j_num capacity "$(sf "$p/capacity")"
+		j_str status "$(sf "$p/status")"
+		j_str technology "$(sf "$p/technology")"
+		a_add "$(j_obj)"
+		[ $JSON = 1 ] || echo "battery ${p##*/}: $(sf "$p/capacity")% ($(sf "$p/status"))"
+	done
+	if [ $JSON = 1 ]; then
+		j_new; j_raw batteries "$(a_out)"; j_bool present "$([ $n -gt 0 ] && echo 1 || echo 0)"
+		j_root power "\"battery\":$(j_obj)"
+	else
+		[ $n = 0 ] && echo "battery: none (desktop or not exposed by firmware)"
+	fi
+	return 0
+}
+
+cmd_ac() {
+	on=0; found=0
+	for p in $(ac_paths); do found=1; [ "$(sf "$p/online")" = 1 ] && on=1; done
+	if [ $JSON = 1 ]; then
+		j_new; j_bool present "$found"; j_bool online "$on"
+		j_root power "\"ac\":$(j_obj)"
+	else
+		[ $found = 1 ] && echo "AC adapter: $([ $on = 1 ] && echo online || echo offline)" \
+			|| echo "AC adapter: not exposed by firmware"
+	fi
+	return 0
+}
+
+cmd_brightness() {
+	if [ -z "$BL" ]; then
+		if [ $JSON = 1 ]; then
+			j_new; j_bool available 0; j_str reason "no backlight interface (desktop GPU or VESA path)"
+			j_root power "\"brightness\":$(j_obj)"
+		else echo "brightness control not available on this hardware"; fi
+		return 0
+	fi
+	max="$(sf "$BL/max_brightness")"; cur="$(sf "$BL/brightness")"
+	case "$1" in
+		set)  v=$(( $2 * max / 100 )); sudo_if sh -c "echo $v > $BL/brightness" ;;
+		up)   v=$(( cur + max/10 )); [ $v -gt $max ] && v=$max; sudo_if sh -c "echo $v > $BL/brightness" ;;
+		down) v=$(( cur - max/10 )); [ $v -lt 0 ] && v=0; sudo_if sh -c "echo $v > $BL/brightness" ;;
+	esac
+	cur="$(sf "$BL/brightness")"
+	pct=$(( cur * 100 / max ))
+	cfg_set power BRIGHTNESS "$pct"
+	if [ $JSON = 1 ]; then
+		j_new; j_bool available 1; j_num percent "$pct"
+		j_root power "\"brightness\":$(j_obj)"
+	else echo "brightness: $pct%"; fi
+}
+
+gov_path() { echo /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor; }
+
+cmd_governor() {
+	g="$(gov_path)"
+	if [ ! -e "$g" ]; then
+		sudo_if /sbin/loadcpufreq 2>/dev/null
+		sleep 1
+	fi
+	if [ ! -e "$g" ]; then
+		if [ $JSON = 1 ]; then
+			j_new; j_bool available 0; j_str reason "no cpufreq support on this CPU/platform"
+			j_root power "\"governor\":$(j_obj)"
+		else echo "CPU frequency scaling not available on this hardware"; fi
+		return 0
+	fi
+	case "$1" in
+		set)
+			sudo_if modprobe "cpufreq_$2" 2>/dev/null
+			for c in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do
+				sudo_if sh -c "echo $2 > $c" 2>/dev/null
+			done
+			cfg_set power GOVERNOR "$2"
+		;;
+		list)
+			if [ $JSON = 1 ]; then
+				a_new
+				for x in $(sf "${g%/*}/scaling_available_governors"); do a_add "\"$x\""; done
+				j_new; j_raw available "$(a_out)"; j_str current "$(sf "$g")"
+				j_root power "\"governor\":$(j_obj)"
+			else
+				echo "available: $(sf "${g%/*}/scaling_available_governors")"
+				echo "current  : $(sf "$g")"
+			fi
+			return 0
+		;;
+	esac
+	if [ $JSON = 1 ]; then
+		j_new; j_bool available 1; j_str current "$(sf "$g")"
+		j_root power "\"governor\":$(j_obj)"
+	else echo "governor: $(sf "$g")"; fi
+}
+
+cmd_capabilities() {
+	states="$(sf /sys/power/state)"
+	can_susp=0; can_hib=0
+	case " $states " in *" mem "*) can_susp=1;; esac
+	case " $states " in *" disk "*) can_hib=1;; esac
+	swap=0; [ -s /proc/swaps ] && [ "$(wc -l < /proc/swaps)" -gt 1 ] && swap=1
+	bat=0; [ -n "$(bat_paths)" ] && bat=1
+	if [ $JSON = 1 ]; then
+		j_new
+		j_bool suspend "$can_susp"
+		j_bool hibernate "$([ $can_hib = 1 ] && [ $swap = 1 ] && echo 1 || echo 0)"
+		j_bool hibernate_kernel "$can_hib"; j_bool swap "$swap"
+		j_bool battery "$bat"
+		j_bool brightness "$([ -n "$BL" ] && echo 1 || echo 0)"
+		j_bool cpufreq "$([ -e "$(gov_path)" ] && echo 1 || echo 0)"
+		j_root power "\"capabilities\":$(j_obj)"
+	else
+		echo "suspend  : $([ $can_susp = 1 ] && echo yes || echo no)"
+		echo "hibernate: $([ $can_hib = 1 ] && { [ $swap = 1 ] && echo yes || echo 'kernel yes, no swap'; } || echo no)"
+		echo "brightness: $([ -n "$BL" ] && echo yes || echo no)   battery: $([ $bat = 1 ] && echo yes || echo no)"
+	fi
+}
+
+cmd_info() {
+	if [ $JSON = 1 ]; then
+		b="$(JSON=1 cmd_battery | sed 's/^{"api":[0-9]*,"backend":"power",//;s/}$//')"
+		a="$(JSON=1 cmd_ac | sed 's/^{"api":[0-9]*,"backend":"power",//;s/}$//')"
+		c="$(JSON=1 cmd_capabilities | sed 's/^{"api":[0-9]*,"backend":"power",//;s/}$//')"
+		printf '{"api":%s,"backend":"power",%s,%s,%s}\n' "$XXRI_API" "$b" "$a" "$c"
+	else
+		cmd_battery; cmd_ac; cmd_capabilities; cmd_governor
+	fi
+}
+
+cmd_suspend() {
+	grep -qw mem /sys/power/state 2>/dev/null || { echo "suspend not supported" >&2; return 1; }
+	sync
+	sudo_if sh -c "echo mem > /sys/power/state"
+}
+
+case "$1" in
+	info) cmd_info ;;
+	battery) cmd_battery ;;
+	ac) cmd_ac ;;
+	brightness) shift; cmd_brightness "$@" ;;
+	governor) shift; cmd_governor "$@" ;;
+	capabilities) cmd_capabilities ;;
+	suspend|sleep) cmd_suspend ;;
+	shutdown) sync; sudo_if /sbin/poweroff ;;
+	restart|reboot) sync; sudo_if /sbin/reboot ;;
+	*) echo "usage: xxri-power info|battery|ac|brightness [set N|up|down]|governor [set G|list]|capabilities|suspend|shutdown|restart [--json]" >&2; exit 1 ;;
+esac

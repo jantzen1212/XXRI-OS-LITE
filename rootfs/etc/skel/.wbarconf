@@ -1,1 +1,1 @@
-c: wbar -above-desk -bpress -pos bottom -isize 40 -idist 6 -zoomf 1.6 -nanim 5 -jumpf 1.0
+c: wbar -bpress -nofont -pos bottom -isize 44 -idist 12 -zoomf 1.4 -nanim 3 -jumpf 0.85

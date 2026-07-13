@@ -1,0 +1,8 @@
+>> Repacking /home/jantzen/xxri-build/rootfs -> /home/jantzen/xxri-build/output/core.gz
+-rw-r--r-- 1 jantzen jantzen 14691819 Jul 12 22:13 /home/jantzen/xxri-build/output/core.gz
+>> Refreshing ISO tree core.gz  (the step that was missing before)
+>> Rebuilding /home/jantzen/xxri-build/output/XXRI-Lite.iso
+>> Done.
+   Live/installer ISO : /home/jantzen/xxri-build/output/XXRI-Lite.iso
+   Installed-system    : boot output/core.gz + a disk labelled XXRIROOT
+                         (see build-writable-image.sh or install2disk)
