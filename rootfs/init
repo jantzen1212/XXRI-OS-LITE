@@ -74,7 +74,7 @@ if [ -n "$ROOTSPEC" ] && [ -z "$RAMROOT" ]; then
 		[ -n "$ROOTFSTYPE" ] && modprobe -q "$ROOTFSTYPE" 2>/dev/null
 		case "$ROOTFSTYPE" in
 			ext2|ext3|ext4)
-				e2fsck -p "$ROOTDEV"
+				e2fsck -p "$ROOTDEV" >/dev/null 2>&1
 				[ $? -ge 4 ] && echo "init: WARNING: errors on $ROOTDEV were not fully repaired."
 			;;
 		esac
@@ -85,7 +85,7 @@ if [ -n "$ROOTSPEC" ] && [ -z "$RAMROOT" ]; then
 		fi
 		if [ "$?" = 0 ]; then
 			if [ -e /mnt/sbin/init ] && [ -e /mnt/etc/inittab ]; then
-				echo "init: switching to installed root $ROOTDEV ($ROOTFSTYPE)."
+				echo "init: switching to installed root $ROOTDEV ($ROOTFSTYPE)." >/dev/null 2>&1
 				grep -q ' /mnt/dev devtmpfs' /proc/mounts || \
 					mount -t devtmpfs devtmpfs /mnt/dev 2>/dev/null
 				mkdir -p /mnt/dev/pts /mnt/dev/shm 2>/dev/null

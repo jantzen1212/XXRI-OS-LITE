@@ -199,7 +199,9 @@ echo
 echo "    LABEL installed"
 echo "      KERNEL /boot/vmlinuz"
 echo "      INITRD /boot/core.gz"
-echo "      APPEND loglevel=3"
+echo "      APPEND quiet loglevel=3 vga=791 vt.global_cursor_default=0 consoleblank=0"
+echo "      # (vga=791 gives the framebuffer for the XXRI boot splash; 'quiet'"
+echo "      #  hides kernel messages. Drop them for a text/debug boot.)"
 echo
 echo "(You may still pin it explicitly with root=LABEL=$XXRILABEL or"
 echo " root=UUID=$ROOTUUID.)  The 'ramroot' boot code forces classic RAM mode."
