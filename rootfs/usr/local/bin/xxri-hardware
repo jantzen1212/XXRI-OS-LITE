@@ -1,0 +1,214 @@
+#!/bin/busybox ash
+# xxri-hardware - hardware detection backend (xxri Hardware Layer).
+#
+#   xxri-hardware summary|cpu|memory|gpu|usb|camera|monitor|printer|
+#                 firmware|all   [--json]
+#
+# Structured sources only: /proc, /sys, plus pciutils for device names.
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+cpu_model()  { sed -n 's/^model name[^:]*: //p' /proc/cpuinfo | head -1; }
+cpu_cores()  { grep -c ^processor /proc/cpuinfo; }
+cpu_mhz()    { sed -n 's/^cpu MHz[^:]*: //p' /proc/cpuinfo | head -1 | cut -d. -f1; }
+mem_kb()     { sed -n "s/^$1:[^0-9]*\([0-9]*\).*/\1/p" /proc/meminfo; }
+
+cmd_cpu() {
+	if [ $JSON = 1 ]; then
+		j_new; j_str model "$(cpu_model)"; j_num cores "$(cpu_cores)"
+		j_num mhz "$(cpu_mhz)"; j_str arch "$(hw_arch)"
+		j_root hardware "\"cpu\":$(j_obj)"
+	else
+		echo "CPU   : $(cpu_model)"
+		echo "Cores : $(cpu_cores)   Freq: $(cpu_mhz) MHz   Arch: $(hw_arch)"
+	fi
+}
+
+cmd_memory() {
+	t=$(mem_kb MemTotal); f=$(mem_kb MemFree); av=$(mem_kb MemAvailable)
+	if [ $JSON = 1 ]; then
+		j_new; j_num total_kb "$t"; j_num free_kb "$f"; j_num available_kb "$av"
+		j_root hardware "\"memory\":$(j_obj)"
+	else
+		echo "Memory: $((t/1024)) MiB total, $((av/1024)) MiB available"
+	fi
+}
+
+cmd_gpu() {
+	a_new; TXT=""
+	for d in $(pci_by_class 0x03); do
+		n="$(pci_name "$d")"
+		j_new; j_str name "$n"; j_str pci "${d##*/}"
+		j_str driver "$(basename "$(readlink "$d/driver" 2>/dev/null)" 2>/dev/null)"
+		a_add "$(j_obj)"; TXT="$TXT$n\n"
+	done
+	if [ $JSON = 1 ]; then j_root hardware "\"gpu\":$(a_out)"
+	else printf "GPU   : ${TXT:-none detected\n}"; fi
+}
+
+cmd_usb() {
+	a_new
+	for d in $(usb_devices); do
+		j_new
+		j_str vendor_id "$(sf "$d/idVendor")"; j_str product_id "$(sf "$d/idProduct")"
+		j_str product "$(sf "$d/product")"; j_str manufacturer "$(sf "$d/manufacturer")"
+		j_str bus "${d##*/}"
+		a_add "$(j_obj)"
+		[ $JSON = 1 ] || echo "USB ${d##*/}: $(sf "$d/manufacturer") $(sf "$d/product") [$(sf "$d/idVendor"):$(sf "$d/idProduct")]"
+	done
+	[ $JSON = 1 ] && j_root hardware "\"usb\":$(a_out)"
+	return 0
+}
+
+cmd_camera() {
+	a_new; n=0
+	for v in /sys/class/video4linux/*; do
+		[ -e "$v" ] || continue
+		n=$((n+1))
+		j_new; j_str device "/dev/${v##*/}"; j_str name "$(sf "$v/name")"
+		a_add "$(j_obj)"
+		[ $JSON = 1 ] || echo "Camera: /dev/${v##*/}  $(sf "$v/name")"
+	done
+	if [ $JSON = 1 ]; then
+		j_new; j_raw devices "$(a_out)"; j_bool driver_support "$([ -d /lib/modules/$(hw_kernel)/kernel/drivers/media/usb ] && echo 1 || echo 0)"
+		j_str hint "$([ $n = 0 ] && echo 'no camera detected; V4L2 driver package (v4l-dvb) can be added with xxri-pkg')"
+		j_root hardware "\"camera\":$(j_obj)"
+	else
+		[ $n = 0 ] && echo "Camera: none detected (V4L2 drivers install on demand: xxri-pkg -wi v4l-dvb-$(hw_kernel))"
+	fi
+	return 0
+}
+
+cmd_monitor() {
+	a_new; found=0
+	for c in /sys/class/drm/card*-*; do
+		[ -e "$c/status" ] || continue
+		[ "$(sf "$c/status")" = connected ] || continue
+		found=1
+		edid_b=$(wc -c < "$c/edid" 2>/dev/null || echo 0)
+		j_new; j_str connector "${c##*/}"; j_bool edid "$([ "${edid_b:-0}" -gt 0 ] && echo 1 || echo 0)"
+		a_add "$(j_obj)"
+	done
+	if [ $JSON = 1 ]; then
+		j_new; j_raw connectors "$(a_out)"
+		j_bool kms "$found"
+		[ $found = 0 ] && j_str note "VESA display path: monitor is driven by the VESA BIOS; EDID is not exposed. Modes come from xxri-display list."
+		j_root hardware "\"monitor\":$(j_obj)"
+	else
+		if [ $found = 1 ]; then echo "Monitor: KMS connector(s) present (see --json)"
+		else echo "Monitor: VESA BIOS driven (no EDID available); use xxri-display list"; fi
+	fi
+	return 0
+}
+
+cmd_printer() {
+	a_new; n=0
+	for i in /sys/bus/usb/devices/*:*; do
+		[ "$(sf "$i/bInterfaceClass")" = "07" ] || continue
+		n=$((n+1)); parent="${i%:*}"; parent="${parent%.*}"
+		j_new; j_str device "${i##*/}"
+		j_str product "$(sf "/sys/bus/usb/devices/${i##*/}/../product")"
+		a_add "$(j_obj)"
+	done
+	if [ $JSON = 1 ]; then
+		j_new; j_raw devices "$(a_out)"
+		[ $n = 0 ] && j_str hint "no printer detected; printing stack (CUPS) is not part of xxri OS Lite base"
+		j_root hardware "\"printer\":$(j_obj)"
+	else
+		echo "Printer: $n USB printer-class device(s) detected"
+	fi
+	return 0
+}
+
+cmd_firmware() {
+	# kernel 6.x loads firmware directly from /lib/firmware when present;
+	# report what was requested, loaded, or failed since boot.
+	miss="$(dmesg 2>/dev/null | sed -n 's/.*Direct firmware load for \([^ ]*\) failed.*/\1/p' | sort -u)"
+	load="$(dmesg 2>/dev/null | sed -n 's/.*firmware: direct-loading firmware \([^ ]*\).*/\1/p' | sort -u)"
+	if [ $JSON = 1 ]; then
+		a_new; for f in $load; do a_add "\"$(j_esc "$f")\""; done; L="$(a_out)"
+		a_new; for f in $miss; do a_add "\"$(j_esc "$f")\""; done; M="$(a_out)"
+		j_new; j_raw loaded "$L"; j_raw missing "$M"
+		j_bool firmware_dir "$([ -d /lib/firmware ] && echo 1 || echo 0)"
+		j_str hint "missing firmware can be installed to /lib/firmware (xxri-pkg firmware packages)"
+		j_root hardware "\"firmware\":$(j_obj)"
+	else
+		echo "Firmware loaded : ${load:-none requested}"
+		[ -n "$miss" ] && echo "Firmware MISSING: $miss  (install the matching firmware package with xxri-pkg)"
+	fi
+	return 0
+}
+
+cmd_bios() {
+	v="$(sf /sys/class/dmi/id/bios_version)"; d="$(sf /sys/class/dmi/id/bios_date)"
+	ven="$(sf /sys/class/dmi/id/bios_vendor)"
+	if [ $JSON = 1 ]; then
+		j_new; j_str vendor "$ven"; j_str version "$v"; j_str date "$d"
+		j_root hardware "\"bios\":$(j_obj)"
+	else echo "BIOS  : ${ven:-unknown} ${v:-?} ${d:+($d)}"; fi
+	return 0
+}
+
+hw_uptime() {
+	s=$(cut -d. -f1 /proc/uptime 2>/dev/null); s=${s:-0}
+	h=$((s/3600)); m=$(( (s%3600)/60 ))
+	echo "${h} hours ${m} minutes"
+}
+
+cmd_summary() {
+	if [ $JSON = 1 ]; then
+		bat=false
+		for p in /sys/class/power_supply/*; do
+			[ "$(sf "$p/type")" = Battery ] && bat=true
+		done
+		net=0; for i in /sys/class/net/*; do [ "${i##*/}" != lo ] && net=$((net+1)); done
+		snd=0; [ -r /proc/asound/cards ] && snd=$(grep -c '^ *[0-9]' /proc/asound/cards 2>/dev/null || echo 0)
+		cams=0; for v in /sys/class/video4linux/*; do [ -e "$v" ] && cams=$((cams+1)); done
+		bt=0; for b in /sys/class/bluetooth/*; do [ -e "$b" ] && bt=$((bt+1)); done
+		j_new
+		j_str os "$(hw_os_name)"; j_str kernel "$(hw_kernel)"; j_str arch "$(hw_arch)"
+		j_str cpu "$(cpu_model)"; j_num cores "$(cpu_cores)"
+		j_num memory_mb "$(( $(mem_kb MemTotal) / 1024 ))"
+		g=""; for d in $(pci_by_class 0x03); do g="$(pci_name "$d")"; break; done
+		j_str gpu "$g"
+		j_num sound_cards "$snd"; j_num network_interfaces "$net"
+		j_num cameras "$cams"; j_num bluetooth_adapters "$bt"
+		j_bool battery "$([ "$bat" = true ] && echo 1 || echo 0)"
+		j_str uptime "$(hw_uptime)"
+		j_str locale "$(sed -n 's/^LANG=//p' /etc/sysconfig/language 2>/dev/null || echo en_US).$(sed -n 's/^TZ=//p' /etc/sysconfig/timezone 2>/dev/null | cut -c1-8)"
+		j_root hardware "\"summary\":$(j_obj)"
+	else
+		echo "xxri OS Lite hardware summary"
+		echo "-----------------------------"
+		cmd_cpu; cmd_memory; cmd_gpu; cmd_firmware
+	fi
+}
+
+cmd_all() {
+	[ $JSON = 1 ] || { cmd_summary; cmd_usb; cmd_camera; cmd_monitor; cmd_printer; return; }
+	# one combined document for frontends
+	parts=""
+	for c in cpu memory gpu usb camera monitor printer firmware bios summary; do
+		frag="$(JSON=1 cmd_$c | sed 's/^{"api":[0-9]*,"backend":"hardware",//; s/}$//')"
+		parts="$parts${parts:+,}$frag"
+	done
+	printf '{"api":%s,"backend":"hardware",%s}\n' "$XXRI_API" "$parts"
+}
+
+case "$1" in
+	cpu) cmd_cpu ;;
+	memory|ram) cmd_memory ;;
+	gpu) cmd_gpu ;;
+	usb) cmd_usb ;;
+	camera) cmd_camera ;;
+	monitor) cmd_monitor ;;
+	printer) cmd_printer ;;
+	firmware) cmd_firmware ;;
+	bios) cmd_bios ;;
+	summary|"") cmd_summary ;;
+	all) cmd_all ;;
+	--json) cmd_summary ;;
+	*) echo "usage: xxri-hardware summary|cpu|memory|gpu|usb|camera|monitor|printer|firmware|all [--json]" >&2; exit 1 ;;
+esac

@@ -1,0 +1,98 @@
+#!/bin/busybox ash
+# xxri-bluetooth - bluetooth backend (xxri Hardware Layer).
+#
+#   xxri-bluetooth status [--json]
+#   xxri-bluetooth scan|pair MAC|connect MAC|disconnect MAC
+#
+# xxri OS Lite does not ship the BlueZ stack by default (it would add
+# >15 MB of dependencies).  This backend provides the stable API with
+# graceful fallback: it detects adapters and rfkill state from sysfs,
+# and drives bluetoothctl automatically once bluez5 is installed
+# (xxri-pkg -wi bluez5).  Frontends code against this API either way.
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+adapters() { for b in /sys/class/bluetooth/hci*; do [ -e "$b" ] && echo "${b##*/}"; done; }
+rf_blocked() {
+	for r in /sys/class/rfkill/*; do
+		[ "$(sf "$r/type")" = bluetooth ] || continue
+		[ "$(sf "$r/soft")" = 1 ] || [ "$(sf "$r/hard")" = 1 ] && { echo 1; return; }
+	done
+	echo 0
+}
+stack() { have bluetoothctl && echo 1 || echo 0; }
+
+cmd_status() {
+	ad="$(adapters)"; st="$(stack)"
+	if [ $JSON = 1 ]; then
+		a_new; for x in $ad; do a_add "\"$x\""; done
+		j_new
+		j_bool available "$([ -n "$ad" ] && [ "$st" = 1 ] && echo 1 || echo 0)"
+		j_raw adapters "$(a_out)"
+		j_bool stack_installed "$st"
+		j_bool rfkill_blocked "$(rf_blocked)"
+		if [ -z "$ad" ]; then j_str reason "no bluetooth adapter detected"
+		elif [ "$st" = 0 ]; then j_str reason "BlueZ stack not installed"; j_str hint "install with: xxri-pkg -wi bluez5"
+		fi
+		j_root bluetooth "\"status\":$(j_obj)"
+	else
+		if [ -z "$ad" ]; then echo "Bluetooth: no adapter detected"
+		elif [ "$st" = 0 ]; then echo "Bluetooth: adapter $ad present, stack not installed (xxri-pkg -wi bluez5)"
+		else echo "Bluetooth: adapter $ad ready$([ "$(rf_blocked)" = 1 ] && echo ' (rfkill blocked)')"; fi
+	fi
+	return 0
+}
+
+need_stack() {
+	if [ "$(stack)" = 0 ] || [ -z "$(adapters)" ]; then
+		if [ $JSON = 1 ]; then
+			j_new; j_bool ok 0
+			j_str reason "$([ -z "$(adapters)" ] && echo 'no bluetooth adapter' || echo 'BlueZ not installed (xxri-pkg -wi bluez5)')"
+			j_root bluetooth "\"error\":$(j_obj)"
+		else
+			cmd_status
+		fi
+		return 1
+	fi
+	return 0
+}
+
+bt() { printf '%s\n' "$@" quit | bluetoothctl 2>/dev/null; }
+
+cmd_scan() {
+	need_stack || return 1
+	( printf 'scan on\n'; sleep 8; printf 'devices\nscan off\nquit\n' ) | bluetoothctl 2>/dev/null \
+		| sed -n 's/^Device \([0-9A-F:]*\) \(.*\)/\1  \2/p' | sort -u
+}
+cmd_paired() {
+	need_stack || return 1
+	if [ $JSON = 1 ]; then
+		a_new
+		bluetoothctl paired-devices 2>/dev/null | sed -n 's/^Device \([0-9A-F:]*\) \(.*\)/\1|\2/p' | while IFS='|' read -r mac name; do
+			j_new; j_str mac "$mac"; j_str name "$name"; echo "	$(j_obj)"
+		done > "$XXRI_TMP/btp.$$"
+		l="$(sed 's/^	//' "$XXRI_TMP/btp.$$" | tr '\n' ',' | sed 's/,$//')"
+		rm -f "$XXRI_TMP/btp.$$"
+		j_root bluetooth "\"paired\":[$l]"
+	else
+		bluetoothctl paired-devices 2>/dev/null
+	fi
+}
+cmd_remove()     { need_stack || return 1; bt "remove $1"; }
+cmd_pair()       { need_stack || return 1; bt "pair $1"; }
+cmd_connect()    { need_stack || return 1; bt "connect $1"; }
+cmd_disconnect() { need_stack || return 1; bt "disconnect $1"; }
+
+case "$1" in
+	status|"") cmd_status ;;
+	scan) cmd_scan ;;
+	paired) cmd_paired ;;
+	remove) shift; cmd_remove "$@" ;;
+	pair) shift; cmd_pair "$@" ;;
+	connect) shift; cmd_connect "$@" ;;
+	disconnect) shift; cmd_disconnect "$@" ;;
+	--json) cmd_status ;;
+	*) echo "usage: xxri-bluetooth status|scan|pair MAC|connect MAC|disconnect MAC [--json]" >&2; exit 1 ;;
+esac

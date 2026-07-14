@@ -1,0 +1,59 @@
+#!/bin/busybox ash
+# xxri-hw-init - boot-time hardware enablement (called from bootlocal.sh).
+# Loads drivers, restores persisted audio/power settings and caches the
+# VESA mode list before X starts.  Everything is best-effort and quiet.
+{
+	# extension kernel modules (ALSA, wireless...) live under
+	# /usr/local/lib/modules (reached via the kernel.tclocal symlink).
+	# On live boots xxri-pkg runs depmod when a module package loads; on
+	# installed systems nothing does, so index them here once.  mtime is
+	# useless (unsquashfs preserves package timestamps) - check content.
+	if [ -d "/usr/local/lib/modules/$(uname -r)" ] && \
+	   ! grep -q 'kernel\.tclocal' "/lib/modules/$(uname -r)/modules.dep" 2>/dev/null; then
+		depmod -a 2>/dev/null
+	fi
+	# USB host controllers and storage HBAs are modular on some builds
+	. /usr/local/lib/xxri/hw-lib.sh
+	for d in $(pci_by_class 0x0c03) $(pci_by_class 0x01); do
+		hw_load_driver "$d"
+	done
+	/usr/local/bin/xxri-display cache-modes
+	/usr/local/bin/xxri-audio init
+	G="$(sed -n 's/^GOVERNOR=//p' /usr/local/etc/xxri/power.conf 2>/dev/null)"
+	[ -n "$G" ] && /usr/local/bin/xxri-power governor set "$G"
+	B="$(sed -n 's/^BRIGHTNESS=//p' /usr/local/etc/xxri/power.conf 2>/dev/null)"
+	[ -n "$B" ] && /usr/local/bin/xxri-power brightness set "$B"
+	/usr/local/bin/xxri-network auto
+	# GTK3 runtime caches (Phase 8): generate once on the writable root
+	PBDIR=/usr/local/lib/gdk-pixbuf-2.0/2.10.0
+	if [ -x /usr/local/bin/gdk-pixbuf-query-loaders ] && [ ! -s "$PBDIR/loaders.cache" ]; then
+		/usr/local/bin/gdk-pixbuf-query-loaders --update-cache 2>/dev/null || 		/usr/local/bin/gdk-pixbuf-query-loaders > "$PBDIR/loaders.cache" 2>/dev/null
+	fi
+	if [ -x /usr/local/bin/glib-compile-schemas ] && [ ! -s /usr/local/share/glib-2.0/schemas/gschemas.compiled ]; then
+		/usr/local/bin/glib-compile-schemas /usr/local/share/glib-2.0/schemas 2>/dev/null
+	fi
+	[ -x /usr/local/bin/gio-querymodules ] && [ -d /usr/local/lib/gio/modules ] && 		/usr/local/bin/gio-querymodules /usr/local/lib/gio/modules 2>/dev/null
+	# Phase 8.1: xxri Settings fully replaces the Tiny Core control panel and
+	# its stand-alone config launchers - drop their .desktop entries (and the
+	# duplicate gear pixmap) before the session builds the dock/menu, so only
+	# xxri Settings remains.
+	for junk in cpanel tc-cpanel tc-config appsaudit services settime tc-wbarconf; do
+		rm -f "/usr/local/share/applications/tinycore-$junk.desktop" \
+		      "/usr/local/share/applications/$junk.desktop" 2>/dev/null
+	done
+	rm -f /usr/local/share/pixmaps/cpanel.png 2>/dev/null
+	# Phase 8.1: on an INSTALLED system (persistent root - not a live rootfs/
+	# tmpfs) the installer must never be exposed.  Remove its launcher, GUI
+	# binary, auto-start hook and any pre-built menu entry before the session
+	# rebuilds the dock/menu.  On the Live ISO (rootfs/tmpfs) it is kept.
+	case "$(awk '$2=="/"{print $3; exit}' /proc/mounts)" in
+		rootfs|tmpfs) ;;
+		*)
+			rm -f /usr/local/share/applications/xxri-installer.desktop \
+			      /usr/local/bin/xxri-installer 2>/dev/null
+			for u in /home/*; do
+				rm -f "$u"/.X.d/xxri-installer-live \
+				      "$u"/.wmx/*/InstallxxriOSLite "$u"/.wmx/*/Install* 2>/dev/null
+			done ;;
+	esac
+} >/var/log/xxri-hw-init.log 2>&1

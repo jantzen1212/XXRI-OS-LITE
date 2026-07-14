@@ -1,0 +1,208 @@
+/* xxri Settings - GTK3 theme (Phase 8 redesign).
+ * One UI / GNOME / elementary inspired, unmistakably XXRI.
+ * Palette: ink #1C1B24, muted #6B6880, pink #ED6CE0, purple #8371F7,
+ * blue #2E7CF6, surface #EFEDF8, card #FFFFFF, border #E4E0F2.        */
+
+@define-color xxri_ink     #1C1B24;
+@define-color xxri_muted   #6B6880;
+@define-color xxri_pink    #ED6CE0;
+@define-color xxri_purple  #8371F7;
+@define-color xxri_blue    #2E7CF6;
+@define-color xxri_surface #EFEDF8;
+@define-color xxri_card    #FFFFFF;
+@define-color xxri_border  #E4E0F2;
+
+* {
+  font-family: "Avenir Next", "Helvetica", sans-serif;
+  outline: none;
+  -gtk-outline-radius: 12px;
+}
+
+/* ---- window / content ---- */
+window, .xxri-root { background-color: @xxri_surface; color: @xxri_ink; }
+.xxri-content { background-color: @xxri_surface; }
+
+/* ---- sidebar ---- */
+.xxri-sidebar {
+  background-image: linear-gradient(to bottom, #E9E4F6, #F3EFFB);
+  border-right: 1px solid @xxri_border;
+}
+.xxri-sidebar-header { padding: 18px 20px 8px 20px; }
+.xxri-sidebar-title { font-size: 18px; font-weight: bold; color: @xxri_ink; }
+
+.xxri-userchip {
+  background-color: #FFFFFF;
+  border-radius: 14px;
+  padding: 8px 12px;
+  margin: 6px 14px 12px 14px;
+  box-shadow: 0 2px 8px alpha(#1C1B24, 0.08);
+}
+.xxri-userchip-name { font-weight: bold; font-size: 13px; color: @xxri_ink; }
+.xxri-userchip-sub  { font-size: 10px; color: @xxri_muted; }
+
+/* nav list */
+list.xxri-nav { background: transparent; }
+list.xxri-nav row {
+  border-radius: 12px;
+  margin: 2px 12px;
+  padding: 9px 12px;
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+list.xxri-nav row:hover { background-color: alpha(#8371F7, 0.10); }
+list.xxri-nav row:selected {
+  background-color: #FFFFFF;
+  box-shadow: 0 2px 10px alpha(#8371F7, 0.18);
+}
+list.xxri-nav row:selected label { color: @xxri_ink; font-weight: bold; }
+list.xxri-nav label { color: #403C55; font-size: 13px; }
+.xxri-nav-sep { min-height: 1px; margin: 8px 22px; background: transparent; }
+.xxri-nav-sep separator { background-color: @xxri_border; min-height: 1px; }
+
+/* ---- page header ---- */
+.xxri-page-title { font-size: 26px; font-weight: bold; color: @xxri_ink; }
+.xxri-page-sub   { font-size: 12px; color: @xxri_muted; }
+.xxri-section {
+  font-size: 12px; font-weight: bold; color: @xxri_purple;
+  margin: 18px 2px 6px 4px;
+}
+
+/* ---- cards ---- */
+.xxri-card {
+  background-color: @xxri_card;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px alpha(#1C1B24, 0.07);
+  padding: 4px 6px;
+}
+.xxri-card.flat { box-shadow: 0 2px 10px alpha(#1C1B24, 0.05); }
+.xxri-rowitem { padding: 12px 16px; border-radius: 12px; }
+.xxri-rowitem:not(:last-child) { border-bottom: 1px solid alpha(#1C1B24,0.05); }
+.xxri-row-title { font-size: 13px; font-weight: bold; color: @xxri_ink; }
+.xxri-row-sub   { font-size: 11px; color: @xxri_muted; }
+.xxri-key       { font-size: 12px; font-weight: bold; color: @xxri_ink; }
+.xxri-val       { font-size: 12px; color: @xxri_muted; }
+
+.xxri-hint {
+  background-color: alpha(#8371F7, 0.06);
+  border: 1px solid alpha(#8371F7, 0.16);
+  border-radius: 14px;
+  padding: 16px 18px;
+  color: @xxri_muted;
+  font-size: 12px;
+}
+
+/* ---- full-page empty / unavailable state ---- */
+.xxri-empty-badge {
+  min-width: 96px; min-height: 96px;
+  border-radius: 999px;
+  background-image: linear-gradient(135deg, alpha(#ED6CE0, 0.16), alpha(#2E7CF6, 0.16));
+  box-shadow: inset 0 0 0 1px alpha(#8371F7, 0.12);
+}
+.xxri-empty-title { font-size: 17px; font-weight: bold; color: @xxri_ink; }
+.xxri-empty-sub   { font-size: 12.5px; color: @xxri_muted; }
+
+/* ---- buttons ---- */
+button {
+  border-radius: 999px;
+  padding: 7px 16px;
+  background-image: linear-gradient(to bottom, #FFFFFF, #F4F1FB);
+  border: 1px solid @xxri_border;
+  color: @xxri_ink;
+  font-size: 12px; font-weight: bold;
+  box-shadow: 0 1px 3px alpha(#1C1B24, 0.05);
+  transition: all 140ms ease;
+}
+button:hover { background-image: linear-gradient(to bottom, #FFFFFF, #FBF9FE); border-color: @xxri_purple; }
+button:active { background-image: linear-gradient(to bottom, #EEEAF8, #E6E1F4); }
+button:disabled { color: @xxri_muted; opacity: 0.6; }
+
+button.suggested-action, button.xxri-accent {
+  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple);
+  color: #FFFFFF;
+  border: none;
+  box-shadow: 0 3px 10px alpha(#8371F7, 0.28);
+}
+button.suggested-action:hover, button.xxri-accent:hover {
+  background-image: linear-gradient(to right, #F080E6, #9484F8);
+}
+button.destructive-action {
+  background-image: linear-gradient(to right, #F06A8E, #C24B6E);
+  color: #FFFFFF; border: none;
+}
+button.xxri-chip { padding: 6px 14px; font-weight: bold; }
+
+/* ---- switches ---- */
+switch {
+  border-radius: 999px;
+  background-image: linear-gradient(to bottom, #E3DFF2, #E3DFF2);
+  border: 1px solid @xxri_border;
+  min-width: 46px; min-height: 26px;
+}
+switch:checked {
+  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple);
+  border: none;
+}
+switch slider {
+  background-color: #FFFFFF;
+  border-radius: 999px;
+  box-shadow: 0 1px 3px alpha(#1C1B24, 0.25);
+  min-width: 22px; min-height: 22px;
+}
+
+/* ---- scales / sliders ---- */
+scale trough {
+  background-color: #E3DFF2;
+  border-radius: 999px;
+  min-height: 8px;
+}
+scale highlight {
+  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple);
+  border-radius: 999px;
+}
+scale slider {
+  background-color: #FFFFFF;
+  border: 1px solid @xxri_border;
+  border-radius: 999px;
+  box-shadow: 0 2px 6px alpha(#8371F7, 0.30);
+  min-width: 18px; min-height: 18px;
+  margin: -6px;
+}
+
+/* ---- entries ---- */
+entry {
+  border-radius: 10px;
+  background-color: #FFFFFF;
+  border: 1px solid @xxri_border;
+  padding: 7px 12px;
+  color: @xxri_ink;
+  caret-color: @xxri_pink;
+}
+entry:focus { border-color: @xxri_purple; box-shadow: 0 0 0 3px alpha(#8371F7, 0.18); }
+selection { background-color: @xxri_purple; color: #FFFFFF; }
+
+/* ---- scrollbars ---- */
+scrollbar { background: transparent; border: none; }
+scrollbar slider {
+  background-color: alpha(#1C1B24, 0.20);
+  border-radius: 999px;
+  min-width: 7px; min-height: 7px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+scrollbar slider:hover { background-color: @xxri_purple; }
+
+/* ---- storage bar ---- */
+.xxri-usagebar { min-height: 16px; border-radius: 999px; background-color: #E3DFF2; }
+levelbar block.filled {
+  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple, @xxri_blue);
+  border-radius: 999px;
+}
+levelbar trough { background-color: #E3DFF2; border-radius: 999px; min-height: 14px; border: none; }
+
+/* app tiles */
+.xxri-appicon { border-radius: 14px; }
+.xxri-accent-dot { border-radius: 999px; }
+
+/* segmented control */
+.xxri-seg { background-color: #FFFFFF; border-radius: 999px; border: 1px solid @xxri_border; padding: 3px; }
+.xxri-seg button { box-shadow: none; border: none; background-image: none; background-color: transparent; color: @xxri_muted; }
+.xxri-seg button:checked { background-color: alpha(#8371F7,0.14); color: @xxri_ink; }

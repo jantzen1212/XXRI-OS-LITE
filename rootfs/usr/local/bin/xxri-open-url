@@ -1,0 +1,13 @@
+#!/bin/busybox ash
+# xxri-open-url - open a URL in the system browser (Help & Support etc.)
+URL="${1:-https://xxri.flows.best}"
+for b in "$BROWSER" xxri-browser firefox chromium dillo netsurf; do
+	[ -n "$b" ] && command -v "$b" >/dev/null 2>&1 && exec "$b" "$URL" &
+	[ -n "$b" ] && command -v "$b" >/dev/null 2>&1 && exit 0
+done
+exec /usr/local/bin/xxri-dialog info "Help & Support" \
+"The xxri support site is:
+
+$URL
+
+A web browser is not installed yet - install one from the upcoming xxri Software Store, then this button will open the site directly." "OK"

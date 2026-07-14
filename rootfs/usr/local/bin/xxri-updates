@@ -1,0 +1,70 @@
+#!/bin/busybox ash
+# xxri-updates - package update backend (Settings / future Software Store).
+#   xxri-updates status [--json]   installed package count + mirror
+#   xxri-updates check             list packages with newer versions
+#   xxri-updates apply             download + stage updates (xxri-pkg-update)
+#   xxri-updates refresh           re-test the mirror
+. /usr/local/lib/xxri/hw-lib.sh
+. /etc/init.d/xxri-functions 2>/dev/null
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+pkg_dir() { readlink /etc/sysconfig/tcedir 2>/dev/null || echo /tce; }
+
+cmd_status() {
+	n=$(ls "$(pkg_dir)/optional/"*.tcz 2>/dev/null | wc -l)
+	getMirror 2>/dev/null
+	if [ $JSON = 1 ]; then
+		j_new; j_num installed "$n"; j_str mirror "${MIRROR:-unknown}"
+		j_str package_dir "$(pkg_dir)"
+		j_root updates "\"status\":$(j_obj)"
+	else
+		echo "installed packages: $n"
+		echo "mirror: ${MIRROR:-unknown}"
+	fi
+}
+
+cmd_check() {
+	getMirror 2>/dev/null
+	[ -n "$MIRROR" ] || { echo "no mirror configured"; return 1; }
+	cd "$(pkg_dir)/optional" 2>/dev/null || { echo "no package directory"; return 1; }
+	echo "Checking $(ls *.tcz 2>/dev/null | wc -l) packages against $MIRROR ..."
+	up=0
+	for t in *.tcz; do
+		[ -f "$t" ] || continue
+		[ -f "$t.md5.txt" ] || continue
+		remote="$(wget -q -O - "$MIRROR/$t.md5.txt" 2>/dev/null | awk '{print $1}')"
+		local_md5="$(awk '{print $1}' "$t.md5.txt")"
+		if [ -n "$remote" ] && [ "$remote" != "$local_md5" ]; then
+			echo "UPDATE: $t"
+			up=$((up+1))
+		fi
+	done
+	[ "$up" = 0 ] && echo "All packages are up to date." || echo "$up update(s) available. Run 'Update now' to install."
+}
+
+cmd_apply() {
+	echo "Downloading updates (this uses the existing xxri package updater)..."
+	sudo_if /usr/bin/xxri-pkg-update 2>&1
+	echo "Done. Updated packages are staged and activate on the next boot."
+}
+
+cmd_refresh() {
+	getMirror 2>/dev/null
+	if wget -q --spider "${MIRROR}" 2>/dev/null; then
+		echo "mirror OK: $MIRROR"
+	else
+		echo "mirror unreachable: ${MIRROR:-unset} (network down?)"
+		return 1
+	fi
+}
+
+case "$1" in
+	status|"") cmd_status ;;
+	check) cmd_check ;;
+	apply) cmd_apply ;;
+	refresh) cmd_refresh ;;
+	--json) cmd_status ;;
+	*) echo "usage: xxri-updates status|check|apply|refresh [--json]" >&2; exit 1 ;;
+esac

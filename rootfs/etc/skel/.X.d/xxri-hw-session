@@ -1,0 +1,4 @@
+# xxri Hardware Layer: apply persisted input settings and start the
+# storage automount watcher for this session.
+xxri-input apply >/dev/null 2>&1
+xxri-storage watch >/dev/null 2>&1 &

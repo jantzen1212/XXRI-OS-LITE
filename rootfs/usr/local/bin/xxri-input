@@ -1,0 +1,131 @@
+#!/bin/busybox ash
+# xxri-input - input backend (xxri Hardware Layer).
+#
+#   xxri-input devices [--json]
+#   xxri-input status [--json]
+#   xxri-input set-repeat DELAY_MS RATE_HZ
+#   xxri-input set-mouse-speed ACCEL [THRESHOLD]
+#   xxri-input natural-scroll on|off
+#   xxri-input set-layout CODE   (console keymap; kmaps package included)
+#   xxri-input layouts [--json]
+#   xxri-input apply             (session helper: re-apply saved settings)
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+cmd_devices() {
+	# /proc/bus/input/devices: kernel-stable records
+	a_new
+	awk -v RS= -v js=$JSON '
+	{
+		name=""; hand=""; ev=""
+		n=split($0, l, "\n")
+		for (i=1;i<=n;i++) {
+			if (l[i] ~ /^N: Name=/) { name=l[i]; sub(/^N: Name="/,"",name); sub(/"$/,"",name) }
+			if (l[i] ~ /^H: Handlers=/) { hand=l[i]; sub(/^H: Handlers=/,"",hand) }
+			if (l[i] ~ /^B: EV=/) { ev=l[i]; sub(/^B: EV=/,"",ev) }
+		}
+		type="other"
+		if (hand ~ /kbd/) type="keyboard"
+		if (hand ~ /mouse/) type="mouse"
+		if (name ~ /[Tt]ouchpad|[Ss]ynaptics|ETPS/) type="touchpad"
+		gsub(/"/,"\\\"",name)
+		if (js==1) printf "{\"name\":\"%s\",\"type\":\"%s\",\"handlers\":\"%s\"}\n", name, type, hand
+		else printf "%-10s %s\n", type, name
+	}' /proc/bus/input/devices 2>/dev/null > "$XXRI_TMP/inp.$$"
+	if [ $JSON = 1 ]; then
+		l="$(tr '\n' ',' < "$XXRI_TMP/inp.$$" | sed 's/,$//')"
+		j_root input "\"devices\":[$l]"
+	else cat "$XXRI_TMP/inp.$$"; fi
+	rm -f "$XXRI_TMP/inp.$$"
+}
+
+xset_field() { xset q 2>/dev/null | sed -n "s/.*$1[: ]*\([0-9/]*\).*/\1/p" | head -1; }
+
+cmd_status() {
+	delay="$(cfg_get input REPEAT_DELAY 500)"
+	rate="$(cfg_get input REPEAT_RATE 25)"
+	accel="$(cfg_get input MOUSE_ACCEL 2)"
+	thresh="$(cfg_get input MOUSE_THRESH 4)"
+	nat="$(cfg_get input NATURAL_SCROLL 0)"
+	lay="$(sed -n 's/^KEYMAP=//p' /etc/sysconfig/keymap 2>/dev/null)"
+	if [ $JSON = 1 ]; then
+		j_new
+		j_num repeat_delay_ms "$delay"; j_num repeat_rate_hz "$rate"
+		j_num mouse_accel "$accel"; j_num mouse_threshold "$thresh"
+		j_bool natural_scroll "$nat"
+		j_str keyboard_layout "${lay:-us}"
+		j_str note "settings apply to the X session via xset/xmodmap; touchpad gestures need a libinput/Xorg build"
+		j_root input "\"status\":$(j_obj)"
+	else
+		echo "repeat: ${delay}ms delay, ${rate}Hz   mouse: accel $accel thresh $thresh"
+		echo "natural scroll: $([ "$nat" = 1 ] && echo on || echo off)   layout: ${lay:-us}"
+	fi
+}
+
+cmd_set_repeat() {
+	[ -n "$2" ] || { echo "usage: xxri-input set-repeat DELAY_MS RATE_HZ" >&2; return 1; }
+	cfg_set input REPEAT_DELAY "$1"; cfg_set input REPEAT_RATE "$2"
+	[ -n "$DISPLAY" ] && xset r rate "$1" "$2" 2>/dev/null
+	echo "keyboard repeat: ${1}ms delay, ${2}/s"
+}
+
+cmd_set_mouse() {
+	[ -n "$1" ] || { echo "usage: xxri-input set-mouse-speed ACCEL [THRESHOLD]" >&2; return 1; }
+	cfg_set input MOUSE_ACCEL "$1"; cfg_set input MOUSE_THRESH "${2:-4}"
+	[ -n "$DISPLAY" ] && xset m "$1" "${2:-4}" 2>/dev/null
+	echo "mouse speed: accel $1, threshold ${2:-4}"
+}
+
+cmd_natural() {
+	case "$1" in
+		on)  cfg_set input NATURAL_SCROLL 1
+		     [ -n "$DISPLAY" ] && xmodmap -e "pointer = 1 2 3 5 4 6 7 8 9" 2>/dev/null ;;
+		off) cfg_set input NATURAL_SCROLL 0
+		     [ -n "$DISPLAY" ] && xmodmap -e "pointer = 1 2 3 4 5 6 7 8 9" 2>/dev/null ;;
+		*) echo "usage: xxri-input natural-scroll on|off" >&2; return 1 ;;
+	esac
+	echo "natural scrolling: $1"
+}
+
+cmd_layouts() {
+	if [ $JSON = 1 ]; then
+		a_new
+		for k in /usr/share/kmap/*.kmap; do
+			[ -e "$k" ] || continue
+			n="${k##*/}"; a_add "\"${n%.kmap}\""
+		done
+		j_root input "\"layouts\":$(a_out)"
+	else
+		ls /usr/share/kmap 2>/dev/null | sed 's/\.kmap$//'
+	fi
+}
+
+cmd_set_layout() {
+	[ -f "/usr/share/kmap/$1.kmap" ] || { echo "unknown layout: $1 (see xxri-input layouts)" >&2; return 1; }
+	sudo_if sh -c "loadkmap < /usr/share/kmap/$1.kmap"
+	sudo_if sh -c "echo 'KEYMAP=$1' > /etc/sysconfig/keymap"
+	echo "console keyboard layout: $1 (X uses its own map; full X layouts need an Xorg build)"
+}
+
+cmd_apply() { # called from the X session hook
+	[ -n "$DISPLAY" ] || return 0
+	xset r rate "$(cfg_get input REPEAT_DELAY 500)" "$(cfg_get input REPEAT_RATE 25)" 2>/dev/null
+	xset m "$(cfg_get input MOUSE_ACCEL 2)" "$(cfg_get input MOUSE_THRESH 4)" 2>/dev/null
+	[ "$(cfg_get input NATURAL_SCROLL 0)" = 1 ] && \
+		xmodmap -e "pointer = 1 2 3 5 4 6 7 8 9" 2>/dev/null
+	return 0
+}
+
+case "$1" in
+	devices) cmd_devices ;;
+	status) cmd_status ;;
+	set-repeat) shift; cmd_set_repeat "$@" ;;
+	set-mouse-speed) shift; cmd_set_mouse "$@" ;;
+	natural-scroll) shift; cmd_natural "$@" ;;
+	layouts) cmd_layouts ;;
+	set-layout) shift; cmd_set_layout "$@" ;;
+	apply) cmd_apply ;;
+	*) echo "usage: xxri-input devices|status|set-repeat D R|set-mouse-speed A [T]|natural-scroll on|off|layouts|set-layout CODE|apply [--json]" >&2; exit 1 ;;
+esac

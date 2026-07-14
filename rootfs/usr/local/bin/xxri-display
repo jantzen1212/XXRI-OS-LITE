@@ -1,0 +1,136 @@
+#!/bin/busybox ash
+# xxri-display - display backend (xxri Hardware Layer).
+#
+#   xxri-display list [--json]        available modes
+#   xxri-display current [--json]
+#   xxri-display set-resolution WxHxBPP [--apply]
+#   xxri-display edid [--json]
+#   xxri-display cache-modes          (boot helper, run before X starts)
+#
+# On xxri OS Lite the display is driven by Xvesa (VESA BIOS): modes come
+# from the video BIOS, refresh is fixed by the BIOS (reported as 60), and
+# EDID is unavailable.  The CLI/JSON API is the stable contract - a future
+# KMS/Xorg build replaces the internals, not the interface.
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+MODES_CACHE="$XXRI_RUN_DIR/display.modes"
+PERSIST="$XXRI_CFG_DIR/display.conf"
+
+user_home() {
+	U="$(cat /etc/sysconfig/tcuser 2>/dev/null)"; [ -n "$U" ] || U=xxri
+	eval echo "~$U"
+}
+
+cmd_cache_modes() { # must run while X is NOT active (boot)
+	[ -x /usr/local/bin/Xvesa ] || return 0
+	Xvesa -listmodes 2>&1 | sed -n 's/^0x[0-9a-fA-F]*: \([0-9]*x[0-9]*x[0-9]*\).*/\1/p' \
+		| sort -u | sort -t x -k1,1n -k2,2n -k3,3n > "$MODES_CACHE" 2>/dev/null
+}
+
+modes() {
+	[ -s "$MODES_CACHE" ] && { cat "$MODES_CACHE"; return; }
+	# X not running yet? probe directly
+	if ! pidof Xvesa >/dev/null 2>&1; then
+		cmd_cache_modes; cat "$MODES_CACHE" 2>/dev/null
+	fi
+}
+
+current_mode() {
+	if [ -n "$DISPLAY" ] && have xxri-dialog; then
+		s="$(xxri-dialog --screen-size 2>/dev/null)"
+		[ -n "$s" ] && { echo "$s"; return; }
+	fi
+	sed -n 's/.*-screen \([0-9x]*\).*/\1/p' "$(user_home)/.xsession" 2>/dev/null | head -1
+}
+
+cmd_list() {
+	m="$(modes)"
+	cur="$(current_mode)"
+	if [ $JSON = 1 ]; then
+		a_new
+		for x in $m; do
+			j_new; j_str mode "$x"
+			j_num width  "${x%%x*}"
+			r="${x#*x}"; j_num height "${r%%x*}"
+			j_num depth "${x##*x}"
+			j_num refresh 60
+			j_bool current "$([ "$x" = "$cur" ] && echo 1 || echo 0)"
+			a_add "$(j_obj)"
+		done
+		j_new; j_raw modes "$(a_out)"; j_str driver vesa
+		j_str note "$([ -z "$m" ] && echo 'mode list unavailable while X is running without a boot cache; reboot once to populate')"
+		j_root display "\"list\":$(j_obj)"
+	else
+		echo "Available modes (VESA BIOS):"
+		for x in $m; do echo "  $x$([ "$x" = "$cur" ] && echo '   <- current')"; done
+		[ -z "$m" ] && echo "  (no cached mode list; it is generated at boot)"
+	fi
+}
+
+cmd_current() {
+	cur="$(current_mode)"
+	if [ $JSON = 1 ]; then
+		j_new; j_str mode "$cur"; j_num refresh 60; j_str driver vesa
+		j_root display "\"current\":$(j_obj)"
+	else echo "current: ${cur:-unknown} @60Hz (VESA)"; fi
+}
+
+cmd_set() { # WxHxBPP [--apply]
+	M="$1"
+	case "$M" in [0-9]*x[0-9]*x[0-9]*) ;; [0-9]*x[0-9]*) M="${M}x32";; *)
+		echo "usage: xxri-display set-resolution WxH[xBPP] [--apply]" >&2; return 1;; esac
+	if [ -s "$MODES_CACHE" ] && ! grep -qx "$M" "$MODES_CACHE"; then
+		if [ $JSON = 1 ]; then
+			j_new; j_bool ok 0; j_str error "mode $M is not offered by the video BIOS"
+			j_root display "\"set\":$(j_obj)"
+		else echo "mode $M is not in the VESA mode list (xxri-display list)"; fi
+		return 1
+	fi
+	H="$(user_home)"
+	sudo_if sh -c "sed -i 's/-screen [0-9x]*/-screen $M/' '$H/.xsession'" 2>/dev/null
+	sudo_if sh -c "sed -i 's/-screen [0-9x]*/-screen $M/' /etc/skel/.xsession" 2>/dev/null
+	cfg_set display MODE "$M"
+	if [ "$2" = "--apply" ] || [ "$1" = "--apply" ]; then
+		# end the current desktop session so it restarts in the new mode;
+		# re-arm autologin and drop the X socket so .profile re-runs startx
+		sudo_if rm -f /var/log/autologin /tmp/.X11-unix/X0
+		sudo_if sh -c '(sleep 1; pkill Xvesa; sleep 2; pkill -KILL -t tty1) >/dev/null 2>&1 &'
+	fi
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok 1; j_str mode "$M"
+		j_bool applied "$([ "$2" = "--apply" ] && echo 1 || echo 0)"
+		j_root display "\"set\":$(j_obj)"
+	else
+		echo "resolution set to $M$([ "$2" = "--apply" ] || echo ' (takes effect at next session; use --apply to restart now)')"
+	fi
+}
+
+cmd_edid() {
+	found=0
+	for c in /sys/class/drm/card*-*/edid; do
+		[ -e "$c" ] || continue
+		sz=$(wc -c < "$c" 2>/dev/null)
+		[ "${sz:-0}" -gt 0 ] && found=1
+	done
+	if [ $JSON = 1 ]; then
+		j_new; j_bool available "$found"
+		[ $found = 0 ] && j_str reason "VESA display path does not expose EDID; a KMS-enabled build will"
+		j_root display "\"edid\":$(j_obj)"
+	else
+		[ $found = 1 ] && echo "EDID available under /sys/class/drm" \
+			|| echo "EDID not available (VESA BIOS display path)"
+	fi
+	return 0
+}
+
+case "$1" in
+	list) cmd_list ;;
+	current) cmd_current ;;
+	set-resolution) shift; cmd_set "$@" ;;
+	edid) cmd_edid ;;
+	cache-modes) cmd_cache_modes ;;
+	*) echo "usage: xxri-display list|current|set-resolution WxH[xBPP] [--apply]|edid [--json]" >&2; exit 1 ;;
+esac

@@ -1,0 +1,4 @@
+#!/bin/busybox ash
+# xxri-camera - webcam backend (V4L2 detection; xxri Hardware Layer).
+#   xxri-camera list [--json]
+exec /usr/local/bin/xxri-hardware camera "$@"

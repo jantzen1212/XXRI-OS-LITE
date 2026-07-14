@@ -1,4 +1,25 @@
-# xxri OS Lite dock - frosted pill, Avenir Next labels
+# xxri OS Lite dock - authoritative launcher list (Phase 8.2).
+# NOTE: comments here must never contain the dock-parser tokens, because
+# wbar.sh feeds this file through a string replacement that would otherwise
+# turn a comment into a real entry and shift every launcher by one slot.
 i: /usr/local/share/xxri-theme/wbar-bg.png
-t: /usr/local/share/fonts/xxri/AvenirNext-DemiBold/11
-c: wbar -above-desk -bpress -pos bottom -isize 40 -idist 6 -zoomf 1.6 -nanim 5 -jumpf 1.0
+t: /usr/local/lib/X11/fonts/TTF/luxisr/9
+c: wbar -bpress -nofont -pos bottom -isize 44 -idist 12 -zoomf 1.4 -nanim 3 -jumpf 0.85
+i: /usr/local/share/pixmaps/xxri-settings.png
+t: Settings
+c: exec /usr/local/bin/xxri-settings
+i: /usr/local/share/pixmaps/mnttool.png
+t: Files
+c: exec /usr/local/bin/mnttool
+i: /usr/local/share/pixmaps/aterm.png
+t: Terminal
+c: exec /usr/local/bin/aterm
+i: /usr/local/share/pixmaps/editor.png
+t: Editor
+c: exec /usr/local/bin/editor
+i: /usr/local/share/pixmaps/apps.png
+t: Apps
+c: exec /usr/local/bin/apps
+i: /usr/local/share/pixmaps/exittc.png
+t: Power
+c: exec /usr/local/bin/exittc

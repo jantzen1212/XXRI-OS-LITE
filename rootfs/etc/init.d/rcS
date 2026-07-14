@@ -11,7 +11,18 @@
 # Mount system devices from /etc/fstab.
 /bin/mount -a
 
+# xxri OS Lite boot splash (Phase 8.3): on graphical boots, cover every Tiny
+# Core boot message with the native framebuffer splash until X comes up.  It
+# self-exits when the X server socket appears (or after a safety timeout) and
+# never blocks boot.  Gated to desktop boots (installed root has Xserver set;
+# the live desktop ISO passes the `cde` boot code); skipped for text/cli boots.
+if [ -x /usr/local/sbin/xxri-bootsplash ] && \
+   ! grep -qwE 'text|nox|xonly|noquiet' /proc/cmdline && \
+   { [ -s /etc/sysconfig/Xserver ] || grep -qw cde /proc/cmdline; }; then
+	/usr/local/sbin/xxri-bootsplash >/dev/null 2>&1 &
+fi
+
 clear
 
-/etc/init.d/xxri-config
+/etc/init.d/xxri-config >/dev/null 2>&1
 

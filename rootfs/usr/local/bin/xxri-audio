@@ -1,0 +1,203 @@
+#!/bin/busybox ash
+# xxri-audio - audio backend (xxri Hardware Layer, ALSA).
+#
+#   xxri-audio list|outputs|inputs [--json]
+#   xxri-audio volume [get|set N|up|down] [--card N]
+#   xxri-audio mute|unmute|toggle [--card N]
+#   xxri-audio default [get|set CARD]
+#   xxri-audio save|restore          (mixer persistence)
+#   xxri-audio init                  (boot: load drivers, pick card, restore)
+#
+# Card facts come from /proc/asound (kernel-stable); amixer is used only
+# to move control values, never parsed for discovery.
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0; CARD=""
+prev=""
+for a in "$@"; do
+	[ "$a" = "--json" ] && JSON=1
+	[ "$prev" = "--card" ] && CARD="$a"
+	prev="$a"
+done
+
+STATE="$XXRI_CFG_DIR/alsa.state"
+
+card_ids() { sed -n 's/^ *\([0-9]*\) \[.*/\1/p' /proc/asound/cards 2>/dev/null; }
+card_name() { # description after the "<driver> - " prefix, else the [id]
+	l="$(sed -n "s/^ *$1 \[\([^]]*\)\].*/\1/p" /proc/asound/cards 2>/dev/null | head -1 | sed 's/ *$//')"
+	d="$(sed -n "s/^ *$1 \[[^]]*\][^:]*: //p" /proc/asound/cards 2>/dev/null | head -1 | sed 's/^[A-Za-z0-9_-]* - //')"
+	[ -n "$d" ] && echo "$d" || echo "$l"
+}
+card_type() { # usb (usbid) / hdmi (HDMI-only card) / analog
+	[ -e "/proc/asound/card$1/usbid" ] && { echo usb; return; }
+	n="$(card_name "$1")"
+	case "$n" in *HDMI*|*hdmi*) echo hdmi; return;; esac
+	echo analog
+}
+has_playback() { ls /proc/asound/card$1/pcm*p >/dev/null 2>&1 && echo 1 || echo 0; }
+has_capture()  { ls /proc/asound/card$1/pcm*c >/dev/null 2>&1 && echo 1 || echo 0; }
+default_card() { sed -n 's/^defaults.pcm.card \([0-9]*\)/\1/p' /etc/asound.conf 2>/dev/null | head -1; }
+
+alsa_ready() { [ -r /proc/asound/cards ] && grep -q '^ *[0-9]' /proc/asound/cards 2>/dev/null; }
+
+not_ready() {
+	if [ $JSON = 1 ]; then
+		j_new; j_raw cards "[]"; j_bool alsa "0"
+		j_str hint "no sound card active; run 'xxri-audio init' or check drivers with 'xxri-hardware firmware'"
+		j_root audio "\"data\":$(j_obj)"
+	else
+		echo "No active sound card. Try: xxri-audio init"
+	fi
+}
+
+cmd_list() {
+	alsa_ready || { not_ready; return 1; }
+	def="$(default_card)"; [ -n "$def" ] || def=0
+	a_new
+	for c in $(card_ids); do
+		j_new
+		j_num id "$c"; j_str name "$(card_name "$c")"; j_str type "$(card_type "$c")"
+		j_bool playback "$(has_playback "$c")"; j_bool capture "$(has_capture "$c")"
+		j_bool default "$([ "$c" = "$def" ] && echo 1 || echo 0)"
+		a_add "$(j_obj)"
+		[ $JSON = 1 ] || echo "card $c: $(card_name "$c") [$(card_type "$c")]$([ "$c" = "$def" ] && echo ' *default')  play=$(has_playback "$c") cap=$(has_capture "$c")"
+	done
+	[ $JSON = 1 ] && j_root audio "\"cards\":$(a_out)"
+	return 0
+}
+
+cmd_outputs() { JSON=$JSON cmd_list; }
+cmd_inputs()  { JSON=$JSON cmd_list; }
+
+mixer_ctl() { # first useful playback control on the card
+	for m in Master PCM Speaker Headphone; do
+		amixer -c "${CARD:-$(default_card)}" get "$m" >/dev/null 2>&1 && { echo "$m"; return; }
+	done
+	echo Master
+}
+cap_ctl() {
+	for m in Capture Mic; do
+		amixer -c "${CARD:-$(default_card)}" get "$m" >/dev/null 2>&1 && { echo "$m"; return; }
+	done
+	echo Capture
+}
+
+vol_get() {
+	amixer -c "${CARD:-$(default_card)}" get "$(mixer_ctl)" 2>/dev/null \
+		| sed -n 's/.*\[\([0-9]*\)%\].*/\1/p' | head -1
+}
+mute_get() {
+	amixer -c "${CARD:-$(default_card)}" get "$(mixer_ctl)" 2>/dev/null \
+		| sed -n 's/.*\[\(on\|off\)\].*/\1/p' | head -1
+}
+
+cmd_volume() {
+	alsa_ready || { not_ready; return 1; }
+	c="${CARD:-$(default_card)}"; [ -n "$c" ] || c=0
+	case "$1" in
+		set)  amixer -q -c "$c" set "$(mixer_ctl)" "$2%" 2>/dev/null; cmd_save >/dev/null 2>&1 ;;
+		up)   amixer -q -c "$c" set "$(mixer_ctl)" "5%+" 2>/dev/null ;;
+		down) amixer -q -c "$c" set "$(mixer_ctl)" "5%-" 2>/dev/null ;;
+	esac
+	v="$(vol_get)"; m="$(mute_get)"
+	if [ $JSON = 1 ]; then
+		j_new; j_num card "$c"; j_str control "$(mixer_ctl)"; j_num volume "$v"
+		j_bool muted "$([ "$m" = off ] && echo 1 || echo 0)"
+		j_root audio "\"volume\":$(j_obj)"
+	else
+		echo "card $c $(mixer_ctl): ${v:-?}% ($([ "$m" = off ] && echo muted || echo on))"
+	fi
+}
+
+cmd_mute()   { alsa_ready || { not_ready; return 1; }; amixer -q -c "${CARD:-$(default_card)}" set "$(mixer_ctl)" mute   2>/dev/null; cmd_volume; }
+cmd_unmute() { alsa_ready || { not_ready; return 1; }; amixer -q -c "${CARD:-$(default_card)}" set "$(mixer_ctl)" unmute 2>/dev/null; cmd_volume; }
+cmd_toggle() { alsa_ready || { not_ready; return 1; }; amixer -q -c "${CARD:-$(default_card)}" set "$(mixer_ctl)" toggle 2>/dev/null; cmd_volume; }
+
+cmd_default() {
+	case "$1" in
+		set)
+			sudo_if sh -c "printf 'defaults.pcm.card %s\ndefaults.ctl.card %s\n' '$2' '$2' > /etc/asound.conf"
+			cfg_set audio DEFAULT_CARD "$2"
+		;;
+	esac
+	d="$(default_card)"
+	if [ $JSON = 1 ]; then
+		j_new; j_num card "${d:-0}"; j_root audio "\"default\":$(j_obj)"
+	else echo "default card: ${d:-0}"; fi
+}
+
+cmd_save()    { alsa_ready || return 1; sudo_if mkdir -p "$XXRI_CFG_DIR"; sudo_if alsactl store -f "$STATE" 2>/dev/null && echo "mixer state saved"; }
+cmd_restore() { [ -f "$STATE" ] && sudo_if alsactl restore -f "$STATE" 2>/dev/null && echo "mixer state restored"; }
+
+cmd_init() {
+	# 1. load drivers for every PCI/USB audio device via modalias
+	for d in $(pci_by_class 0x0401) $(pci_by_class 0x0403); do
+		hw_load_driver "$d"
+	done
+	for u in /sys/bus/usb/devices/*:*; do
+		case "$(sf "$u/bInterfaceClass")" in 01) hw_load_driver "$u";; esac
+	done
+	sleep 1
+	alsa_ready || { not_ready; return 1; }
+	# 2. automatic card selection: keep saved choice; else first analog
+	# playback card, else first playback card
+	want="$(cfg_get audio DEFAULT_CARD "")"
+	if [ -z "$want" ]; then
+		for c in $(card_ids); do
+			[ "$(has_playback "$c")" = 1 ] && [ "$(card_type "$c")" = analog ] && { want=$c; break; }
+		done
+		[ -n "$want" ] || for c in $(card_ids); do
+			[ "$(has_playback "$c")" = 1 ] && { want=$c; break; }
+		done
+	fi
+	[ -n "$want" ] && JSON=0 cmd_default set "$want" >/dev/null
+	# 3. restore mixer, or unmute to sane level on first boot
+	if [ -f "$STATE" ]; then
+		cmd_restore >/dev/null
+	else
+		amixer -q -c "$want" set "$(CARD=$want mixer_ctl)" "70%" unmute 2>/dev/null
+		cmd_save >/dev/null
+	fi
+	echo "audio initialised (default card ${want:-none})"
+}
+
+cmd_mic() {
+	alsa_ready || { not_ready; return 1; }
+	c="${CARD:-$(default_card)}"; [ -n "$c" ] || c=0
+	ctl="$(cap_ctl)"
+	case "$1" in
+		set) amixer -q -c "$c" set "$ctl" "$2%" cap 2>/dev/null; cmd_save >/dev/null 2>&1 ;;
+	esac
+	v="$(amixer -c "$c" get "$ctl" 2>/dev/null | sed -n 's/.*\[\([0-9]*\)%\].*/\1/p' | head -1)"
+	if [ $JSON = 1 ]; then
+		j_new; j_num card "$c"; j_str control "$ctl"; j_num level "$v"
+		j_root audio "\"mic\":$(j_obj)"
+	else echo "card $c $ctl: ${v:-?}%"; fi
+}
+
+cmd_test() {
+	alsa_ready || { not_ready; return 1; }
+	if have speaker-test; then
+		( speaker-test -D "plughw:${CARD:-$(default_card)}" -t sine -f 440 -l 1 -p 500 >/dev/null 2>&1 ) &
+		echo "playing test tone"
+	else
+		echo "speaker-test not available" >&2; return 1
+	fi
+}
+
+case "$1" in
+	list) cmd_list ;;
+	outputs) cmd_outputs ;;
+	inputs) cmd_inputs ;;
+	volume) shift; cmd_volume "$@" ;;
+	mute) cmd_mute ;;
+	unmute) cmd_unmute ;;
+	toggle) cmd_toggle ;;
+	default) shift; cmd_default "$@" ;;
+	save) cmd_save ;;
+	restore) cmd_restore ;;
+	mic) shift; cmd_mic "$@" ;;
+	test) cmd_test ;;
+	init) cmd_init ;;
+	*) echo "usage: xxri-audio list|volume [get|set N|up|down]|mute|unmute|toggle|default [set N]|save|restore|init [--json] [--card N]" >&2; exit 1 ;;
+esac
