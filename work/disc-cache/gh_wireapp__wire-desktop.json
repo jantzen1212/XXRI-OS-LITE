@@ -1,0 +1,1 @@
+{"tag": "macos/3.42.5489", "repo": "wireapp/wire-desktop", "assets": [{"name": "sha256sum.txt.asc", "url": "https://github.com/wireapp/wire-desktop/releases/download/macos%2F3.42.5489/sha256sum.txt.asc"}, {"name": "Wire.pkg", "url": "https://github.com/wireapp/wire-desktop/releases/download/macos%2F3.42.5489/Wire.pkg"}], "err": null}

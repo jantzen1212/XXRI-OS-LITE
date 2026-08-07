@@ -1,0 +1,19 @@
+# Headless run of the real installer backend (same path the GUI installer uses).
+( sleep 12
+  cat > /tmp/icfg <<'CFG'
+MODE=auto
+DISK=/dev/sda
+USERNAME=xxri
+PASSWORD=xxri
+HOSTNAME=xxri
+AUTOLOGIN=1
+TZSTR=WIB-7
+LANGUAGE=en_US
+KEYMAP=us
+CFG
+  sudo /usr/sbin/xxri-install-backend run /tmp/icfg > /tmp/install.log 2>&1
+  sync
+  aterm -T "XXRI Auto Install" -fn 7x14 -geometry 104x26+8+300 -e sh -c \
+    "echo '=== installer backend (tail) ==='; tail -18 /tmp/install.log; \
+     echo; echo '=== extensions installed to target ==='; grep -i 'extension' /tmp/install.log; sleep 3600" &
+) &

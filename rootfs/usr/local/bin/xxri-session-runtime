@@ -1,0 +1,68 @@
+#!/bin/sh
+# xxri-session-runtime - the per-session pieces a modern desktop application
+# assumes exist.  Sourced (not executed) from ~/.xsession so the exports reach
+# everything the session later launches, including apps started from the dock.
+#
+# Diagnosed from a real VLC launch on this device, which installed and ran but
+# never drew a window:
+#   dbus interface error: Failed to open "/etc/machine-id"
+#   main interface error: no suitable interface module
+#   QStandardPaths: XDG_RUNTIME_DIR not set
+#   qt.qpa.xcb: xcb_shm_create_segment() failed for size 590832
+# Each line below removes one of those.
+
+# --- machine ID -------------------------------------------------------------
+# D-Bus refuses to initialise without one; Qt then loses its whole interface
+# module.  Generate once and keep it - it must be stable across reboots.
+if [ ! -s /etc/machine-id ]; then
+	mid=""
+	if command -v dbus-uuidgen >/dev/null 2>&1; then
+		mid="$(dbus-uuidgen 2>/dev/null)"
+	fi
+	if [ -z "$mid" ] && [ -r /proc/sys/kernel/random/uuid ]; then
+		mid="$(tr -d - < /proc/sys/kernel/random/uuid)"
+	fi
+	[ -n "$mid" ] || mid="$(od -An -tx1 -N16 /dev/urandom 2>/dev/null | tr -d ' \n')"
+	[ -n "$mid" ] && sudo sh -c "echo '$mid' > /etc/machine-id" 2>/dev/null
+fi
+if [ -s /etc/machine-id ] && [ ! -s /var/lib/dbus/machine-id ]; then
+	sudo mkdir -p /var/lib/dbus 2>/dev/null
+	sudo cp -f /etc/machine-id /var/lib/dbus/machine-id 2>/dev/null
+fi
+
+# --- XDG runtime directory --------------------------------------------------
+# Qt, GTK and portals all fall back to warnings and degraded behaviour without
+# it; 0700 is required or the toolkits reject it.
+XDG_RUNTIME_DIR="/tmp/runtime-$(id -un)"
+mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null
+chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null
+export XDG_RUNTIME_DIR
+
+# --- shared memory ----------------------------------------------------------
+# Qt's XCB backend renders through MIT-SHM; if /dev/shm is absent or unwritable
+# every xcb_shm_create_segment() fails and nothing is ever painted.
+if ! mountpoint -q /dev/shm 2>/dev/null && [ ! -w /dev/shm ]; then
+	sudo mkdir -p /dev/shm 2>/dev/null
+	sudo mount -t tmpfs -o rw,nosuid,nodev,mode=1777 tmpfs /dev/shm 2>/dev/null
+fi
+
+# --- session bus ------------------------------------------------------------
+# Started once per session; apps inherit the address through the environment.
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-launch >/dev/null 2>&1; then
+	eval "$(dbus-launch --sh-syntax 2>/dev/null)" 2>/dev/null
+	export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
+fi
+
+# --- image loaders ----------------------------------------------------------
+# Nothing to do: loaders.cache ships in the image at gdk-pixbuf's own compiled-in
+# path (see build-caches.sh), so the default lookup already works.  Pointing
+# GDK_PIXBUF_MODULE_FILE at it by hand would only mask a broken image.
+
+# --- toolkit defaults -------------------------------------------------------
+# Xvesa has no XKB and no GLX/DRI3: let Qt fall back quietly to software
+# rendering instead of aborting on a missing accelerated path.
+export QT_X11_NO_MITSHM=0
+export LIBGL_ALWAYS_SOFTWARE=1
+export GALLIUM_DRIVER=llvmpipe
+# no icon theme is installed on this device - stop toolkits hunting for one
+export GTK_OVERLAY_SCROLLING=0

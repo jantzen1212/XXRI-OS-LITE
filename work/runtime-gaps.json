@@ -1,0 +1,165 @@
+{
+ "pencil2d": [
+  "libGL.so.1",
+  "libjack.so.0"
+ ],
+ "tusk": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "beatconnect-client": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4",
+  "libgbm.so.1",
+  "libxshmfence.so.1"
+ ],
+ "bunqdesktop": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "crypter": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "customrpc": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "deployer": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "envkey": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "freetexturepacker": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "gxc-smart-contract-ide": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "hermesmessenger": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "hexoclient": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "hexoeditor": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "hyperionide": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "mqtt-explorer": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "mastervyrn": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "musicalypse": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4",
+  "libgif.so.7",
+  "libjpeg.so.8",
+  "libpcsclite.so.1",
+  "libpng12.so.0",
+  "libpulse.so.0",
+  "libthread_db.so.1"
+ ],
+ "mycrypto": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "pennywise": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "rambox": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4",
+  "libgbm.so.1",
+  "libxshmfence.so.1"
+ ],
+ "shuttle": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "standard-notes": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4",
+  "libgbm.so.1"
+ ],
+ "stoplight": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "storaji": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "taskizer": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4",
+  "libgbm.so.1"
+ ],
+ "todoist": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "vizgraph": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "zulip": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "accessimap-lecteur-der": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "ao": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "dingtalk": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4",
+  "libgbm.so.1"
+ ],
+ "edex-ui": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4",
+  "libgbm.so.1",
+  "libxshmfence.so.1"
+ ],
+ "marlin-conf": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "pb-for-desktop": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4",
+  "libgbm.so.1"
+ ],
+ "ser-player": [
+  "libGL.so.1"
+ ],
+ "twetter": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ],
+ "vue-calc": [
+  "libdbusmenu-glib.so.4",
+  "libdbusmenu-gtk.so.4"
+ ]
+}

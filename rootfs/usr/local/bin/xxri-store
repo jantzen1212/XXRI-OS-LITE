@@ -1,0 +1,701 @@
+#!/bin/busybox ash
+# xxri-store - repository / download engine for the XXRI Store (Phase 9).
+#
+# The Store GUI (xxri-store-gui) is a pure GTK3 frontend; ALL catalog, network
+# and installation logic lives here.  AppImage installation itself is delegated
+# to xxri-app (Phase 6) - this engine only resolves a source, downloads the
+# file, verifies its SHA256 and hands it to `xxri-app integrate`.
+#
+# Repository priority (the "active" repository):
+#     remote (fetched into cache)  ->  cache  ->  bundled (shipped in the ISO)
+#
+# Source providers (resolve order per entry):
+#     github   GitHub Release API   (best asset for this arch)
+#     gitlab   GitLab Release API
+#     direct   pinned URL from the catalog (developer website)
+#     local    file shipped inside the ISO (offline installable)
+#     xxri     future XXRI repository ($REMOTE_BASE/apps/<id>.AppImage)
+#     hub      AppImageHub metadata only - install needs one of the above
+#
+# Subcommands:
+#   arch                      current OS architecture (flat JSON)
+#   status                    online/repo/arch/refreshed in one JSON
+#   online                    exit 0 if the network is reachable
+#   repo-path                 path of the active repository directory
+#   refresh [--force]         fetch the remote repository into the cache
+#   resolve <id>              print "URL<TAB>SHA256<TAB>VERSION<TAB>SIZE"
+#   install <id>              queue -> download -> verify -> xxri-app integrate
+#   pause <id> | resume <id>  pause / continue a download (wget -c)
+#   retry <id>                restart a failed download
+#   cancel <id>               cancel and remove a queued or running download
+#   clear [<id>]              drop finished entries (or one) from the manager
+#   downloads                 download-manager state (flat JSON)
+#   installed                 installed apps joined with the catalog (flat JSON)
+#   updates                   apps with a newer catalog version (flat JSON)
+#   update-all                install every available update, one by one
+#   open-location <id>        open the folder of an installed app
+#   cache-path                path of the per-user cache (icons, shots, queue)
+#   icons <id>...             cache the catalog icons for these apps
+#   shots <id>                cache the screenshots for one app
+#   field <id> <key>          one catalog field for <id> (from index.tsv)
+
+BUNDLED=/usr/local/share/xxri-store
+CONF=/usr/local/etc/xxri/store.conf
+[ -r "$CONF" ] && . "$CONF"
+: "${REMOTE_BASE:=https://xxri.flows.best/store}"    # remote repo root (index.tsv, repository/, sections.json)
+: "${CACHE_MAX_AGE:=86400}"                          # seconds before a refresh is due
+: "${TCZ_BASE:=http://repo.tinycorelinux.net/16.x/x86/tcz}"  # native extension repo
+
+# Where native extensions land.  Progress for a .tcz install is measured by
+# watching this directory grow, since tce-load does the transfer itself.
+TCE_OPT="$(readlink -f /etc/sysconfig/tcedir 2>/dev/null)/optional"
+[ -d "$TCE_OPT" ] || TCE_OPT=/tmp/tce/optional
+
+# $HOME wins: busybox has no `getent`, and the Store always runs as the desktop
+# user.  passwd is only a fallback for a stripped environment.
+user_home() {
+	[ -n "$HOME" ] && [ -d "$HOME" ] && { echo "$HOME"; return; }
+	h=$(awk -F: -v u="$(id -un)" '$1==u{print $6; exit}' /etc/passwd 2>/dev/null)
+	echo "${h:-/root}"
+}
+HOMEDIR="$(user_home)"
+CACHE="$HOMEDIR/.cache/xxri-store"
+DL_DIR="$HOMEDIR/Downloads"
+DL_STATE="$CACHE/downloads"                          # one file per download: KEY=val
+LOCK="$CACHE/install.lock"                           # one install at a time
+mkdir -p "$CACHE/repository" "$DL_STATE" "$DL_DIR" 2>/dev/null
+
+# ----------------------------------------------------------------- trace ----
+# Every stage of an install writes one line here, so a failure can be located
+# without reproducing it interactively: the log says which stage was the last
+# to succeed and what the next one refused to do.
+TRACE="$CACHE/install-trace.log"
+trace() { # stage [detail]
+	printf '%s %-9s %-20s %s\n' "$(date '+%H:%M:%S')" "${TRACE_ID:--}" "$1" "$2" >> "$TRACE" 2>/dev/null
+	[ -n "$XXRI_STORE_TRACE" ] && printf '  TRACE %-20s %s\n' "$1" "$2" >&2
+	return 0
+}
+
+# ------------------------------------------------------------- repo select --
+repo_path() {
+	# cache wins only if it actually holds an index; otherwise the bundled repo.
+	if [ -s "$CACHE/repository/index.tsv" ]; then echo "$CACHE/repository"; else echo "$BUNDLED/repository"; fi
+}
+INDEX() { echo "$(repo_path)/index.tsv"; }
+
+# --------------------------------------------------------------- network ----
+# Every real AppImage is published over HTTPS, but busybox's wget on this device
+# is built WITHOUT TLS (no ssl_client helper), so it fails on any https:// URL.
+# XXRI therefore ships GNU wget + a CA bundle (wget.tcz / ca-certificates.tcz in
+# onboot.lst) and the Store always downloads through the TLS-capable one.
+GNUWGET=""
+for w in /usr/local/bin/wget /usr/bin/gnu-wget; do
+	[ -x "$w" ] && { GNUWGET="$w"; break; }
+done
+CABUNDLE=""
+for c in /usr/local/etc/ssl/certs/ca-certificates.crt /usr/local/etc/ssl/cacert.pem \
+         /usr/local/etc/ssl/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt; do
+	[ -r "$c" ] && { CABUNDLE="$c"; break; }
+done
+
+fetch_to() { # url outfile [-c]   -> download to a file
+	if [ -n "$GNUWGET" ]; then
+		"$GNUWGET" -q $3 --timeout=60 --tries=2 ${CABUNDLE:+--ca-certificate="$CABUNDLE"} \
+			-U xxri-store -O "$2" "$1"
+	else
+		wget -q -T 60 $3 -O "$2" "$1"
+	fi
+}
+fetch_out() { # url [extra-header] -> stdout (short timeout: metadata/API calls)
+	if [ -n "$GNUWGET" ]; then
+		"$GNUWGET" -q --timeout=20 --tries=1 ${CABUNDLE:+--ca-certificate="$CABUNDLE"} \
+			-U xxri-store ${2:+--header="$2"} -O - "$1"
+	else
+		wget -q -T 20 -U xxri-store ${2:+--header "$2"} -O - "$1"
+	fi
+}
+
+have_net() {
+	# a default route is the cheap precondition; then prove a real fetch works
+	gw="$(route -n 2>/dev/null | awk '$1=="0.0.0.0"{print $2; exit}')"
+	[ -n "$gw" ] || return 1
+	fetch_out "$REMOTE_BASE/index.tsv" >/dev/null 2>&1 && return 0
+	fetch_out "https://api.github.com/" >/dev/null 2>&1 && return 0
+	# last resort: a raw TLS handshake still proves the link is usable even if
+	# no CA bundle is installed yet
+	command -v openssl >/dev/null 2>&1 &&
+		echo | timeout 8 openssl s_client -connect github.com:443 2>/dev/null | grep -q CONNECTED && return 0
+	return 1
+}
+
+# --------------------------------------------------------------- arch --------
+cmd_arch() {
+	m="$(uname -m)"
+	case "$m" in
+		i386|i486|i586|i686) a=i686; bits=32; emach=3 ;;
+		x86_64|amd64)        a=x86_64; bits=64; emach=62 ;;
+		aarch64|arm64)       a=aarch64; bits=64; emach=183 ;;
+		armv*l|arm)          a=arm; bits=32; emach=40 ;;
+		*)                   a="$m"; bits=0; emach=0 ;;
+	esac
+	printf '{"arch":"%s","bits":%s,"machine":%s,"raw":"%s"}\n' "$a" "$bits" "$emach" "$m"
+}
+this_arch() { uname -m | sed 's/i[3-6]86/i686/; s/amd64/x86_64/; s/arm64/aarch64/'; }
+
+# SHA256 of a file, portable across the target: busybox on XXRI ships md5sum and
+# sha1sum but NOT sha256sum, so fall back to openssl (openboot's openssl.tcz) or
+# a coreutils sha256sum if one is ever installed.  Empty output => "unavailable".
+sha256_of() { # file -> hex digest (empty on failure)
+	if command -v sha256sum >/dev/null 2>&1; then
+		sha256sum "$1" 2>/dev/null | cut -d' ' -f1
+	elif command -v openssl >/dev/null 2>&1; then
+		openssl dgst -sha256 "$1" 2>/dev/null | sed 's/.*[= ]//'
+	fi
+}
+have_sha256() { command -v sha256sum >/dev/null 2>&1 || command -v openssl >/dev/null 2>&1; }
+
+cmd_status() {
+	rp="$(repo_path)"
+	case "$rp" in "$CACHE"*) repo=cached ;; *) repo=bundled ;; esac
+	ref=0; [ -f "$CACHE/refreshed" ] && ref="$(cat "$CACHE/refreshed")"
+	n=0; [ -s "$rp/index.tsv" ] && n=$(wc -l < "$rp/index.tsv")
+	if have_net; then on=true; else on=false; fi
+	a="$(this_arch)"; bits=32; [ "$a" = x86_64 ] || [ "$a" = aarch64 ] && bits=64
+	printf '{"online":%s,"repo":"%s","refreshed":%s,"apps":%s,"arch":"%s","bits":%s}\n' \
+		"$on" "$repo" "${ref:-0}" "${n:-0}" "$a" "$bits"
+}
+
+# ------------------------------------------------------ index.tsv columns ----
+# id  name  category  archlist  version  size  sha256  source_type  source_ref  url
+idx_field() { # id colnum
+	awk -F'\t' -v id="$1" -v c="$2" '$1==id{print $c; exit}' "$(INDEX)"
+}
+cmd_field() { # id key
+	case "$2" in
+		name) idx_field "$1" 2 ;; category) idx_field "$1" 3 ;; arch) idx_field "$1" 4 ;;
+		version) idx_field "$1" 5 ;; size) idx_field "$1" 6 ;; sha256) idx_field "$1" 7 ;;
+		source_type) idx_field "$1" 8 ;; source_ref) idx_field "$1" 9 ;; url) idx_field "$1" 10 ;;
+		kind) idx_field "$1" 11 ;; updated) idx_field "$1" 12 ;; assets) idx_field "$1" 13 ;;
+		icon_url) idx_field "$1" 14 ;; screenshots) idx_field "$1" 15 ;;
+		verified) idx_field "$1" 16 ;; exec) idx_field "$1" 17 ;; iconpath) idx_field "$1" 18 ;;
+		*) : ;;
+	esac
+}
+
+# --------------------------------------------------------- media cache ------
+# Icons and screenshots are metadata: they are fetched lazily, cached forever
+# and never block the UI.  The GUI draws its own tile until one lands.
+cmd_cache_path() { echo "$CACHE"; }
+cmd_icons() { # id...
+	mkdir -p "$CACHE/icons"
+	for id in "$@"; do
+		out="$CACHE/icons/$id.png"
+		[ -s "$out" ] && continue
+		u="$(idx_field "$id" 14)"; [ -n "$u" ] || continue
+		fetch_to "$u" "$out.part" && [ -s "$out.part" ] \
+			&& mv "$out.part" "$out" || rm -f "$out.part"
+	done
+	echo ok
+}
+cmd_shots() { # id
+	mkdir -p "$CACHE/shots"
+	n=0
+	for u in $(idx_field "$1" 15 | tr ';' ' '); do
+		out="$CACHE/shots/$1-$n.png"; n=$((n+1))
+		[ -s "$out" ] && continue
+		fetch_to "$u" "$out.part" && [ -s "$out.part" ] \
+			&& mv "$out.part" "$out" || rm -f "$out.part"
+	done
+	echo ok
+}
+
+# ----------------------------------------------------------- refresh --------
+cmd_refresh() {
+	if [ "$1" != "--force" ] && [ -f "$CACHE/refreshed" ]; then
+		age=$(( $(date +%s) - $(cat "$CACHE/refreshed" 2>/dev/null || echo 0) ))
+		[ "$age" -lt "$CACHE_MAX_AGE" ] && { echo "fresh"; return 0; }
+	fi
+	have_net || { echo "offline" >&2; return 1; }
+	tmp="$CACHE/.refresh.$$"; mkdir -p "$tmp/repository"
+	if fetch_to "$REMOTE_BASE/index.tsv" "$tmp/repository/index.tsv" && [ -s "$tmp/repository/index.tsv" ]; then
+		fetch_to "$REMOTE_BASE/sections.json" "$tmp/repository/sections.json"
+		fetch_to "$REMOTE_BASE/meta.json" "$tmp/repository/meta.json"
+		# pull the per-category files referenced by the index
+		for cat in $(awk -F'\t' '{print $3}' "$tmp/repository/index.tsv" | sort -u); do
+			fetch_to "$REMOTE_BASE/repository/$cat.json" "$tmp/repository/$cat.json"
+		done
+		rm -rf "$CACHE/repository"; mv "$tmp/repository" "$CACHE/repository"
+		date +%s > "$CACHE/refreshed"
+		rm -rf "$tmp"; echo "ok"; return 0
+	fi
+	rm -rf "$tmp"; echo "failed" >&2; return 1
+}
+
+# ----------------------------------------------------------- resolve --------
+url_size() { # HEAD the url for Content-Length (best effort)
+	if [ -n "$GNUWGET" ]; then
+		"$GNUWGET" -q --spider -S --timeout=10 --tries=1 ${CABUNDLE:+--ca-certificate="$CABUNDLE"} "$1" 2>&1 \
+			| sed -n 's/.*[Cc]ontent-[Ll]ength: *\([0-9]*\).*/\1/p' | tail -1
+	else
+		wget -T 10 --spider -S "$1" 2>&1 | sed -n 's/.*[Cc]ontent-[Ll]ength: *\([0-9]*\).*/\1/p' | tail -1
+	fi
+}
+resolve() { # id -> URL \t SHA256 \t VERSION \t SIZE
+	id="$1"
+	st="$(idx_field "$id" 8)"; ref="$(idx_field "$id" 9)"
+	url="$(idx_field "$id" 10)"; sha="$(idx_field "$id" 7)"
+	ver="$(idx_field "$id" 5)"; sz="$(idx_field "$id" 6)"
+	me="$(this_arch)"
+
+	# 1. a pinned asset for THIS arch wins: it needs no network to resolve, its
+	#    checksum is known, and it is exactly the version the catalog advertises.
+	pin="$(idx_field "$id" 13 | tr ';' '\n' | awk -F',' -v a="$me" '$1==a{print; exit}')"
+	if [ -n "$pin" ]; then
+		url="$(echo "$pin" | cut -d, -f2)"
+		s="$(echo "$pin" | cut -d, -f3)"; [ -n "$s" ] && [ "$s" != "-" ] && sha="$s"
+		z="$(echo "$pin" | cut -d, -f4)"; [ -n "$z" ] && [ "$z" != 0 ] && sz="$z"
+		printf '%s\t%s\t%s\t%s\n' "$url" "$sha" "$ver" "$sz"
+		return 0
+	fi
+
+	# 2. no pin (catalog says "latest") -> ask the provider for the best asset
+	case "$st" in
+		github)
+			if have_net; then
+				repo="${ref%% *}"; glob="${ref#* }"; [ "$glob" = "$ref" ] && glob="*.AppImage"
+				api="$(fetch_out "https://api.github.com/repos/$repo/releases/latest" \
+				      "Accept: application/vnd.github+json" 2>/dev/null)"
+				urls="$(echo "$api" | tr ',' '\n' | sed -n 's/.*"browser_download_url":[ ]*"\([^"]*\)".*/\1/p')"
+				pat="$(echo "$glob" | sed 's/\./\\./g; s/\*/.*/g')"
+				# prefer an asset that names this arch, then the plain glob
+				u="$(echo "$urls" | grep -iE "$pat" | grep -iE "$me|$(echo "$me" | sed 's/x86_64/amd64/')" | grep -viE 'zsync|sha|sig|asc' | head -1)"
+				[ -n "$u" ] || u="$(echo "$urls" | grep -iE "$pat" | grep -viE 'zsync|sha|sig|asc|i386|i686|arm|aarch' | head -1)"
+				[ -n "$u" ] && url="$u"
+				v="$(echo "$api" | tr ',' '\n' | sed -n 's/.*"tag_name":[ ]*"\([^"]*\)".*/\1/p' | head -1)"
+				[ -n "$v" ] && ver="${v#v}"
+			fi
+		;;
+		gitlab)
+			if have_net; then
+				proj="$(echo "$ref" | sed 's#/#%2F#g')"
+				rel="$(fetch_out "https://gitlab.com/api/v4/projects/$proj/releases" 2>/dev/null)"
+				u="$(echo "$rel" | tr ',' '\n' | sed -n 's/.*"direct_asset_url":[ ]*"\([^"]*\)".*/\1/p' | grep -i '\.AppImage$' | head -1)"
+				[ -n "$u" ] || u="$(echo "$rel" | tr ',' '\n' | sed -n 's/.*"url":[ ]*"\([^"]*\.AppImage\)".*/\1/p' | head -1)"
+				[ -n "$u" ] && url="$u"
+				v="$(echo "$rel" | tr ',' '\n' | sed -n 's/.*"tag_name":[ ]*"\([^"]*\)".*/\1/p' | head -1)"
+				[ -n "$v" ] && ver="${v#v}"
+			fi
+		;;
+		xxri)   url="$REMOTE_BASE/apps/$id.AppImage" ;;
+		hub)    case "$url" in *.AppImage|*.appimage) : ;; *) url="" ;; esac ;;
+	esac
+	# a hub/releases-page URL is not a file - refuse rather than download HTML
+	case "$url" in *releases|*releases/) url="" ;; esac
+	if [ -n "$url" ] && [ "${sz:-0}" = 0 ] 2>/dev/null; then
+		case "$url" in http*) s="$(url_size "$url")"; [ -n "$s" ] && sz="$s" ;; esac
+	fi
+	printf '%s\t%s\t%s\t%s\n' "$url" "$sha" "$ver" "$sz"
+}
+cmd_resolve() { resolve "$1"; }
+
+# ------------------------------------------------------ download manager -----
+dl_set() { # id key val
+	f="$DL_STATE/$1"; k="$2"; v="$3"
+	[ -f "$f" ] || : > "$f"
+	if grep -q "^$k=" "$f" 2>/dev/null; then
+		sed "s|^$k=.*|$k=$v|" "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+	else echo "$k=$v" >> "$f"; fi
+}
+dl_get() { sed -n "s/^$2=//p" "$DL_STATE/$1" 2>/dev/null | head -1; }
+num() { case "$1" in ''|*[!0-9]*) echo 0 ;; *) echo "$1" ;; esac; }
+
+# Disk a given install will really consume, in KB.  The download is only part
+# of it: a portable archive is compressed and expands to roughly three times
+# its size under /opt/xxri, and a native extension drags in a dependency chain
+# far larger than the extension itself.  Measured on this device: GIMP is a
+# 22 MB .tcz that pulls ~80 MB of chain.
+space_needed() { # id -> KB
+	_sz="$(num "$(idx_field "$1" 6)")"
+	[ "$_sz" -gt 0 ] || _sz=$((32 * 1024 * 1024))     # unknown size: assume 32 MB
+	case "$(idx_field "$1" 11)" in
+		tcz)     _mult=5 ;;   # extension + its dependency closure
+		archive) _mult=4 ;;   # tarball + expanded tree
+		*)       _mult=2 ;;   # AppImage stays packed
+	esac
+	echo $(( (_sz / 1024) * _mult + 51200 ))          # + 50 MB working headroom
+}
+
+# ----------------------------------------------------------- install --------
+fetch_loop() { # id url out total  - download (resumable) + progress keys
+	id="$1"; url="$2"; out="$3"; total="$(num "$4")"
+	case "$url" in
+		/*|file://*)
+			src="${url#file://}"
+			( cp "$src" "$out.part" 2>/dev/null && mv "$out.part" "$out" ) & ;;
+		*)
+			( fetch_to "$url" "$out.part" -c && mv "$out.part" "$out" ) & ;;
+	esac
+	wp=$!; echo "$wp" > "$DL_STATE/$id.pid"
+	dl_set "$id" TOTAL "$total"
+	prev=$(num "$(dl_get "$id" BYTES)")
+	while kill -0 "$wp" 2>/dev/null; do
+		b=$(num "$(wc -c 2>/dev/null < "$out.part")")
+		[ -f "$out" ] && b=$(num "$(wc -c 2>/dev/null < "$out")")
+		dl_set "$id" BYTES "$b"
+		sp=$(( b - prev )); [ "$sp" -lt 0 ] && sp=0; prev=$b
+		dl_set "$id" SPEED "$sp"
+		# scale down before multiplying: b*100 overflows 32-bit signed
+		# arithmetic past ~21 MB, which collapsed the bar for every real app
+		[ "$total" -gt 0 ] && dl_set "$id" PCT $(( (b / 1024) * 100 / (total / 1024 + 1) ))
+		sleep 1
+	done
+	wait "$wp"; rc=$?; rm -f "$DL_STATE/$id.pid"
+	# paused by cmd_pause? leave the .part alone and report "paused"
+	[ "$(dl_get "$id" STATE)" = paused ] && return 3
+	dl_set "$id" SPEED 0
+	[ $rc -eq 0 ] && [ -s "$out" ] && return 0
+	return 1
+}
+
+cmd_install() { # id  (also used by resume/retry/update)
+	id="$1"
+	TRACE_ID="$id"
+	trace install-clicked "backend entered"
+	name="$(idx_field "$id" 2)"; [ -n "$name" ] || name="$(dl_get "$id" NAME)"; [ -n "$name" ] || name="$id"
+	if [ -z "$(idx_field "$id" 1)" ]; then
+		dl_set "$id" NAME "$name"; dl_set "$id" STATE failed
+		dl_set "$id" ERROR "This app is not in the active repository"
+		trace catalog-lookup "FAIL: id not present in $(INDEX)"
+		echo "ERR:nocatalog"; return 2
+	fi
+	trace catalog-lookup "ok name='$name' kind=$(idx_field "$id" 11) src=$(idx_field "$id" 8)"
+	archlist="$(idx_field "$id" 4)"; me="$(this_arch)"
+	case " $archlist " in
+		*" $me "*|*" any "*|"  ") trace arch-check "ok [$archlist] on $me" ;;
+		*) dl_set "$id" NAME "$name"; dl_set "$id" STATE failed
+		   dl_set "$id" ERROR "Requires $archlist - this device is $me"
+		   trace arch-check "FAIL: needs [$archlist], device is $me"
+		   echo "ERR:arch:$archlist"; return 2 ;;
+	esac
+	dl_set "$id" NAME "$name"; dl_set "$id" ERROR ""; dl_set "$id" PCT 0; dl_set "$id" SPEED 0
+
+	# Free space, checked before anything is downloaded.  Without this the
+	# install fails deep inside tce-load or tar with no usable message: the
+	# archive apps extract to several times their download size, so a couple of
+	# big installs can silently leave the next one no room at all.
+	need_kb="$(space_needed "$id")"
+	free_kb="$(df -k / 2>/dev/null | awk 'NR==2{print $4}')"
+	free_kb="$(num "$free_kb")"
+	if [ "$free_kb" -gt 0 ] && [ "$need_kb" -gt "$free_kb" ]; then
+		dl_set "$id" NAME "$name"; dl_set "$id" STATE failed
+		dl_set "$id" ERROR "Not enough disk space: $name needs about $((need_kb/1024)) MB, only $((free_kb/1024)) MB free"
+		trace disk-space "FAIL: need ${need_kb}KB, free ${free_kb}KB"
+		echo "ERR:space:$((need_kb/1024)):$((free_kb/1024))"; return 2
+	fi
+	trace disk-space "ok need ${need_kb}KB, free ${free_kb}KB"
+
+	# one install at a time: queue behind the current one
+	dl_set "$id" STATE queued
+	trace queued "entry created in $DL_STATE/$id"
+	waited=0
+	while ! mkdir "$LOCK" 2>/dev/null; do
+		lp="$(cat "$LOCK/pid" 2>/dev/null)"
+		if [ -z "$lp" ] || ! kill -0 "$lp" 2>/dev/null; then
+			trace lock "stale lock from pid '${lp:-none}' cleared"
+			rm -rf "$LOCK"; continue
+		fi
+		[ "$waited" = 0 ] && trace lock "waiting: pid $lp holds the install lock"
+		sleep 2; waited=$((waited+2))
+		[ "$waited" -ge 600 ] && { dl_set "$id" STATE failed; dl_set "$id" ERROR "Queue timeout"
+			trace lock "FAIL: 600s queue timeout behind pid $lp"; echo "ERR:queue"; return 1; }
+	done
+	echo $$ > "$LOCK/pid"
+	trap 'rm -rf "$LOCK"' EXIT INT TERM
+	trace lock "acquired after ${waited}s"
+
+	dl_set "$id" STATE resolving; echo $$ > "$DL_STATE/$id.pid"
+	# resume path: reuse the URL we resolved before pausing
+	url="$(dl_get "$id" URL)"; sha="$(dl_get "$id" SHA)"; ver="$(dl_get "$id" VER)"; tot="$(num "$(dl_get "$id" TOTAL)")"
+	if [ -z "$url" ] || [ ! -f "$(dl_get "$id" FILE).part" ]; then
+		res="$(resolve "$id")"
+		url="$(echo "$res" | cut -f1)"; sha="$(echo "$res" | cut -f2)"
+		ver="$(echo "$res" | cut -f3)"; tot="$(num "$(echo "$res" | cut -f4)")"
+	fi
+	if [ -z "$url" ]; then
+		dl_set "$id" STATE failed
+		if have_net; then dl_set "$id" ERROR "No downloadable release found for this app"
+		else dl_set "$id" ERROR "You are offline - this app needs an internet connection"; fi
+		trace provider "FAIL: resolved no URL (src_type=$(idx_field "$id" 8))"
+		echo "ERR:nourl"; return 1
+	fi
+	trace provider "ok ver=${ver:-?} size=${tot:-0} url=$url"
+	dl_set "$id" URL "$url"; dl_set "$id" SHA "$sha"; dl_set "$id" VER "$ver"
+
+	fn="$(echo "$name" | tr 'A-Z ' 'a-z-' | sed 's/[^a-z0-9._-]//g')"; [ -n "$fn" ] || fn="$id"
+	# archives keep a neutral name; only AppImages get the .AppImage suffix
+	case "$(idx_field "$id" 11)" in
+		archive) out="$DL_DIR/$fn-${ver:-latest}.pkg" ;;
+		tcz)     out="$DL_DIR/$(basename "$url")" ;;
+		*)       out="$DL_DIR/$fn-${ver:-latest}.AppImage" ;;
+	esac
+	# tce-load owns the transfer for a native extension, so the download
+	# manager cannot count the bytes itself.  Watch the extension store grow
+	# instead: without this the queue row sits at "Installing" with no progress
+	# for several minutes, which is indistinguishable from nothing happening.
+	if [ "$(idx_field "$id" 11)" = tcz ]; then
+		nm="$(idx_field "$id" 2)"; ex="$(idx_field "$id" 17)"
+		ref="$(idx_field "$id" 9)"; [ -n "$ref" ] || ref="$id"
+		trace backend-call "xxri-app install-tcz $ref (tce-load owns the transfer)"
+		dl_set "$id" STATE downloading; dl_set "$id" FILE "$TCE_OPT/$ref.tcz"
+		est=$(( tot * 4 )); [ "$est" -gt 0 ] || est=$((64 * 1024 * 1024))
+		base="$(num "$(du -sk "$TCE_OPT" 2>/dev/null | awk '{print $1}')")"
+		XXRI_APP_VERSION="$ver" xxri-app install-tcz "$ref" --quiet --as "$id" \
+		     --name "$nm" ${ex:+--exec "$ex"} >/dev/null 2>&1 &
+		wp=$!; echo "$wp" > "$DL_STATE/$id.pid"
+		prev=0
+		while kill -0 "$wp" 2>/dev/null; do
+			cur="$(num "$(du -sk "$TCE_OPT" 2>/dev/null | awk '{print $1}')")"
+			got=$(( (cur - base) * 1024 )); [ "$got" -lt 0 ] && got=0
+			dl_set "$id" BYTES "$got"
+			sp=$(( got - prev )); [ "$sp" -lt 0 ] && sp=0; prev="$got"
+			dl_set "$id" SPEED "$sp"
+			# scale down BEFORE multiplying: got*100 overflows 32-bit signed
+			# arithmetic past ~21 MB and the percentage collapses to zero
+			pc=$(( (got / 1024) * 100 / (est / 1024 + 1) ))
+			[ "$pc" -gt 99 ] && pc=99; [ "$pc" -lt 0 ] && pc=0
+			dl_set "$id" PCT "$pc"
+			sleep 1
+		done
+		wait "$wp"; irc=$?
+		if [ "$irc" -eq 0 ]; then
+			rm -f "$DL_STATE/$id.pid"
+			dl_set "$id" SPEED 0; dl_set "$id" PCT 100
+			dl_set "$id" STATE completed
+			trace integrated "desktop=$([ -f /usr/local/share/applications/xxri-app-$id.desktop ] && echo yes || echo NO) dock=$(grep -c "launch $id\$" /usr/local/tce.icons 2>/dev/null) reg=$([ -f /usr/local/share/xxri-apps/$id.reg ] && echo yes || echo NO)"
+			trace done "completed"
+			echo "OK:$id"; return 0
+		fi
+		rm -f "$DL_STATE/$id.pid"
+		trace backend-call "FAIL: xxri-app install-tcz rc=$irc"
+		dl_set "$id" STATE failed; dl_set "$id" SPEED 0
+		if have_net; then dl_set "$id" ERROR "$name could not be installed"
+		else dl_set "$id" ERROR "You are offline - this app needs an internet connection"; fi
+		echo "ERR:install"; return 1
+	fi
+
+	dl_set "$id" STATE downloading; dl_set "$id" FILE "$out"
+
+	trace download-start "-> $out"
+	fetch_loop "$id" "$url" "$out" "$tot"; frc=$?
+	[ $frc -eq 3 ] && { trace download-paused "user paused"; echo "PAUSED"; return 0; }
+	if [ $frc -ne 0 ]; then
+		dl_set "$id" STATE failed; dl_set "$id" ERROR "Download failed - check your connection and retry"
+		trace download-start "FAIL: fetch_loop rc=$frc"
+		echo "ERR:download"; return 1
+	fi
+	trace download-done "$(num "$(wc -c 2>/dev/null < "$out")") bytes"
+	b=$(num "$(wc -c < "$out")"); dl_set "$id" BYTES "$b"; dl_set "$id" PCT 100
+
+	# verify SHA256 if the catalog pins one AND we can compute one; if no digest
+	# tool exists (a stripped build), fall through rather than block installs.
+	if [ -n "$sha" ] && [ "$sha" != "-" ] && have_sha256; then
+		dl_set "$id" STATE verifying
+		got="$(sha256_of "$out")"
+		if [ -n "$got" ] && [ "$got" != "$sha" ]; then
+			dl_set "$id" STATE failed; dl_set "$id" ERROR "Checksum mismatch - the download was corrupted"
+			trace verify "FAIL: sha256 mismatch"
+			rm -f "$out"; echo "ERR:sha256"; return 1
+		fi
+		trace verify "ok sha256 matches"
+	else
+		trace verify "skipped (catalog pins no digest)"
+	fi
+
+	# hand off to the AppImage backend - the ONLY thing that installs.  Pin the
+	# catalog id so an update overwrites the same registry entry (stable across
+	# version bumps) instead of registering a second app.
+	dl_set "$id" STATE installing; echo $$ > "$DL_STATE/$id.pid"
+	chmod +x "$out" 2>/dev/null
+	kind="$(idx_field "$id" 11)"
+	if [ "$kind" = archive ]; then
+		# Official 32-bit portable build (tar.xz / tar.gz / zip).  xxri-app
+		# unpacks it and registers it exactly like an AppImage.
+		nm="$(idx_field "$id" 2)"; ex="$(idx_field "$id" 17)"; ic="$(idx_field "$id" 18)"
+		trace backend-call "xxri-app install-archive $out"
+		if XXRI_APP_VERSION="$ver" xxri-app install-archive "$out" --quiet --as "$id" \
+		     --name "$nm" ${ex:+--exec "$ex"} ${ic:+--icon "$ic"} >/dev/null 2>&1; then
+			rm -f "$DL_STATE/$id.pid"; rm -f "$out"
+			dl_set "$id" STATE completed
+			trace integrated "desktop=$([ -f /usr/local/share/applications/xxri-app-$id.desktop ] && echo yes || echo NO) dock=$(grep -c "launch $id\$" /usr/local/tce.icons 2>/dev/null) reg=$([ -f /usr/local/share/xxri-apps/$id.reg ] && echo yes || echo NO)"
+			trace done "completed"
+			echo "OK:$id"; return 0
+		fi
+		rm -f "$DL_STATE/$id.pid"
+		trace backend-call "FAIL: xxri-app install-archive returned non-zero"
+		dl_set "$id" STATE failed; dl_set "$id" ERROR "The package could not be installed"
+		echo "ERR:install"; return 1
+	fi
+	if xxri-app integrate "$out" --quiet --as "$id" >/dev/null 2>&1; then
+		rm -f "$DL_STATE/$id.pid"
+		dl_set "$id" STATE completed; echo "OK:$out"; return 0
+	fi
+	rm -f "$DL_STATE/$id.pid"
+	dl_set "$id" STATE failed; dl_set "$id" ERROR "The package could not be integrated"
+	echo "ERR:integrate"; return 1
+}
+cmd_retry() { dl_set "$1" URL ""; cmd_install "$1"; }
+cmd_resume() { cmd_install "$1"; }
+
+# ------------------------------------------------------- download manager --
+# The queue the Store's Downloads page renders.  One flat JSON object per
+# entry; the GUI reads id/name/state/pct/bytes/total/speed/eta/error, so every
+# one of those keys must be present even when it is zero - a missing key reads
+# as an empty string and the row renders blank.
+json_esc() { sed 's/\\/\\\\/g; s/"/\\"/g' ; }
+
+cmd_downloads() {
+	printf '{"downloads":['
+	first=1
+	for f in "$DL_STATE"/*; do
+		[ -f "$f" ] || continue
+		case "$f" in *.pid) continue ;; esac
+		id="${f##*/}"
+		st="$(dl_get "$id" STATE)"; [ -n "$st" ] || continue
+		nm="$(dl_get "$id" NAME)"; [ -n "$nm" ] || nm="$id"
+		by="$(num "$(dl_get "$id" BYTES)")"; tot="$(num "$(dl_get "$id" TOTAL)")"
+		sp="$(num "$(dl_get "$id" SPEED)")"; pct="$(num "$(dl_get "$id" PCT)")"
+		err="$(dl_get "$id" ERROR)"
+		# seconds remaining, from the last observed rate
+		eta=0
+		[ "$sp" -gt 0 ] && [ "$tot" -gt "$by" ] && eta=$(( (tot - by) / sp ))
+		[ "$first" = 1 ] || printf ','
+		first=0
+		printf '{"id":"%s","name":"%s","state":"%s","pct":%s,"bytes":%s,"total":%s,"speed":%s,"eta":%s,"error":"%s","file":"%s","url":"%s","version":"%s"}' \
+			"$id" "$(printf '%s' "$nm" | json_esc)" "$st" "$pct" "$by" "$tot" "$sp" "$eta" \
+			"$(printf '%s' "$err" | json_esc)" \
+			"$(printf '%s' "$(dl_get "$id" FILE)" | json_esc)" \
+			"$(printf '%s' "$(dl_get "$id" URL)" | json_esc)" \
+			"$(printf '%s' "$(dl_get "$id" VER)" | json_esc)"
+	done
+	printf ']}\n'
+}
+
+# Stop the transfer but keep the .part file, so resume continues with wget -c.
+cmd_pause() { # id
+	p="$(cat "$DL_STATE/$1.pid" 2>/dev/null)"
+	[ -n "$p" ] && kill "$p" 2>/dev/null
+	dl_set "$1" STATE paused; dl_set "$1" SPEED 0
+	trace pause "download paused by the user"
+	echo "PAUSED"
+}
+
+# Abandon it entirely: kill the transfer, drop the partial file and forget the
+# queue entry.  A cancelled install must leave nothing half-written behind.
+cmd_cancel() { # id
+	p="$(cat "$DL_STATE/$1.pid" 2>/dev/null)"
+	[ -n "$p" ] && kill "$p" 2>/dev/null
+	out="$(dl_get "$1" FILE)"
+	[ -n "$out" ] && rm -f "$out" "$out.part" 2>/dev/null
+	rm -f "$DL_STATE/$1" "$DL_STATE/$1.pid" 2>/dev/null
+	trace cancel "download cancelled, partial file removed"
+	echo "CANCELLED"
+}
+
+# Drop finished entries from the list (one id, or every terminal state).
+cmd_clear() { # [id]
+	if [ -n "$1" ]; then rm -f "$DL_STATE/$1" "$DL_STATE/$1.pid" 2>/dev/null; echo "CLEARED"; return; fi
+	for f in "$DL_STATE"/*; do
+		[ -f "$f" ] || continue
+		case "$f" in *.pid) continue ;; esac
+		case "$(dl_get "${f##*/}" STATE)" in
+			completed|failed|cancelled) rm -f "$f" "$f.pid" 2>/dev/null ;;
+		esac
+	done
+	echo "CLEARED"
+}
+
+# ----------------------------------------------------- installed / updates --
+idx_has() { awk -F'\t' -v id="$1" '$1==id{f=1;exit} END{exit !f}' "$(INDEX)"; }
+catalog_id_for() { # registry-id name -> catalog id (id match first, then name)
+	if idx_has "$1"; then echo "$1"; return; fi
+	awk -F'\t' -v n="$2" 'tolower($2)==tolower(n){print $1; exit}' "$(INDEX)"
+}
+cmd_installed() { # xxri-app registry joined with catalog metadata (flat JSON)
+	printf '{"apps":['
+	first=1
+	xxri-app list 2>/dev/null | while IFS='|' read -r aid nm vr fl ll; do
+		[ -n "$aid" ] || continue
+		inst="$(xxri-app info "$aid" 2>/dev/null | sed -n 's/^INSTALLED=//p')"
+		loc="${fl%/*}"
+		cid="$(catalog_id_for "$aid" "$nm")"
+		[ "$first" = 1 ] || printf ','; first=0
+		printf '{"id":"%s","catalog_id":"%s","name":"%s","version":"%s","file":"%s","location":"%s","installed":"%s","last_launch":"%s"}' \
+			"$aid" "$cid" "$nm" "$vr" "$fl" "$loc" "$inst" "$ll"
+	done
+	printf ']}\n'
+}
+cmd_updates() {
+	printf '{"updates":['
+	first=1
+	xxri-app list 2>/dev/null | while IFS='|' read -r aid nm vr fl ll; do
+		[ -n "$nm" ] || continue
+		cid="$(catalog_id_for "$aid" "$nm")"
+		[ -n "$cid" ] || continue
+		latest="$(idx_field "$cid" 5)"
+		[ -n "$latest" ] && [ "$latest" != "latest" ] && [ "$latest" != "$vr" ] || continue
+		sz="$(num "$(idx_field "$cid" 6)")"
+		[ "$first" = 1 ] || printf ','; first=0
+		printf '{"id":"%s","catalog_id":"%s","name":"%s","current":"%s","latest":"%s","size":%s}' \
+			"$aid" "$cid" "$nm" "$vr" "$latest" "$sz"
+	done
+	printf ']}\n'
+}
+cmd_update_all() {
+	rc=0
+	xxri-store updates | tr '{' '\n' | sed -n 's/.*"catalog_id":"\([^"]*\)".*/\1/p' | while read -r cid; do
+		[ -n "$cid" ] && xxri-store install "$cid" || rc=1
+	done
+	return $rc
+}
+cmd_open_location() { # installed app id -> open its folder
+	loc="$(xxri-app info "$1" 2>/dev/null | sed -n 's/^LOCATION=//p')"
+	[ -n "$loc" ] || loc="$DL_DIR"
+	# no dedicated file manager on Lite - fall back to a terminal there
+	if command -v flfm >/dev/null 2>&1; then flfm "$loc" >/dev/null 2>&1 &
+	else aterm +sb -T "Files - $loc" -e /bin/sh -c "cd '$loc' && ls -la; exec /bin/sh" >/dev/null 2>&1 &
+	fi
+	echo "$loc"
+}
+
+case "$1" in
+	arch)       cmd_arch ;;
+	status)     cmd_status ;;
+	online)     have_net ;;
+	repo-path)  repo_path ;;
+	refresh)    shift; cmd_refresh "$1" ;;
+	resolve)    shift; cmd_resolve "$1" ;;
+	install)    shift; cmd_install "$1" ;;
+	pause)      shift; cmd_pause "$1" ;;
+	resume)     shift; cmd_resume "$1" ;;
+	retry)      shift; cmd_retry "$1" ;;
+	cancel)     shift; cmd_cancel "$1" ;;
+	clear)      shift; cmd_clear "$1" ;;
+	downloads)  cmd_downloads ;;
+	installed)  cmd_installed ;;
+	updates)    cmd_updates ;;
+	update-all) cmd_update_all ;;
+	open-location) shift; cmd_open_location "$1" ;;
+	cache-path) cmd_cache_path ;;
+	icons)      shift; cmd_icons "$@" ;;
+	shots)      shift; cmd_shots "$1" ;;
+	field)      shift; cmd_field "$1" "$2" ;;
+	"")
+		# no subcommand: this is also the app's entry point, so `xxri-store`
+		# from a terminal opens the Store instead of printing usage.
+		if [ -n "$DISPLAY" ] && [ -x /usr/local/bin/xxri-store-gui ]; then
+			exec /usr/local/bin/xxri-store-gui
+		fi
+		echo "usage: xxri-store arch|status|online|repo-path|refresh|resolve|install|pause|resume|retry|cancel|clear|downloads|installed|updates|update-all|open-location|cache-path|icons|shots|field" >&2
+		exit 1 ;;
+	*) echo "usage: xxri-store arch|status|online|repo-path|refresh|resolve|install|pause|resume|retry|cancel|clear|downloads|installed|updates|update-all|open-location|cache-path|icons|shots|field" >&2; exit 1 ;;
+esac

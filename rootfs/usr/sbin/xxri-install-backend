@@ -210,8 +210,11 @@ configure_system() {
 find_kernel_src() {
 	# live ISO: the boot medium is mounted and /etc/sysconfig/cde points
 	# into it; installed system: /boot on the root fs.
+	# NOTE: /etc/sysconfig/cde holds "<medium>/cde/optional", so the boot
+	# directory is two levels up ("<medium>/boot") - not dirname(cde)/boot.
 	if [ -s /etc/sysconfig/cde ]; then
 		CDE="$(cat /etc/sysconfig/cde)"
+		CDE="${CDE%/}"; CDE="${CDE%/optional}"
 		B="$(dirname "$CDE")/boot"
 		[ -f "$B/vmlinuz" ] && [ -f "$B/core.gz" ] && { echo "$B"; return; }
 	fi

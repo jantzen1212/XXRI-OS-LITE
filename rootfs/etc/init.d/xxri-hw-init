@@ -17,6 +17,17 @@
 	for d in $(pci_by_class 0x0c03) $(pci_by_class 0x01); do
 		hw_load_driver "$d"
 	done
+	# KMS: load the DRM driver for this GPU before X starts.  Without a KMS
+	# device /dev/dri is empty, X.Org's modesetting driver finds no screen, and
+	# the session falls back to Xvesa - which has no XInput2, so Electron
+	# applications never map a window.  Probing by PCI class covers real
+	# hardware; the QEMU/VirtualBox display adapters are named explicitly.
+	if [ ! -e /dev/dri/card0 ]; then
+		for d in $(pci_by_class 0x0300); do hw_load_driver "$d"; done
+		[ -e /dev/dri/card0 ] || for m in bochs cirrus qxl vmwgfx vboxvideo virtio-gpu simpledrm; do
+			modprobe "$m" 2>/dev/null && [ -e /dev/dri/card0 ] && break
+		done
+	fi
 	/usr/local/bin/xxri-display cache-modes
 	/usr/local/bin/xxri-audio init
 	G="$(sed -n 's/^GOVERNOR=//p' /usr/local/etc/xxri/power.conf 2>/dev/null)"
@@ -24,24 +35,36 @@
 	B="$(sed -n 's/^BRIGHTNESS=//p' /usr/local/etc/xxri/power.conf 2>/dev/null)"
 	[ -n "$B" ] && /usr/local/bin/xxri-power brightness set "$B"
 	/usr/local/bin/xxri-network auto
-	# GTK3 runtime caches (Phase 8): generate once on the writable root
-	PBDIR=/usr/local/lib/gdk-pixbuf-2.0/2.10.0
-	if [ -x /usr/local/bin/gdk-pixbuf-query-loaders ] && [ ! -s "$PBDIR/loaders.cache" ]; then
-		/usr/local/bin/gdk-pixbuf-query-loaders --update-cache 2>/dev/null || 		/usr/local/bin/gdk-pixbuf-query-loaders > "$PBDIR/loaders.cache" 2>/dev/null
-	fi
-	if [ -x /usr/local/bin/glib-compile-schemas ] && [ ! -s /usr/local/share/glib-2.0/schemas/gschemas.compiled ]; then
-		/usr/local/bin/glib-compile-schemas /usr/local/share/glib-2.0/schemas 2>/dev/null
-	fi
-	[ -x /usr/local/bin/gio-querymodules ] && [ -d /usr/local/lib/gio/modules ] && 		/usr/local/bin/gio-querymodules /usr/local/lib/gio/modules 2>/dev/null
+	# NOTE: the GTK3/glib/gio caches are NOT generated here any more.  They are
+	# built into the image by build-caches.sh so a freshly installed system is
+	# already complete at first login (see rootfs-overrides/).
 	# Phase 8.1: xxri Settings fully replaces the Tiny Core control panel and
 	# its stand-alone config launchers - drop their .desktop entries (and the
 	# duplicate gear pixmap) before the session builds the dock/menu, so only
 	# xxri Settings remains.
-	for junk in cpanel tc-cpanel tc-config appsaudit services settime tc-wbarconf; do
+	# Phase 9.1: the XXRI Store is the ONLY software store - drop the Tiny Core
+	# package browser (apps / appbrowser / tce GUIs) too, so there is no second
+	# store icon or menu entry.  The tce backend stays for internal use.
+	for junk in cpanel tc-cpanel tc-config appsaudit services settime tc-wbarconf \
+	            apps appbrowser tce tce-ab appsrepo; do
 		rm -f "/usr/local/share/applications/tinycore-$junk.desktop" \
 		      "/usr/local/share/applications/$junk.desktop" 2>/dev/null
 	done
-	rm -f /usr/local/share/pixmaps/cpanel.png 2>/dev/null
+	rm -f /usr/local/share/pixmaps/cpanel.png \
+	      /usr/local/bin/apps /usr/local/bin/appbrowser 2>/dev/null
+
+	# Phase 9.2: HTTPS must work everywhere the Store runs.  ca-certificates.tcz
+	# builds this bundle when it is loaded as an extension, but an image that
+	# unsquashed its extensions has no such hook - build it here if missing, so
+	# the live ISO, the ISO-installed system and the baked image behave alike.
+	if [ ! -s /usr/local/etc/ssl/certs/ca-certificates.crt ] && \
+	   [ -d /usr/local/share/ca-certificates ]; then
+		mkdir -p /usr/local/etc/ssl/certs
+		find /usr/local/share/ca-certificates -name '*.crt' -exec cat {} + \
+			> /usr/local/etc/ssl/certs/ca-certificates.crt 2>/dev/null
+		ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt /usr/local/etc/ssl/cacert.pem 2>/dev/null
+		ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt /usr/local/etc/ssl/ca-bundle.crt 2>/dev/null
+	fi
 	# Phase 8.1: on an INSTALLED system (persistent root - not a live rootfs/
 	# tmpfs) the installer must never be exposed.  Remove its launcher, GUI
 	# binary, auto-start hook and any pre-built menu entry before the session
@@ -56,4 +79,7 @@
 				      "$u"/.wmx/*/InstallxxriOSLite "$u"/.wmx/*/Install* 2>/dev/null
 			done ;;
 	esac
+	# Toolkit caches are built INTO the image (build-caches.sh) - a release
+	# image must not finish configuring itself on first boot.  The refresh
+	# helper now runs only after the Store installs something new.
 } >/var/log/xxri-hw-init.log 2>&1

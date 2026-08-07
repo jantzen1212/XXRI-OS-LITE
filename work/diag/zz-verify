@@ -1,0 +1,23 @@
+# Verify the GTK apps on a system installed FROM THE ISO.
+( sleep 12
+  R=/tmp/verify.txt
+  { echo "=== ISO-installed system: GTK app verification ==="
+    echo "root: $(awk '$2=="/"{print $3; exit}' /proc/mounts)   host: $(hostname)"
+    echo "extensions in /tce/optional : $(ls /tce/optional/*.tcz 2>/dev/null | wc -l)"
+    echo "onboot.lst entries          : $(wc -l < /tce/onboot.lst 2>/dev/null)"
+    echo "loop-mounted extensions     : $(ls /tmp/tcloop 2>/dev/null | wc -l)"
+    echo "libgtk-3.so.0               : $(readlink -f /usr/local/lib/libgtk-3.so.0 2>/dev/null || echo MISSING)"
+    echo "ldd xxri-store-gui missing  : $(ldd /usr/local/bin/xxri-store-gui 2>&1 | grep -ci 'not found')"
+    echo "ldd xxri-settings missing   : $(ldd /usr/local/bin/xxri-settings 2>&1 | grep -ci 'not found')"
+  } > $R 2>&1
+  sh -c 'exec /usr/local/bin/xxri-settings'  >/tmp/s.err 2>&1 &
+  sleep 6
+  sh -c 'exec /usr/local/bin/xxri-store-gui' >/tmp/t.err 2>&1 &
+  sleep 12
+  { echo; echo "--- running processes:"; ps 2>/dev/null | grep -E 'xxri-(settings|store-gui)' | grep -v grep
+    echo; echo "--- settings stderr: $(head -3 /tmp/s.err 2>/dev/null)"
+    echo "--- store stderr:    $(head -3 /tmp/t.err 2>/dev/null)"
+  } >> $R 2>&1
+  sync
+  aterm -T "XXRI Verify" -fn 7x14 -geometry 96x18+8+500 -e sh -c "cat $R; sleep 3600" &
+) &

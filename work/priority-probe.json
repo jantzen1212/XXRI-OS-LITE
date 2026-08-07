@@ -1,0 +1,2595 @@
+{
+ "onlyoffice": {
+  "id": "onlyoffice",
+  "name": "ONLYOFFICE Desktop Editors",
+  "category": "Office",
+  "pages_searched": [
+   {
+    "url": "https://download.onlyoffice.com/install/desktop/editors/linux/",
+    "status": 403,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/ONLYOFFICE/DesktopEditors/releases/expanded_assets/v9.1.0",
+    "status": 200,
+    "size": 81747
+   },
+   {
+    "url": "https://download.onlyoffice.com/install/desktop/editors/linux/onlyoffice-desktopeditors_i386.deb",
+    "status": 404,
+    "size": 0
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://github.com/ONLYOFFICE/DesktopEditors/releases/download/v9.1.0/DesktopEditors_x86.zip",
+    "status": 200,
+    "size": 420840294,
+    "note": "listed on https://github.com/ONLYOFFICE/DesktopEditors/releases/expanded_assets/v9.1.0",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://download.onlyoffice.com/install/desktop/editors/linux/onlyoffice-desktopeditors_i386.deb",
+    "status": 404,
+    "size": 0,
+    "note": "vendor direct link"
+   }
+  ],
+  "found": null
+ },
+ "libreoffice": {
+  "id": "libreoffice",
+  "name": "LibreOffice",
+  "category": "Office",
+  "pages_searched": [
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/6.4.7.2/deb/x86/",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb.tar.gz",
+    "status": 200,
+    "size": 262008453,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_am.tar.gz",
+    "status": 200,
+    "size": 7939701,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_am",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_am/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_am/DEBS/libobasis5.4-am-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ar.tar.gz",
+    "status": 200,
+    "size": 6552271,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ar",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ar/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ar/DEBS/libobasis5.4-ar-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ast.tar.gz",
+    "status": 200,
+    "size": 7870253,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ast",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ast/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ast/DEBS/libobasis5.4-ast-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bg.tar.gz",
+    "status": 200,
+    "size": 8414632,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bg",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bg/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bg/DEBS/libobasis5.4-bg-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bn-IN.tar.gz",
+    "status": 200,
+    "size": 9125672,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bn-IN",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bn-IN/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bn-IN/DEBS/libobasis5.4-bn-in-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bn.tar.gz",
+    "status": 200,
+    "size": 9125379,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bn",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bn/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bn/DEBS/libobasis5.4-bn-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bo.tar.gz",
+    "status": 200,
+    "size": 8872595,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bo",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bo/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bo/DEBS/libobasis5.4-bo-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bs.tar.gz",
+    "status": 200,
+    "size": 7172460,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bs",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bs/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_bs/DEBS/libobasis5.4-bs-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ca-valencia.tar.gz",
+    "status": 200,
+    "size": 8009057,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ca-valencia",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ca-valencia/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ca-valencia/DEBS/libobasis5.4-ca-valencia-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ca.tar.gz",
+    "status": 200,
+    "size": 8048659,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ca",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ca/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_ca/DEBS/libobasis5.4-ca-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_cs.tar.gz",
+    "status": 200,
+    "size": 7733460,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_cs",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_cs/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_cs/DEBS/libobasis5.4-cs-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_da.tar.gz",
+    "status": 200,
+    "size": 7676089,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_da",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_da/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_da/DEBS/libobasis5.4-da-help_5.4.7.2-2_i386.deb"
+    ]
+   },
+   {
+    "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb_helppack_de.tar.gz",
+    "status": 200,
+    "size": 8188485,
+    "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": [
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_de",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_de/DEBS",
+     "LibreOffice_5.4.7.2_Linux_x86_deb_helppack_de/DEBS/libobasis5.4-de-help_5.4.7.2-2_i386.deb"
+    ]
+   }
+  ],
+  "found": {
+   "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb.tar.gz",
+   "status": 200,
+   "size": 262008453,
+   "note": "listed on https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/",
+   "packaging": "archive",
+   "arch": "archive-large",
+   "members": []
+  }
+ },
+ "abiword": {
+  "id": "abiword",
+  "name": "AbiWord",
+  "category": "Office",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/abiword.tcz",
+    "status": 200,
+    "size": 6803456
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/abiword.tcz",
+    "status": 200,
+    "size": 6803456,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/abiword.tcz",
+   "status": 200,
+   "size": 6803456,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "gnumeric": {
+  "id": "gnumeric",
+  "name": "Gnumeric",
+  "category": "Office",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/gnumeric.tcz",
+    "status": 200,
+    "size": 3063808
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/gnumeric.tcz",
+    "status": 200,
+    "size": 3063808,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/gnumeric.tcz",
+   "status": 200,
+   "size": 3063808,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "code-oss": {
+  "id": "code-oss",
+  "name": "Visual Studio Code",
+  "category": "Development",
+  "pages_searched": [
+   {
+    "url": "https://update.code.visualstudio.com/1.35.1/linux-ia32/stable",
+    "status": 200,
+    "size": 69348209
+   },
+   {
+    "url": "https://update.code.visualstudio.com/1.34.0/linux-ia32/stable",
+    "status": 200,
+    "size": 69399018
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://update.code.visualstudio.com/1.35.1/linux-ia32/stable",
+    "status": 200,
+    "size": 69348209,
+    "note": "vendor direct link",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://update.code.visualstudio.com/1.34.0/linux-ia32/stable",
+    "status": 200,
+    "size": 69399018,
+    "note": "vendor direct link",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   }
+  ],
+  "found": {
+   "url": "https://update.code.visualstudio.com/1.35.1/linux-ia32/stable",
+   "status": 200,
+   "size": 69348209,
+   "note": "vendor direct link",
+   "packaging": "archive",
+   "arch": "archive-large",
+   "members": []
+  }
+ },
+ "vscodium": {
+  "id": "vscodium",
+  "name": "VSCodium",
+  "category": "Development",
+  "pages_searched": [
+   {
+    "url": "https://github.com/VSCodium/vscodium/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/VSCodium/vscodium/releases/expanded_assets/1.126.04524",
+    "status": 200,
+    "size": 693490
+   },
+   {
+    "url": "https://github.com/VSCodium/vscodium/releases/expanded_assets/1.121.03429",
+    "status": 200,
+    "size": 775350
+   },
+   {
+    "url": "https://github.com/VSCodium/vscodium/releases/expanded_assets/1.116.02821",
+    "status": 200,
+    "size": 775347
+   },
+   {
+    "url": "https://github.com/VSCodium/vscodium/releases/expanded_assets/1.112.01907",
+    "status": 200,
+    "size": 738551
+   },
+   {
+    "url": "https://github.com/VSCodium/vscodium/releases/expanded_assets/1.110.11631",
+    "status": 200,
+    "size": 730445
+   },
+   {
+    "url": "https://github.com/VSCodium/vscodium/releases/expanded_assets/1.110.11607",
+    "status": 200,
+    "size": 730447
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "geany": {
+  "id": "geany",
+  "name": "Geany",
+  "category": "Development",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/geany.tcz",
+    "status": 200,
+    "size": 1568768
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/geany.tcz",
+    "status": 200,
+    "size": 1568768,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/geany.tcz",
+   "status": 200,
+   "size": 1568768,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "notepadqq": {
+  "id": "notepadqq",
+  "name": "Notepadqq",
+  "category": "Development",
+  "pages_searched": [
+   {
+    "url": "https://github.com/notepadqq/notepadqq/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/notepadqq/notepadqq/releases/expanded_assets/v2.1.1",
+    "status": 200,
+    "size": 12753
+   },
+   {
+    "url": "https://github.com/notepadqq/notepadqq/releases/expanded_assets/v2.1.0",
+    "status": 200,
+    "size": 12756
+   },
+   {
+    "url": "https://github.com/notepadqq/notepadqq/releases/expanded_assets/nightly-582a7977619f2966377dd856f0820c05a078b13b",
+    "status": 200,
+    "size": 4701
+   },
+   {
+    "url": "https://github.com/notepadqq/notepadqq/releases/expanded_assets/nightly",
+    "status": 200,
+    "size": 20904
+   },
+   {
+    "url": "https://github.com/notepadqq/notepadqq/releases/expanded_assets/nightly-6256ac9db143ac4f1d31eccacc6dc640edacdec9",
+    "status": 200,
+    "size": 17031
+   },
+   {
+    "url": "https://github.com/notepadqq/notepadqq/releases/expanded_assets/v2.0.0-beta",
+    "status": 200,
+    "size": 4627
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "kate": {
+  "id": "kate",
+  "name": "Kate",
+  "category": "Development",
+  "pages_searched": [
+   {
+    "url": "https://cdn.kde.org/ci-builds/utilities/kate/master/linux/",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "bluefish": {
+  "id": "bluefish",
+  "name": "Bluefish",
+  "category": "Development",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/bluefish.tcz",
+    "status": 200,
+    "size": 3485696
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/bluefish.tcz",
+    "status": 200,
+    "size": 3485696,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/bluefish.tcz",
+   "status": 200,
+   "size": 3485696,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "inkscape": {
+  "id": "inkscape",
+  "name": "Inkscape",
+  "category": "Graphics",
+  "pages_searched": [
+   {
+    "url": "https://inkscape.org/release/inkscape-0.92.4/gnulinux/appimage/dl/",
+    "status": 404,
+    "size": 0
+   },
+   {
+    "url": "https://media.inkscape.org/media/resources/file/",
+    "status": 200,
+    "size": 348
+   },
+   {
+    "url": "https://github.com/inkscape/inkscape/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/inkscape.tcz",
+    "status": 200,
+    "size": 11845632
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/inkscape.tcz",
+    "status": 200,
+    "size": 11845632,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/inkscape.tcz",
+   "status": 200,
+   "size": 11845632,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "gimp": {
+  "id": "gimp",
+  "name": "GIMP",
+  "category": "Graphics",
+  "pages_searched": [
+   {
+    "url": "https://download.gimp.org/pub/gimp/v2.10/linux/",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/aferrero2707/gimp-appimage/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/aferrero2707/gimp-appimage/releases/expanded_assets/continuous",
+    "status": 200,
+    "size": 359054
+   },
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/gimp.tcz",
+    "status": 200,
+    "size": 22573056
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/gimp.tcz",
+    "status": 200,
+    "size": 22573056,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/gimp.tcz",
+   "status": 200,
+   "size": 22573056,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "krita": {
+  "id": "krita",
+  "name": "Krita",
+  "category": "Graphics",
+  "pages_searched": [
+   {
+    "url": "https://download.kde.org/stable/krita/3.3.3/",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://download.kde.org/stable/krita/",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://download.kde.org/stable/krita/3.3.3/krita-3.3.3-x86-dbg.zip",
+    "status": 200,
+    "size": 433539703,
+    "note": "listed on https://download.kde.org/stable/krita/3.3.3/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://download.kde.org/stable/krita/3.3.3/krita-3.3.3-x86.zip",
+    "status": 200,
+    "size": 77459933,
+    "note": "listed on https://download.kde.org/stable/krita/3.3.3/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   }
+  ],
+  "found": {
+   "url": "https://download.kde.org/stable/krita/3.3.3/krita-3.3.3-x86-dbg.zip",
+   "status": 200,
+   "size": 433539703,
+   "note": "listed on https://download.kde.org/stable/krita/3.3.3/",
+   "packaging": "archive",
+   "arch": "archive-large",
+   "members": []
+  }
+ },
+ "pinta": {
+  "id": "pinta",
+  "name": "Pinta",
+  "category": "Graphics",
+  "pages_searched": [
+   {
+    "url": "https://github.com/PintaProject/Pinta/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/PintaProject/Pinta/releases/expanded_assets/3.1.2",
+    "status": 200,
+    "size": 36771
+   },
+   {
+    "url": "https://github.com/PintaProject/Pinta/releases/expanded_assets/3.1.1",
+    "status": 200,
+    "size": 36773
+   },
+   {
+    "url": "https://github.com/PintaProject/Pinta/releases/expanded_assets/3.1",
+    "status": 200,
+    "size": 36731
+   },
+   {
+    "url": "https://github.com/PintaProject/Pinta/releases/expanded_assets/3.0.5",
+    "status": 200,
+    "size": 32745
+   },
+   {
+    "url": "https://github.com/PintaProject/Pinta/releases/expanded_assets/3.0&quot;&gt;Pinta 3.0&lt;/a&gt;&lt;/p&gt;\n&lt;p&gt;Thanks to everyone who contributed translations, filed bugs, made packages, and everything else!&lt;/p&gt;\n&lt;h3&gt;Fixed&lt;/h3&gt;\n&lt;ul&gt;\n&lt;li&gt;Fixed several icons which did not display properly with GNOME 49 (&lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3513778430&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/PintaProject/Pinta/issues/1812&quot; data-hovercard-type=&quot;issue&quot; data-hovercard-url=&quot;/PintaProject/Pinta/issues/1812/hovercard&quot; href=&quot;https://github.com/PintaProject/Pinta/issues/1812&quot;&gt;#1812&lt;/a&gt;, &lt;a class=&quot;issue-link js-issue-link&quot; data-error-text=&quot;Failed to load title&quot; data-id=&quot;3523528104&quot; data-permission-text=&quot;Title is private&quot; data-url=&quot;https://github.com/PintaProject/Pinta/issues/1814&quot; data-hovercard-type=&quot;pull_request&quot; data-hovercard-url=&quot;/PintaProject/Pinta/pull/1814/hovercard&quot; href=&quot;https://github.com/PintaProject/Pinta/pull/1814&quot;&gt;#1814&lt;/a&gt;)&lt;/li&gt;\n&lt;/ul&gt;\n&lt;h3&gt;Checksums&lt;/h3&gt;\n&lt;ul&gt;\n&lt;li&gt;Fingerprint: &lt;code&gt;5BDA 30D0 C2E9 85E5 9808  9E44 4CF8 0E80 E77C 5C35&lt;/code&gt;&lt;/li&gt;\n&lt;li&gt;GPG Signature: &lt;code&gt;gpg --verify pinta-3.0.5.tar.gz.asc&lt;/code&gt;&lt;/li&gt;\n&lt;li&gt;Checksum: &lt;code&gt;pinta-3.0.4.tar.gz.sha512&lt;/code&gt;&lt;/li&gt;\n&lt;/ul&gt;",
+    "status": "ERR:InvalidURL",
+    "size": 0
+   },
+   {
+    "url": "https://github.com/PintaProject/Pinta/releases/expanded_assets/3.0.4",
+    "status": 200,
+    "size": 32747
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "libresprite": {
+  "id": "libresprite",
+  "name": "LibreSprite",
+  "category": "Graphics",
+  "pages_searched": [
+   {
+    "url": "https://github.com/LibreSprite/LibreSprite/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/LibreSprite/LibreSprite/releases/expanded_assets/v1.1",
+    "status": 200,
+    "size": 16859
+   },
+   {
+    "url": "https://github.com/LibreSprite/LibreSprite/releases/expanded_assets/v1.2",
+    "status": 200,
+    "size": 16850
+   },
+   {
+    "url": "https://github.com/LibreSprite/LibreSprite/releases/expanded_assets/v1.1-dev",
+    "status": 200,
+    "size": 4629
+   },
+   {
+    "url": "https://github.com/LibreSprite/LibreSprite/releases/expanded_assets/v1.0",
+    "status": 200,
+    "size": 16821
+   },
+   {
+    "url": "https://github.com/LibreSprite/LibreSprite/releases/expanded_assets/continuous",
+    "status": 200,
+    "size": 6677
+   },
+   {
+    "url": "https://github.com/LibreSprite/LibreSprite/releases/expanded_assets/_tmp",
+    "status": 200,
+    "size": 6625
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://github.com/LibreSprite/LibreSprite/releases/download/v1.0/libresprite-Linux-i386.AppImage",
+    "status": 200,
+    "size": 75702320,
+    "note": "GitHub release v1.0",
+    "packaging": "AppImage",
+    "arch": "i686"
+   }
+  ],
+  "found": {
+   "url": "https://github.com/LibreSprite/LibreSprite/releases/download/v1.0/libresprite-Linux-i386.AppImage",
+   "status": 200,
+   "size": 75702320,
+   "note": "GitHub release v1.0",
+   "packaging": "AppImage",
+   "arch": "i686"
+  }
+ },
+ "mtpaint": {
+  "id": "mtpaint",
+  "name": "mtPaint",
+  "category": "Graphics",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/mtpaint.tcz",
+    "status": 200,
+    "size": 471040
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/mtpaint.tcz",
+    "status": 200,
+    "size": 471040,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/mtpaint.tcz",
+   "status": 200,
+   "size": 471040,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "vlc": {
+  "id": "vlc",
+  "name": "VLC media player",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://download.videolan.org/pub/videolan/vlc/last/",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/kokoko3k/vlc-appimage/releases",
+    "status": 404,
+    "size": 0
+   },
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/vlc.tcz",
+    "status": 200,
+    "size": 6901760
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/vlc.tcz",
+    "status": 200,
+    "size": 6901760,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/vlc.tcz",
+   "status": 200,
+   "size": 6901760,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "mpv": {
+  "id": "mpv",
+  "name": "mpv",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://github.com/probonopd/mpv-AppImage/releases",
+    "status": 404,
+    "size": 0
+   },
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/mpv.tcz",
+    "status": 404,
+    "size": 0
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "audacity": {
+  "id": "audacity",
+  "name": "Audacity",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://github.com/audacity/audacity/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/audacity/audacity/releases/expanded_assets/Audacity-3.7.8",
+    "status": 200,
+    "size": 61440
+   },
+   {
+    "url": "https://github.com/audacity/audacity/releases/expanded_assets/Audacity-4.0.0-beta-2",
+    "status": 200,
+    "size": 16876
+   },
+   {
+    "url": "https://github.com/audacity/audacity/releases/expanded_assets/Audacity-3.7.7",
+    "status": 200,
+    "size": 57379
+   },
+   {
+    "url": "https://github.com/audacity/audacity/releases/expanded_assets/Audacity-3.7.6",
+    "status": 200,
+    "size": 61434
+   },
+   {
+    "url": "https://github.com/audacity/audacity/releases/expanded_assets/Audacity-4.0.0-alpha-2",
+    "status": 200,
+    "size": 16966
+   },
+   {
+    "url": "https://github.com/audacity/audacity/releases/expanded_assets/Audacity-4.0.0-alpha-1",
+    "status": 200,
+    "size": 4645
+   },
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/audacity.tcz",
+    "status": 200,
+    "size": 5206016
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/audacity.tcz",
+    "status": 200,
+    "size": 5206016,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/audacity.tcz",
+   "status": 200,
+   "size": 5206016,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "shotcut": {
+  "id": "shotcut",
+  "name": "Shotcut",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://github.com/mltframework/shotcut/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/mltframework/shotcut/releases/expanded_assets/v26.6.25",
+    "status": 200,
+    "size": 49096
+   },
+   {
+    "url": "https://github.com/mltframework/shotcut/releases/expanded_assets/v26.7.16",
+    "status": 200,
+    "size": 41001
+   },
+   {
+    "url": "https://github.com/mltframework/shotcut/releases/expanded_assets/v26.6.1",
+    "status": 200,
+    "size": 49052
+   },
+   {
+    "url": "https://github.com/mltframework/shotcut/releases/expanded_assets/v26.4.30",
+    "status": 200,
+    "size": 49094
+   },
+   {
+    "url": "https://github.com/mltframework/shotcut/releases/expanded_assets/v26.4.29",
+    "status": 200,
+    "size": 4623
+   },
+   {
+    "url": "https://github.com/mltframework/shotcut/releases/expanded_assets/v26.4.6",
+    "status": 200,
+    "size": 49056
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "kdenlive": {
+  "id": "kdenlive",
+  "name": "Kdenlive",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://download.kde.org/stable/kdenlive/",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "obs": {
+  "id": "obs",
+  "name": "OBS Studio",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://github.com/obsproject/obs-studio/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/obsproject/obs-studio/releases/expanded_assets/32.2.1",
+    "status": 200,
+    "size": 61783
+   },
+   {
+    "url": "https://github.com/obsproject/obs-studio/releases/expanded_assets/32.2.0",
+    "status": 200,
+    "size": 61783
+   },
+   {
+    "url": "https://github.com/obsproject/obs-studio/releases/expanded_assets/32.2.0-rc2",
+    "status": 200,
+    "size": 62013
+   },
+   {
+    "url": "https://github.com/obsproject/obs-studio/releases/expanded_assets/32.2.0-rc1",
+    "status": 200,
+    "size": 62013
+   },
+   {
+    "url": "https://github.com/obsproject/obs-studio/releases/expanded_assets/32.2.0-beta3",
+    "status": 200,
+    "size": 62129
+   },
+   {
+    "url": "https://github.com/obsproject/obs-studio/releases/expanded_assets/32.2.0-beta2",
+    "status": 200,
+    "size": 62131
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "handbrake": {
+  "id": "handbrake",
+  "name": "HandBrake",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://github.com/HandBrake/HandBrake/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/HandBrake/HandBrake/releases/expanded_assets/1.11.2",
+    "status": 200,
+    "size": 113078
+   },
+   {
+    "url": "https://github.com/HandBrake/HandBrake/releases/expanded_assets/1.11.1",
+    "status": 200,
+    "size": 113078
+   },
+   {
+    "url": "https://github.com/HandBrake/HandBrake/releases/expanded_assets/1.11.0",
+    "status": 200,
+    "size": 108958
+   },
+   {
+    "url": "https://github.com/HandBrake/HandBrake/releases/expanded_assets/1.10.2",
+    "status": 200,
+    "size": 110377
+   },
+   {
+    "url": "https://github.com/HandBrake/HandBrake/releases/expanded_assets/1.10.1",
+    "status": 200,
+    "size": 110377
+   },
+   {
+    "url": "https://github.com/HandBrake/HandBrake/releases/expanded_assets/1.10.0",
+    "status": 200,
+    "size": 110377
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "avidemux": {
+  "id": "avidemux",
+  "name": "Avidemux",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://sourceforge.net/projects/avidemux/files/avidemux/2.7.6/",
+    "status": 200,
+    "size": 113761
+   },
+   {
+    "url": "https://github.com/mean00/avidemux2/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/mean00/avidemux2/releases/expanded_assets/2.8.1",
+    "status": 200,
+    "size": 18663
+   },
+   {
+    "url": "https://github.com/mean00/avidemux2/releases/expanded_assets/2.8.0",
+    "status": 200,
+    "size": 16713
+   },
+   {
+    "url": "https://github.com/mean00/avidemux2/releases/expanded_assets/2.7.8",
+    "status": 200,
+    "size": 4609
+   },
+   {
+    "url": "https://github.com/mean00/avidemux2/releases/expanded_assets/2.7.7",
+    "status": 200,
+    "size": 4609
+   },
+   {
+    "url": "https://github.com/mean00/avidemux2/releases/expanded_assets/2.7.6",
+    "status": 200,
+    "size": 4609
+   },
+   {
+    "url": "https://github.com/mean00/avidemux2/releases/expanded_assets/2.7.4",
+    "status": 200,
+    "size": 4609
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "ffmpeg": {
+  "id": "ffmpeg",
+  "name": "FFmpeg",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://johnvansickle.com/ffmpeg/",
+    "status": 200,
+    "size": 5973
+   },
+   {
+    "url": "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz",
+    "status": 200,
+    "size": 18865524
+   },
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/ffmpeg.tcz",
+    "status": 404,
+    "size": 0
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-i686-static.tar.xz",
+    "status": 200,
+    "size": 18876708,
+    "note": "listed on https://johnvansickle.com/ffmpeg/",
+    "packaging": "archive",
+    "arch": "i686",
+    "members": [
+     "ffmpeg-git-20240629-i686-static",
+     "ffmpeg-git-20240629-i686-static/GPLv3.txt",
+     "ffmpeg-git-20240629-i686-static/manpages",
+     "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-all.txt",
+     "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-scaler.txt",
+     "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-resampler.txt",
+     "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-filters.txt",
+     "ffmpeg-git-20240629-i686-static/manpages/ffprobe.txt",
+     "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-devices.txt",
+     "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-utils.txt",
+     "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-protocols.txt",
+     "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-codecs.txt"
+    ]
+   },
+   {
+    "url": "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz",
+    "status": 200,
+    "size": 18865524,
+    "note": "listed on https://johnvansickle.com/ffmpeg/",
+    "packaging": "archive",
+    "arch": "i686",
+    "members": [
+     "ffmpeg-7.0.2-i686-static",
+     "ffmpeg-7.0.2-i686-static/GPLv3.txt",
+     "ffmpeg-7.0.2-i686-static/manpages",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-all.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-scaler.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-resampler.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-filters.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffprobe.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-devices.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-utils.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-protocols.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-codecs.txt"
+    ]
+   },
+   {
+    "url": "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-i686-static.tar.xz",
+    "status": 200,
+    "size": 18865524,
+    "note": "vendor direct link",
+    "packaging": "archive",
+    "arch": "i686",
+    "members": [
+     "ffmpeg-7.0.2-i686-static",
+     "ffmpeg-7.0.2-i686-static/GPLv3.txt",
+     "ffmpeg-7.0.2-i686-static/manpages",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-all.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-scaler.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-resampler.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-filters.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffprobe.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-devices.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-utils.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-protocols.txt",
+     "ffmpeg-7.0.2-i686-static/manpages/ffmpeg-codecs.txt"
+    ]
+   }
+  ],
+  "found": {
+   "url": "https://johnvansickle.com/ffmpeg/builds/ffmpeg-git-i686-static.tar.xz",
+   "status": 200,
+   "size": 18876708,
+   "note": "listed on https://johnvansickle.com/ffmpeg/",
+   "packaging": "archive",
+   "arch": "i686",
+   "members": [
+    "ffmpeg-git-20240629-i686-static",
+    "ffmpeg-git-20240629-i686-static/GPLv3.txt",
+    "ffmpeg-git-20240629-i686-static/manpages",
+    "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-all.txt",
+    "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-scaler.txt",
+    "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-resampler.txt",
+    "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-filters.txt",
+    "ffmpeg-git-20240629-i686-static/manpages/ffprobe.txt",
+    "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-devices.txt",
+    "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-utils.txt",
+    "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-protocols.txt",
+    "ffmpeg-git-20240629-i686-static/manpages/ffmpeg-codecs.txt"
+   ]
+  }
+ },
+ "firefox": {
+  "id": "firefox",
+  "name": "Mozilla Firefox",
+  "category": "Internet",
+  "pages_searched": [
+   {
+    "url": "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux&lang=en-US",
+    "status": 404,
+    "size": 0
+   },
+   {
+    "url": "https://ftp.mozilla.org/pub/firefox/releases/115.14.0esr/linux-i686/en-US/",
+    "status": 200,
+    "size": 1912
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux&lang=en-US",
+    "status": 404,
+    "size": 0,
+    "note": "vendor direct link"
+   }
+  ],
+  "found": null
+ },
+ "chromium": {
+  "id": "chromium",
+  "name": "Chromium",
+  "category": "Internet",
+  "pages_searched": [
+   {
+    "url": "https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html?prefix=Linux/",
+    "status": 200,
+    "size": 15170
+   },
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/chromium.tcz",
+    "status": 404,
+    "size": 0
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "brave": {
+  "id": "brave",
+  "name": "Brave Browser",
+  "category": "Internet",
+  "pages_searched": [
+   {
+    "url": "https://github.com/brave/brave-browser/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/brave/brave-browser/releases/expanded_assets/v1.92.144",
+    "status": 200,
+    "size": 874131
+   },
+   {
+    "url": "https://github.com/brave/brave-browser/releases/expanded_assets/v1.95.24",
+    "status": 200,
+    "size": 4621
+   },
+   {
+    "url": "https://github.com/brave/brave-browser/releases/expanded_assets/v1.95.23",
+    "status": 200,
+    "size": 4621
+   },
+   {
+    "url": "https://github.com/brave/brave-browser/releases/expanded_assets/v1.95.22",
+    "status": 200,
+    "size": 555975
+   },
+   {
+    "url": "https://github.com/brave/brave-browser/releases/expanded_assets/v1.94.99",
+    "status": 200,
+    "size": 630335
+   },
+   {
+    "url": "https://github.com/brave/brave-browser/releases/expanded_assets/v1.93.129",
+    "status": 200,
+    "size": 800840
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "opera": {
+  "id": "opera",
+  "name": "Opera",
+  "category": "Internet",
+  "pages_searched": [
+   {
+    "url": "https://get.geo.opera.com/pub/opera/desktop/",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "torbrowser": {
+  "id": "torbrowser",
+  "name": "Tor Browser",
+  "category": "Internet",
+  "pages_searched": [
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/mar-tools-linux32.zip",
+    "status": 200,
+    "size": 2486922,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "unknown",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_ar.tar.xz",
+    "status": 200,
+    "size": 85997896,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_ca.tar.xz",
+    "status": 200,
+    "size": 85949952,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_cs.tar.xz",
+    "status": 200,
+    "size": 85981352,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_da.tar.xz",
+    "status": 200,
+    "size": 85956592,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_de.tar.xz",
+    "status": 200,
+    "size": 85974052,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_el.tar.xz",
+    "status": 200,
+    "size": 86075896,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_en-US.tar.xz",
+    "status": 200,
+    "size": 85502836,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_es-AR.tar.xz",
+    "status": 200,
+    "size": 85975108,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_es-ES.tar.xz",
+    "status": 200,
+    "size": 85967252,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_fa.tar.xz",
+    "status": 200,
+    "size": 85990732,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_fr.tar.xz",
+    "status": 200,
+    "size": 85987068,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_ga-IE.tar.xz",
+    "status": 200,
+    "size": 85913548,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_he.tar.xz",
+    "status": 200,
+    "size": 85986620,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://archive.torproject.org/tor-package-archive/torbrowser/tor-pluggable-transports-browser-gnu-linux-i686-2.4.11-alpha-2-pt1-dev-en-US.tar.gz",
+    "status": 200,
+    "size": 40675942,
+    "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/",
+    "packaging": "archive",
+    "arch": "i686",
+    "members": [
+     "tor-browser_en-US",
+     "tor-browser_en-US/Data",
+     "tor-browser_en-US/Data/profiles.ini",
+     "tor-browser_en-US/Data/Vidalia",
+     "tor-browser_en-US/Data/Vidalia/vidalia.conf",
+     "tor-browser_en-US/Data/profile",
+     "tor-browser_en-US/Data/profile/preferences",
+     "tor-browser_en-US/Data/profile/preferences/extension-overrides.js",
+     "tor-browser_en-US/Data/profile/extensions",
+     "tor-browser_en-US/Data/profile/extensions/{73a6fe31-595d-460b-a920-fcc0f8843232}",
+     "tor-browser_en-US/Data/profile/extensions/{73a6fe31-595d-460b-a920-fcc0f8843232}/GPL.txt",
+     "tor-browser_en-US/Data/profile/extensions/{73a6fe31-595d-460b-a920-fcc0f8843232}/install.rdf"
+    ]
+   }
+  ],
+  "found": {
+   "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_ar.tar.xz",
+   "status": 200,
+   "size": 85997896,
+   "note": "listed on https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/",
+   "packaging": "archive",
+   "arch": "archive-large",
+   "members": []
+  }
+ },
+ "palemoon": {
+  "id": "palemoon",
+  "name": "Pale Moon",
+  "category": "Internet",
+  "pages_searched": [
+   {
+    "url": "https://www.palemoon.org/download.shtml",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://rm-eu.palemoon.org/release/palemoon-33.0.0.linux-i686-gtk3.tar.xz",
+    "status": 404,
+    "size": 0
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://rm-eu.palemoon.org/release/palemoon-33.0.0.linux-i686-gtk3.tar.xz",
+    "status": 404,
+    "size": 0,
+    "note": "vendor direct link"
+   }
+  ],
+  "found": null
+ },
+ "telegram": {
+  "id": "telegram",
+  "name": "Telegram Desktop",
+  "category": "Communication",
+  "pages_searched": [
+   {
+    "url": "https://telegram.org/dl/desktop/linux32",
+    "status": 200,
+    "size": 37623572
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://telegram.org/dl/desktop/linux32",
+    "status": 200,
+    "size": 37623572,
+    "note": "vendor direct link",
+    "packaging": "archive",
+    "arch": "i686",
+    "members": [
+     "Telegram",
+     "Telegram/Telegram",
+     "Telegram/Updater"
+    ]
+   }
+  ],
+  "found": {
+   "url": "https://telegram.org/dl/desktop/linux32",
+   "status": 200,
+   "size": 37623572,
+   "note": "vendor direct link",
+   "packaging": "archive",
+   "arch": "i686",
+   "members": [
+    "Telegram",
+    "Telegram/Telegram",
+    "Telegram/Updater"
+   ]
+  }
+ },
+ "discord": {
+  "id": "discord",
+  "name": "Discord",
+  "category": "Communication",
+  "pages_searched": [
+   {
+    "url": "https://discord.com/api/download?platform=linux&format=tar.gz",
+    "status": 200,
+    "size": 2191314
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://discord.com/api/download?platform=linux&format=tar.gz",
+    "status": 200,
+    "size": 2191314,
+    "note": "vendor direct link",
+    "packaging": "archive",
+    "arch": "x86_64",
+    "members": [
+     "Discord",
+     "Discord/discord.png",
+     "Discord/updater_bootstrap",
+     "Discord/discord",
+     "Discord/discord.desktop",
+     "Discord/postinst.sh"
+    ]
+   }
+  ],
+  "found": null
+ },
+ "element": {
+  "id": "element",
+  "name": "Element",
+  "category": "Communication",
+  "pages_searched": [
+   {
+    "url": "https://github.com/element-hq/element-desktop/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/element-hq/element-desktop/releases/expanded_assets/v1.12.13",
+    "status": 200,
+    "size": 8667
+   },
+   {
+    "url": "https://github.com/element-hq/element-desktop/releases/expanded_assets/v1.12.13-rc.0",
+    "status": 200,
+    "size": 8697
+   },
+   {
+    "url": "https://github.com/element-hq/element-desktop/releases/expanded_assets/v1.12.12",
+    "status": 200,
+    "size": 8667
+   },
+   {
+    "url": "https://github.com/element-hq/element-desktop/releases/expanded_assets/v1.12.12-rc.0",
+    "status": 200,
+    "size": 8697
+   },
+   {
+    "url": "https://github.com/element-hq/element-desktop/releases/expanded_assets/v1.12.11",
+    "status": 200,
+    "size": 8667
+   },
+   {
+    "url": "https://github.com/element-hq/element-desktop/releases/expanded_assets/v1.12.11-rc.1",
+    "status": 200,
+    "size": 8697
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "zoom": {
+  "id": "zoom",
+  "name": "Zoom",
+  "category": "Communication",
+  "pages_searched": [
+   {
+    "url": "https://zoom.us/client/latest/zoom_i686.tar.xz",
+    "status": 403,
+    "size": 0
+   },
+   {
+    "url": "https://zoom.us/download",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://zoom.us/client/latest/zoom_i686.tar.xz",
+    "status": 403,
+    "size": 0,
+    "note": "vendor direct link"
+   }
+  ],
+  "found": null
+ },
+ "skype": {
+  "id": "skype",
+  "name": "Skype",
+  "category": "Communication",
+  "pages_searched": [
+   {
+    "url": "https://go.skype.com/skypeforlinux-32.deb",
+    "status": 200,
+    "size": 61181
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://go.skype.com/skypeforlinux-32.deb",
+    "status": 200,
+    "size": 61181,
+    "note": "vendor direct link",
+    "packaging": "binary",
+    "arch": "unknown"
+   }
+  ],
+  "found": null
+ },
+ "hexchat": {
+  "id": "hexchat",
+  "name": "HexChat",
+  "category": "Communication",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/hexchat.tcz",
+    "status": 404,
+    "size": 0
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "pidgin": {
+  "id": "pidgin",
+  "name": "Pidgin",
+  "category": "Communication",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/pidgin.tcz",
+    "status": 404,
+    "size": 0
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "standard-notes": {
+  "id": "standard-notes",
+  "name": "Standard Notes",
+  "category": "Productivity",
+  "pages_searched": [
+   {
+    "url": "https://github.com/standardnotes/app/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/standardnotes/app/releases/expanded_assets/@standardnotes/web@3.201.35",
+    "status": 200,
+    "size": 4655
+   },
+   {
+    "url": "https://github.com/standardnotes/app/releases/expanded_assets/@standardnotes/releases@1.4.901",
+    "status": 200,
+    "size": 4663
+   },
+   {
+    "url": "https://github.com/standardnotes/app/releases/expanded_assets/@standardnotes/mobile@3.201.35",
+    "status": 200,
+    "size": 12765
+   },
+   {
+    "url": "https://github.com/standardnotes/app/releases/expanded_assets/@standardnotes/mobile@3.58.261",
+    "status": 200,
+    "size": 4661
+   },
+   {
+    "url": "https://github.com/standardnotes/app/releases/expanded_assets/@standardnotes/desktop@3.201.35",
+    "status": 200,
+    "size": 74250
+   },
+   {
+    "url": "https://github.com/standardnotes/app/releases/expanded_assets/@standardnotes/desktop@3.110.199",
+    "status": 200,
+    "size": 4665
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "joplin": {
+  "id": "joplin",
+  "name": "Joplin",
+  "category": "Productivity",
+  "pages_searched": [
+   {
+    "url": "https://github.com/laurent22/joplin/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/laurent22/joplin/releases/expanded_assets/v3.6.15",
+    "status": 200,
+    "size": 85184
+   },
+   {
+    "url": "https://github.com/laurent22/joplin/releases/expanded_assets/v3.7.10",
+    "status": 200,
+    "size": 85183
+   },
+   {
+    "url": "https://github.com/laurent22/joplin/releases/expanded_assets/android-v3.7.4",
+    "status": 200,
+    "size": 4627
+   },
+   {
+    "url": "https://github.com/laurent22/joplin/releases/expanded_assets/v3.7.9",
+    "status": 200,
+    "size": 85116
+   },
+   {
+    "url": "https://github.com/laurent22/joplin/releases/expanded_assets/v3.7.8",
+    "status": 200,
+    "size": 85116
+   },
+   {
+    "url": "https://github.com/laurent22/joplin/releases/expanded_assets/ios-v13.7.1",
+    "status": 200,
+    "size": 4621
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "xournalpp": {
+  "id": "xournalpp",
+  "name": "Xournal++",
+  "category": "Productivity",
+  "pages_searched": [
+   {
+    "url": "https://github.com/xournalpp/xournalpp/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/xournalpp/xournalpp/releases/expanded_assets/v1.3.6",
+    "status": 200,
+    "size": 102587
+   },
+   {
+    "url": "https://github.com/xournalpp/xournalpp/releases/expanded_assets/nightly",
+    "status": 200,
+    "size": 112441
+   },
+   {
+    "url": "https://github.com/xournalpp/xournalpp/releases/expanded_assets/v1.3.5",
+    "status": 200,
+    "size": 86206
+   },
+   {
+    "url": "https://github.com/xournalpp/xournalpp/releases/expanded_assets/v1.3.4",
+    "status": 200,
+    "size": 86206
+   },
+   {
+    "url": "https://github.com/xournalpp/xournalpp/releases/expanded_assets/v1.3.3",
+    "status": 200,
+    "size": 86204
+   },
+   {
+    "url": "https://github.com/xournalpp/xournalpp/releases/expanded_assets/v1.3.2",
+    "status": 200,
+    "size": 86218
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "keepassxc": {
+  "id": "keepassxc",
+  "name": "KeePassXC",
+  "category": "Productivity",
+  "pages_searched": [
+   {
+    "url": "https://github.com/keepassxreboot/keepassxc/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/keepassxreboot/keepassxc/releases/expanded_assets/2.7.12",
+    "status": 200,
+    "size": 114652
+   },
+   {
+    "url": "https://github.com/keepassxreboot/keepassxc/releases/expanded_assets/latest",
+    "status": 200,
+    "size": 4627
+   },
+   {
+    "url": "https://github.com/keepassxreboot/keepassxc/releases/expanded_assets/2.7.11",
+    "status": 200,
+    "size": 139088
+   },
+   {
+    "url": "https://github.com/keepassxreboot/keepassxc/releases/expanded_assets/2.7.10",
+    "status": 200,
+    "size": 59761
+   },
+   {
+    "url": "https://github.com/keepassxreboot/keepassxc/releases/expanded_assets/2.7.9",
+    "status": 200,
+    "size": 59680
+   },
+   {
+    "url": "https://github.com/keepassxreboot/keepassxc/releases/expanded_assets/2.7.8",
+    "status": 200,
+    "size": 59678
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "cherrytree": {
+  "id": "cherrytree",
+  "name": "CherryTree",
+  "category": "Productivity",
+  "pages_searched": [
+   {
+    "url": "https://github.com/giuspen/cherrytree/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/giuspen/cherrytree/releases/expanded_assets/v1.7.1",
+    "status": 200,
+    "size": 45264
+   },
+   {
+    "url": "https://github.com/giuspen/cherrytree/releases/expanded_assets/v1.7.0",
+    "status": 200,
+    "size": 41219
+   },
+   {
+    "url": "https://github.com/giuspen/cherrytree/releases/expanded_assets/v1.6.3",
+    "status": 200,
+    "size": 41219
+   },
+   {
+    "url": "https://github.com/giuspen/cherrytree/releases/expanded_assets/v1.6.2",
+    "status": 200,
+    "size": 45284
+   },
+   {
+    "url": "https://github.com/giuspen/cherrytree/releases/expanded_assets/v1.6.1",
+    "status": 200,
+    "size": 45284
+   },
+   {
+    "url": "https://github.com/giuspen/cherrytree/releases/expanded_assets/v1.6.0",
+    "status": 200,
+    "size": 45284
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "filezilla": {
+  "id": "filezilla",
+  "name": "FileZilla",
+  "category": "Files",
+  "pages_searched": [
+   {
+    "url": "https://dl2.cdn.filezilla-project.org/client/FileZilla_3.46.3_i686-linux-gnu.tar.bz2",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://dl2.cdn.filezilla-project.org/client/",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://dl2.cdn.filezilla-project.org/client/FileZilla_3.46.3_i686-linux-gnu.tar.bz2",
+    "status": 200,
+    "size": 0,
+    "note": "vendor direct link",
+    "packaging": "binary",
+    "arch": "unknown"
+   }
+  ],
+  "found": null
+ },
+ "peazip": {
+  "id": "peazip",
+  "name": "PeaZip",
+  "category": "Files",
+  "pages_searched": [
+   {
+    "url": "https://github.com/peazip/PeaZip/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/peazip/PeaZip/releases/expanded_assets/11.2.0",
+    "status": 200,
+    "size": 93883
+   },
+   {
+    "url": "https://github.com/peazip/PeaZip/releases/expanded_assets/11.1.0",
+    "status": 200,
+    "size": 93883
+   },
+   {
+    "url": "https://github.com/peazip/PeaZip/releases/expanded_assets/11.0.0",
+    "status": 200,
+    "size": 93879
+   },
+   {
+    "url": "https://github.com/peazip/PeaZip/releases/expanded_assets/10.9.0",
+    "status": 200,
+    "size": 93877
+   },
+   {
+    "url": "https://github.com/peazip/PeaZip/releases/expanded_assets/10.8.0",
+    "status": 200,
+    "size": 93879
+   },
+   {
+    "url": "https://github.com/peazip/PeaZip/releases/expanded_assets/10.7.0",
+    "status": 200,
+    "size": 93883
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "p7zip": {
+  "id": "p7zip",
+  "name": "7-Zip",
+  "category": "Files",
+  "pages_searched": [
+   {
+    "url": "https://www.7-zip.org/a/7z2409-linux-x86.tar.xz",
+    "status": 404,
+    "size": 0
+   },
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/p7zip.tcz",
+    "status": 200,
+    "size": 1871872
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://www.7-zip.org/a/7z2409-linux-x86.tar.xz",
+    "status": 404,
+    "size": 0,
+    "note": "vendor direct link"
+   },
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/p7zip.tcz",
+    "status": 200,
+    "size": 1871872,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/p7zip.tcz",
+   "status": 200,
+   "size": 1871872,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "doublecmd": {
+  "id": "doublecmd",
+  "name": "Double Commander",
+  "category": "Files",
+  "pages_searched": [
+   {
+    "url": "https://sourceforge.net/projects/doublecmd/files/",
+    "status": 200,
+    "size": 103384
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/expanded_assets/v1.2.7",
+    "status": 200,
+    "size": 73624
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/expanded_assets/v1.2.6",
+    "status": 200,
+    "size": 73624
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/expanded_assets/v1.2.5",
+    "status": 200,
+    "size": 73623
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/expanded_assets/v1.2.4",
+    "status": 200,
+    "size": 73625
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/expanded_assets/v1.2.3",
+    "status": 200,
+    "size": 73625
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/expanded_assets/v1.2.2",
+    "status": 200,
+    "size": 73624
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.7/doublecmd-1.2.7.gtk2.i386.tar.xz",
+    "status": 200,
+    "size": 9263592,
+    "note": "GitHub release v1.2.7",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.7/doublecmd-1.2.7.qt.i386.tar.xz",
+    "status": 200,
+    "size": 9681932,
+    "note": "GitHub release v1.2.7",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.6/doublecmd-1.2.6.gtk2.i386.tar.xz",
+    "status": 200,
+    "size": 9258508,
+    "note": "GitHub release v1.2.6",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.6/doublecmd-1.2.6.qt.i386.tar.xz",
+    "status": 200,
+    "size": 9674760,
+    "note": "GitHub release v1.2.6",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.5/doublecmd-1.2.5.gtk2.i386.tar.xz",
+    "status": 200,
+    "size": 9235768,
+    "note": "GitHub release v1.2.5",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.5/doublecmd-1.2.5.qt.i386.tar.xz",
+    "status": 200,
+    "size": 9647860,
+    "note": "GitHub release v1.2.5",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.4/doublecmd-1.2.4.gtk2.i386.tar.xz",
+    "status": 200,
+    "size": 9246220,
+    "note": "GitHub release v1.2.4",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.4/doublecmd-1.2.4.qt.i386.tar.xz",
+    "status": 200,
+    "size": 9661408,
+    "note": "GitHub release v1.2.4",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.3/doublecmd-1.2.3.gtk2.i386.tar.xz",
+    "status": 200,
+    "size": 9247112,
+    "note": "GitHub release v1.2.3",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.3/doublecmd-1.2.3.qt.i386.tar.xz",
+    "status": 200,
+    "size": 9660180,
+    "note": "GitHub release v1.2.3",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.2/doublecmd-1.2.2.gtk2.i386.tar.xz",
+    "status": 200,
+    "size": 9233316,
+    "note": "GitHub release v1.2.2",
+    "packaging": "binary",
+    "arch": "unknown"
+   },
+   {
+    "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.2/doublecmd-1.2.2.qt.i386.tar.xz",
+    "status": 200,
+    "size": 9650444,
+    "note": "GitHub release v1.2.2",
+    "packaging": "binary",
+    "arch": "unknown"
+   }
+  ],
+  "found": null
+ },
+ "gparted": {
+  "id": "gparted",
+  "name": "GParted",
+  "category": "Utilities",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/gparted.tcz",
+    "status": 200,
+    "size": 462848
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/gparted.tcz",
+    "status": 200,
+    "size": 462848,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/gparted.tcz",
+   "status": 200,
+   "size": 462848,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "etcher": {
+  "id": "etcher",
+  "name": "balenaEtcher",
+  "category": "Utilities",
+  "pages_searched": [
+   {
+    "url": "https://github.com/balena-io/etcher/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/balena-io/etcher/releases/expanded_assets/v2.1.6",
+    "status": 200,
+    "size": 61234
+   },
+   {
+    "url": "https://github.com/balena-io/etcher/releases/expanded_assets/v2.1.5",
+    "status": 200,
+    "size": 49099
+   },
+   {
+    "url": "https://github.com/balena-io/etcher/releases/expanded_assets/v2.1.4",
+    "status": 200,
+    "size": 61234
+   },
+   {
+    "url": "https://github.com/balena-io/etcher/releases/expanded_assets/v2.1.3",
+    "status": 200,
+    "size": 34896
+   },
+   {
+    "url": "https://github.com/balena-io/etcher/releases/expanded_assets/v2.1.2",
+    "status": 200,
+    "size": 32872
+   },
+   {
+    "url": "https://github.com/balena-io/etcher/releases/expanded_assets/v2.1.1",
+    "status": 200,
+    "size": 34896
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "remmina": {
+  "id": "remmina",
+  "name": "Remmina",
+  "category": "Utilities",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/remmina.tcz",
+    "status": 200,
+    "size": 516096
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/remmina.tcz",
+    "status": 200,
+    "size": 516096,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/remmina.tcz",
+   "status": 200,
+   "size": 516096,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "virtualbox": {
+  "id": "virtualbox",
+  "name": "VirtualBox",
+  "category": "Utilities",
+  "pages_searched": [
+   {
+    "url": "https://download.virtualbox.org/virtualbox/",
+    "status": 200,
+    "size": 34239
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "qemu": {
+  "id": "qemu",
+  "name": "QEMU",
+  "category": "Utilities",
+  "pages_searched": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/qemu.tcz",
+    "status": 200,
+    "size": 15876096
+   }
+  ],
+  "candidates": [
+   {
+    "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/qemu.tcz",
+    "status": 200,
+    "size": 15876096,
+    "arch": "i686",
+    "packaging": "tcz",
+    "note": "Tiny Core extension (native i686 repo)"
+   }
+  ],
+  "found": {
+   "url": "http://repo.tinycorelinux.net/16.x/x86/tcz/qemu.tcz",
+   "status": 200,
+   "size": 15876096,
+   "arch": "i686",
+   "packaging": "tcz",
+   "note": "Tiny Core extension (native i686 repo)"
+  }
+ },
+ "bleachbit": {
+  "id": "bleachbit",
+  "name": "BleachBit",
+  "category": "Utilities",
+  "pages_searched": [
+   {
+    "url": "https://www.bleachbit.org/download/linux",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/bleachbit/bleachbit/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/bleachbit/bleachbit/releases/expanded_assets/v6.0.2",
+    "status": 200,
+    "size": 36969
+   },
+   {
+    "url": "https://github.com/bleachbit/bleachbit/releases/expanded_assets/v6.0.1",
+    "status": 200,
+    "size": 200125
+   },
+   {
+    "url": "https://github.com/bleachbit/bleachbit/releases/expanded_assets/v4.7.0",
+    "status": 200,
+    "size": 4617
+   },
+   {
+    "url": "https://github.com/bleachbit/bleachbit/releases/expanded_assets/v6.0.0",
+    "status": 200,
+    "size": 179901
+   },
+   {
+    "url": "https://github.com/bleachbit/bleachbit/releases/expanded_assets/v5.1.2",
+    "status": 200,
+    "size": 187951
+   },
+   {
+    "url": "https://github.com/bleachbit/bleachbit/releases/expanded_assets/v5.1.1",
+    "status": 200,
+    "size": 183842
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "lmms": {
+  "id": "lmms",
+  "name": "LMMS",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://github.com/LMMS/lmms/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/LMMS/lmms/releases/expanded_assets/v1.2.2",
+    "status": 200,
+    "size": 16603
+   },
+   {
+    "url": "https://github.com/LMMS/lmms/releases/expanded_assets/v1.3.0-alpha.1",
+    "status": 200,
+    "size": 14914
+   },
+   {
+    "url": "https://github.com/LMMS/lmms/releases/expanded_assets/v1.2.1",
+    "status": 200,
+    "size": 14601
+   },
+   {
+    "url": "https://github.com/LMMS/lmms/releases/expanded_assets/v1.2.0",
+    "status": 200,
+    "size": 16601
+   },
+   {
+    "url": "https://github.com/LMMS/lmms/releases/expanded_assets/v1.2.0-rc8",
+    "status": 200,
+    "size": 16683
+   },
+   {
+    "url": "https://github.com/LMMS/lmms/releases/expanded_assets/v1.2.0-rc7",
+    "status": 200,
+    "size": 14677
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "musescore": {
+  "id": "musescore",
+  "name": "MuseScore",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://github.com/musescore/MuseScore/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/musescore/MuseScore/releases/expanded_assets/v4.7.4",
+    "status": 200,
+    "size": 37380
+   },
+   {
+    "url": "https://github.com/musescore/MuseScore/releases/expanded_assets/v4.7.3",
+    "status": 200,
+    "size": 37380
+   },
+   {
+    "url": "https://github.com/musescore/MuseScore/releases/expanded_assets/v4.7.2",
+    "status": 200,
+    "size": 37380
+   },
+   {
+    "url": "https://github.com/musescore/MuseScore/releases/expanded_assets/v4.7.1",
+    "status": 200,
+    "size": 37380
+   },
+   {
+    "url": "https://github.com/musescore/MuseScore/releases/expanded_assets/v4.7.0",
+    "status": 200,
+    "size": 37380
+   },
+   {
+    "url": "https://github.com/musescore/MuseScore/releases/expanded_assets/v4.6.5",
+    "status": 200,
+    "size": 37380
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "ardour": {
+  "id": "ardour",
+  "name": "Ardour",
+  "category": "Multimedia",
+  "pages_searched": [
+   {
+    "url": "https://community.ardour.org/download",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "freecad": {
+  "id": "freecad",
+  "name": "FreeCAD",
+  "category": "Graphics",
+  "pages_searched": [
+   {
+    "url": "https://github.com/FreeCAD/FreeCAD/releases",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://github.com/FreeCAD/FreeCAD/releases/expanded_assets/1.1.3",
+    "status": 200,
+    "size": 70070
+   },
+   {
+    "url": "https://github.com/FreeCAD/FreeCAD/releases/expanded_assets/weekly-2026.07.29",
+    "status": 200,
+    "size": 78867
+   },
+   {
+    "url": "https://github.com/FreeCAD/FreeCAD/releases/expanded_assets/1.1.2",
+    "status": 200,
+    "size": 70070
+   },
+   {
+    "url": "https://github.com/FreeCAD/FreeCAD/releases/expanded_assets/weekly-2026.07.22",
+    "status": 200,
+    "size": 78867
+   },
+   {
+    "url": "https://github.com/FreeCAD/FreeCAD/releases/expanded_assets/weekly-2026.07.15",
+    "status": 200,
+    "size": 78868
+   },
+   {
+    "url": "https://github.com/FreeCAD/FreeCAD/releases/expanded_assets/weekly-2026.07.09",
+    "status": 200,
+    "size": 78868
+   }
+  ],
+  "candidates": [],
+  "found": null
+ },
+ "blender": {
+  "id": "blender",
+  "name": "Blender",
+  "category": "Graphics",
+  "pages_searched": [
+   {
+    "url": "https://download.blender.org/release/Blender2.79/",
+    "status": 200,
+    "size": 0
+   },
+   {
+    "url": "https://download.blender.org/release/",
+    "status": 200,
+    "size": 0
+   }
+  ],
+  "candidates": [
+   {
+    "url": "https://download.blender.org/release/Blender2.79/blender-2.79-linux-glibc219-i686.tar.bz2",
+    "status": 200,
+    "size": 138675270,
+    "note": "listed on https://download.blender.org/release/Blender2.79/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://download.blender.org/release/Blender2.79/blender-2.79a-linux-glibc219-i686.tar.bz2",
+    "status": 200,
+    "size": 138698997,
+    "note": "listed on https://download.blender.org/release/Blender2.79/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   },
+   {
+    "url": "https://download.blender.org/release/Blender2.79/blender-2.79b-linux-glibc219-i686.tar.bz2",
+    "status": 200,
+    "size": 138659523,
+    "note": "listed on https://download.blender.org/release/Blender2.79/",
+    "packaging": "archive",
+    "arch": "archive-large",
+    "members": []
+   }
+  ],
+  "found": {
+   "url": "https://download.blender.org/release/Blender2.79/blender-2.79-linux-glibc219-i686.tar.bz2",
+   "status": 200,
+   "size": 138675270,
+   "note": "listed on https://download.blender.org/release/Blender2.79/",
+   "packaging": "archive",
+   "arch": "archive-large",
+   "members": []
+  }
+ }
+}
