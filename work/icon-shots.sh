@@ -5,6 +5,8 @@
 set -u
 B=/home/jantzen/xxri-build; cd "$B"
 D="$B/work/iconqa"; mkdir -p "$D/shots"
+# IMG lets a QA run target a throwaway copy and leave the shipped image alone
+IMG="${IMG:-output/xxri-disk.img}"
 PAGES="${1:-home}"; CLEAN="${2:-}"; AUDIT="${3:-}"
 MON="$D/mon.sock"; SER="$D/serial.log"; LOG="$D/qemu.log"
 ps -eo pid,args | grep 'iconqa/mon[.]sock' | awk '{print $1}' | xargs -r kill -9 2>/dev/null
@@ -14,7 +16,7 @@ APPEND="loglevel=3 storepages=$PAGES"
 [ "$AUDIT" = audit ] && APPEND="$APPEND storeaudit=1"
 setsid qemu-system-x86_64 -enable-kvm -m 2048 \
   -kernel work/iso/boot/vmlinuz -initrd output/core.gz -append "$APPEND" \
-  -drive file=output/xxri-disk.img,format=raw,if=ide \
+  -drive file="$IMG",format=raw,if=ide \
   -vga std -display none -serial file:"$SER" \
   -netdev user,id=n0 -device e1000,netdev=n0 \
   -monitor unix:"$MON",server,nowait >"$LOG" 2>&1 &
@@ -39,5 +41,5 @@ done
 echo "system_powerdown" | socat - UNIX-CONNECT:"$MON" >/dev/null 2>&1
 for i in $(seq 1 30); do ps -eo pid,args | grep -q 'iconqa/mon[.]sock' || break; sleep 2; done
 ps -eo pid,args | grep 'iconqa/mon[.]sock' | awk '{print $1}' | xargs -r kill -9 2>/dev/null
-sleep 2; e2fsck -fy output/xxri-disk.img >/dev/null 2>&1
+sleep 2; e2fsck -fy "$IMG" >/dev/null 2>&1
 grep -E '^(===|catalog=|dhcp)' "$SER" | tail -5
