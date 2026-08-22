@@ -112,13 +112,22 @@ chmod 0755 "\$STAGE/usr/local/bin/wbar.sh" 2>/dev/null || true
 # gear pixmap so they never reach the dock or the Applications/SystemTools menu.
 # Phase 9.1: the XXRI Store is the ONLY software store - also drop the Tiny Core
 # package browser GUI (apps/appbrowser/tce) so there is no second store icon.
+# Phase 10: also drop the Tiny Core-named or developer-only launchers that
+# still reached the desktop menu - Exit (replaced by the XXRI power menu),
+# RunProgram, Top, Xkill and the terminal Wi-Fi script (Settings owns Wi-Fi).
 for junk in cpanel tc-cpanel tc-config appsaudit services settime tc-wbarconf \
-            apps appbrowser tce tce-ab appsrepo; do
+            apps appbrowser tce tce-ab appsrepo \
+            exittc flrun top xkill wifi; do
 	rm -f "\$STAGE/usr/local/share/applications/tinycore-\$junk.desktop" \
 	      "\$STAGE/usr/local/share/applications/\$junk.desktop"
 done
 rm -f "\$STAGE/usr/local/share/pixmaps/cpanel.png" \
       "\$STAGE/usr/local/bin/apps" "\$STAGE/usr/local/bin/appbrowser"
+# Editor and MountTool stay, but under XXRI names and styling
+# (xxri-editor.desktop / xxri-disks.desktop) - drop the Tiny Core originals.
+rm -f "\$STAGE/usr/local/share/applications/tinycore-editor.desktop" \
+      "\$STAGE/usr/local/share/applications/tinycore-screenshot.desktop" \
+      "\$STAGE/usr/local/share/applications/tinycore-mnttool.desktop"
 # This ext4 image IS an installed system - the installer belongs to the Live
 # ISO only.  Strip its launcher, icon, GUI binary and auto-start hook.
 rm -f "\$STAGE/usr/local/share/applications/xxri-installer.desktop" \

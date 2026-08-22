@@ -56,9 +56,22 @@ static void run_bg(const char* fmt, ...) {
 /* flat-JSON field extraction (backends emit stable flat schemas) */
 static char* jget(const char* doc, const char* key) {
     char pat[128]; snprintf(pat, sizeof pat, "\"%s\":", key);
-    const char* p = strstr(doc, pat);
-    if (!p) return g_strdup("");
+    /* The backends wrap their payload in an envelope whose key repeats inside
+       it - xxri-audio emits {"volume":{"volume":65,...}}.  A plain strstr
+       stopped at the envelope and parsed "{" as the number, so the Control
+       Center's slider always read 0.  Skip values that open an object or an
+       array and keep looking for the scalar. */
+    const char* p = doc;
+    for (;;) {
+        p = strstr(p, pat);
+        if (!p) return g_strdup("");
+        const char* v = p + strlen(pat);
+        while (*v == ' ') v++;
+        if (*v != '{' && *v != '[') break;
+        p = v;
+    }
     p += strlen(pat);
+    while (*p == ' ') p++;
     if (*p == '"') {
         p++; const char* e = p;
         while (*e && !(*e=='"' && e[-1]!='\\')) e++;
@@ -637,6 +650,52 @@ static void cb_restart(GtkWidget* w, gpointer d){ (void)w;(void)d;
     if(gtk_dialog_run(GTK_DIALOG(dlg))==GTK_RESPONSE_OK) run_bg("xxri-desktop restart-session");
     gtk_widget_destroy(dlg);
 }
+/* Help & Support.
+ * Before Phase 10 this nav entry fired xxri-open-url and left the content on
+ * whatever page was showing - on a device with no browser installed that was
+ * a dead click.  It is a real page now: what this build is, where to get help,
+ * and the desktop's own keyboard shortcuts (which no browser can provide). */
+static void cb_open_url(GtkWidget* w, gpointer u) { (void)w; run_bg("xxri-open-url %s", (const char*)u); }
+static void build_help(GtkWidget* box) {
+    char* s = run_cmd("xxri-hardware summary --json");
+    char* os = jget(s, "os");
+
+    gtk_box_pack_start(GTK_BOX(box), section("This device"), FALSE, FALSE, 0);
+    GtkWidget* c0 = card_new();
+    card_kv(c0, "Edition", *os ? os : "XXRI OS Lite");
+    card_kv(c0, "Architecture", "i686 (32-bit Intel)");
+    card_kv(c0, "Software source", "repo.xxri.flows.best");
+    gtk_box_pack_start(GTK_BOX(box), c0, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(box), section("Get help"), FALSE, FALSE, 0);
+    GtkWidget* c1 = card_new();
+    GtkWidget* b1 = gtk_button_new_with_label("Open");
+    g_signal_connect(b1, "clicked", G_CALLBACK(cb_open_url), (gpointer)"https://xxri.flows.best");
+    card_icon_row(c1, "help", "XXRI website", "Guides, downloads and release notes", b1);
+    GtkWidget* b2 = gtk_button_new_with_label("Open");
+    g_signal_connect(b2, "clicked", G_CALLBACK(cb_open_url), (gpointer)"https://xxri.flows.best/support/");
+    card_icon_row(c1, "help", "Support", "Report a problem or ask a question", b2);
+    gtk_box_pack_start(GTK_BOX(box), c1, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box),
+        hint("Links open in your browser. XXRI OS Lite ships without one - install a browser "
+             "from the Store first, or read the guides on another device."), FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(box), section("Keyboard shortcuts"), FALSE, FALSE, 0);
+    GtkWidget* c2 = card_new();
+    struct { const char* k; const char* v; } keys[] = {
+        {"Alt + Tab",                "Switch between open windows"},
+        {"Alt + F1",                 "Minimise the active window"},
+        {"Ctrl + Alt + M",           "Maximise or restore the active window"},
+        {"Ctrl + Alt + C",           "Open or close the Control Center"},
+        {"Ctrl + Alt + arrow keys",  "Move the active window"},
+        {"Ctrl + Alt + = / -",       "Grow or shrink the active window"},
+        {"Click the desktop",        "Window list, desktops and Exit"},
+    };
+    for (unsigned i = 0; i < G_N_ELEMENTS(keys); i++) card_kv(c2, keys[i].k, keys[i].v);
+    gtk_box_pack_start(GTK_BOX(box), c2, FALSE, FALSE, 0);
+
+    g_free(os); g_free(s);
+}
 static void build_general(GtkWidget* box) {
     char* st=run_cmd("xxri-desktop status --json");
     char* dt=run_cmd("xxri-desktop datetime --json");
@@ -782,6 +841,7 @@ static GtkWidget* build_page_content(const char* id) {
     else if (!strcmp(id,"devices"))   build_devices(col);
     else if (!strcmp(id,"wallpaper")) build_wallpaper(col);
     else if (!strcmp(id,"sound"))     build_sound(col);
+    else if (!strcmp(id,"help"))      build_help(col);
     else if (!strcmp(id,"storage"))   build_storage(col);
     else if (!strcmp(id,"battery"))   build_battery(col);
     else if (!strcmp(id,"apps"))      build_apps(col);
@@ -817,7 +877,6 @@ static void on_nav(GtkListBox* lb, GtkListBoxRow* row, gpointer u) {
     (void)lb;(void)u;
     if (!row) return;
     const char* id = (const char*)g_object_get_data(G_OBJECT(row),"id");
-    if (!strcmp(id,"help")) { run_bg("xxri-open-url https://xxri.flows.best"); return; }
     show_page(id);
 }
 

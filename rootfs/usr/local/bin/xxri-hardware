@@ -114,7 +114,7 @@ cmd_printer() {
 	done
 	if [ $JSON = 1 ]; then
 		j_new; j_raw devices "$(a_out)"
-		[ $n = 0 ] && j_str hint "no printer detected; printing stack (CUPS) is not part of xxri OS Lite base"
+		[ $n = 0 ] && j_str hint "no printer detected; printing stack (CUPS) is not part of XXRI OS Lite base"
 		j_root hardware "\"printer\":$(j_obj)"
 	else
 		echo "Printer: $n USB printer-class device(s) detected"
@@ -180,7 +180,7 @@ cmd_summary() {
 		j_str locale "$(sed -n 's/^LANG=//p' /etc/sysconfig/language 2>/dev/null || echo en_US).$(sed -n 's/^TZ=//p' /etc/sysconfig/timezone 2>/dev/null | cut -c1-8)"
 		j_root hardware "\"summary\":$(j_obj)"
 	else
-		echo "xxri OS Lite hardware summary"
+		echo "XXRI OS Lite hardware summary"
 		echo "-----------------------------"
 		cmd_cpu; cmd_memory; cmd_gpu; cmd_firmware
 	fi

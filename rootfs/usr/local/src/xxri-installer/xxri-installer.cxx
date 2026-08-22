@@ -397,12 +397,17 @@ static void show_page(Fl_Group* p) {
 static void wbar_kill_cb(void*) { system("pkill -x wbar >/dev/null 2>&1"); }
 static void session_exclusive() {
     system("pkill -x wbar >/dev/null 2>&1");
+    // The Control Center chip floats above every window, including this one.
+    // The install flow owns the whole screen, so it stands down for the
+    // duration and comes back with the dock on "Continue Live".
+    system("xxri-control-center --quit >/dev/null 2>&1");
     Fl::add_timeout(2.5, wbar_kill_cb);   // catch a late wbar spawn from .xsession
     Fl::add_timeout(5.0, wbar_kill_cb);
 }
 static void session_restore() {
     system("U=$(cat /etc/sysconfig/tcuser 2>/dev/null); [ -n \"$U\" ] && "
-           "su - \"$U\" -c 'export DISPLAY=:0.0; nohup wbar.sh >/dev/null 2>&1 &'");
+           "su - \"$U\" -c 'export DISPLAY=:0.0; nohup wbar.sh >/dev/null 2>&1 & "
+           "nohup xxri-control-center >/dev/null 2>&1 &'");
 }
 
 // ------------------------------------------------------------ backend --

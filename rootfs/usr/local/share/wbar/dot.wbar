@@ -4,7 +4,7 @@
 # turn a comment into a real entry and shift every launcher by one slot.
 i: /usr/local/share/xxri-theme/wbar-bg.png
 t: /usr/local/lib/X11/fonts/TTF/luxisr/9
-c: wbar -bpress -nofont -pos bottom -isize 44 -idist 12 -zoomf 1.4 -nanim 3 -jumpf 0.85
+c: wbar -bpress -nofont -pos bottom -offset 15 -isize 40 -idist 7 -zoomf 1.25 -nanim 3 -jumpf 0.0
 i: /usr/local/share/pixmaps/xxri-store.png
 t: Store
 c: exec /usr/local/bin/xxri-store-gui
@@ -12,14 +12,14 @@ i: /usr/local/share/pixmaps/xxri-settings.png
 t: Settings
 c: exec /usr/local/bin/xxri-settings
 i: /usr/local/share/pixmaps/mnttool.png
-t: Files
-c: exec /usr/local/bin/mnttool
+t: Disks
+c: exec /usr/local/bin/mnttool -scheme gtk+ -bg #EFEDF8 -bg2 #FFFFFF -fg #1C1B24
 i: /usr/local/share/pixmaps/aterm.png
 t: Terminal
 c: exec /usr/local/bin/aterm
 i: /usr/local/share/pixmaps/editor.png
 t: Editor
-c: exec /usr/local/bin/editor
+c: exec /usr/local/bin/editor -scheme gtk+ -bg #EFEDF8 -bg2 #FFFFFF -fg #1C1B24
 i: /usr/local/share/pixmaps/exittc.png
 t: Power
-c: exec /usr/local/bin/exittc
+c: exec /usr/local/bin/xxri-power-menu

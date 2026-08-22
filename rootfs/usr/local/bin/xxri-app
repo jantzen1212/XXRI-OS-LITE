@@ -1,5 +1,5 @@
 #!/bin/busybox ash
-# xxri-app - native AppImage runtime for xxri OS Lite (Phase 6).
+# xxri-app - native AppImage runtime for XXRI OS Lite (Phase 6).
 #
 # The single backend for everything AppImage: detection, permission
 # helper, launching, desktop integration, registry and removal.  The
@@ -288,7 +288,7 @@ validate() { # file
 			*)   A="an unsupported processor";;
 		esac
 		VAL_ERR_TITLE="Built for a different computer"
-		VAL_ERR_BODY="This application was built for $A. xxri OS Lite runs 32-bit Intel (i686) software, so it cannot start here. Look for an i686 build of the same application."
+		VAL_ERR_BODY="This application was built for $A. XXRI OS Lite runs 32-bit Intel (i686) software, so it cannot start here. Look for an i686 build of the same application."
 		return 1
 	fi
 	return 0
@@ -350,7 +350,7 @@ cmd_launch() { # id or file
 		  RC=$?
 		  log "exit $RC for $exe"
 		  if [ $RC -ge 126 ] && [ $RC -ne 130 ] && [ $RC -ne 143 ]; then
-		      dlg error "Application error" "The application closed unexpectedly. It may not be compatible with xxri OS Lite."
+		      dlg error "Application error" "The application closed unexpectedly. It may not be compatible with XXRI OS Lite."
 		  fi
 		) &
 		return 0
@@ -391,7 +391,7 @@ cmd_launch() { # id or file
 		log "exit $RC for $f"
 		do_umount "$mp"
 		if [ $RC -ge 126 ] && [ $RC -ne 130 ] && [ $RC -ne 143 ]; then
-			dlg error "Application error" "The application closed unexpectedly. It may not be compatible with xxri OS Lite."
+			dlg error "Application error" "The application closed unexpectedly. It may not be compatible with XXRI OS Lite."
 		fi
 	) &
 	return 0
@@ -837,7 +837,7 @@ cmd_open() { # file : the double-click / detection entry point
 	fi
 	if [ -z "$id" ]; then
 		if dlg ask "Integrate this application?" \
-			"Do you want to integrate \"$base\" into xxri OS Lite? It will appear in the dock and the application menu, and it will be moved to your Applications folder." \
+			"Do you want to integrate \"$base\" into XXRI OS Lite? It will appear in the dock and the application menu, and it will be moved to your Applications folder." \
 			"Integrate" "Just run it"; then
 			id="$(cmd_integrate "$f" | tail -1)"
 			[ -n "$id" ] || return 1
@@ -907,7 +907,7 @@ cmd_remove_ui() { # id : dialog-driven removal
 	else
 		cmd_remove "$id"
 	fi
-	dlg info "Application removed" "\"$name\" has been removed from xxri OS Lite."
+	dlg info "Application removed" "\"$name\" has been removed from XXRI OS Lite."
 }
 
 # ------------------------------------------------------------------ list --
