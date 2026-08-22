@@ -27,8 +27,21 @@
 /* This TC gdk-pixbuf build ships broken built-in PNG loaders, so PNGs come in
  * through cairo (libpng direct) and are converted to a GdkPixbuf. */
 static GdkPixbuf* load_png(const char* path, int w, int h) {
+    /* Repository icon_url values are not all PNG - Blender's, for one, is an
+       SVG.  cairo only decodes PNG, so an SVG silently became "no icon" and the
+       card fell back to a generated placeholder.  Try gdk-pixbuf first for
+       anything cairo cannot handle: its loader set (including librsvg's SVG
+       loader) is registered now that loaders.cache ships in the image. */
     cairo_surface_t* s = cairo_image_surface_create_from_png(path);
-    if (cairo_surface_status(s) != CAIRO_STATUS_SUCCESS) { cairo_surface_destroy(s); return NULL; }
+    if (cairo_surface_status(s) != CAIRO_STATUS_SUCCESS) {
+        cairo_surface_destroy(s);
+        GError* e = NULL;
+        GdkPixbuf* pb = (w > 0)
+            ? gdk_pixbuf_new_from_file_at_scale(path, w, h, TRUE, &e)
+            : gdk_pixbuf_new_from_file(path, &e);
+        if (e) g_error_free(e);
+        return pb;                 /* NULL only if no loader understands it */
+    }
     int sw = cairo_image_surface_get_width(s), sh = cairo_image_surface_get_height(s);
     GdkPixbuf* full = gdk_pixbuf_get_from_surface(s, 0, 0, sw, sh);
     cairo_surface_destroy(s);
@@ -41,6 +54,25 @@ static GdkPixbuf* load_png(const char* path, int w, int h) {
 }
 
 /* ------------------------------------------------------------- backend --- */
+/* Temporary startup instrumentation (Phase: repository debugging).
+   Writes to $HOME/xxri-store-debug.log whenever XXRI_STORE_DEBUG is set, so the
+   Store can be traced when launched FROM THE DOCK, where there is no terminal
+   to read stderr from. */
+static void dbg(const char* fmt, ...) {
+    static FILE* f = NULL;
+    if (!g_getenv("XXRI_STORE_DEBUG")) return;
+    if (!f) {
+        const char* h = g_getenv("HOME");
+        char p[512]; snprintf(p,sizeof p,"%s/xxri-store-debug.log", h?h:"/tmp");
+        f = fopen(p,"a");
+        if (!f) return;
+        setvbuf(f, NULL, _IOLBF, 0);
+    }
+    va_list ap; va_start(ap,fmt);
+    vfprintf(f,fmt,ap); va_end(ap);
+    fputc('\n',f); fflush(f);
+}
+
 static char* run_cmd(const char* fmt, ...) {
     char cmd[2048]; va_list ap; va_start(ap, fmt);
     vsnprintf(cmd, sizeof cmd, fmt, ap); va_end(ap);
@@ -110,6 +142,45 @@ static char* jget(const char* doc, const char* key) {
     const char* e=p; while(*e && *e!=','&&*e!='}'&&*e!=']')e++;
     return g_strndup(p,e-p);
 }
+/* Read a scalar key at the TOP level of one object.  Catalog entries nest
+   objects (each app carries a "sources" array whose members repeat key names
+   like "version" and "priority"), so a plain search would return a nested
+   value.  Depth is tracked and only depth-1 keys are accepted. */
+static char* jtop(const char* obj, const char* key) {
+    size_t klen = strlen(key);
+    int depth = 0, instr = 0;
+    for (const char* p = obj; *p; p++) {
+        if (instr) { if (*p=='\\') { p++; continue; } if (*p=='"') instr=0; continue; }
+        if (*p=='"') {
+            if (depth == 1 && !strncmp(p+1,key,klen) && p[1+klen]=='"') {
+                const char* q = p+2+klen;
+                while (*q==' '||*q=='\t') q++;
+                if (*q==':') {
+                    q++; while (*q==' '||*q=='\t') q++;
+                    if (*q=='{'||*q=='[') return g_strdup("");   /* structured */
+                    if (*q=='"') {
+                        q++; GString* g = g_string_new(NULL);
+                        for (; *q && *q!='"'; q++) {
+                            if (*q=='\\' && q[1]) { q++;
+                                g_string_append_c(g, *q=='n'?'\n' : *q=='t'?'\t' : *q=='r'?'\r' : *q);
+                            } else g_string_append_c(g,*q);
+                        }
+                        return g_string_free(g,FALSE);
+                    }
+                    const char* e = q;
+                    while (*e && *e!=','&&*e!='}'&&*e!=']'&&*e!='\n') e++;
+                    while (e>q && (e[-1]==' '||e[-1]=='\t'||e[-1]=='\r')) e--;
+                    return g_strndup(q,e-q);
+                }
+            }
+            instr = 1; continue;
+        }
+        if (*p=='{'||*p=='[') depth++;
+        if (*p=='}'||*p==']') depth--;
+    }
+    return g_strdup("");
+}
+
 static GPtrArray* jarr(const char* doc, const char* key) {
     GPtrArray* v = g_ptr_array_new_with_free_func(g_free);
     const char* p=jfind(doc,key,'['); if(!p) return v; p++;
@@ -150,6 +221,10 @@ static GPtrArray*   g_apps;          /* all App*                            */
 static GHashTable*  g_byid;          /* id -> App*                          */
 static char*        g_arch = NULL;   /* this device's architecture          */
 static char*        g_repo = NULL;   /* active repository directory         */
+static gboolean     g_repo_offline = FALSE;   /* serving the cached catalog        */
+static gboolean     g_repo_available = FALSE; /* a catalog (fresh or cached) exists  */
+static char*        g_repo_schema  = NULL;    /* schema_version from the catalog     */
+static char*        g_repo_updated = NULL;    /* last_updated from the catalog       */
 static char*        g_repo_kind=NULL;/* "cached" | "bundled"                */
 static char*        g_cache = NULL;  /* ~/.cache/xxri-store                 */
 static gboolean     g_online = FALSE;
@@ -159,7 +234,13 @@ static GHashTable*  g_inst_id;       /* name(lower) -> xxri-app registry id */
 static GHashTable*  g_updates;       /* catalog id -> "cur|latest"          */
 static GHashTable*  g_dlstate;       /* catalog id -> state string          */
 static GHashTable*  g_sections;      /* section -> GPtrArray of App*        */
-static GHashTable*  g_iconcache;     /* "id@size" -> GdkPixbuf*             */
+static GHashTable*  g_iconcache;     /* "id@size" -> GdkPixbuf*  (real icon)  */
+/* Generated letter tiles are cached separately from real icons.  Sharing one
+   table made a cache hit indistinguishable from "this app has an icon", so the
+   second card for an app that appears in two rails was handed the placeholder
+   and never registered for the icon fetch - it kept the tile for the whole
+   session even after the real icon had been downloaded. */
+static GHashTable*  g_tilecache;     /* "id@size" -> GdkPixbuf*  (placeholder) */
 static GtkWidget   *g_stack, *g_win, *g_search_entry, *g_status_chip, *g_rail;
 static char*        g_page = NULL;   /* current page id                     */
 static GPtrArray*   g_history;       /* page ids for the back button        */
@@ -168,10 +249,46 @@ static GPtrArray*   g_pending_icons; /* IconWant* for the visible page      */
 typedef struct { char* id; GtkWidget* img; int size; } IconWant;
 
 static void open_page(const char* id);
+static gboolean app_installable(App* a);
 static void rebuild(const char* id);
 static void refresh_state(void);
 
 static const char* CAT_TITLE(const char* id);
+
+/* The repository labels categories for humans ("Remote Desktop", "IDE"); the
+   Store's pages, rails and filters are keyed on its own slugs.  Translate at
+   load time so the existing category UI keeps working untouched - without this
+   no application matches any category and every page renders empty. */
+static const char* cat_slug(const char* c) {
+    struct { const char* from; const char* to; } m[] = {
+        {"Browser","browser"},      {"Chat","communication"},   {"Office","office"},
+        {"IDE","development"},      {"Development","development"},
+        {"Graphics","graphics"},    {"Music","audio"},          {"Audio","audio"},
+        {"Video","video"},          {"Multimedia","video"},     {"Emulator","virtualization"},
+        {"Network","networking"},   {"Internet","networking"},  {"Remote Desktop","networking"},
+        {"Utilities","utilities"},  {"Compression","utilities"},{"Science","science"},
+        {"System","system"},        {"PDF","office"},           {"Security","security"},
+        {"Games","games"},          {"Photography","photography"},
+        {NULL,NULL}
+    };
+    if (!c || !*c) return "utilities";
+    for (int i=0;m[i].from;i++) if (!g_ascii_strcasecmp(c,m[i].from)) return m[i].to;
+    /* an unmapped label is lower-cased and used as-is, so a category the
+       repository adds later still groups sensibly instead of vanishing */
+    static char buf[64];
+    g_snprintf(buf,sizeof buf,"%s",c);
+    for (char* q=buf; *q; q++) *q = g_ascii_tolower(*q);
+    return buf;
+}
+
+/* Order for the home-page rails: the repository's own priority_tier first
+   (higher rank = lower tier number = better supported), then title. */
+static gint cmp_rank_then_name(gconstpointer x, gconstpointer y) {
+    const App* a = *(const App* const*)x;
+    const App* b = *(const App* const*)y;
+    if (a->rank != b->rank) return b->rank - a->rank;
+    return g_ascii_strcasecmp(a->name?a->name:"", b->name?b->name:"");
+}
 
 /* ------------------------------------------------------------- catalog --- */
 static void load_catalog(void) {
@@ -180,51 +297,121 @@ static void load_catalog(void) {
         g_hash_table_destroy(g_byid);
         if (g_sections) g_hash_table_destroy(g_sections);
         if (g_iconcache) g_hash_table_destroy(g_iconcache);
+        if (g_tilecache) g_hash_table_destroy(g_tilecache);
     }
     g_apps = g_ptr_array_new();
     g_byid = g_hash_table_new(g_str_hash, g_str_equal);
     g_iconcache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
+    g_tilecache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
 
     g_free(g_repo);
     g_repo = run_cmd("xxri-store repo-path");
     if (!*g_repo) { g_free(g_repo); g_repo = g_strdup(STORE_DIR "/repository"); }
 
-    DIR* d = opendir(g_repo); struct dirent* e;
-    if (d) { while ((e = readdir(d))) {
-        const char* nm = e->d_name; size_t l = strlen(nm);
-        if (l < 6 || strcmp(nm+l-5, ".json")) continue;
-        if (!strcmp(nm,"sections.json") || !strcmp(nm,"meta.json")) continue;
-        char path[1024]; snprintf(path,sizeof path,"%s/%s",g_repo,nm);
-        char* doc=NULL; gsize len;
-        if (!g_file_get_contents(path,&doc,&len,NULL)) continue;
-        GPtrArray* arr = jarr(doc,"apps");
+    /* The catalog is the repository's i686.json, fetched by the backend into
+       the cache.  Nothing is bundled and nothing is generated locally: this is
+       the single source of truth, and the schema's own field names are read
+       directly.  Fields we do not know about are simply never asked for, so the
+       repository can grow without needing a new Store. */
+    char cpath[1024]; snprintf(cpath,sizeof cpath,"%s/i686.json",g_repo);
+    char* doc=NULL; gsize len;
+    g_repo_available = FALSE;
+    dbg("LOAD_CATALOG repo=%s catalog=%s exists=%d", g_repo, cpath,
+        g_file_test(cpath,G_FILE_TEST_EXISTS));
+    if (g_file_get_contents(cpath,&doc,&len,NULL)) {
+        g_repo_available = TRUE;
+        g_free(g_repo_schema); g_repo_schema = jget(doc,"schema_version");
+        g_free(g_repo_updated); g_repo_updated = jget(doc,"last_updated");
+        GPtrArray* arr = jarr(doc,"applications");
         for (guint i=0;i<arr->len;i++) {
             char* o = arr->pdata[i];
             App* a = g_new0(App,1);
-            a->id=jget(o,"id"); a->name=jget(o,"name"); a->category=jget(o,"category");
-            a->kind=jget(o,"kind"); a->summary=jget(o,"summary"); a->description=jget(o,"description");
-            a->developer=jget(o,"developer"); a->publisher=jget(o,"publisher");
-            a->license=jget(o,"license"); a->homepage=jget(o,"homepage"); a->website=jget(o,"website");
-            a->version=jget(o,"version"); a->release_date=jget(o,"release_date"); a->updated=jget(o,"updated");
-            a->source_type=jget(o,"source_type"); a->source_ref=jget(o,"source_ref");
-            a->changelog=jget(o,"changelog"); a->icon_url=jget(o,"icon_url"); a->sha256=jget(o,"sha256");
-            a->arch=jstrs(o,"arch"); a->permissions=jstrs(o,"permissions");
-            a->deps=jstrs(o,"dependencies"); a->tags=jstrs(o,"tags");
-            a->keywords=jstrs(o,"keywords");
-            char* sz=jget(o,"download_size"); a->size=g_ascii_strtoll(sz,NULL,10); g_free(sz);
-            char* rk=jget(o,"rank"); a->rank=atoi(rk); g_free(rk);
-            char* vf=jget(o,"verified"); a->verified=!strcmp(vf,"true"); g_free(vf);
-            a->unavailable=jget(o,"unavailable");
-            char* sh=jstrs(o,"screenshots");
-            a->nshots = *sh ? (int)(1 + g_strv_length(g_strsplit(sh,"\n",-1)) - 1) : 0;
-            if (*sh) { char** v=g_strsplit(sh,"\n",-1); a->nshots=g_strv_length(v); g_strfreev(v); }
-            g_free(sh);
+            a->id          = jtop(o,"id");
+            a->name        = jtop(o,"title");
+            { char* rawcat = jtop(o,"category");
+              a->category = g_strdup(cat_slug(rawcat));
+              g_free(rawcat); }
+            a->description = jtop(o,"description");
+            a->summary     = g_strdup(a->description);
+            a->homepage    = jtop(o,"homepage");
+            a->website     = g_strdup(a->homepage);
+            a->icon_url    = jtop(o,"icon_url");
+            a->arch        = jtop(o,"architecture");
+            a->source_type = jtop(o,"package_type");
+            a->sha256      = jtop(o,"checksum");
+            a->version     = jtop(o,"version");
+            if (!*a->version) { g_free(a->version); a->version = jtop(o,"current_upstream_version"); }
+            a->tags     = jstrs(o,"tags");
+            a->keywords = jstrs(o,"keywords");
+            a->deps     = jstrs(o,"dependencies");
+            a->developer = g_strdup(""); a->publisher = g_strdup("");
+            a->license = g_strdup(""); a->changelog = g_strdup("");
+            a->release_date = g_strdup(""); a->updated = g_strdup("");
+            a->permissions = g_strdup(""); a->source_ref = g_strdup("");
+            char* sz = jtop(o,"size"); a->size = g_ascii_strtoll(sz,NULL,10); g_free(sz);
+            /* "null" is how the schema spells an absent value */
+            if (!strcmp(a->icon_url,"null")) { g_free(a->icon_url); a->icon_url=g_strdup(""); }
+            if (!strcmp(a->sha256,"null"))   { g_free(a->sha256);   a->sha256=g_strdup(""); }
+
+            char* url = jtop(o,"download_url");
+            gboolean has_url = *url && strcmp(url,"null") && g_str_has_prefix(url,"http");
+            char* tier = jtop(o,"priority_tier");
+            /* An absent tier is spelled "null"; atoi("null") is 0, which would
+               otherwise score higher than tier 1 and push every unsupported
+               entry to the top of the home page. */
+            int tn = (*tier && strcmp(tier,"null")) ? atoi(tier) : 0;
+            a->rank = tn ? (100 - tn*10) : 0;
+            /* Packaging is decided from the URL's real extension, exactly as
+               the backend does.  This used to shell out to `xxri-store field`
+               once per application - 57 popen() calls that delayed the first
+               paint by seconds - and the answer is a pure string test. */
+            const char* ext = url;
+            a->kind = g_strdup(
+                (g_str_has_suffix(ext,".AppImage")||g_str_has_suffix(ext,".appimage")) ? "appimage" :
+                 g_str_has_suffix(ext,".tcz")      ? "tcz" :
+                (g_str_has_suffix(ext,".tar.gz") ||g_str_has_suffix(ext,".tgz")   ||
+                 g_str_has_suffix(ext,".tar.xz") ||g_str_has_suffix(ext,".txz")   ||
+                 g_str_has_suffix(ext,".tar.bz2")||g_str_has_suffix(ext,".tbz")   ||
+                 g_str_has_suffix(ext,".zip")    ||g_str_has_suffix(ext,".7z"))   ? "archive" :
+                (g_str_has_suffix(ext,".sh")||g_str_has_suffix(ext,".run")||
+                 g_str_has_suffix(ext,".deb")||g_str_has_suffix(ext,".rpm"))      ? "installer" :
+                 !strcmp(a->source_type,"official_appimage")                      ? "appimage" :
+                 !strcmp(a->source_type,"tinycore_tcz")                           ? "tcz" :
+                                                                                    "archive");
+            gboolean runnable = !strcmp(a->kind,"appimage") || !strcmp(a->kind,"archive")
+                             || !strcmp(a->kind,"tcz");
+            a->verified = has_url && runnable;
+            if (!a->verified) {
+                char* why = jtop(o,"support_status");
+                if (!*why) { g_free(why); why = jtop(o,"research_status"); }
+                if (!has_url)
+                    a->unavailable = g_strdup(*why ? why : "No download published for i686");
+                else
+                    a->unavailable = g_strdup_printf("Packaging not supported (%s)", a->kind);
+                g_free(why);
+            } else a->unavailable = g_strdup("");
+            g_free(url); g_free(tier);
+
+            a->nshots = 0;
             if (!*a->id) { g_free(a); continue; }
             g_ptr_array_add(g_apps,a);
             g_hash_table_replace(g_byid,a->id,a);
         }
         g_ptr_array_free(arr,TRUE); g_free(doc);
-    } closedir(d); }
+        dbg("PARSED size=%u apps=%u schema=%s updated=%s", (unsigned)len,
+            g_apps->len, g_repo_schema?g_repo_schema:"-", g_repo_updated?g_repo_updated:"-");
+    } else dbg("PARSE_FAILED could not read %s", cpath);
+    dbg("REPO_AVAILABLE=%d MODEL_APPS=%u", g_repo_available, g_apps?g_apps->len:0);
+
+    /* app_visible() below compares against this device's architecture, so it
+       must be known before any visibility test runs - it used to be resolved
+       further down, which left g_arch NULL here and crashed the Store on
+       startup the moment the section builder called app_visible(). */
+    if (!g_arch) {
+        char* ar = run_cmd("xxri-store arch");
+        g_arch = jget(ar,"arch"); g_free(ar);
+        if (!g_arch || !*g_arch) { g_free(g_arch); g_arch = g_strdup("i686"); }
+    }
 
     /* home-page sections come from the repository, not from the code */
     g_sections = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,(GDestroyNotify)g_ptr_array_unref);
@@ -244,6 +431,38 @@ static void load_catalog(void) {
             g_hash_table_replace(g_sections,g_strdup(keys[k]),v);
         }
         g_free(sdoc);
+    } else {
+        /* The online repository publishes no sections file, so the same
+           section keys are filled from the repository's own ranking
+           (priority_tier, already stored in App.rank).  The home page code
+           below is untouched - only where these id lists come from changed,
+           exactly as the catalog itself did.  Without this every rail and hero
+           renders empty even though the catalog loaded fine. */
+        GPtrArray* pool = g_ptr_array_new();
+        for (guint i=0;i<g_apps->len;i++) {
+            App* a = g_apps->pdata[i];
+            /* app_installable() only tests the catalog (verified + arch);
+               app_visible() would consult g_installed, which load_installed()
+               has not built yet at this point in startup. */
+            if (app_installable(a)) g_ptr_array_add(pool,a);
+        }
+        g_ptr_array_sort(pool, cmp_rank_then_name);
+        struct { const char* key; int from, to, step; } S[] = {
+            {"featured",    0,  8, 1},
+            {"recommended", 0, 18, 1},
+            {"trending",    4, 16, 1},
+            {"editors",     0, 24, 3},
+            {"newest",      8, 20, 1},
+            {"updated",     0, 12, 1},
+            {NULL,0,0,0}
+        };
+        for (int k=0;S[k].key;k++) {
+            GPtrArray* v = g_ptr_array_new();
+            for (int i=S[k].from; i<S[k].to && i<(int)pool->len; i+=S[k].step)
+                g_ptr_array_add(v, pool->pdata[i]);
+            g_hash_table_replace(g_sections,g_strdup(S[k].key),v);
+        }
+        g_ptr_array_free(pool,TRUE);
     }
     if (!g_arch) {
         char* ar = run_cmd("xxri-store arch");
@@ -426,6 +645,10 @@ static GdkPixbuf* app_icon(App* a,int size,gboolean* from_file){
     char key[256]; snprintf(key,sizeof key,"%s@%d",a->id,size);
     GdkPixbuf* pb=g_hash_table_lookup(g_iconcache,key);
     if (pb) { if(from_file)*from_file=TRUE; return pb; }
+    /* a cached placeholder is NOT an icon: report it as such so the caller
+       still queues this widget for the icon fetch */
+    pb=g_hash_table_lookup(g_tilecache,key);
+    if (pb) { if(from_file)*from_file=FALSE; return pb; }
     char p[1024]; GdkPixbuf* out=NULL; gboolean real=FALSE;
     /* An installed app's own extracted icon wins: xxri-app resolves it from the
        application's real metadata, so the Store then shows exactly what the
@@ -435,7 +658,7 @@ static GdkPixbuf* app_icon(App* a,int size,gboolean* from_file){
     if (!out && g_cache) { snprintf(p,sizeof p,"%s/icons/%s.png",g_cache,a->id); out=load_png(p,size,size); }
     if (!out) { snprintf(p,sizeof p,"%s/%s.png",ICON_DIR,a->id); out=load_png(p,size,size); }
     if (out) real=TRUE; else out=gen_tile(a->id,a->name,size);
-    if (out) g_hash_table_replace(g_iconcache,g_strdup(key),out);
+    if (out) g_hash_table_replace(real?g_iconcache:g_tilecache,g_strdup(key),out);
     if (from_file) *from_file=real;
     return out;
 }
@@ -468,6 +691,7 @@ static gboolean poll_icons(gpointer u){
         if (g_file_test(p,G_FILE_TEST_EXISTS)) {
             char key[256]; snprintf(key,sizeof key,"%s@%d",w->id,w->size);
             g_hash_table_remove(g_iconcache,key);
+            g_hash_table_remove(g_tilecache,key);
             GdkPixbuf* pb=load_png(p,w->size,w->size);
             if (pb) {
                 gtk_image_set_from_pixbuf(GTK_IMAGE(w->img),pb);
@@ -478,7 +702,14 @@ static gboolean poll_icons(gpointer u){
         }
         i++;
     }
-    if (++tries > 12 && !landed) { tries=0; return G_SOURCE_REMOVE; }
+    /* Patience must match the work: the repository publishes an icon for every
+       application, so a cold cache means the engine is fetching dozens of files
+       one HTTPS round trip at a time.  Counting polls from the start gave up
+       after 18s and left the rest of the page as generated tiles, so the clock
+       restarts every time an icon actually lands and only a genuinely idle
+       stretch ends the poll. */
+    if (landed) tries = 0;
+    if (++tries > 40) { tries=0; return G_SOURCE_REMOVE; }
     return G_SOURCE_CONTINUE;
 }
 /* ask the engine to cache the icons this page wants (one batched call) */
@@ -1852,14 +2083,24 @@ static void on_search_changed(GtkWidget* w,gpointer u){ (void)w;(void)u;
 }
 static void update_status_chip(void){
     if (!g_status_chip) return;
-    char t[160];
-    snprintf(t,sizeof t,"%s \xc2\xb7 %s catalog \xc2\xb7 %s",
-             g_online?"Online":"Offline",
-             (g_repo_kind&&!strcmp(g_repo_kind,"cached"))?"updated":"offline",
-             g_arch);
+    char t[200];
+    if (!g_repo_available) {
+        /* No catalog at all: the repository could not be reached and nothing
+           was ever cached.  Say so plainly rather than showing an empty store. */
+        snprintf(t,sizeof t,"Repository unavailable");
+    } else if (g_repo_offline) {
+        snprintf(t,sizeof t,"Repository unavailable \xc2\xb7 cached catalog%s%s",
+                 (g_repo_updated&&*g_repo_updated)?" \xc2\xb7 ":"",
+                 (g_repo_updated&&*g_repo_updated)?g_repo_updated:"");
+    } else {
+        snprintf(t,sizeof t,"Online \xc2\xb7 repo.xxri.flows.best%s%s \xc2\xb7 %s",
+                 (g_repo_updated&&*g_repo_updated)?" \xc2\xb7 ":"",
+                 (g_repo_updated&&*g_repo_updated)?g_repo_updated:"",
+                 g_arch);
+    }
     gtk_label_set_text(GTK_LABEL(g_status_chip),t);
     GtkStyleContext* sc=gtk_widget_get_style_context(g_status_chip);
-    if (g_online) gtk_style_context_remove_class(sc,"off");
+    if (g_repo_available && !g_repo_offline) gtk_style_context_remove_class(sc,"off");
     else gtk_style_context_add_class(sc,"off");
 }
 
@@ -1880,12 +2121,30 @@ static gboolean poll_startup(gpointer u){ (void)u;
     }
     if (g_file_test(dp,G_FILE_TEST_EXISTS)) {
         g_unlink(dp);
+        dbg("REFRESH_DONE marker seen after %d polls", tries);
         char rl[512]; snprintf(rl,sizeof rl,"%s/refresh.log",g_cache);
         char* log=NULL;
-        gboolean got=g_file_get_contents(rl,&log,&len,NULL) && log && strstr(log,"ok");
+        /* Match what the backend actually reports.  cmd_refresh prints
+           updated | unchanged | offline-cached | unavailable - it stopped
+           printing "ok" when the catalog moved online, so this test silently
+           never fired and the Store kept its empty startup model (and the
+           "Repository unavailable" chip) even though the catalog had just been
+           downloaded successfully. */
+        gboolean got = g_file_get_contents(rl,&log,&len,NULL) && log &&
+                       (strstr(log,"updated") || strstr(log,"unchanged") ||
+                        strstr(log,"offline-cached") || strstr(log,"ok"));
         g_free(log);
+        /* Belt and braces: on a fresh install the Store starts with no catalog
+           at all.  If one exists now, reload regardless of what the log said -
+           anything is better than the empty model we painted with. */
+        if (!got && !g_repo_available) {
+            char cp[1024]; snprintf(cp,sizeof cp,"%s/i686.json",g_cache);
+            got = g_file_test(cp,G_FILE_TEST_EXISTS);
+        }
+        dbg("REFRESH_GOT=%d (log=%s)", got, "see refresh.log");
         if (got) {          /* the remote catalog replaced the bundled one */
             load_catalog(); load_installed(); rebuild(g_page);
+            dbg("RELOADED apps=%u available=%d", g_apps?g_apps->len:0, g_repo_available);
         } else if (g_online) {
             kick_icon_fetch();
         }
@@ -1903,6 +2162,7 @@ static void kick_startup(void){
         "xxri-store status > '%s/status.json' 2>/dev/null; "
         "touch '%s/startup.done'",
         g_cache,g_cache,g_cache,g_cache);
+    dbg("REFRESH_STARTED cmd=%s", cmd);
     run_bg("%s",cmd);
     g_timeout_add(700,poll_startup,NULL);
 }
@@ -2024,6 +2284,10 @@ int main(int argc,char** argv){
         gboolean click = !strcmp(argv[1],"--click");
         gtk_init_check(&argc,&argv);          /* works headless too */
         g_cache = run_cmd("xxri-store cache-path");
+        dbg("STARTUP pid=%d HOME=%s PATH=%s CWD=%s DISPLAY=%s",
+            (int)getpid(), g_getenv("HOME"), g_getenv("PATH"),
+            g_get_current_dir(), g_getenv("DISPLAY"));
+        dbg("CACHE_PATH=%s", g_cache);
         g_arch  = run_cmd("xxri-store arch-name");
         if (!*g_arch) { g_free(g_arch); g_arch=g_strdup("i686"); }
         load_catalog();

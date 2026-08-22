@@ -42,7 +42,8 @@
 BUNDLED=/usr/local/share/xxri-store
 CONF=/usr/local/etc/xxri/store.conf
 [ -r "$CONF" ] && . "$CONF"
-: "${REMOTE_BASE:=https://xxri.flows.best/store}"    # remote repo root (index.tsv, repository/, sections.json)
+: "${REPO_URL:=https://repo.xxri.flows.best/i686.json}"   # the ONLY catalog source
+: "${REMOTE_BASE:=https://repo.xxri.flows.best}"      # repository root (icons resolve against it)
 : "${CACHE_MAX_AGE:=86400}"                          # seconds before a refresh is due
 : "${TCZ_BASE:=http://repo.tinycorelinux.net/16.x/x86/tcz}"  # native extension repo
 
@@ -77,11 +78,114 @@ trace() { # stage [detail]
 }
 
 # ------------------------------------------------------------- repo select --
-repo_path() {
-	# cache wins only if it actually holds an index; otherwise the bundled repo.
-	if [ -s "$CACHE/repository/index.tsv" ]; then echo "$CACHE/repository"; else echo "$BUNDLED/repository"; fi
+# The catalog is the remote i686.json and nothing else.  There is no bundled
+# database and no locally generated one: the only local copy is the cache of the
+# file we downloaded, which exists solely so the Store still works offline.
+CATALOG="$CACHE/i686.json"
+CATALOG_META="$CACHE/i686.meta"          # ETag / Last-Modified of the cached copy
+repo_path() { echo "$CACHE"; }
+CATALOG_FILE() { echo "$CATALOG"; }
+have_catalog() { [ -s "$CATALOG" ]; }
+
+# ---- reading the remote schema -------------------------------------------
+# Emit one application object per line.
+#
+# Depth is tracked rather than split on a delimiter: entries contain nested
+# objects (the "sources" array), so a naive split on "},{" corrupts them and
+# silently merges neighbouring applications.  Braces inside string values and
+# escaped quotes are both accounted for, so this holds regardless of how the
+# repository chooses to format the file.
+_objs() {
+	awk '
+	function scan(line,   i, c, out) {
+		out = ""
+		for (i = 1; i <= length(line); i++) {
+			c = substr(line, i, 1)
+			if (instr) {
+				if (c == "\\") { i++; continue }
+				if (c == "\"") instr = 0
+				continue
+			}
+			if (c == "\"") { instr = 1; continue }
+			if (c == "[" || c == "{") depth++
+			if (c == "]" || c == "}") depth--
+		}
+		return out
+	}
+	!inarr {
+		if ($0 ~ /"applications"[ \t]*:[ \t]*\[/) { inarr = 1; depth = 0; scan($0); base = depth }
+		next
+	}
+	{
+		before = depth
+		scan($0)
+		if (!collecting && before == base && depth > base) { collecting = 1; buf = $0; next }
+		if (collecting) {
+			buf = buf " " $0
+			if (depth == base) { gsub(/[ \t]+/, " ", buf); print buf; collecting = 0; buf = "" }
+		}
+	}' "$CATALOG"
 }
-INDEX() { echo "$(repo_path)/index.tsv"; }
+
+japp_ids() {
+	[ -s "$CATALOG" ] || return 0
+	_objs | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+}
+
+# One field of one application.  Keys are asked for by name, so any field the
+# repository adds later is simply never queried - unknown fields are ignored.
+japp() { # id key -> value ("" when absent)
+	[ -s "$CATALOG" ] || return 0
+	_objs | awk -v want="$1" -v key="$2" '
+		{
+			if (!match($0, "\"id\"[ \t]*:[ \t]*\"" want "\"")) next
+			# Walk the object and only accept the key at depth 1: entries nest
+			# objects (sources[], checksum blocks), and a naive search would
+			# happily return a nested key of the same name.
+			depth = 0; instr = 0; n = length($0); i = 1
+			while (i <= n) {
+				c = substr($0, i, 1)
+				if (instr) {
+					if (c == "\\") { i += 2; continue }
+					if (c == "\"") instr = 0
+					i++; continue
+				}
+				if (c == "\"") {
+					if (depth == 1) {
+						rest = substr($0, i)
+						if (match(rest, "^\"" key "\"[ \t]*:[ \t]*")) {
+							val = substr(rest, RLENGTH + 1)
+							if (substr(val, 1, 1) == "\"") {
+								val = substr(val, 2); out = ""
+								for (j = 1; j <= length(val); j++) {
+									d = substr(val, j, 1)
+									if (d == "\\") { j++; e = substr(val, j, 1)
+										if (e == "n") out = out "\n"; else out = out e
+										continue }
+									if (d == "\"") break
+									out = out d
+								}
+								print out
+							} else if (substr(val, 1, 1) == "{" || substr(val, 1, 1) == "[") {
+								print ""            # structured value: not a scalar
+							} else {
+								match(val, /^[^,}\]]+/)
+								v = substr(val, RSTART, RLENGTH); gsub(/[ \t\r]+$/, "", v)
+								print v
+							}
+							exit
+						}
+					}
+					instr = 1; i++; continue
+				}
+				if (c == "{" || c == "[") depth++
+				if (c == "}" || c == "]") depth--
+				i++
+			}
+			exit
+		}'
+}
+
 
 # --------------------------------------------------------------- network ----
 # Every real AppImage is published over HTTPS, but busybox's wget on this device
@@ -155,30 +259,101 @@ sha256_of() { # file -> hex digest (empty on failure)
 have_sha256() { command -v sha256sum >/dev/null 2>&1 || command -v openssl >/dev/null 2>&1; }
 
 cmd_status() {
-	rp="$(repo_path)"
-	case "$rp" in "$CACHE"*) repo=cached ;; *) repo=bundled ;; esac
+	# online   : the repository answered this session
+	# repo     : remote (fresh) | cached (offline, showing the last catalog)
+	# available: false when there is no catalog at all - the Store then shows
+	#            "Repository unavailable" and refuses to start installs.
 	ref=0; [ -f "$CACHE/refreshed" ] && ref="$(cat "$CACHE/refreshed")"
-	n=0; [ -s "$rp/index.tsv" ] && n=$(wc -l < "$rp/index.tsv")
+	n=0; have_catalog && n="$(japp_ids | wc -l)"
 	if have_net; then on=true; else on=false; fi
+	if [ "$on" = true ]; then repo=remote; else repo=cached; fi
+	have_catalog && avail=true || avail=false
 	a="$(this_arch)"; bits=32; [ "$a" = x86_64 ] || [ "$a" = aarch64 ] && bits=64
-	printf '{"online":%s,"repo":"%s","refreshed":%s,"apps":%s,"arch":"%s","bits":%s}\n' \
-		"$on" "$repo" "${ref:-0}" "${n:-0}" "$a" "$bits"
+	printf '{"online":%s,"repo":"%s","available":%s,"refreshed":%s,"apps":%s,"arch":"%s","bits":%s,"source":"%s","schema":"%s","updated":"%s"}\n' \
+		"$on" "$repo" "$avail" "${ref:-0}" "${n:-0}" "$a" "$bits" "$REPO_URL" \
+		"$(sed -n 's/.*"schema_version"[ ]*:[ ]*"\([^"]*\)".*/\1/p' "$CATALOG" 2>/dev/null | head -1)" \
+		"$(sed -n 's/.*"last_updated"[ ]*:[ ]*"\([^"]*\)".*/\1/p' "$CATALOG" 2>/dev/null | head -1)"
 }
 
 # ------------------------------------------------------ index.tsv columns ----
 # id  name  category  archlist  version  size  sha256  source_type  source_ref  url
-idx_field() { # id colnum
-	awk -F'\t' -v id="$1" -v c="$2" '$1==id{print $c; exit}' "$(INDEX)"
+# Column numbers are gone: the catalog is the remote JSON, so every field is
+# read by NAME.  The legacy positional call sites are mapped onto schema names
+# here so the rest of the engine keeps working unchanged.
+idx_field() { # id colnum-or-name -> value
+	case "$2" in
+		1)  echo "$1" ;;
+		2)  japp "$1" title ;;
+		3)  japp "$1" category ;;
+		4)  japp "$1" architecture ;;
+		5)  v="$(japp "$1" version)"; [ -n "$v" ] || v="$(japp "$1" current_upstream_version)"; echo "$v" ;;
+		6)  japp "$1" size ;;
+		7)  japp "$1" checksum ;;
+		8)  japp "$1" package_type ;;
+		9)  japp "$1" id ;;
+		10) japp "$1" download_url ;;
+		11) kind_of "$1" ;;
+		12) japp "$1" last_updated ;;
+		13) echo "" ;;
+		14) japp "$1" icon_url ;;
+		15) echo "" ;;
+		16) is_installable "$1" && echo 1 || echo 0 ;;
+		17) japp "$1" exec_path ;;
+		18) japp "$1" icon_path ;;
+		*)  japp "$1" "$2" ;;
+	esac
+}
+
+# The repository describes packaging in its own vocabulary; map it onto the
+# three install mechanisms xxri-app implements.  Anything unrecognised is
+# treated as an archive, which is the safe default for a portable build.
+kind_of() { # id -> appimage | archive | tcz
+	# The actual file decides how it is installed.  package_type is consulted
+	# only when the URL is not conclusive: several catalog entries carry a
+	# package_type that disagrees with their own download_url (e.g. labelled
+	# tinycore_tcz while pointing at a .tar.bz2), and installing by the label
+	# would then use the wrong mechanism entirely.
+	case "$(japp "$1" download_url)" in
+		*.AppImage|*.appimage)          echo appimage; return ;;
+		*.tcz)                          echo tcz;      return ;;
+		*.tar.gz|*.tgz|*.tar.xz|*.txz|*.tar.bz2|*.tbz|*.zip|*.7z) echo archive; return ;;
+		# Shell/deb/rpm installers have no mechanism in xxri-app.  Report them
+		# honestly instead of routing them to an installer that cannot run them.
+		*.sh|*.run|*.deb|*.rpm|*.AppInstaller) echo installer; return ;;
+	esac
+	case "$(japp "$1" package_type)" in
+		official_appimage|community_appimage) echo appimage ;;
+		tinycore_tcz)                          echo tcz ;;
+		*)                                     echo archive ;;
+	esac
+}
+
+# An entry is offerable only when the repository actually gives us something to
+# download.  Entries that document a discontinued or missing build stay visible
+# but are not installable.
+is_installable() { # id
+	u="$(japp "$1" download_url)"
+	[ -n "$u" ] && [ "$u" != null ] || return 1
+	case "$u" in http://*|https://*) ;; *) return 1 ;; esac
+	# a directory listing is not a package
+	case "$u" in */) return 1 ;; esac
+	# only formats xxri-app can actually install count as installable
+	case "$(kind_of "$1")" in appimage|archive|tcz) ;; *) return 1 ;; esac
+	return 0
 }
 cmd_field() { # id key
 	case "$2" in
-		name) idx_field "$1" 2 ;; category) idx_field "$1" 3 ;; arch) idx_field "$1" 4 ;;
-		version) idx_field "$1" 5 ;; size) idx_field "$1" 6 ;; sha256) idx_field "$1" 7 ;;
-		source_type) idx_field "$1" 8 ;; source_ref) idx_field "$1" 9 ;; url) idx_field "$1" 10 ;;
-		kind) idx_field "$1" 11 ;; updated) idx_field "$1" 12 ;; assets) idx_field "$1" 13 ;;
-		icon_url) idx_field "$1" 14 ;; screenshots) idx_field "$1" 15 ;;
-		verified) idx_field "$1" 16 ;; exec) idx_field "$1" 17 ;; iconpath) idx_field "$1" 18 ;;
-		*) : ;;
+		name)     japp "$1" title ;;
+		category) japp "$1" category ;;
+		arch)     japp "$1" architecture ;;
+		version)  v="$(japp "$1" version)"; [ -n "$v" ] || v="$(japp "$1" current_upstream_version)"; echo "$v" ;;
+		url)      japp "$1" download_url ;;
+		kind)     kind_of "$1" ;;
+		icon)     japp "$1" icon_url ;;
+		installable) is_installable "$1" && echo 1 || echo 0 ;;
+		# anything else is read straight from the schema by name, so fields the
+		# repository adds later are reachable without changing this client
+		*)        japp "$1" "$2" ;;
 	esac
 }
 
@@ -186,15 +361,53 @@ cmd_field() { # id key
 # Icons and screenshots are metadata: they are fetched lazily, cached forever
 # and never block the UI.  The GUI draws its own tile until one lands.
 cmd_cache_path() { echo "$CACHE"; }
+# Accept only what an image loader can actually decode: PNG, SVG, JPEG, GIF,
+# BMP or ICO.  The repository is free to publish any of them.
+icon_is_image() { # file
+	[ -s "$1" ] || return 1
+	m="$(hexdump -n 8 -e '8/1 "%02x"' "$1" 2>/dev/null)"
+	case "$m" in
+		89504e470d0a1a0a*) return 0 ;;   # PNG
+		ffd8ff*)           return 0 ;;   # JPEG
+		47494638*)         return 0 ;;   # GIF
+		424d*)             return 0 ;;   # BMP
+		00000100*)         return 0 ;;   # ICO
+	esac
+	head -c 400 "$1" 2>/dev/null | grep -qiE '<svg|<\?xml' && return 0
+	return 1
+}
+
 cmd_icons() { # id...
+	# Icons come from the repository's icon_url and are cached.  The URL each
+	# cached file came from is remembered, so a cached icon is reused until the
+	# repository publishes a different URL - and re-fetched when it does.
 	mkdir -p "$CACHE/icons"
+	# One icon per application means a page can ask for fifty files, and each
+	# one is a separate HTTPS round trip.  Fetching them strictly in sequence
+	# took longer than the front-end waits, so the last cards kept their
+	# generated tiles.  A small amount of concurrency keeps the whole page
+	# inside the front-end's polling window without hammering the server.
+	_pending=0
 	for id in "$@"; do
 		out="$CACHE/icons/$id.png"
-		[ -s "$out" ] && continue
-		u="$(idx_field "$id" 14)"; [ -n "$u" ] || continue
-		fetch_to "$u" "$out.part" && [ -s "$out.part" ] \
-			&& mv "$out.part" "$out" || rm -f "$out.part"
+		u="$(japp "$id" icon_url)"
+		[ -n "$u" ] && [ "$u" != null ] || continue
+		src="$CACHE/icons/$id.src"
+		if [ -s "$out" ] && [ "$(cat "$src" 2>/dev/null)" = "$u" ]; then continue; fi
+		(
+			if fetch_to "$u" "$out.part" && [ -s "$out.part" ] && icon_is_image "$out.part"; then
+				mv "$out.part" "$out"; echo "$u" > "$src"
+			else
+				# A 404 body or an HTML error page must never be cached as an
+				# icon: it would fail to decode forever and look like "the app
+				# has no icon".  Leave any previously cached icon untouched.
+				rm -f "$out.part"
+			fi
+		) &
+		_pending=$((_pending + 1))
+		[ "$_pending" -ge 4 ] && { wait; _pending=0; }
 	done
+	wait
 	echo ok
 }
 cmd_shots() { # id
@@ -211,24 +424,66 @@ cmd_shots() { # id
 
 # ----------------------------------------------------------- refresh --------
 cmd_refresh() {
+	# The catalog is fetched on every Store launch.  The repository is read-only
+	# and remote: nothing is generated locally, and the cached copy exists only
+	# so the Store still has something to show when the network is down.
+	mkdir -p "$CACHE" 2>/dev/null
 	if [ "$1" != "--force" ] && [ -f "$CACHE/refreshed" ]; then
 		age=$(( $(date +%s) - $(cat "$CACHE/refreshed" 2>/dev/null || echo 0) ))
-		[ "$age" -lt "$CACHE_MAX_AGE" ] && { echo "fresh"; return 0; }
+		if [ "$age" -lt "$CACHE_MAX_AGE" ] && have_catalog; then echo "fresh"; return 0; fi
 	fi
-	have_net || { echo "offline" >&2; return 1; }
-	tmp="$CACHE/.refresh.$$"; mkdir -p "$tmp/repository"
-	if fetch_to "$REMOTE_BASE/index.tsv" "$tmp/repository/index.tsv" && [ -s "$tmp/repository/index.tsv" ]; then
-		fetch_to "$REMOTE_BASE/sections.json" "$tmp/repository/sections.json"
-		fetch_to "$REMOTE_BASE/meta.json" "$tmp/repository/meta.json"
-		# pull the per-category files referenced by the index
-		for cat in $(awk -F'\t' '{print $3}' "$tmp/repository/index.tsv" | sort -u); do
-			fetch_to "$REMOTE_BASE/repository/$cat.json" "$tmp/repository/$cat.json"
-		done
-		rm -rf "$CACHE/repository"; mv "$tmp/repository" "$CACHE/repository"
-		date +%s > "$CACHE/refreshed"
-		rm -rf "$tmp"; echo "ok"; return 0
+
+	tmp="$CACHE/.i686.$$"
+	# Ask the server whether anything changed before pulling the whole file.
+	prev_tag="$(sed -n 's/^etag=//p' "$CATALOG_META" 2>/dev/null | head -1)"
+	prev_mod="$(sed -n 's/^last-modified=//p' "$CATALOG_META" 2>/dev/null | head -1)"
+	cond=""
+	if have_catalog; then
+		[ -n "$prev_tag" ] && cond="If-None-Match: $prev_tag"
+		[ -z "$cond" ] && [ -n "$prev_mod" ] && cond="If-Modified-Since: $prev_mod"
 	fi
-	rm -rf "$tmp"; echo "failed" >&2; return 1
+
+	hdr="$CACHE/.hdr.$$"
+	if [ -n "$GNUWGET" ]; then
+		"$GNUWGET" -q --timeout=45 --tries=2 ${CABUNDLE:+--ca-certificate="$CABUNDLE"} \
+			-U xxri-store ${cond:+--header="$cond"} -S -O "$tmp" "$REPO_URL" 2>"$hdr"
+		rc=$?
+	else
+		wget -q -T 45 -O "$tmp" "$REPO_URL" 2>"$hdr"; rc=$?
+	fi
+
+	# 304 Not Modified: the cached catalog is already current.
+	if grep -qi '304 Not Modified' "$hdr" 2>/dev/null && have_catalog; then
+		rm -f "$tmp" "$hdr"; date +%s > "$CACHE/refreshed"
+		echo "unchanged"; return 0
+	fi
+
+	if [ "$rc" -ne 0 ] || [ ! -s "$tmp" ]; then
+		rm -f "$tmp" "$hdr"
+		if have_catalog; then echo "offline-cached"; return 0; fi
+		echo "unavailable" >&2; return 1
+	fi
+
+	# Refuse to replace a good catalog with something that is not one.
+	if ! grep -q '"applications"' "$tmp"; then
+		rm -f "$tmp" "$hdr"
+		if have_catalog; then echo "offline-cached"; return 0; fi
+		echo "invalid" >&2; return 1
+	fi
+
+	changed=yes
+	if have_catalog && cmp -s "$tmp" "$CATALOG"; then changed=no; fi
+	mv -f "$tmp" "$CATALOG"
+	{
+		et="$(sed -n 's/.*[Ee][Tt]ag:[ ]*//p' "$hdr" 2>/dev/null | tr -d '\r' | head -1)"
+		lm="$(sed -n 's/.*[Ll]ast-[Mm]odified:[ ]*//p' "$hdr" 2>/dev/null | tr -d '\r' | head -1)"
+		[ -n "$et" ] && echo "etag=$et"
+		[ -n "$lm" ] && echo "last-modified=$lm"
+	} > "$CATALOG_META" 2>/dev/null
+	rm -f "$hdr"
+	date +%s > "$CACHE/refreshed"
+	[ "$changed" = yes ] && echo "updated" || echo "unchanged"
+	return 0
 }
 
 # ----------------------------------------------------------- resolve --------
@@ -241,60 +496,17 @@ url_size() { # HEAD the url for Content-Length (best effort)
 	fi
 }
 resolve() { # id -> URL \t SHA256 \t VERSION \t SIZE
+	# The download URL comes from the repository exactly as published.  Nothing
+	# is generated, guessed or rewritten here - that is a hard rule of the
+	# online repository contract.
 	id="$1"
-	st="$(idx_field "$id" 8)"; ref="$(idx_field "$id" 9)"
-	url="$(idx_field "$id" 10)"; sha="$(idx_field "$id" 7)"
-	ver="$(idx_field "$id" 5)"; sz="$(idx_field "$id" 6)"
-	me="$(this_arch)"
-
-	# 1. a pinned asset for THIS arch wins: it needs no network to resolve, its
-	#    checksum is known, and it is exactly the version the catalog advertises.
-	pin="$(idx_field "$id" 13 | tr ';' '\n' | awk -F',' -v a="$me" '$1==a{print; exit}')"
-	if [ -n "$pin" ]; then
-		url="$(echo "$pin" | cut -d, -f2)"
-		s="$(echo "$pin" | cut -d, -f3)"; [ -n "$s" ] && [ "$s" != "-" ] && sha="$s"
-		z="$(echo "$pin" | cut -d, -f4)"; [ -n "$z" ] && [ "$z" != 0 ] && sz="$z"
-		printf '%s\t%s\t%s\t%s\n' "$url" "$sha" "$ver" "$sz"
-		return 0
-	fi
-
-	# 2. no pin (catalog says "latest") -> ask the provider for the best asset
-	case "$st" in
-		github)
-			if have_net; then
-				repo="${ref%% *}"; glob="${ref#* }"; [ "$glob" = "$ref" ] && glob="*.AppImage"
-				api="$(fetch_out "https://api.github.com/repos/$repo/releases/latest" \
-				      "Accept: application/vnd.github+json" 2>/dev/null)"
-				urls="$(echo "$api" | tr ',' '\n' | sed -n 's/.*"browser_download_url":[ ]*"\([^"]*\)".*/\1/p')"
-				pat="$(echo "$glob" | sed 's/\./\\./g; s/\*/.*/g')"
-				# prefer an asset that names this arch, then the plain glob
-				u="$(echo "$urls" | grep -iE "$pat" | grep -iE "$me|$(echo "$me" | sed 's/x86_64/amd64/')" | grep -viE 'zsync|sha|sig|asc' | head -1)"
-				[ -n "$u" ] || u="$(echo "$urls" | grep -iE "$pat" | grep -viE 'zsync|sha|sig|asc|i386|i686|arm|aarch' | head -1)"
-				[ -n "$u" ] && url="$u"
-				v="$(echo "$api" | tr ',' '\n' | sed -n 's/.*"tag_name":[ ]*"\([^"]*\)".*/\1/p' | head -1)"
-				[ -n "$v" ] && ver="${v#v}"
-			fi
-		;;
-		gitlab)
-			if have_net; then
-				proj="$(echo "$ref" | sed 's#/#%2F#g')"
-				rel="$(fetch_out "https://gitlab.com/api/v4/projects/$proj/releases" 2>/dev/null)"
-				u="$(echo "$rel" | tr ',' '\n' | sed -n 's/.*"direct_asset_url":[ ]*"\([^"]*\)".*/\1/p' | grep -i '\.AppImage$' | head -1)"
-				[ -n "$u" ] || u="$(echo "$rel" | tr ',' '\n' | sed -n 's/.*"url":[ ]*"\([^"]*\.AppImage\)".*/\1/p' | head -1)"
-				[ -n "$u" ] && url="$u"
-				v="$(echo "$rel" | tr ',' '\n' | sed -n 's/.*"tag_name":[ ]*"\([^"]*\)".*/\1/p' | head -1)"
-				[ -n "$v" ] && ver="${v#v}"
-			fi
-		;;
-		xxri)   url="$REMOTE_BASE/apps/$id.AppImage" ;;
-		hub)    case "$url" in *.AppImage|*.appimage) : ;; *) url="" ;; esac ;;
-	esac
-	# a hub/releases-page URL is not a file - refuse rather than download HTML
-	case "$url" in *releases|*releases/) url="" ;; esac
-	if [ -n "$url" ] && [ "${sz:-0}" = 0 ] 2>/dev/null; then
-		case "$url" in http*) s="$(url_size "$url")"; [ -n "$s" ] && sz="$s" ;; esac
-	fi
-	printf '%s\t%s\t%s\t%s\n' "$url" "$sha" "$ver" "$sz"
+	url="$(japp "$id" download_url)"
+	[ "$url" = null ] && url=""
+	sha="$(japp "$id" checksum)"; [ "$sha" = null ] && sha=""
+	ver="$(japp "$id" version)"
+	[ -n "$ver" ] || ver="$(japp "$id" current_upstream_version)"
+	sz="$(japp "$id" size)"; case "$sz" in ''|*[!0-9]*) sz=0 ;; esac
+	printf '%s\t%s\t%s\t%s\n' "$url" "${sha:--}" "$ver" "$sz"
 }
 cmd_resolve() { resolve "$1"; }
 
@@ -361,11 +573,19 @@ cmd_install() { # id  (also used by resume/retry/update)
 	id="$1"
 	TRACE_ID="$id"
 	trace install-clicked "backend entered"
+	# Offline mode: the catalog may be served from cache, but nothing may be
+	# installed, because the payload itself has to come from the network.
+	if ! have_net; then
+		dl_set "$id" NAME "$id"; dl_set "$id" STATE failed
+		dl_set "$id" ERROR "Repository unavailable - you are offline"
+		trace offline "FAIL: no network; installation refused"
+		echo "ERR:offline"; return 2
+	fi
 	name="$(idx_field "$id" 2)"; [ -n "$name" ] || name="$(dl_get "$id" NAME)"; [ -n "$name" ] || name="$id"
-	if [ -z "$(idx_field "$id" 1)" ]; then
+	if ! idx_has "$id"; then
 		dl_set "$id" NAME "$name"; dl_set "$id" STATE failed
 		dl_set "$id" ERROR "This app is not in the active repository"
-		trace catalog-lookup "FAIL: id not present in $(INDEX)"
+		trace catalog-lookup "FAIL: id not in the repository catalog ($REPO_URL)"
 		echo "ERR:nocatalog"; return 2
 	fi
 	trace catalog-lookup "ok name='$name' kind=$(idx_field "$id" 11) src=$(idx_field "$id" 8)"
@@ -615,10 +835,13 @@ cmd_clear() { # [id]
 }
 
 # ----------------------------------------------------- installed / updates --
-idx_has() { awk -F'\t' -v id="$1" '$1==id{f=1;exit} END{exit !f}' "$(INDEX)"; }
-catalog_id_for() { # registry-id name -> catalog id (id match first, then name)
+idx_has() { japp_ids | grep -qx "$1"; }
+catalog_id_for() { # registry-id name -> catalog id (id match first, then title)
 	if idx_has "$1"; then echo "$1"; return; fi
-	awk -F'\t' -v n="$2" 'tolower($2)==tolower(n){print $1; exit}' "$(INDEX)"
+	_n="$(echo "$2" | tr 'A-Z' 'a-z')"
+	for _i in $(japp_ids); do
+		[ "$(japp "$_i" title | tr 'A-Z' 'a-z')" = "$_n" ] && { echo "$_i"; return; }
+	done
 }
 cmd_installed() { # xxri-app registry joined with catalog metadata (flat JSON)
 	printf '{"apps":['
