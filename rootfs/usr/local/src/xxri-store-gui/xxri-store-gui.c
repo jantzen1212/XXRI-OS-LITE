@@ -973,8 +973,17 @@ static GtkWidget* app_card(App* a){
     gtk_box_pack_start(GTK_BOX(tv),nb,FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(a->summary,"xxri-app-summary",0,52),FALSE,FALSE,0);
     char sub[192]; char* hs=human_size(a->size);
-    snprintf(sub,sizeof sub,"%s \xc2\xb7 %s%s%s",a->developer,CAT_TITLE(a->category),
-             *hs?" \xc2\xb7 ":"",hs);
+    { const char* parts[3]; int n=0;
+      const char* cat=CAT_TITLE(a->category);
+      if (a->developer && *a->developer) parts[n++]=a->developer;
+      if (cat && *cat)                   parts[n++]=cat;
+      if (hs && *hs)                     parts[n++]=hs;
+      sub[0]=0;
+      for (int i=0;i<n;i++) {
+          if (i) g_strlcat(sub," \xc2\xb7 ",sizeof sub);
+          g_strlcat(sub,parts[i],sizeof sub);
+      }
+    }
     g_free(hs);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(sub,"xxri-app-dev",0,52),FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(c),tv,TRUE,TRUE,0);
@@ -1040,7 +1049,11 @@ static void section_rail(GtkWidget* box,const char* title,GPtrArray* apps,const 
     }
     gtk_box_pack_start(GTK_BOX(box),hdr,FALSE,FALSE,0);
     GtkWidget* sc=gtk_scrolled_window_new(NULL,NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_AUTOMATIC,GTK_POLICY_NEVER);
+    /* EXTERNAL, not AUTOMATIC: a permanent grey scroll strip under every rail
+       is the single biggest departure from the mockup.  The rail still scrolls
+       with the wheel and by dragging, and "See all" opens the full list. */
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_EXTERNAL,GTK_POLICY_NEVER);
+    gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sc),TRUE);
     css(sc,"xxri-rail");
     GtkWidget* row=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10);
     int shown=0;
@@ -1148,7 +1161,8 @@ static void build_home(GtkWidget* box){
     GPtrArray* feat=sect("featured");
     if (feat && feat->len) {
         GtkWidget* sc=gtk_scrolled_window_new(NULL,NULL);
-        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_AUTOMATIC,GTK_POLICY_NEVER);
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_EXTERNAL,GTK_POLICY_NEVER);
+        gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sc),TRUE);
         css(sc,"xxri-rail");
         GtkWidget* row=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,12);
         int shown=0;
@@ -1309,9 +1323,21 @@ static void build_appdetail(GtkWidget* box,App* a){
     GtkWidget* tv=gtk_box_new(GTK_ORIENTATION_VERTICAL,4);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(a->name,"xxri-page-title",0,26),FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(a->developer,"xxri-app-dev",0,40),FALSE,FALSE,0);
+    /* join only the fields that exist: the repository leaves license and size
+       empty for most entries, and "Browsers \xc2\xb7 " with nothing after it
+       looked like a rendering bug */
     char meta[256]; char* hs=human_size(a->size);
-    snprintf(meta,sizeof meta,"%s \xc2\xb7 %s%s%s",CAT_TITLE(a->category),a->license,
-             *hs?" \xc2\xb7 ":"",hs);
+    { const char* parts[3]; int n=0;
+      const char* cat=CAT_TITLE(a->category);
+      if (cat && *cat)          parts[n++]=cat;
+      if (a->license && *a->license) parts[n++]=a->license;
+      if (hs && *hs)            parts[n++]=hs;
+      meta[0]=0;
+      for (int i=0;i<n;i++) {
+          if (i) g_strlcat(meta," \xc2\xb7 ",sizeof meta);
+          g_strlcat(meta,parts[i],sizeof meta);
+      }
+    }
     g_free(hs);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(meta,"xxri-app-summary",0,44),FALSE,FALSE,0);
     GtkWidget* act=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);
@@ -1356,7 +1382,8 @@ static void build_appdetail(GtkWidget* box,App* a){
     if (a->nshots>0) {
         gtk_box_pack_start(GTK_BOX(box),lbl("Screenshots","xxri-section",0),FALSE,FALSE,0);
         GtkWidget* sc=gtk_scrolled_window_new(NULL,NULL);
-        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_AUTOMATIC,GTK_POLICY_NEVER);
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_EXTERNAL,GTK_POLICY_NEVER);
+        gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sc),TRUE);
         css(sc,"xxri-rail");
         GtkWidget* row=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10);
         gtk_container_add(GTK_CONTAINER(sc),row);
@@ -2226,7 +2253,11 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     css(sb,"xxri-searchbar");
     g_search_entry=gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(g_search_entry),"Search apps, categories, publishers\xe2\x80\xa6");
-    gtk_entry_set_width_chars(GTK_ENTRY(g_search_entry),34);
+    /* 34 characters made the header's minimum width 1097px, so on a 1024x768
+       panel the window opened wider than the screen and the search box hung
+       off the right edge.  16 is the minimum; the box still expands into
+       whatever room the header has left. */
+    gtk_entry_set_width_chars(GTK_ENTRY(g_search_entry),16);
     /* A cairo-drawn magnifier: the device has no icon theme and the TC
      * gdk-pixbuf cannot load GTK's fallback icon, so a themed-name icon would
      * ABORT the app on Xvesa.  Everything visual in the Store is cairo/PNG. */
@@ -2244,9 +2275,11 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     g_signal_connect(g_search_entry,"changed",G_CALLBACK(on_search_changed),NULL);
     gtk_box_pack_start(GTK_BOX(sb),g_search_entry,TRUE,TRUE,0);
     gtk_widget_set_valign(sb,GTK_ALIGN_CENTER);
-    gtk_box_pack_end(GTK_BOX(head),sb,FALSE,FALSE,0);
+    gtk_box_pack_end(GTK_BOX(head),sb,TRUE,TRUE,0);
 
     g_status_chip=lbl("","xxri-statuschip",0.5);
+    gtk_label_set_ellipsize(GTK_LABEL(g_status_chip),PANGO_ELLIPSIZE_END);
+    gtk_label_set_max_width_chars(GTK_LABEL(g_status_chip),30);
     gtk_widget_set_valign(g_status_chip,GTK_ALIGN_CENTER);
     gtk_box_pack_end(GTK_BOX(head),g_status_chip,FALSE,FALSE,0);
     GtkWidget* rf=gtk_button_new_with_label("Refresh");

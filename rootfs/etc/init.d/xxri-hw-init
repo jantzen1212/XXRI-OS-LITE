@@ -45,13 +45,22 @@
 	# Phase 9.1: the XXRI Store is the ONLY software store - drop the Tiny Core
 	# package browser (apps / appbrowser / tce GUIs) too, so there is no second
 	# store icon or menu entry.  The tce backend stays for internal use.
+	# Phase 10: the Tiny Core-named / developer-only launchers go too - Exit
+	# (the XXRI power menu replaces it), RunProgram, Top, Xkill, and the
+	# terminal Wi-Fi script that duplicates Settings.
 	for junk in cpanel tc-cpanel tc-config appsaudit services settime tc-wbarconf \
-	            apps appbrowser tce tce-ab appsrepo; do
+	            apps appbrowser tce tce-ab appsrepo \
+	            exittc flrun top xkill wifi; do
 		rm -f "/usr/local/share/applications/tinycore-$junk.desktop" \
 		      "/usr/local/share/applications/$junk.desktop" 2>/dev/null
 	done
 	rm -f /usr/local/share/pixmaps/cpanel.png \
 	      /usr/local/bin/apps /usr/local/bin/appbrowser 2>/dev/null
+	# Editor and MountTool are kept, but under XXRI names and styling
+	# (xxri-editor.desktop / xxri-disks.desktop), so drop the originals.
+	rm -f /usr/local/share/applications/tinycore-editor.desktop \
+	      /usr/local/share/applications/tinycore-screenshot.desktop \
+	      /usr/local/share/applications/tinycore-mnttool.desktop 2>/dev/null
 
 	# Phase 9.2: HTTPS must work everywhere the Store runs.  ca-certificates.tcz
 	# builds this bundle when it is loaded as an extension, but an image that

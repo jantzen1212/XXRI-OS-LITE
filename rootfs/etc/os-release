@@ -1,10 +1,12 @@
-NAME="xxri OS Lite"
-VERSION="16.0"
+# VERSION_ID is the PACKAGE lineage (Tiny Core 16.x mirror path), not the
+# product version - xxri-functions builds MIRROR from getMajorVer().
+NAME="XXRI OS Lite"
+VERSION="2.0 Lite"
 ID=xxri
 VERSION_ID=16.0
-PRETTY_NAME="xxri OS Lite 16.0"
+PRETTY_NAME="XXRI OS Lite 2.0"
 ANSI_COLOR="0;34"
 CPE_NAME="cpe:/o:xxri:xxri_os_lite:16.0"
-HOME_URL="https://xxri-os.org/"
-SUPPORT_URL="https://xxri-os.org/support/"
-BUG_REPORT_URL="https://xxri-os.org/bugs/"
+HOME_URL="https://xxri.flows.best/"
+SUPPORT_URL="https://xxri.flows.best/support/"
+BUG_REPORT_URL="https://xxri.flows.best/bugs/"

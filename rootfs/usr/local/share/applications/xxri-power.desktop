@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Power
+Comment=Shut down, restart, sleep or log out
+Exec=xxri-power-menu
+Icon=exittc
+Terminal=false
+Categories=System;

@@ -55,10 +55,21 @@ XSERVER=xorg
 start_xorg || { XSERVER=xvesa; start_xvesa || ! echo failed in waitforX || exit; }
 export XSERVER
 [ "$XSERVER" = xorg ] && apply_xres
-# xxri OS Lite design system: flwm takes its palette from the standard FLTK
-# switches (surface / ink / input-field colors, gtk+ scheme for soft bevels).
+# The XXRI face is published to the X server as the "xxri" foundry.  Xvesa
+# gets it through -fp above; X.Org needs it added to the running server, and
+# without it every FLTK surface (window titles, dialogs, the desktop menu)
+# silently falls back to a stock bitmap font.
+[ "$XSERVER" = xorg ] && command -v xset >/dev/null 2>&1 && {
+	xset +fp /usr/local/share/fonts/xxri/ 2>/dev/null
+	xset fp rehash 2>/dev/null
+}
+# A maximized window stops above the dock instead of vanishing behind it.
+# 44px icons + 2x2 padding + the 26px the dock is lifted off the bottom edge.
+export XXRI_DOCK_RESERVE=78
+# xxri OS Lite design system: the window manager is XXRI's own build of flwm
+# (work/flwm-xxri) and carries the palette internally, so it needs no colour
+# switches.  Stock flwm is kept as flwm-stock for recovery.
 XXRI_WM_ARGS=""
-[ "$DESKTOP" = "flwm" ] && XXRI_WM_ARGS="-bg #EFEDF8 -fg #1C1B24 -bg2 #FFFFFF -scheme gtk+"
 "$DESKTOP" $XXRI_WM_ARGS 2>/tmp/wm_errors &
 export WM_PID=$!
 # Desktop runtime every GTK/Qt application expects to find. Without these a
@@ -66,8 +77,14 @@ export WM_PID=$!
 # XDG_RUNTIME_DIR and a shared-memory segment, and D-Bus refuses to start at
 # all when there is no machine ID, which costs Qt apps their entire interface.
 [ -x /usr/local/bin/xxri-session-runtime ] && . /usr/local/bin/xxri-session-runtime
+# TEMPORARY: trace the Store when it is launched from the dock (no terminal).
+export XXRI_STORE_DEBUG=1
 [ -x $HOME/.setbackground ] && $HOME/.setbackground
 [ -x $HOME/.mouse_config ] && $HOME/.mouse_config &
 [ $(which "$ICONS".sh) ] && ${ICONS}.sh &
+# XXRI Control Center: the always-available quick-settings chip in the
+# bottom-right corner (click it to open the panel).  It is a single-instance
+# override-redirect window, so it never joins the task list or takes focus.
+[ -x /usr/local/bin/xxri-control-center ] && /usr/local/bin/xxri-control-center &
 [ -d "/usr/local/etc/X.d" ] && find "/usr/local/etc/X.d" -type f -o -type l | sort | while read F; do . "$F"; done
 [ -d "$HOME/.X.d" ] && find "$HOME/.X.d" -type f -o -type l | sort | while read F; do . "$F"; done

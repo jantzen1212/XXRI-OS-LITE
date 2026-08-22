@@ -2,7 +2,14 @@
 ! Palette: surface #EFEDF8 / card #FAF9FE / ink #1C1B24
 !          accent gradient #ED6CE0 (pink) -> #8371F7 (purple) -> #2E7CF6 (blue)
 
-! ---- FLTK applications (dialogs, editor, control panel, popups) ----
+! ---- FLTK applications (dialogs, editor, mount tool, popups) ----
+! FLTK only consults the "fltk" class from Fl::get_system_colors(), which not
+! every app calls, so the per-application classes are listed too and the dock
+! passes -scheme/-bg switches for the ones that take them.
+editor*background: #EFEDF8
+editor*foreground: #1C1B24
+mnttool*background: #EFEDF8
+mnttool*foreground: #1C1B24
 fltk*background: #EFEDF8
 fltk*foreground: #1C1B24
 fltk*scheme: gtk+
@@ -14,9 +21,14 @@ Xft.dpi: 96.0
 
 ! ---- Terminal (aterm): dark glass panel from the design language ----
 Aterm*scrollBar: true
+Aterm*scrollColor: #3A3358
+Aterm*troughColor: #16112B
 Aterm*scrollBar_right: true
-Aterm*transparent: true
-Aterm*title: xxri Terminal
+! Pseudo-transparency needs a root pixmap (_XROOTPMAP_ID); the wallpaper is
+! painted without one, so a "transparent" aterm came up plain black instead of
+! the design's dark panel.  Solid #16112B is what the palette actually asks for.
+Aterm*transparent: false
+Aterm*title: XXRI Terminal
 Aterm*font: 9x15
 Aterm*boldFont: 9x15bold
 Aterm*saveLines: 2000

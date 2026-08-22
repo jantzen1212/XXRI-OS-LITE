@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -rf rootfs/usr/local/share/xxri-store/repository)",
+      "Bash(rm -rf rootfs/usr/local/share/xxri-store/icons)",
+      "Bash(mkdir -p work/retired)",
+      "Bash(mv rootfs/usr/local/src/xxri-store work/retired/gen-catalog-retired)",
+      "Bash(cd ~/.xxri-testenv/q/off; ls o*.png 2>/dev/null | tail -2 *)"
+    ],
+    "additionalDirectories": [
+      "/home/jantzen/shots"
+    ]
+  }
+}

@@ -2,7 +2,7 @@
 Type=Application
 Name=XXRI Settings
 GenericName=Settings
-Comment=xxri OS Lite Settings
+Comment=XXRI OS Lite Settings
 Exec=/usr/local/bin/xxri-settings
 Icon=xxri-settings
 X-FullPathIcon=/usr/local/share/pixmaps/xxri-settings.png

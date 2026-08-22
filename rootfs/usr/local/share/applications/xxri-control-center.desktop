@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Control Center
+Comment=Quick settings: network, sound, display and power
+Exec=xxri-control-center
+Terminal=false
+Icon=xxri-settings
+Categories=System;
