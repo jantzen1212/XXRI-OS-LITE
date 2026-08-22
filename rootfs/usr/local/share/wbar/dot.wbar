@@ -5,6 +5,9 @@
 i: /usr/local/share/xxri-theme/wbar-bg.png
 t: /usr/local/lib/X11/fonts/TTF/luxisr/9
 c: wbar -bpress -nofont -pos bottom -isize 44 -idist 12 -zoomf 1.4 -nanim 3 -jumpf 0.85
+i: /usr/local/share/pixmaps/xxri-store.png
+t: Store
+c: exec /usr/local/bin/xxri-store-gui
 i: /usr/local/share/pixmaps/xxri-settings.png
 t: Settings
 c: exec /usr/local/bin/xxri-settings
@@ -17,9 +20,6 @@ c: exec /usr/local/bin/aterm
 i: /usr/local/share/pixmaps/editor.png
 t: Editor
 c: exec /usr/local/bin/editor
-i: /usr/local/share/pixmaps/apps.png
-t: Apps
-c: exec /usr/local/bin/apps
 i: /usr/local/share/pixmaps/exittc.png
 t: Power
 c: exec /usr/local/bin/exittc

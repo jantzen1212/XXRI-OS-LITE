@@ -2,15 +2,70 @@
 # the desktop adapts to the panel; default to 1024x768 when unset/invalid.
 XRES=$(sed -n 's/.*\bxres=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /proc/cmdline 2>/dev/null | head -1)
 [ -n "$XRES" ] || XRES=1024x768
-Xvesa -br -screen ${XRES}x32 -shadow -2button -mouse /dev/input/mice,5 -fp /usr/local/share/fonts/xxri/,/usr/local/lib/X11/fonts/misc/ -nolisten tcp -I >/dev/null 2>&1 &
-export XPID=$!
-waitforX || ! echo failed in waitforX || exit
+# X server: prefer the real X.Org server.  Xvesa (TinyX) implements neither
+# XInput2 nor XKB, RandR or MIT-SHM, and modern toolkits depend on them -
+# Chromium/Electron refuses to map a window without XInput2 ("Xlib: extension
+# XInputExtension missing"), and Qt logs XKeyboard/XRandr/xcb_shm failures.
+# Xvesa stays as the fallback so a machine X.Org cannot drive still boots.
+start_xorg() {
+	command -v Xorg >/dev/null 2>&1 || return 1
+	# An X.Org with no input driver gives a desktop with no mouse and no
+	# keyboard, which is far worse than Xvesa.  Refuse to use it unless a real
+	# input driver is present (the server ships only inputtest_drv.so, a stub).
+	[ -e /usr/local/lib/xorg/modules/input/libinput_drv.so ] ||
+	[ -e /usr/local/lib/xorg/modules/input/evdev_drv.so ] || return 1
+	# hw-init modprobes the KMS driver, but the device node is created
+	# asynchronously and X.Org exits immediately with "open /dev/dri/card0: No
+	# such file or directory" if it starts first.  Wait briefly for it.
+	for i in $(seq 1 24); do
+		[ -e /dev/dri/card0 ] && break
+		sleep 0.25
+	done
+	[ -e /dev/dri/card0 ] || return 1
+	# -dpi 75 matches what Xvesa reported (it advertised 347mm x 260mm for every
+	# mode, i.e. exactly 75dpi at 1024x768).  X.Org otherwise defaults to 96dpi,
+	# which scales every font and widget up ~28% and changes the whole desktop
+	# layout the design system was built against.
+	Xorg -nolisten tcp -novtswitch -sharevts vt7 -dpi 75 >/tmp/xorg.log 2>&1 &
+	export XPID=$!
+	for i in $(seq 1 40); do
+		[ -e /tmp/.X11-unix/X0 ] && { waitforX && return 0; }
+		kill -0 "$XPID" 2>/dev/null || return 1
+		sleep 0.25
+	done
+	kill "$XPID" 2>/dev/null
+	return 1
+}
+# X.Org picks the monitor's preferred mode, which is not what Xvesa did - it
+# always used $XRES (the xres= boot code, default 1024x768) and the desktop
+# layout is designed around that.  Put the resolution back under our control.
+apply_xres() {
+	command -v xrandr >/dev/null 2>&1 || return 0
+	out=$(xrandr 2>/dev/null | awk '/ connected/{print $1; exit}')
+	[ -n "$out" ] || return 0
+	xrandr --output "$out" --mode "${XRES%x*}x${XRES#*x}" 2>/dev/null ||
+		xrandr --output "$out" --preferred 2>/dev/null
+}
+start_xvesa() {
+	Xvesa -br -screen ${XRES}x32 -shadow -2button -mouse /dev/input/mice,5 -fp /usr/local/share/fonts/xxri/,/usr/local/lib/X11/fonts/misc/ -nolisten tcp -I >/dev/null 2>&1 &
+	export XPID=$!
+	waitforX
+}
+XSERVER=xorg
+start_xorg || { XSERVER=xvesa; start_xvesa || ! echo failed in waitforX || exit; }
+export XSERVER
+[ "$XSERVER" = xorg ] && apply_xres
 # xxri OS Lite design system: flwm takes its palette from the standard FLTK
 # switches (surface / ink / input-field colors, gtk+ scheme for soft bevels).
 XXRI_WM_ARGS=""
 [ "$DESKTOP" = "flwm" ] && XXRI_WM_ARGS="-bg #EFEDF8 -fg #1C1B24 -bg2 #FFFFFF -scheme gtk+"
 "$DESKTOP" $XXRI_WM_ARGS 2>/tmp/wm_errors &
 export WM_PID=$!
+# Desktop runtime every GTK/Qt application expects to find. Without these a
+# real app starts, fails silently and never maps a window: Qt needs
+# XDG_RUNTIME_DIR and a shared-memory segment, and D-Bus refuses to start at
+# all when there is no machine ID, which costs Qt apps their entire interface.
+[ -x /usr/local/bin/xxri-session-runtime ] && . /usr/local/bin/xxri-session-runtime
 [ -x $HOME/.setbackground ] && $HOME/.setbackground
 [ -x $HOME/.mouse_config ] && $HOME/.mouse_config &
 [ $(which "$ICONS".sh) ] && ${ICONS}.sh &

@@ -1,0 +1,9 @@
+{
+ "bodhi": "64-bit-payload",
+ "gradestats": "payload-unreadable",
+ "reliefvalve": "payload-unreadable",
+ "synfig-studio": "payload-unreadable",
+ "electron-xiami": "64-bit-payload",
+ "erdesigner": "payload-unreadable",
+ "n3h": "64-bit-payload"
+}

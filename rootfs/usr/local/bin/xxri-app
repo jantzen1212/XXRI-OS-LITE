@@ -25,9 +25,164 @@ LOG=/tmp/xxri-app.log
 DIALOG=/usr/local/bin/xxri-dialog
 
 log() { echo "[$(date '+%H:%M:%S')] $*" >> "$LOG"; }
+# Stage trace shared with xxri-store, so one file shows the whole pipeline.
+atrace() { # stage [detail]
+	_tf="$(user_home)/.cache/xxri-store/install-trace.log"
+	[ -d "${_tf%/*}" ] || return 0
+	printf '%s %-9s %-20s %s\n' "$(date '+%H:%M:%S')" "${TRACE_ID:--}" "app:$1" "$2" >> "$_tf" 2>/dev/null
+	return 0
+}
+
+# ---- icon resolution (Phase 9 polish) -------------------------------------
+# One icon per application, resolved deterministically and used EVERYWHERE
+# (registry, .desktop, dock, flwm menu and the Store).  The old code fell back
+# to `find <tree> -name '*.png' | head -1` for archives and to a prefix glob
+# over the SHARED pixmaps directory for extensions - both pick an arbitrary
+# file, which is how one app ended up wearing another app's icon.  Nothing here
+# guesses: every candidate is an exact path derived from the app's own metadata.
+
+ICON_SIZES="256 128 96 64 48 32 24 16"
+
+# Look a themed icon NAME up in the standard directories, largest first.
+icon_by_name() { # name -> path (empty if not found)
+	n="$1"; [ -n "$n" ] || return 0
+	case "$n" in /*) [ -f "$n" ] && echo "$n"; return 0 ;; esac
+	n="${n%.png}"; n="${n%.svg}"; n="${n%.xpm}"
+	for theme in hicolor Adwaita xxri; do
+		for sz in $ICON_SIZES; do
+			for d in /usr/local/share/icons/$theme/${sz}x${sz}/apps \
+			         /usr/local/share/icons/$theme/${sz}x${sz}/devices; do
+				[ -f "$d/$n.png" ] && { echo "$d/$n.png"; return 0; }
+				# reverse-DNS naming, e.g. org.inkscape.Inkscape.png
+				for c in "$d"/*."$n".png "$d"/*."$(echo "$n" | sed 's/^./\U&/')".png; do
+					[ -f "$c" ] && { echo "$c"; return 0; }
+				done
+			done
+		done
+		[ -f "/usr/local/share/icons/$theme/scalable/apps/$n.svg" ] &&
+			{ echo "/usr/local/share/icons/$theme/scalable/apps/$n.svg"; return 0; }
+	done
+	for d in /usr/local/share/pixmaps /usr/share/pixmaps; do
+		for ext in png svg xpm; do
+			[ -f "$d/$n.$ext" ] && { echo "$d/$n.$ext"; return 0; }
+		done
+	done
+	return 0
+}
+
+# Icon shipped INSIDE an application tree, at the places the spec defines only.
+icon_in_tree() { # root name -> path
+	r="$1"; n="$2"
+	[ -d "$r" ] || return 0
+	[ -f "$r/.DirIcon" ] && { echo "$r/.DirIcon"; return 0; }
+	for sz in $ICON_SIZES; do
+		for d in "$r"/usr/share/icons/hicolor/${sz}x${sz}/apps 		         "$r"/share/icons/hicolor/${sz}x${sz}/apps; do
+			[ -n "$n" ] && [ -f "$d/$n.png" ] && { echo "$d/$n.png"; return 0; }
+		done
+	done
+	for d in "$r"/usr/share/pixmaps "$r"/share/pixmaps "$r"; do
+		[ -n "$n" ] && [ -f "$d/$n.png" ] && { echo "$d/$n.png"; return 0; }
+	done
+	# a .desktop inside the tree may name the icon
+	dsk="$(find "$r" -maxdepth 3 -name '*.desktop' 2>/dev/null | head -1)"
+	if [ -n "$dsk" ]; then
+		ic="$(extract_field "$dsk" Icon)"
+		case "$ic" in
+			/*) [ -f "$ic" ] && { echo "$ic"; return 0; } ;;
+			?*) for sz in $ICON_SIZES; do
+			        for d in "$r"/usr/share/icons/hicolor/${sz}x${sz}/apps; do
+			            [ -f "$d/$ic.png" ] && { echo "$d/$ic.png"; return 0; }
+			        done
+			    done
+			    p="$(icon_by_name "$ic")"; [ -n "$p" ] && { echo "$p"; return 0; } ;;
+		esac
+	fi
+	return 0
+}
+
+# The single entry point.  Order is exactly the one the product requires.
+resolve_icon() { # id name hint_path desktop_file tree_root -> path (may be empty)
+	_id="$1"; _nm="$2"; _hint="$3"; _dsk="$4"; _root="$5"
+	# 1. explicit hint from the catalog (icon_path column)
+	[ -n "$_hint" ] && [ -f "$_hint" ] && { echo "$_hint"; return 0; }
+	[ -n "$_hint" ] && [ -n "$_root" ] && [ -f "$_root/$_hint" ] && { echo "$_root/$_hint"; return 0; }
+	# 2. embedded icon inside the application tree (AppImage .DirIcon etc)
+	c="$(icon_in_tree "$_root" "$_id")"; [ -n "$c" ] && { echo "$c"; return 0; }
+	# 3. the Icon= key of the application's own desktop file
+	if [ -n "$_dsk" ] && [ -f "$_dsk" ]; then
+		c="$(icon_by_name "$(extract_field "$_dsk" Icon)")"
+		[ -n "$c" ] && { echo "$c"; return 0; }
+	fi
+	# 4. themed icon named after the app id, then its lower-cased name
+	c="$(icon_by_name "$_id")"; [ -n "$c" ] && { echo "$c"; return 0; }
+	c="$(icon_by_name "$(echo "$_nm" | tr 'A-Z ' 'a-z-')")"; [ -n "$c" ] && { echo "$c"; return 0; }
+	# 5. icon shipped with the repository for this app
+	for d in "$(user_home)/.cache/xxri-store/icons" /usr/local/share/xxri-store/icons; do
+		[ -f "$d/$_id.png" ] && { echo "$d/$_id.png"; return 0; }
+	done
+	return 0
+}
+
+# Install the resolved icon as this app's single canonical icon, and publish the
+# same file to the Store's cache so the Store, Installed page, search results
+# and download rows all render exactly what the dock and menu show.
+install_icon() { # id src -> canonical path on stdout
+	_id="$1"; _src="$2"
+	_dst="/usr/local/share/pixmaps/xxri-app-$_id.png"
+	if [ -n "$_src" ] && [ -f "$_src" ]; then
+		sudo cp -f "$_src" "$_dst" 2>>"$LOG"
+	else
+		sudo cp -f /usr/local/share/pixmaps/xxri-app-generic.png "$_dst" 2>>"$LOG"
+		log "icon: no real icon found for $_id - using the generic placeholder"
+	fi
+	_cache="$(user_home)/.cache/xxri-store/icons"
+	mkdir -p "$_cache" 2>/dev/null
+	cp -f "$_dst" "$_cache/$_id.png" 2>/dev/null
+	echo "$_dst"
+}
+
+# ---- dock + menu registration (Phase 9.1) ---------------------------------
+# Phase 8 froze the dock to the six base launchers (desktop.sh stopped adding
+# dock icons to avoid duplicates), so integrated apps never appeared.  xxri-app
+# now owns dock+menu registration for integrated apps directly: it appends the
+# app's own triplet to the live dock list and writes the flwm menu item, so an
+# installed app shows in the dock and the Applications menu immediately, with no
+# reboot.  wbar_setup.sh re-applies these from the registry on every boot.
+DOCK=/usr/local/tce.icons
+menu_name() { echo "$1" | tr -d ' '; }        # flwm names the file without spaces
+dock_has()  { [ -f "$DOCK" ] && grep -q "^c: exec xxri-app launch $1\$" "$DOCK" 2>/dev/null; }
+dock_add() { # id name icon
+	[ -f "$DOCK" ] || return 0
+	dock_has "$1" && return 0
+	printf 'i: %s\nt: %s\nc: exec xxri-app launch %s\n' "$3" "$2" "$1" | sudo tee -a "$DOCK" >/dev/null
+}
+dock_del() { # id
+	[ -f "$DOCK" ] || return 0
+	awk -v id="$1" '
+		{ L[NR]=$0 }
+		END {
+			for (i=1;i<=NR;i++)
+				if (L[i]=="c: exec xxri-app launch " id) { d[i]=1; d[i-1]=1; d[i-2]=1 }
+			for (i=1;i<=NR;i++) if (!d[i]) print L[i]
+		}' "$DOCK" > /tmp/.xxri-dock.$$ 2>/dev/null && sudo cp /tmp/.xxri-dock.$$ "$DOCK"
+	rm -f /tmp/.xxri-dock.$$
+}
+menu_add() { # id  -> build the flwm Applications menu item from the .desktop
+	[ -x /usr/local/bin/desktop.sh ] && desktop.sh "xxri-app-$1" >/dev/null 2>&1
+}
+menu_del() { # name
+	mn="$(menu_name "$1")"
+	rm -f "$(user_home)/.wmx/Applications/$mn" "$(user_home)/.wmx/Applications/$1" 2>/dev/null
+}
 
 dlg() { # mode title body [primary secondary] -> exit code of dialog
 	m="$1"; t="$2"; b="$(printf '%b' "$3")"
+	# --quiet callers (the Store) surface errors in their own UI
+	if [ "$XXRI_APP_QUIET" = 1 ]; then
+		echo "xxri-app: $t: $b" >&2
+		[ "$m" = "ask" ] && return 1
+		return 0
+	fi
 	if [ -n "$DISPLAY" ] && [ -x "$DIALOG" ]; then
 		# pass only the buttons that were actually given, so info/error
 		# dialogs never render an empty extra button.
@@ -183,6 +338,23 @@ do_umount() {
 # ---------------------------------------------------------------- launch --
 cmd_launch() { # id or file
 	f="$1"
+	# Phase 9.6: archive-installed apps are ordinary programs on disk - run them
+	# directly instead of loop-mounting an AppImage payload.
+	if [ -f "$REG_DIR/$1.reg" ] && { [ "$(reg_get "$1" KIND)" = archive ] || [ "$(reg_get "$1" KIND)" = tcz ]; }; then
+		exe="$(reg_get "$1" FILE)"
+		[ -x "$exe" ] || { dlg error "Application missing" "The program file for this app is gone. Reinstall it from the XXRI Store."; return 1; }
+		sudo sh -c "sed -i 's|^LAST_LAUNCH=.*|LAST_LAUNCH=$(date '+%Y-%m-%d %H:%M')|' '$REG_DIR/$1.reg'" 2>/dev/null
+		log "launch archive $1 -> $exe"
+		( cd "$(dirname "$exe")" 2>/dev/null || cd /
+		  "$exe" >>"$LOG" 2>&1
+		  RC=$?
+		  log "exit $RC for $exe"
+		  if [ $RC -ge 126 ] && [ $RC -ne 130 ] && [ $RC -ne 143 ]; then
+		      dlg error "Application error" "The application closed unexpectedly. It may not be compatible with xxri OS Lite."
+		  fi
+		) &
+		return 0
+	fi
 	id=""
 	if [ -f "$REG_DIR/$1.reg" ]; then
 		id="$1"
@@ -230,8 +402,299 @@ extract_field() { # desktopfile key
 	sed -n "s/^$2=//p" "$1" 2>/dev/null | head -1
 }
 
-cmd_integrate() { # file [--quiet]
-	f="$1"
+# ---------------------------------------------------- portable archives ----
+# Phase 9.6: several mainstream applications never shipped an i686 AppImage but
+# do publish an official 32-bit portable tarball (Telegram, VS Code, FileZilla,
+# LibreOffice ...).  This installs one exactly like an AppImage from the user's
+# point of view - same registry, same .desktop, same dock and menu entries - so
+# the Store needs no special case beyond passing the archive's exec path.
+#
+#   xxri-app install-archive <file> --as <id> --name <Name> --exec <rel/path>
+#                            [--icon <rel/path>] [--categories <c;>] [--quiet]
+APPDIR_ROOT=/opt/xxri
+
+cmd_install_archive() {
+	f="$1"; shift
+	id=""; name=""; relexec=""; relicon=""; cats="Utility;"
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--as)         shift; id="$1" ;;
+			--name)       shift; name="$1" ;;
+			--exec)       shift; relexec="$1" ;;
+			--icon)       shift; relicon="$1" ;;
+			--categories) shift; cats="$1" ;;
+			--quiet)      XXRI_APP_QUIET=1 ;;
+		esac
+		shift
+	done
+	[ -f "$f" ] || { dlg error "File not found" "$f"; return 1; }
+	[ -n "$id" ] || id="$(sanitize "${f##*/}")"
+	[ -n "$name" ] || name="$id"
+
+	dest="$APPDIR_ROOT/$id"
+	sudo rm -rf "$dest" 2>/dev/null
+	sudo mkdir -p "$dest" || { dlg error "Cannot install" "No space or permission for $dest"; return 1; }
+
+	# Detect the container by MAGIC BYTES, never by filename: official download
+	# URLs frequently carry no extension at all (telegram.org/dl/desktop/linux32).
+	magic="$(hexdump -n 6 -e '6/1 "%02x"' "$f" 2>/dev/null)"
+	log "extracting $f -> $dest (magic $magic)"
+	case "$magic" in
+		fd377a585a*)  sudo tar -xJf "$f" -C "$dest" 2>>"$LOG" ;;   # xz
+		1f8b*)        sudo tar -xzf "$f" -C "$dest" 2>>"$LOG" ;;   # gzip
+		425a68*)      sudo tar -xjf "$f" -C "$dest" 2>>"$LOG" ;;   # bzip2
+		04224d18*|28b52ffd*) sudo tar --zstd -xf "$f" -C "$dest" 2>>"$LOG" ;;  # zstd
+		504b0304*)    sudo unzip -q -o "$f" -d "$dest" 2>>"$LOG" ;; # zip
+		*)
+			case "$f" in
+				*.tar) sudo tar -xf "$f" -C "$dest" 2>>"$LOG" ;;
+				*) dlg error "Unsupported package" "Cannot unpack ${f##*/} (magic $magic)"; sudo rm -rf "$dest"; return 1 ;;
+			esac
+		;;
+	esac
+	if [ -z "$(ls -A "$dest" 2>/dev/null)" ]; then
+		atrace unpack "FAIL: nothing extracted from ${f##*/} (magic $magic)"
+		dlg error "Installation failed" "The package could not be unpacked."; sudo rm -rf "$dest"; return 1
+	fi
+	atrace unpack "ok magic=$magic -> $dest"
+
+	# locate the program: the catalog path first, then a sensible search
+	exe=""
+	[ -n "$relexec" ] && [ -x "$dest/$relexec" ] && exe="$dest/$relexec"
+	if [ -z "$exe" ] && [ -n "$relexec" ]; then
+		cand="$(find "$dest" -maxdepth 4 -type f -name "${relexec##*/}" 2>/dev/null | head -1)"
+		[ -n "$cand" ] && exe="$cand"
+	fi
+	if [ -z "$exe" ]; then
+		exe="$(find "$dest" -maxdepth 3 -type f -perm -u+x ! -name '*.so*' ! -name '*.sh' 2>/dev/null | head -1)"
+	fi
+	if [ -z "$exe" ]; then
+		atrace locate-binary "FAIL: no executable inside ${f##*/} (wanted '\''$relexec'\'')"
+		dlg error "Installation failed" "No program found inside ${f##*/}"; sudo rm -rf "$dest"; return 1
+	fi
+	atrace locate-binary "ok $exe"
+	sudo chmod -R a+rX "$dest" 2>/dev/null
+	sudo chmod a+x "$exe" 2>/dev/null
+
+	# icon: from the archive when the catalog points at one, else the generic
+	src_icon="$(resolve_icon "$id" "$name" "$relicon" "" "$dest")"
+	icon_path="$(install_icon "$id" "$src_icon")"
+	atrace icon "$([ -n "$src_icon" ] && echo "$src_icon" || echo 'PLACEHOLDER - no real icon found')"
+
+	desktop_path="/usr/local/share/applications/xxri-app-$id.desktop"
+	sudo sh -c "cat > '$desktop_path'" <<EOF
+[Desktop Entry]
+Name=$name
+Exec=xxri-app launch $id
+Type=Application
+Icon=xxri-app-$id
+X-FullPathIcon=$icon_path
+Terminal=false
+Categories=$cats
+EOF
+	sudo mkdir -p "$REG_DIR"
+	sudo sh -c "cat > '$REG_DIR/$id.reg'" <<EOF
+ID=$id
+NAME=$name
+FILE=$exe
+VERSION=${XXRI_APP_VERSION:-unknown}
+ICON=$icon_path
+DESKTOP=$desktop_path
+LOCATION=$dest
+KIND=archive
+INSTALLED=$(date '+%Y-%m-%d %H:%M')
+LAST_LAUNCH=never
+INTEGRATED=1
+EOF
+	atrace desktop-entry "$desktop_path"
+	menu_add "$id"
+	atrace menu-entry "$([ -f "$(user_home)/.wmx/Applications/$(menu_name "$name")" ] && echo ok || echo MISSING)"
+	dock_add "$id" "$name" "$icon_path"
+	atrace dock-entry "$(grep -c "launch $id\$" "$DOCK" 2>/dev/null) triplet(s) in $DOCK"
+	[ -n "$DISPLAY" ] && wbar.sh >/dev/null 2>&1
+	atrace registry "$REG_DIR/$id.reg"
+	log "installed archive $id ($name) -> $exe"
+	echo "$id"
+	return 0
+}
+
+# ------------------------------------------------------------ native .tcz --
+# Tiny Core's own i686 repository carries native builds of the mainstream
+# desktop apps (GIMP, Inkscape, VLC, Audacity ...) that upstream stopped
+# shipping 32-bit AppImages for.  Installing one means: place the squashfs in
+# the persistent extension store, record it in onboot.lst so it survives a
+# reboot, load it now, then integrate whatever .desktop it brought with it.
+
+tce_dir() {
+	d="$(readlink -f /etc/sysconfig/tcedir 2>/dev/null)"
+	[ -n "$d" ] && [ -d "$d" ] || d=/tmp/tce
+	echo "$d"
+}
+
+onboot_add() { # extension.tcz  - idempotent, keeps dependency order
+	ob="$(tce_dir)/onboot.lst"
+	[ -f "$ob" ] || sudo sh -c ": > '$ob'"
+	grep -qx "$1" "$ob" 2>/dev/null || sudo sh -c "echo '$1' >> '$ob'"
+}
+
+onboot_del() {
+	ob="$(tce_dir)/onboot.lst"
+	[ -f "$ob" ] && sudo sed -i "\|^$1\$|d" "$ob" 2>/dev/null
+}
+
+cmd_install_tcz() {
+	# $1 = extension name (no .tcz).  Dependency resolution is delegated to
+	# tce-load -wi, which walks the .dep chain against the mirror and skips
+	# anything already recorded in /usr/local/tce.installed - i.e. everything
+	# XXRI already bakes into the image.  Re-implementing that walk here was
+	# what broke: a single failed .dep fetch silently dropped whole subtrees.
+	base="$1"; shift
+	base="${base%.tcz}"
+	id=""; name=""; cats="Utility;"; wanted_exec=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--as)         shift; id="$1" ;;
+			--name)       shift; name="$1" ;;
+			--exec)       shift; wanted_exec="$1" ;;
+			--categories) shift; cats="$1" ;;
+			--quiet)      XXRI_APP_QUIET=1 ;;
+		esac
+		shift
+	done
+	[ -n "$base" ] || { dlg error "Cannot install" "No extension name was given."; return 1; }
+	[ -n "$id" ] || id="$(sanitize "$base")"
+	[ -n "$name" ] || name="$id"
+
+	opt="$(tce_dir)/optional"
+	sudo mkdir -p "$opt" 2>/dev/null
+	# the tce dir must be writable by the desktop user for tce-load to fetch
+	sudo chown -R "$(id -u):$(id -g)" "$(tce_dir)" 2>/dev/null
+
+	# Judge the result by what is on the system afterwards, never by tce-load's
+	# exit status: it reports non-zero for warnings that did not stop the load,
+	# and a mirror hiccup mid-chain is worth one honest retry (a truncated .tcz
+	# left behind would otherwise fail its md5 forever).
+	attempt=0
+	while [ "$attempt" -lt 2 ]; do
+		attempt=$((attempt + 1))
+		log "tce-load -wi $base.tcz (attempt $attempt)"
+		tce-load -wi "$base.tcz" >>"$LOG" 2>&1
+		[ -f "/usr/local/tce.installed/$base" ] && break
+		log "attempt $attempt did not register $base; clearing partial downloads"
+		for p in "$opt/$base.tcz" "$opt/$base.tcz.dep" "$opt/$base.tcz.md5.txt"; do
+			[ -f "$p" ] && [ ! -s "$p" ] && sudo rm -f "$p"
+		done
+		# a truncated archive is worse than none: drop it so the retry refetches
+		if [ -f "$opt/$base.tcz" ] && ! unsquashfs -s "$opt/$base.tcz" >/dev/null 2>&1; then
+			sudo rm -f "$opt/$base.tcz"
+		fi
+	done
+	if [ ! -f "/usr/local/tce.installed/$base" ]; then
+		# Distinguish "no room" from "no network": tce-load reports neither, and
+		# a full disk is by far the more common of the two once a few large
+		# applications are installed.
+		free_kb="$(df -k / 2>/dev/null | awk 'NR==2{print $4}')"
+		case "$free_kb" in ''|*[!0-9]*) free_kb=0 ;; esac
+		if [ "$free_kb" -lt 51200 ]; then
+			atrace tce-load "FAIL: out of disk space (${free_kb}KB free) installing $base"
+			dlg error "Not enough disk space" "$name could not be installed because the disk is full. Remove an application you no longer need and try again."
+		else
+			atrace tce-load "FAIL: $base never registered after $attempt attempt(s), ${free_kb}KB free"
+			dlg error "Installation failed" "$name could not be downloaded. Check your connection and try again."
+		fi
+		return 1
+	fi
+	atrace tce-load "ok $base registered after $attempt attempt(s)"
+	mb="$base.tcz"
+	onboot_add "$mb"
+	# a freshly loaded extension can bring new pixbuf loaders and icons; the
+	# app about to launch is the first thing that will need them
+	[ -x /usr/local/bin/xxri-refresh-caches ] && /usr/local/bin/xxri-refresh-caches
+
+	# The extension ships its own launcher metadata - prefer it over guesses.
+	src_desktop=""
+	for c in "/usr/local/share/applications/$base.desktop" \
+	         "/usr/local/share/applications/$id.desktop"; do
+		[ -f "$c" ] && { src_desktop="$c"; break; }
+	done
+	[ -n "$src_desktop" ] || src_desktop="$(grep -l -i "^Exec=.*\b\(${wanted_exec:-$base}\)\b" \
+		/usr/local/share/applications/*.desktop 2>/dev/null | head -1)"
+
+	exe=""
+	if [ -n "$wanted_exec" ]; then
+		exe="$(command -v "$wanted_exec" 2>/dev/null)"
+		[ -n "$exe" ] || { [ -x "$wanted_exec" ] && exe="$wanted_exec"; }
+	fi
+	if [ -z "$exe" ] && [ -n "$src_desktop" ]; then
+		cand="$(extract_field "$src_desktop" Exec | sed 's/%[a-zA-Z]//g' | awk '{print $1}')"
+		[ -n "$cand" ] && exe="$(command -v "$cand" 2>/dev/null)"
+	fi
+	[ -n "$exe" ] || exe="$(command -v "$base" 2>/dev/null)"
+	if [ -z "$exe" ]; then
+		atrace locate-binary "FAIL: extension loaded but no executable found for $base"
+		dlg error "Installation failed" "The extension loaded but no program was found in it."; return 1
+	fi
+	atrace locate-binary "ok $exe"
+
+	src_icon="$(resolve_icon "$id" "$name" "" "$src_desktop" "")"
+	[ -n "$src_icon" ] || src_icon="$(icon_by_name "$base")"
+	# XPM is decodable again now that gdk-pixbuf has a working loader cache,
+	# so no format is rejected here any more.
+	icon_path="$(install_icon "$id" "$src_icon")"
+	atrace icon "$([ -n "$src_icon" ] && echo "$src_icon" || echo 'PLACEHOLDER - no real icon found')"
+
+	desktop_path="/usr/local/share/applications/xxri-app-$id.desktop"
+	sudo sh -c "cat > '$desktop_path'" <<EOF
+[Desktop Entry]
+Name=$name
+Exec=xxri-app launch $id
+Type=Application
+Icon=xxri-app-$id
+X-FullPathIcon=$icon_path
+Terminal=false
+Categories=$cats
+EOF
+	sudo mkdir -p "$REG_DIR"
+	sudo sh -c "cat > '$REG_DIR/$id.reg'" <<EOF
+ID=$id
+NAME=$name
+FILE=$exe
+VERSION=${XXRI_APP_VERSION:-unknown}
+ICON=$icon_path
+DESKTOP=$desktop_path
+LOCATION=$opt/$mb
+KIND=tcz
+TCZ=$mb
+TCZDEPS=$deps
+INSTALLED=$(date '+%Y-%m-%d %H:%M')
+LAST_LAUNCH=never
+INTEGRATED=1
+EOF
+	atrace desktop-entry "$desktop_path"
+	menu_add "$id"
+	atrace menu-entry "$([ -f "$(user_home)/.wmx/Applications/$(menu_name "$name")" ] && echo ok || echo MISSING)"
+	dock_add "$id" "$name" "$icon_path"
+	atrace dock-entry "$(grep -c "launch $id\$" "$DOCK" 2>/dev/null) triplet(s) in $DOCK"
+	[ -n "$DISPLAY" ] && wbar.sh >/dev/null 2>&1
+	atrace registry "$REG_DIR/$id.reg"
+	log "installed extension $id ($name) -> $exe"
+	echo "$id"
+	return 0
+}
+
+cmd_integrate() { # file [--quiet] [--as <id>]
+	# --as lets a caller (the Store) pin a STABLE id so that installing a newer
+	# version overwrites the same registry entry instead of creating a second
+	# app (id_of_file bakes the version into the id, which an update changes).
+	f="$1"; shift
+	forced_id=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--quiet) XXRI_APP_QUIET=1 ;;
+			--as)    shift; forced_id="$1" ;;
+		esac
+		shift
+	done
 	if ! validate "$f"; then
 		dlg error "$VAL_ERR_TITLE" "$VAL_ERR_BODY"
 		return 1
@@ -252,8 +715,13 @@ cmd_integrate() { # file [--quiet]
 	[ -n "$name" ] || { name="${f##*/}"; name="${name%.AppImage}"; name="${name%.appimage}"; }
 	[ -n "$version" ] || version="$(echo "${f##*/}" | sed -n 's/.*[-_]\([0-9][0-9a-z.]*\)[-.].*/\1/p')"
 	[ -n "$version" ] || version="unknown"
-	id="$(id_of_file "$f")"
+	if [ -n "$forced_id" ]; then id="$(sanitize "$forced_id")"; else id="$(id_of_file "$f")"; fi
 	[ -n "$id" ] || id="app-$(date +%s)"
+
+	# updating in place: remember the previous package file so a version bump
+	# doesn't leave the old AppImage orphaned on disk.
+	old_file=""
+	[ -f "$REG_DIR/$id.reg" ] && old_file="$(reg_get "$id" FILE)"
 
 	# icon: .DirIcon or Icon=<name>.png from the payload root
 	icon_src=""
@@ -310,8 +778,17 @@ INTEGRATED=1
 EOF
 	do_umount "$mp"
 
-	# register with the desktop (menu + dock) and reload the dock
-	desktop.sh "xxri-app-$id" >/dev/null 2>&1
+	# an update replaced the package file: delete the previous version so old
+	# AppImages don't pile up in ~/Applications.
+	if [ -n "$old_file" ] && [ "$old_file" != "$f" ] && [ -e "$old_file" ]; then
+		rm -f "$old_file" 2>/dev/null || sudo rm -f "$old_file" 2>/dev/null
+		log "removed superseded package $old_file"
+	fi
+
+	# register with the desktop: flwm Applications menu + the dock, then reload
+	# the running dock so the new app appears immediately (no reboot).
+	menu_add "$id"
+	dock_add "$id" "$name" "$icon_path"
 	[ -n "$DISPLAY" ] && wbar.sh >/dev/null 2>&1
 	log "integrated $id ($name $version) -> $desktop_path"
 	echo "$id"
@@ -385,15 +862,31 @@ cmd_remove() { # id [--purge]
 	dsk="$(reg_get "$id" DESKTOP)"
 	icon="$(reg_get "$id" ICON)"
 	name="$(reg_get "$id" NAME)"
+	# read every field we still need BEFORE the .reg is unlinked below
+	kind="$(reg_get "$id" KIND)"
+	loc="$(reg_get "$id" LOCATION)"
+	tcz="$(reg_get "$id" TCZ)"
 	HOMEDIR="$(user_home)"
-	# dock icon
-	wbar_rm_icon "xxri-app-$id" >/dev/null 2>&1
+	# dock icon: drop this app's triplet from the live dock list
+	dock_del "$id"
 	# flwm menu entry: remove ONLY this app's item (writeFLWMitem names the
-	# file after the app Name), never the whole menu.
-	[ -n "$name" ] && rm -f "$HOMEDIR/.wmx/Applications/$name" 2>/dev/null
+	# file after the app Name with spaces stripped), never the whole menu.
+	[ -n "$name" ] && menu_del "$name"
 	[ -n "$dsk" ]  && sudo rm -f "$dsk"
 	[ -n "$icon" ] && sudo rm -f "$icon"
 	sudo rm -f "$REG_DIR/$id.reg"
+	# archive installs live in a directory of their own - remove all of it
+	if [ "$kind" = archive ]; then
+		case "$loc" in /opt/xxri/*) sudo rm -rf "$loc" 2>/dev/null ;; esac
+	fi
+	# native extensions: stop loading them at boot and drop the squashfs. The
+	# copy already loop-mounted stays until the next reboot - that is how Tiny
+	# Core extensions work, so say so rather than pretending it vanished.
+	if [ "$kind" = tcz ] && [ -n "$tcz" ]; then
+		onboot_del "$tcz"
+		sudo rm -f "$loc" "$loc.dep" 2>/dev/null
+		log "removed extension $tcz (unloads at next restart)"
+	fi
 	if [ "$purge" = "--purge" ] && [ -n "$f" ] && [ -e "$f" ]; then
 		rm -f "$f" 2>/dev/null || sudo rm -f "$f"
 	fi
@@ -462,16 +955,45 @@ cmd_watch() {
 	done
 }
 
+# Prove that every installed app uses ONE icon everywhere: the registry ICON,
+# the .desktop X-FullPathIcon, the dock triplet and the Store cache must all be
+# the same bytes.  A mismatched dock icon is caught here rather than by eye.
+cmd_verify_icons() {
+	printf '%-16s %-9s %-9s %-9s %-9s %s\n' APP REGISTRY DESKTOP DOCK STORE VERDICT
+	_g="$(md5sum /usr/local/share/pixmaps/xxri-app-generic.png 2>/dev/null | cut -c1-8)"
+	_rc=0
+	for r in "$REG_DIR"/*.reg; do
+		[ -f "$r" ] || continue
+		id="$(basename "$r" .reg)"
+		_ri="$(reg_get "$id" ICON)"
+		_di="$(sed -n 's/^X-FullPathIcon=//p' "/usr/local/share/applications/xxri-app-$id.desktop" 2>/dev/null | head -1)"
+		_ki="$(awk -v id="$id" '/^i: /{p=$2} /^c: exec xxri-app launch /{if ($5==id) print p}' "$DOCK" 2>/dev/null | head -1)"
+		_si="$(user_home)/.cache/xxri-store/icons/$id.png"
+		a="$(md5sum "$_ri" 2>/dev/null | cut -c1-8)"; [ -n "$a" ] || a="-"
+		b="$(md5sum "$_di" 2>/dev/null | cut -c1-8)"; [ -n "$b" ] || b="-"
+		c="$(md5sum "$_ki" 2>/dev/null | cut -c1-8)"; [ -n "$c" ] || c="-"
+		d="$(md5sum "$_si" 2>/dev/null | cut -c1-8)"; [ -n "$d" ] || d="-"
+		if [ "$a" != "-" ] && [ "$a" = "$b" ] && [ "$a" = "$c" ] && [ "$a" = "$d" ]; then v=OK
+		else v=MISMATCH; _rc=1; fi
+		[ "$a" = "$_g" ] && v="$v/placeholder"
+		printf '%-16s %-9s %-9s %-9s %-9s %s\n' "$id" "$a" "$b" "$c" "$d" "$v"
+	done
+	return $_rc
+}
+
 # ------------------------------------------------------------------ main --
 mkdir -p /tmp/xxri-app 2>/dev/null
 case "$1" in
 	open)      shift; cmd_open "$1" ;;
 	launch)    shift; cmd_launch "$1" ;;
-	integrate) shift; cmd_integrate "$1" ;;
+	integrate) shift; cmd_integrate "$@" ;;
+	install-archive) shift; cmd_install_archive "$@" ;;
+	install-tcz)     shift; cmd_install_tcz "$@" ;;
 	remove)    shift; cmd_remove "$@" ;;
 	remove-ui) shift; cmd_remove_ui "$1" ;;
 	list)      cmd_list ;;
+	verify-icons) cmd_verify_icons ;;
 	info)      shift; cmd_info "$1" ;;
 	watch)     cmd_watch ;;
-	*) echo "usage: xxri-app open|launch|integrate|remove|remove-ui|list|info|watch" >&2; exit 1 ;;
+	*) echo "usage: xxri-app open|launch|integrate|remove|remove-ui|list|info|watch|verify-icons" >&2; exit 1 ;;
 esac

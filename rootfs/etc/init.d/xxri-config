@@ -107,6 +107,18 @@ if isDiskRoot; then
 	# tce.installed markers mean "loaded this session", not "on disk":
 	# clearing them makes xxri-setup remount every onboot extension.
 	rm -f /usr/local/tce.installed/* 2>/dev/null
+	# ...except on an installed image, where the desktop extensions were
+	# unpacked straight into the filesystem and are therefore permanent.
+	# Restoring their markers is what lets tce-load resolve a newly installed
+	# app's dependencies against what the OS already ships, instead of
+	# re-downloading the entire desktop stack.
+	if [ -s /usr/local/share/xxri/baked-extensions.lst ]; then
+		mkdir -p /usr/local/tce.installed
+		while read -r bext; do
+			[ -n "$bext" ] || continue
+			: > "/usr/local/tce.installed/$bext"
+		done < /usr/local/share/xxri/baked-extensions.lst
+	fi
 fi
 
 if [ -n "$BLACKLIST" ]; then

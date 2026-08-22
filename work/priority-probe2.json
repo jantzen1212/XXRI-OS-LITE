@@ -1,0 +1,239 @@
+{
+ "onlyoffice": [
+  {
+   "url": "https://github.com/ONLYOFFICE/DesktopEditors/releases/download/v9.1.0/DesktopEditors_x86.zip",
+   "status": 200,
+   "bytes_read": 62914560,
+   "total": 420840294,
+   "filename": "DesktopEditors_x86.zip",
+   "packaging": "zip",
+   "arch": "undetermined",
+   "members": []
+  }
+ ],
+ "filezilla": [
+  {
+   "url": "https://dl2.cdn.filezilla-project.org/client/FileZilla_3.46.3_i686-linux-gnu.tar.bz2",
+   "status": 200,
+   "bytes_read": 13189,
+   "total": 0,
+   "final": "https://filezilla-project.org/",
+   "packaging": "tar.bz2",
+   "arch": "undetermined",
+   "members": []
+  }
+ ],
+ "doublecmd": [
+  {
+   "url": "https://github.com/doublecmd/doublecmd/releases/download/v1.2.7/doublecmd-1.2.7.gtk2.i386.tar.xz",
+   "status": 200,
+   "bytes_read": 9263592,
+   "total": 9263592,
+   "filename": "doublecmd-1.2.7.gtk2.i386.tar.xz",
+   "packaging": "tar.xz",
+   "arch": "i686",
+   "members": [
+    "doublecmd/",
+    "doublecmd/plugins/",
+    "doublecmd/plugins/wdx/",
+    "doublecmd/plugins/wdx/scripts/",
+    "doublecmd/plugins/wdx/scripts/fulltextodtwdx.lua",
+    "doublecmd/plugins/wdx/scripts/textlinewdx.lua",
+    "doublecmd/plugins/wdx/scripts/descriptionwdx.lua",
+    "doublecmd/plugins/wdx/scripts/simplewdx.lua",
+    "doublecmd/plugins/wdx/audioinfo/",
+    "doublecmd/plugins/wdx/audioinfo/audioinfo.wdx"
+   ]
+  }
+ ],
+ "skype": [
+  {
+   "url": "https://go.skype.com/skypeforlinux-32.deb",
+   "status": 200,
+   "bytes_read": 61181,
+   "total": 61181,
+   "final": "https://teams.live.com/free?source=skype",
+   "packaging": "deb",
+   "arch": "undetermined",
+   "members": []
+  }
+ ],
+ "code-oss": [
+  {
+   "url": "https://update.code.visualstudio.com/1.35.1/linux-ia32/stable",
+   "status": 200,
+   "bytes_read": 69348209,
+   "total": 69348209,
+   "filename": "code-stable-1560349812.tar.gz",
+   "packaging": "tar.gz",
+   "arch": "i686",
+   "members": [
+    "VSCode-linux-ia32/",
+    "VSCode-linux-ia32/natives_blob.bin",
+    "VSCode-linux-ia32/icudtl.dat",
+    "VSCode-linux-ia32/libnode.so",
+    "VSCode-linux-ia32/content_shell.pak",
+    "VSCode-linux-ia32/resources/",
+    "VSCode-linux-ia32/resources/app/",
+    "VSCode-linux-ia32/resources/app/resources/",
+    "VSCode-linux-ia32/resources/app/resources/linux/",
+    "VSCode-linux-ia32/resources/app/resources/linux/code.png"
+   ]
+  }
+ ],
+ "blender": [
+  {
+   "url": "https://download.blender.org/release/Blender2.79/blender-2.79-linux-glibc219-i686.tar.bz2",
+   "status": 200,
+   "bytes_read": 138675270,
+   "total": 138675270,
+   "packaging": "tar.bz2",
+   "arch": "i686",
+   "members": [
+    "blender-2.79-linux-glibc219-i686/",
+    "blender-2.79-linux-glibc219-i686/blenderplayer",
+    "blender-2.79-linux-glibc219-i686/LICENSE-bfont.ttf.txt",
+    "blender-2.79-linux-glibc219-i686/2.79/",
+    "blender-2.79-linux-glibc219-i686/2.79/python/",
+    "blender-2.79-linux-glibc219-i686/2.79/python/bin/",
+    "blender-2.79-linux-glibc219-i686/2.79/python/bin/python3.5m",
+    "blender-2.79-linux-glibc219-i686/2.79/python/include/",
+    "blender-2.79-linux-glibc219-i686/2.79/python/include/python3.5m/",
+    "blender-2.79-linux-glibc219-i686/2.79/python/include/python3.5m/pyconfig.h"
+   ]
+  }
+ ],
+ "torbrowser": [
+  {
+   "url": "https://archive.torproject.org/tor-package-archive/torbrowser/10.5.10/tor-browser-linux32-10.5.10_en-US.tar.xz",
+   "status": 200,
+   "bytes_read": 85502836,
+   "total": 85502836,
+   "packaging": "tar.xz",
+   "arch": "i686",
+   "members": [
+    "tor-browser_en-US/",
+    "tor-browser_en-US/Browser/",
+    "tor-browser_en-US/Browser/.config/",
+    "tor-browser_en-US/Browser/.config/gtk-3.0/",
+    "tor-browser_en-US/Browser/.config/gtk-3.0/settings.ini",
+    "tor-browser_en-US/Browser/TorBrowser/",
+    "tor-browser_en-US/Browser/TorBrowser/Data/",
+    "tor-browser_en-US/Browser/TorBrowser/Data/Browser/",
+    "tor-browser_en-US/Browser/TorBrowser/Data/Browser/Caches/",
+    "tor-browser_en-US/Browser/TorBrowser/Data/Browser/profile.default/"
+   ]
+  }
+ ],
+ "libreoffice": [
+  {
+   "url": "https://downloadarchive.documentfoundation.org/libreoffice/old/5.4.7.2/deb/x86/LibreOffice_5.4.7.2_Linux_x86_deb.tar.gz",
+   "status": 200,
+   "bytes_read": 262008453,
+   "total": 262008453,
+   "packaging": "tar.gz",
+   "arch": "undetermined",
+   "members": [
+    "LibreOffice_5.4.7.2_Linux_x86_deb/",
+    "LibreOffice_5.4.7.2_Linux_x86_deb/readmes/",
+    "LibreOffice_5.4.7.2_Linux_x86_deb/readmes/README_en-US",
+    "LibreOffice_5.4.7.2_Linux_x86_deb/DEBS/",
+    "LibreOffice_5.4.7.2_Linux_x86_deb/DEBS/libobasis5.4-extension-pdf-import_5.4.7.2-2_i386.deb",
+    "LibreOffice_5.4.7.2_Linux_x86_deb/DEBS/libobasis5.4-en-us_5.4.7.2-2_i386.deb",
+    "././@LongLink",
+    "LibreOffice_5.4.7.2_Linux_x86_deb/DEBS/libobasis5.4-extension-javascript-script-provider_5.4.7.2-2_i",
+    "LibreOffice_5.4.7.2_Linux_x86_deb/DEBS/libobasis5.4-en-us-res_5.4.7.2-2_i386.deb",
+    "LibreOffice_5.4.7.2_Linux_x86_deb/DEBS/libreoffice5.4-ure_5.4.7.2-2_i386.deb"
+   ]
+  }
+ ],
+ "krita": [
+  {
+   "url": "https://download.kde.org/stable/krita/3.3.3/krita-3.3.3-x86.zip",
+   "status": 200,
+   "bytes_read": 77459933,
+   "total": 77459933,
+   "final": "https://mirror.freedif.org/KDE/ftp/Attic/krita/3.3.3/krita-3.3.3-x86.zip",
+   "packaging": "zip",
+   "arch": "undetermined",
+   "members": [
+    "krita-3.3.3-x86/",
+    "krita-3.3.3-x86/bin/",
+    "krita-3.3.3-x86/bin/audio/",
+    "krita-3.3.3-x86/bin/audio/qtaudio_windows.dll",
+    "krita-3.3.3-x86/bin/bearer/",
+    "krita-3.3.3-x86/bin/bearer/qgenericbearer.dll",
+    "krita-3.3.3-x86/bin/bearer/qnativewifibearer.dll",
+    "krita-3.3.3-x86/bin/d3dcompiler_47.dll",
+    "krita-3.3.3-x86/bin/dbghelp.dll",
+    "krita-3.3.3-x86/bin/exchndl.dll"
+   ]
+  }
+ ],
+ "firefox": [
+  {
+   "url": "https://ftp.mozilla.org/pub/firefox/releases/115.14.0esr/linux-i686/en-US/firefox-115.14.0esr.tar.bz2",
+   "status": 200,
+   "bytes_read": 84336448,
+   "total": 84336448,
+   "packaging": "tar.bz2",
+   "arch": "i686",
+   "members": [
+    "././@PaxHeader",
+    "firefox/crashreporter",
+    "././@PaxHeader",
+    "firefox/libmozavcodec.so",
+    "././@PaxHeader",
+    "firefox/removed-files",
+    "././@PaxHeader",
+    "firefox/libnssckbi.so",
+    "././@PaxHeader",
+    "firefox/browser/omni.ja"
+   ]
+  }
+ ],
+ "palemoon": [
+  {
+   "url": "https://rm-eu.palemoon.org/release/palemoon-33.4.0.linux-i686-gtk3.tar.xz",
+   "status": 404
+  },
+  {
+   "url": "https://rm-eu.palemoon.org/release/palemoon-32.5.2.linux-i686-gtk3.tar.xz",
+   "status": 404
+  }
+ ],
+ "zoom": [
+  {
+   "url": "https://zoom.us/client/latest/zoom_i686.tar.xz",
+   "status": 403
+  }
+ ],
+ "thunderbird": [
+  {
+   "url": "https://ftp.mozilla.org/pub/thunderbird/releases/115.14.0/linux-i686/en-US/thunderbird-115.14.0.tar.bz2",
+   "status": 200,
+   "bytes_read": 83136429,
+   "total": 83136429,
+   "packaging": "tar.bz2",
+   "arch": "i686",
+   "members": [
+    "././@PaxHeader",
+    "thunderbird/fonts/TwemojiMozilla.ttf",
+    "././@PaxHeader",
+    "thunderbird/libsoftokn3.so",
+    "././@PaxHeader",
+    "thunderbird/glxtest",
+    "././@PaxHeader",
+    "thunderbird/libnspr4.so",
+    "././@PaxHeader",
+    "thunderbird/thunderbird-bin"
+   ]
+  }
+ ],
+ "audacity-ai": [
+  {
+   "url": "https://github.com/audacity/audacity/releases/download/Audacity-2.4.2/audacity-linux-2.4.2-x86_64.AppImage",
+   "status": 404
+  }
+ ]
+}

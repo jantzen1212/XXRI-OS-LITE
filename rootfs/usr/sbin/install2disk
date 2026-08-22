@@ -135,19 +135,61 @@ rm -f "$MNT/usr/local/share/applications/xxri-installer.desktop" \
 rm -f "$MNT"/home/*/.X.d/xxri-installer-live 2>/dev/null
 rm -f "$MNT"/home/*/.wmx/*/InstallxxriOSLite "$MNT"/home/*/.wmx/*/Install* 2>/dev/null
 
-# Persistent extension store: /tce on the installed root.  Copy the live
-# TCE directory (extensions + onboot.lst) so the installed system keeps
-# the same applications.
+# Persistent extension store: /tce on the installed root.  Copy the extensions
+# (and the boot lists) so the installed system keeps the same applications.
+#
+# IMPORTANT (Phase 9.2): on a `cde` live-CD boot the tcedir symlink points at
+# /tmp/tce, which is EMPTY - the .tcz files live on the boot medium, and
+# /etc/sysconfig/cde points into it (".../cde/optional").  Copying from tcedir
+# therefore installed ZERO extensions and left an empty onboot.lst, so nothing
+# loaded on the installed system: everything provided by a loop-mounted
+# extension (the whole GTK3 stack -> xxri Settings and xxri Store) was missing,
+# while copy2fs'd extensions (FLTK, X) survived inside the filesystem copy.
+# Always source the store that actually contains the packages.
 XXRI_USER="tc"
 [ -s /etc/sysconfig/tcuser ] && read XXRI_USER < /etc/sysconfig/tcuser
-LIVETCE="$(readlink /etc/sysconfig/tcedir 2>/dev/null)"
+
+has_tcz() { [ -d "$1/optional" ] && [ -n "$(ls "$1"/optional/*.tcz 2>/dev/null)" ]; }
+find_tce_src() {
+	# 1. live CD/USB: /etc/sysconfig/cde -> "<medium>/cde/optional"
+	if [ -s /etc/sysconfig/cde ]; then
+		c="$(cat /etc/sysconfig/cde)"
+		c="${c%/}"; c="${c%/optional}"
+		has_tcz "$c" && { echo "$c"; return 0; }
+	fi
+	# 2. ordinary tce store (frugal/USB install)
+	t="$(readlink /etc/sysconfig/tcedir 2>/dev/null)"
+	[ -n "$t" ] && has_tcz "$t" && { echo "$t"; return 0; }
+	# 3. last resort: the mounted boot medium
+	for m in /mnt/*/cde /mnt/*/tce; do
+		has_tcz "$m" && { echo "$m"; return 0; }
+	done
+	return 1
+}
+
 mkdir -p "$MNT/tce/optional" "$MNT/tce/ondemand"
-if [ -n "$LIVETCE" ] && [ -d "$LIVETCE" ] && [ "$LIVETCE" != "/tce" ]; then
-	echo -n "Copying extensions from $LIVETCE ... "
-	cp -a "$LIVETCE/." "$MNT/tce/" 2>/dev/null
+SRCTCE="$(find_tce_src)"
+if [ -n "$SRCTCE" ] && [ "$SRCTCE" != "/tce" ]; then
+	n="$(ls "$SRCTCE"/optional/*.tcz 2>/dev/null | wc -l)"
+	echo -n "Copying $n extensions from $SRCTCE ... "
+	cp -a "$SRCTCE/optional/." "$MNT/tce/optional/" 2>/dev/null
+	# boot lists decide what loads (and what is copied into the fs) at boot
+	for l in onboot.lst copy2fs.lst xbase.lst ondemand.lst; do
+		[ -f "$SRCTCE/$l" ] && cp -f "$SRCTCE/$l" "$MNT/tce/$l" 2>/dev/null
+	done
 	echo "Done."
+else
+	echo "WARNING: no extension store found - installed system may lack applications." >&2
+fi
+# A tcedir that also holds user extensions (e.g. an existing frugal install)
+# contributes anything the boot medium did not provide.
+LIVETCE="$(readlink /etc/sysconfig/tcedir 2>/dev/null)"
+if [ -n "$LIVETCE" ] && [ "$LIVETCE" != "$SRCTCE" ] && [ "$LIVETCE" != "/tce" ] && [ -d "$LIVETCE/optional" ]; then
+	cp -an "$LIVETCE/optional/." "$MNT/tce/optional/" 2>/dev/null
+	[ -f "$MNT/tce/onboot.lst" ] || cp -f "$LIVETCE/onboot.lst" "$MNT/tce/onboot.lst" 2>/dev/null
 fi
 [ -f "$MNT/tce/onboot.lst" ] || touch "$MNT/tce/onboot.lst"
+echo "Installed extension store: $(ls "$MNT"/tce/optional/*.tcz 2>/dev/null | wc -l) packages, onboot.lst $(wc -l < "$MNT/tce/onboot.lst" 2>/dev/null) entries."
 rm -f "$MNT/tce/mydata.tgz" "$MNT/tce/mydata.tgz.bfe" 2>/dev/null
 chown -R "$XXRI_USER":staff "$MNT/tce" 2>/dev/null
 chmod -R g+w "$MNT/tce" 2>/dev/null
