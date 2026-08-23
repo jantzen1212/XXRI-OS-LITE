@@ -91,9 +91,16 @@ Mechanics that matter on this device:
   instance instead of starting a second panel. `xxri-control-center --close`
   with nothing running exits immediately (it used to fall through and start a
   panel, which hung a QA hook).
-- Opening re-reads hardware state; collapsed it refreshes the clock every 30 s
-  and the state every ~2 min; it collapses 1.4 s after the pointer leaves, on a
-  second click, or after an action.
+- Opening re-reads hardware state; collapsed it updates the clock **in place**
+  every 30 s and re-reads hardware every ~2 min, rebuilding only when something
+  actually changed. (It used to rebuild the whole widget tree on every tick,
+  which flickered - a screendump taken inside that window caught an empty
+  corner and sent me looking for a crash that was not there.)
+- It collapses 1.4 s after the pointer leaves, on a second click, or after an
+  action. `XXRI_CC_DEBUG=1` appends a timeline to `~/xxri-cc.log`, which is how
+  the flicker above was diagnosed without a terminal.
+- The Wi-Fi/Ethernet tile shows the SSID on Wi-Fi and the IP address on a wired
+  link; "eth0" told the user nothing they did not already know.
 - The live installer hides it (`session_exclusive`) and restores it with the
   dock on "Continue Live".
 
@@ -158,11 +165,29 @@ Backend and remote repository untouched — still
 | "TC Exit Options" dialog | replaced by `xxri-power-menu` (shut down / restart / sleep when supported / log out), wired to the dock's Power icon |
 | menu entries `Exit`, `RunProgram`, `Top`, `Xkill`, `Wifi` | dropped in both paths (`build-writable-image.sh` step 2d and `xxri-hw-init` for live) |
 | `tinycore-editor`, `tinycore-mnttool`, `tinycore-screenshot` | replaced by `xxri-editor`, `xxri-disks`, `xxri-screenshot` entries, and the two FLTK apps are launched with XXRI colour switches |
-| dock label "Files" for Tiny Core's mount tool | now "Disks" (honest name, no TC branding) |
+| dock label "Files" for Tiny Core's mount tool | now **"Disks", opening Settings > Storage**. Tiny Core's `mnttool` exits immediately on this build - no process, no window, empty log - so the dock icon was dead. Storage already does mount/unmount/eject natively. |
 | terminal titled "xxri Terminal", plain black | "XXRI Terminal" on the palette's `#16112B` panel (pseudo-transparency needed a root pixmap that never existed, so it fell back to black) |
 | `NAME="xxri OS Lite"`, `xxri-os.org` URLs | `XXRI OS Lite 2.0`, `xxri.flows.best`; `VERSION_ID` deliberately stays `16.0` because `xxri-functions` builds the package mirror path from it |
 
 Desktop entries on the built image: 8, of which **0** are Tiny Core-named.
+
+## 6b. Copy and empty states
+
+- The Store's Installed and Downloads pages used a hint bar at the top of an
+  otherwise blank page, which reads as an error; both now use the same centred
+  empty state as Settings (badge with the page's own rail glyph, a bold line, a
+  muted explanation).
+- Settings' Apps page no longer points at "the upcoming Software Store" - the
+  Store shipped two phases ago.
+- Bluetooth's empty state said "Bluetooth is off" even with no radio present.
+  The title now distinguishes no adapter / stack not installed / blocked, and
+  the backend's lowercase reason is presented as a sentence (without doubling
+  its full stop).
+- About showed `Locale: C.` - `xxri-hardware` built the field as
+  `LANG.TZ` and `sed` prints nothing while still succeeding, so the separator
+  was emitted for missing files. The backend now joins only what exists, and
+  Settings renders a bare `C` as `C \xc2\xb7 POSIX default`.
+- The Store's metadata lines join only the fields that exist.
 
 ## 7. Typography and scaling
 
@@ -225,6 +250,7 @@ Run on the built image in QEMU (`work/regress-hook.sh`):
 | `work/ui-qa-hook.sh` | the guest-side scene driver (desktop, cc, settings:*, store:*, dialog, power, tools) + a geometry report per scene |
 | `work/regress-hook.sh` | the subsystem regression probe above |
 | `work/inject-hook.sh` | install a hook into **both** `/etc/skel/.X.d` and `/home/xxri/.X.d` (forgetting the second silently runs the old hook) |
+| `work/ui-pointer.sh` | move/click the guest pointer through the QEMU monitor. Kept for completeness, but see the limitation below: the injected motion never reaches this guest's X server. |
 
 None of these are part of the release image; `output/xxri-disk.img` is rebuilt
 from `rootfs/` and carries no QA hook.
@@ -234,6 +260,12 @@ from `rootfs/` and carries no QA hook.
 - Interaction with the titlebar controls is proven on the host harness, which
   can synthesise clicks; the device has no `xdotool`, so on-device evidence for
   the controls is visual (rendering, states) plus the identical binary.
+  QEMU-monitor pointer injection (`work/ui-pointer.sh`) was tried and does not
+  work here: the Control Center's own trace recorded no click for any injected
+  press, matching the earlier finding that this guest ignores synthetic
+  pointer input. The Control Center's expand/collapse path *was* exercised on
+  the device through its command interface, which is the same code a click
+  runs.
 - 1280x720 cannot be tested under QEMU's virtual GPU (not in its mode list).
 - `editor` and `mnttool` are still Tiny Core FLTK apps, restyled with FLTK
   colour switches and renamed. Replacing them with XXRI-native apps is a later

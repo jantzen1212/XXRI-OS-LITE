@@ -13,7 +13,7 @@ t: Settings
 c: exec /usr/local/bin/xxri-settings
 i: /usr/local/share/pixmaps/mnttool.png
 t: Disks
-c: exec /usr/local/bin/mnttool -scheme gtk+ -bg #EFEDF8 -bg2 #FFFFFF -fg #1C1B24
+c: exec /usr/local/bin/xxri-settings storage
 i: /usr/local/share/pixmaps/aterm.png
 t: Terminal
 c: exec /usr/local/bin/aterm

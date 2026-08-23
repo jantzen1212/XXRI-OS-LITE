@@ -99,6 +99,23 @@ static char* jfirst(const char* doc, const char* key) {
     return g_strndup(p, e-p+1);
 }
 
+/* XXRI_CC_DEBUG=1 appends a trace to ~/xxri-cc.log.  The panel has no terminal
+   when the session starts it, and "the chip vanished" is exactly the kind of
+   report that needs a timeline rather than a guess. */
+static void trace(const char* fmt, ...) {
+    static int on = -1;
+    if (on < 0) on = g_getenv("XXRI_CC_DEBUG") ? 1 : 0;
+    if (!on) return;
+    char* p = g_strdup_printf("%s/xxri-cc.log", g_get_home_dir() ? g_get_home_dir() : "/tmp");
+    FILE* f = fopen(p, "a"); g_free(p);
+    if (!f) return;
+    va_list ap; va_start(ap, fmt);
+    char buf[512]; vsnprintf(buf, sizeof buf, fmt, ap); va_end(ap);
+    time_t t = time(NULL); struct tm* tm = localtime(&t);
+    fprintf(f, "%02d:%02d:%02d %s\n", tm->tm_hour, tm->tm_min, tm->tm_sec, buf);
+    fclose(f);
+}
+
 /* -------------------------------------------------------------- state --- */
 typedef struct {
     gboolean net_up;  char* net_name;  char* net_kind;   /* wifi / ethernet */
@@ -112,6 +129,8 @@ static GtkWidget *g_win, *g_chip, *g_panel, *g_root;
 static gboolean g_expanded = FALSE;
 static guint g_collapse_timer = 0;
 static GtkWidget *g_vol_scale, *g_bright_scale;
+static GtkWidget *g_chip_clock;      /* updated in place by the tick */
+static char      *g_state_sig;       /* rebuild only when the state changes */
 static gboolean g_setting = FALSE;      /* suppress feedback loops */
 
 static void state_free(void) {
@@ -135,11 +154,16 @@ static void state_read(void) {
     }
     if (best) {
         S.net_up = TRUE;
-        char* ssid = jget(best, "ssid");
+        char* ssid  = jget(best, "ssid");
         char* iface = jget(best, "interface");
+        char* ip    = jget(best, "ip");
         S.net_kind = g_strdup(best_wifi ? "Wi-Fi" : "Ethernet");
-        S.net_name = (*ssid) ? g_strdup(ssid) : g_strdup(iface);
-        g_free(ssid); g_free(iface);
+        /* what the user cares about: the network name on Wi-Fi, the address on
+           a wired link - "eth0" tells them nothing they did not know */
+        if (*ssid)      S.net_name = g_strdup(ssid);
+        else if (*ip)   S.net_name = g_strdup(ip);
+        else            S.net_name = g_strdup(iface);
+        g_free(ssid); g_free(iface); g_free(ip);
     } else {
         S.net_up = FALSE;
         S.net_kind = g_strdup("Network");
@@ -312,6 +336,7 @@ static void collapse(void);
 
 static gboolean on_leave(GtkWidget* w, GdkEventCrossing* e, gpointer d) {
     (void)w; (void)d;
+    trace("leave detail=%d expanded=%d", e->detail, g_expanded);
     if (!g_expanded || e->detail == GDK_NOTIFY_INFERIOR) return FALSE;
     if (g_collapse_timer) g_source_remove(g_collapse_timer);
     g_collapse_timer = g_timeout_add(1400, (GSourceFunc)(void*)collapse, NULL);
@@ -355,6 +380,8 @@ static void place_window(void) {
     gtk_widget_get_preferred_size(g_root, NULL, &nat);
     int w = g_expanded ? PANEL_W : nat.width;
     int h = nat.height;
+    trace("place expanded=%d nat=%dx%d -> %dx%d at %d,%d (screen %dx%d)",
+          g_expanded, nat.width, nat.height, w, h, sw-EDGE_X-w, sh-EDGE_Y-h, sw, sh);
     gtk_window_resize(GTK_WINDOW(g_win), w, h);
     gtk_window_move(GTK_WINDOW(g_win), sw - EDGE_X - w, sh - EDGE_Y - h);
     /* collapsed the chip is a pill, expanded the panel keeps the 16px radius
@@ -364,19 +391,22 @@ static void place_window(void) {
     if (gw) gdk_window_raise(gw);
 }
 static void expand(void) {
+    trace("expand (expanded=%d)", g_expanded);
     if (g_expanded) return;
     state_read();
     g_expanded = TRUE;
     rebuild();
 }
 static void collapse(void) {
+    trace("collapse (expanded=%d)", g_expanded);
     if (g_collapse_timer) { g_source_remove(g_collapse_timer); g_collapse_timer = 0; }
     if (!g_expanded) return;
     g_expanded = FALSE;
     rebuild();
 }
 static gboolean on_chip_click(GtkWidget* w, GdkEventButton* e, gpointer d) {
-    (void)w; (void)e; (void)d;
+    (void)w; (void)d;
+    trace("chip click button=%d at %.0f,%.0f expanded=%d", e->button, e->x, e->y, g_expanded);
     if (g_expanded) collapse(); else expand();
     return TRUE;
 }
@@ -430,9 +460,12 @@ static GtkWidget* build_chip(void) {
         g_signal_connect(b, "draw", G_CALLBACK(batt_draw), NULL);
         gtk_box_pack_start(GTK_BOX(row), b, FALSE, FALSE, 0);
     }
+    /* same clock format as the expanded panel and the mockup - a chip that
+       says 20:36 next to a panel that says 08:36 PM reads as two products */
     char t[32]; time_t now = time(NULL); struct tm* tm = localtime(&now);
-    strftime(t, sizeof t, "%H:%M", tm);
-    gtk_box_pack_start(GTK_BOX(row), lbl(t, "xxri-cc-clock", 0.5), FALSE, FALSE, 2);
+    strftime(t, sizeof t, "%l:%M %p", tm);
+    g_chip_clock = lbl(g_strstrip(t), "xxri-cc-clock", 0.5);
+    gtk_box_pack_start(GTK_BOX(row), g_chip_clock, FALSE, FALSE, 2);
     return clickable(row, G_CALLBACK(on_chip_click));
 }
 /* one of the two big state tiles at the top of the panel */
@@ -543,12 +576,31 @@ static void rebuild(void) {
 }
 
 /* ---------------------------------------------------------- lifecycle --- */
+/* What the chip actually shows, so a tick can tell "nothing changed" from
+   "rebuild me".  Tearing the widget tree down every 30 s made the chip flicker
+   - and a screenshot taken in that window caught an empty corner. */
+static char* state_sig(void) {
+    return g_strdup_printf("%d|%s|%d|%d|%d",
+        S.net_up, S.net_name ? S.net_name : "", S.bt_ok, S.batt_ok, S.batt);
+}
 static gboolean tick(gpointer d) {          /* clock + cheap state refresh */
     (void)d;
     static int n = 0;
-    if (!g_expanded) {
-        if (++n % 4 == 0) state_read();     /* every ~2 min when collapsed */
-        rebuild();
+    if (g_expanded) return G_SOURCE_CONTINUE;
+
+    if (g_chip_clock && GTK_IS_LABEL(g_chip_clock)) {      /* clock in place */
+        char t[32]; time_t now = time(NULL); struct tm* tm = localtime(&now);
+        strftime(t, sizeof t, "%l:%M %p", tm);
+        gtk_label_set_text(GTK_LABEL(g_chip_clock), g_strstrip(t));
+    }
+    if (++n % 4 == 0) {                     /* re-read hardware every ~2 min */
+        state_read();
+        char* sig = state_sig();
+        if (!g_state_sig || strcmp(sig, g_state_sig)) {
+            g_free(g_state_sig); g_state_sig = sig;
+            trace("state changed -> rebuild: %s", sig);
+            rebuild();
+        } else g_free(sig);
     }
     return G_SOURCE_CONTINUE;
 }
@@ -637,6 +689,7 @@ int main(int argc, char** argv) {
     g_signal_connect(g_win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
     state_read();
+    g_state_sig = state_sig();
     rebuild();
     gtk_widget_show_all(g_win);
     place_window();

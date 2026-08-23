@@ -123,8 +123,8 @@ for junk in cpanel tc-cpanel tc-config appsaudit services settime tc-wbarconf \
 done
 rm -f "\$STAGE/usr/local/share/pixmaps/cpanel.png" \
       "\$STAGE/usr/local/bin/apps" "\$STAGE/usr/local/bin/appbrowser"
-# Editor and MountTool stay, but under XXRI names and styling
-# (xxri-editor.desktop / xxri-disks.desktop) - drop the Tiny Core originals.
+# Editor stays under an XXRI name; Tiny Core's mnttool never maps a window
+# on this build, so Disks points at Settings > Storage instead.
 rm -f "\$STAGE/usr/local/share/applications/tinycore-editor.desktop" \
       "\$STAGE/usr/local/share/applications/tinycore-screenshot.desktop" \
       "\$STAGE/usr/local/share/applications/tinycore-mnttool.desktop"

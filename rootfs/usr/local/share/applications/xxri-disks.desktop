@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
 Name=Disks
-Comment=Mount and unmount drives
-Exec=mnttool -scheme gtk+ -bg #EFEDF8 -bg2 #FFFFFF -fg #1C1B24
+Comment=Drives, free space, mount and eject
+Exec=xxri-settings storage
 Icon=mnttool
 Terminal=false
 Categories=System;
