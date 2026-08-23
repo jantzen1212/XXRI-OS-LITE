@@ -244,7 +244,7 @@ extern float sf; //scale factor from Xft.dpi
 
 // Palette (Phase 4 design system + the control hues sampled from the mockup).
 #define XXRI_BAR_ACTIVE    0xFAF9FE
-#define XXRI_BAR_INACTIVE  0xEDEAF6
+#define XXRI_BAR_INACTIVE  0xE9E6F3
 #define XXRI_HAIRLINE      0xE3DFF2
 #define XXRI_BORDER        0xD9D4EC
 #define XXRI_INK           0x1C1B24

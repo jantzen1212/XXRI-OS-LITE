@@ -35,7 +35,9 @@ for i in $(seq 1 400); do
       echo "SHOT ${RES}-${sc//:/-} $(identify -format '%wx%h' "$D/shots/${RES}-${sc//:/-}.png")"
   done
   grep -q '^SHOTS_DONE' "$SER" 2>/dev/null && break
+  # HOLD=1 keeps the VM running after the scenes so ui-pointer.sh can drive it
 done
+if [ -n "${HOLD:-}" ]; then echo "VM HELD on $MON - run work/ui-pointer.sh, then kill it"; exit 0; fi
 echo "system_powerdown" | socat - UNIX-CONNECT:"$MON" >/dev/null 2>&1
 for i in $(seq 1 30); do ps -eo pid,args | grep -q 'uiqa/mon[.]sock' || break; sleep 2; done
 ps -eo pid,args | grep 'uiqa/mon[.]sock' | awk '{print $1}' | xargs -r kill -9 2>/dev/null

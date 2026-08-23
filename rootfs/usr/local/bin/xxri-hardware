@@ -177,7 +177,15 @@ cmd_summary() {
 		j_num cameras "$cams"; j_num bluetooth_adapters "$bt"
 		j_bool battery "$([ "$bat" = true ] && echo 1 || echo 0)"
 		j_str uptime "$(hw_uptime)"
-		j_str locale "$(sed -n 's/^LANG=//p' /etc/sysconfig/language 2>/dev/null || echo en_US).$(sed -n 's/^TZ=//p' /etc/sysconfig/timezone 2>/dev/null | cut -c1-8)"
+		# A missing language/timezone file left this as a bare "C." on the
+		# About page: sed succeeds while printing nothing, so the `||`
+		# fallback never fired and the separator was emitted regardless.
+		_lang="$(sed -n 's/^LANG=//p' /etc/sysconfig/language 2>/dev/null | head -1)"
+		[ -n "$_lang" ] || _lang="${LANG:-}"
+		[ -n "$_lang" ] || _lang="en_US.UTF-8"
+		_tz="$(sed -n 's/^TZ=//p' /etc/sysconfig/timezone 2>/dev/null | head -1 | cut -c1-16)"
+		[ -n "$_tz" ] || _tz="$(head -1 /etc/timezone 2>/dev/null)"
+		if [ -n "$_tz" ]; then j_str locale "$_lang.$_tz"; else j_str locale "$_lang"; fi
 		j_root hardware "\"summary\":$(j_obj)"
 	else
 		echo "XXRI OS Lite hardware summary"

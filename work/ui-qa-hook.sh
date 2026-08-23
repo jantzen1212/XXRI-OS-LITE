@@ -34,12 +34,34 @@ SCENES=$(sed -n 's/.*\buiscene=\([a-zA-Z0-9:_.,-]*\).*/\1/p' /proc/cmdline 2>/de
       two)       DISPLAY=:0 xxri-settings about & sleep 6; DISPLAY=:0 xxri-store-gui home & ;;
       dialog)    DISPLAY=:0 xxri-settings about & sleep 6
                  DISPLAY=:0 xxri-dialog ask "Remove application" "Remove Geany from this computer?" "Remove" "Cancel" & ;;
+      downloading) # progress UI: start a real install and watch the queue
+                 xxri-store refresh --force >/dev/null 2>&1
+                 ( xxri-store install "${XXRI_DL_APP:-gimp}" >/dev/null 2>&1 & )
+                 sleep 6; DISPLAY=:0 xxri-store-gui downloads & ;;
+      ccdebug)   # restart the panel with tracing, then hold for pointer tests
+                 DISPLAY=:0 timeout 5 xxri-control-center --quit; sleep 1
+                 rm -f $HOME/xxri-cc.log
+                 XXRI_CC_DEBUG=1 DISPLAY=:0 /usr/local/bin/xxri-control-center &
+                 sleep 3; echo "cc traced pid $(pgrep -f xxri-control-cent | head -1)" ;;
+      cctoggle)  # the RUNTIME toggle path (what a click on the chip does),
+                 # not a fresh process started with --open
+                 DISPLAY=:0 xxri-control-center --toggle
+                 sleep 3
+                 echo "cc procs: $(pgrep -f xxri-control-cent | wc -l)"
+                 echo "cc wins : $(DISPLAY=:0 xwininfo -root -tree 2>/dev/null | grep -c xxri-control-center)"
+                 echo "cc geom : $(DISPLAY=:0 xwininfo -root -tree 2>/dev/null | awk '/xxri-control-center/{for(i=1;i<=NF;i++) if ($i ~ /^[0-9]+x[0-9]+\+/) print $i}' | head -2 | tr '\n' ' ')" ;;
       cc)        # give the panel something to show: a real mixer level
                  xxri-audio volume set 65 >/dev/null 2>&1
                  echo "audio: $(xxri-audio volume --json 2>/dev/null | head -c 120)"
                  DISPLAY=:0 xxri-control-center --open & ;;
       power)     DISPLAY=:0 xxri-power-menu & ;;
       tools)     DISPLAY=:0 aterm & sleep 4; DISPLAY=:0 editor & sleep 4; DISPLAY=:0 mnttool & ;;
+      diag)      echo "locale: $(xxri-hardware summary --json | tr ',' '\n' | grep -i locale)"
+                 echo "mnttool bin: $(command -v mnttool) $(wc -c < $(command -v mnttool) 2>/dev/null)"
+                 ( DISPLAY=:0 mnttool >/tmp/mnt.log 2>&1 & ) ; sleep 8
+                 echo "mnttool proc: $(pgrep -c mnttool)"
+                 echo "mnttool win : $(DISPLAY=:0 xwininfo -root -tree 2>/dev/null | grep -ci mnttool)"
+                 echo "mnttool log : $(head -c 200 /tmp/mnt.log 2>/dev/null)" ;;
     esac
     sleep 26
     # Objective geometry, not eyeballing: every mapped top-level with its

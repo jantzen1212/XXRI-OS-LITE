@@ -1609,6 +1609,43 @@ static void build_search(GtkWidget* box){
 }
 
 /* ----------------------------------------------------------- installed --- */
+static void draw_glyph(cairo_t* cr,int g,double S,gboolean on);  /* rail glyphs */
+/* Centred empty state, same language as Settings: a soft badge holding the
+   page's own rail glyph, a bold line and a muted explanation.  The Store used
+   to drop a hint bar at the top of an otherwise blank page, which read as an
+   error message rather than "nothing here yet". */
+typedef struct { int glyph; } EmptyBadge;
+static gboolean empty_badge_draw(GtkWidget* w,cairo_t* cr,gpointer u){
+    EmptyBadge* b=u;
+    GtkAllocation al; gtk_widget_get_allocation(w,&al);
+    double S=al.width;
+    cairo_set_source_rgba(cr,0.514,0.443,0.969,0.13);
+    cairo_arc(cr,S/2,S/2,S/2,0,2*G_PI); cairo_fill(cr);
+    double g=S*0.46;
+    cairo_save(cr); cairo_translate(cr,(S-g)/2,(S-g)/2);
+    draw_glyph(cr,b->glyph,g,TRUE);
+    cairo_restore(cr);
+    return FALSE;
+}
+static GtkWidget* empty_state(int glyph,const char* title,const char* sub){
+    GtkWidget* w=gtk_box_new(GTK_ORIENTATION_VERTICAL,12);
+    gtk_widget_set_valign(w,GTK_ALIGN_CENTER);
+    gtk_widget_set_halign(w,GTK_ALIGN_CENTER);
+    gtk_widget_set_margin_top(w,40);
+    GtkWidget* da=gtk_drawing_area_new();
+    gtk_widget_set_size_request(da,78,78);
+    gtk_widget_set_halign(da,GTK_ALIGN_CENTER);
+    EmptyBadge* b=g_new0(EmptyBadge,1); b->glyph=glyph;
+    g_signal_connect_data(da,"draw",G_CALLBACK(empty_badge_draw),b,(GClosureNotify)g_free,0);
+    gtk_box_pack_start(GTK_BOX(w),da,FALSE,FALSE,0);
+    GtkWidget* t=lbl(title,"xxri-empty-title",0.5);
+    gtk_label_set_justify(GTK_LABEL(t),GTK_JUSTIFY_CENTER);
+    gtk_box_pack_start(GTK_BOX(w),t,FALSE,FALSE,0);
+    GtkWidget* sl=lbl_wrap(sub,"xxri-empty-sub",0.5,46);
+    gtk_label_set_justify(GTK_LABEL(sl),GTK_JUSTIFY_CENTER);
+    gtk_box_pack_start(GTK_BOX(w),sl,FALSE,FALSE,0);
+    return w;
+}
 static void act_openloc(GtkWidget* w,gpointer p){ (void)w; run_bg("xxri-store open-location %s",(char*)p); }
 static void build_installed(GtkWidget* box){
     gtk_box_pack_start(GTK_BOX(box),lbl("Installed apps","xxri-page-title",0),FALSE,FALSE,0);
@@ -1618,8 +1655,9 @@ static void build_installed(GtkWidget* box){
     gtk_box_pack_start(GTK_BOX(box),lbl(s,"xxri-page-sub",0),FALSE,FALSE,0);
     if (!a->len) {
         gtk_box_pack_start(GTK_BOX(box),
-            lbl_wrap("No apps installed yet. Everything you install from the Store shows up here, "
-                     "with a Launch button and its install date.","xxri-hint",0,60),FALSE,FALSE,0);
+            empty_state(5,"No apps yet",
+                "Everything you install from the Store shows up here, with a Launch "
+                "button and the date you installed it."),TRUE,TRUE,0);
     } else {
         GtkWidget* card=gtk_box_new(GTK_ORIENTATION_VERTICAL,0); css(card,"xxri-card");
         gtk_widget_set_margin_top(card,10);
@@ -1755,8 +1793,9 @@ static gboolean poll_downloads(gpointer u){ (void)u;
     GPtrArray* a=jarr(js,"downloads");
     if (!a->len) {
         gtk_container_add(GTK_CONTAINER(g_dl_list),
-            lbl_wrap("Nothing in the queue. Downloads you start appear here with progress, speed and "
-                     "time left \xe2\x80\x94 and they survive a reboot.","xxri-hint",0,60));
+            empty_state(3,"Nothing downloading",
+                "Downloads you start appear here with progress, speed and time left "
+                "\xe2\x80\x94 and they survive a reboot."));
     }
     for (guint i=0;i<a->len;i++) {
         char* o=a->pdata[i];

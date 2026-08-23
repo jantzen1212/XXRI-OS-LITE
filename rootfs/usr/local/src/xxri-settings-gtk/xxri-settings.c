@@ -322,12 +322,22 @@ static void build_bluetooth(GtkWidget* box) {
         g_ptr_array_free(ds,TRUE); g_free(pd);
     } else {
         char* reason=jget(st,"reason"); char* h=jget(st,"hint");
+        /* "Bluetooth is off" is wrong when there is no radio at all - say which
+           of the two situations this is, and present the backend's lowercase
+           reason as a sentence. */
+        const char* title = "Bluetooth is off";
+        if (strstr(reason,"adapter"))      title = "No Bluetooth adapter";
+        else if (strstr(reason,"stack"))   title = "Bluetooth support not installed";
+        else if (jbool(st,"rfkill_blocked")) title = "Bluetooth is blocked";
         char msg[512];
-        snprintf(msg,sizeof msg,"%s\n%s",
-            *reason?reason:"No Bluetooth adapter was detected.",
+        char* r = *reason ? g_strdup(reason) : g_strdup("No Bluetooth adapter was detected.");
+        if (g_ascii_islower(r[0])) r[0] = g_ascii_toupper(r[0]);
+        gsize rl = strlen(r);                       /* do not double the full stop */
+        const char* dot = (rl && strchr(".!?", r[rl-1])) ? "" : ".";
+        snprintf(msg,sizeof msg,"%s%s\n%s", r, dot,
             *h?h:"Connect a Bluetooth adapter to pair headphones, keyboards and other devices.");
-        page_empty(box, "bluetooth", "Bluetooth is off", msg);
-        g_free(reason); g_free(h);
+        page_empty(box, "bluetooth", title, msg);
+        g_free(r); g_free(reason); g_free(h);
     }
     g_free(st);
 }
@@ -607,7 +617,7 @@ static void cb_remove(GtkWidget* w, gpointer d){ (void)w; run_bg("xxri-app remov
 static void build_apps(GtkWidget* box) {
     char* out=run_cmd("xxri-app list");
     if (!*out) { page_empty(box, "apps", "No apps installed yet",
-        "Download an AppImage and open it to integrate it here \xe2\x80\x94 or use the upcoming Software Store.");
+        "Install apps from the XXRI Store, or open an AppImage you downloaded and it is integrated here.");
         g_free(out); return; }
     gtk_box_pack_start(GTK_BOX(box), section("Installed Applications"), FALSE, FALSE, 0);
     GtkWidget* c=card_new();
@@ -775,7 +785,12 @@ static void build_about(GtkWidget* box) {
         {"OS", jget(s,"os")},
         {"Version", g_strdup(strstr(jget(s,"os"),"Lite")?"2.0 Lite":"2.0")},
         {"Uptime", jget(s,"uptime")},
-        {"Locale", jget(s,"locale")},
+        {"Locale", ({ char* lc = jget(s,"locale");
+                      /* a bare "C" is the POSIX default, not a language */
+                      char* out = (!strcmp(lc,"C")||!strcmp(lc,"POSIX"))
+                                ? g_strdup_printf("%s \xc2\xb7 POSIX default", lc)
+                                : g_strdup(lc);
+                      g_free(lc); out; })},
     };
     for (int i=0;i<4;i++){ GtkWidget* rr=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);
         gtk_box_pack_start(GTK_BOX(rr),label_cls(rows[i].k,"xxri-val",0),FALSE,FALSE,0);

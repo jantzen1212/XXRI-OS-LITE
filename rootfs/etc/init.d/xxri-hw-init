@@ -56,8 +56,8 @@
 	done
 	rm -f /usr/local/share/pixmaps/cpanel.png \
 	      /usr/local/bin/apps /usr/local/bin/appbrowser 2>/dev/null
-	# Editor and MountTool are kept, but under XXRI names and styling
-	# (xxri-editor.desktop / xxri-disks.desktop), so drop the originals.
+	# Editor stays under an XXRI name; Tiny Core's mnttool never maps a
+	# window on this build, so Disks points at Settings > Storage instead.
 	rm -f /usr/local/share/applications/tinycore-editor.desktop \
 	      /usr/local/share/applications/tinycore-screenshot.desktop \
 	      /usr/local/share/applications/tinycore-mnttool.desktop 2>/dev/null
