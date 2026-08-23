@@ -166,7 +166,7 @@ Backend and remote repository untouched — still
 | menu entries `Exit`, `RunProgram`, `Top`, `Xkill`, `Wifi` | dropped in both paths (`build-writable-image.sh` step 2d and `xxri-hw-init` for live) |
 | `tinycore-editor`, `tinycore-mnttool`, `tinycore-screenshot` | replaced by `xxri-editor`, `xxri-disks`, `xxri-screenshot` entries, and the two FLTK apps are launched with XXRI colour switches |
 | dock label "Files" for Tiny Core's mount tool | now **"Disks", opening Settings > Storage**. Tiny Core's `mnttool` exits immediately on this build - no process, no window, empty log - so the dock icon was dead. Storage already does mount/unmount/eject natively. |
-| terminal titled "xxri Terminal", plain black | "XXRI Terminal" on the palette's `#16112B` panel (pseudo-transparency needed a root pixmap that never existed, so it fell back to black) |
+| terminal titled "xxri Terminal", plain black | "XXRI Terminal" on the palette's `#16112B` panel (pseudo-transparency needed a root pixmap that never existed, so it fell back to black). Its rxvt scrollbar - a dithered grey trough this aterm build draws regardless of `scrollColor`/`scrollstyle` - is hidden; Shift+PageUp/PageDown still walk the 2000-line scrollback, and Settings' Help page says so. |
 | `NAME="xxri OS Lite"`, `xxri-os.org` URLs | `XXRI OS Lite 2.0`, `xxri.flows.best`; `VERSION_ID` deliberately stays `16.0` because `xxri-functions` builds the package mirror path from it |
 
 Desktop entries on the built image: 8, of which **0** are Tiny Core-named.
@@ -230,6 +230,7 @@ Run on the built image in QEMU (`work/regress-hook.sh`):
 | `xxri-app verify-icons` | `OK` — registry/desktop/dock/store md5 all `4c5acce8` |
 | persistence | after reboot the dock is still `385x63+319+690` with Leafpad |
 | live ISO | boots to the installer welcome screen; Control Center correctly hidden during install |
+| live ISO desktop | **the live session runs the XXRI window manager too.** This was nearly missed: the WM lived only in `rootfs-overrides/`, which `build-writable-image.sh` applies to the *installed* image, so a live boot would have kept Tiny Core's rotated titlebar. It is now in `rootfs/` as well (extensions load with `cp -ai`, so the initrd copy wins over `flwm.tcz`). Proven on a QA ISO that dismisses the installer: `/usr/local/bin/flwm` is a real 59520-byte file, not a tcloop symlink, `flwm` is running from it, and Settings comes up with the XXRI bar and the Control Center chip (`debug/phase10/live-session-decorated.png`) |
 | Xvesa fallback | untouched — `.xsession` still falls back when X.Org has no input driver or no `/dev/dri/card0` |
 
 ## 10. Screenshots

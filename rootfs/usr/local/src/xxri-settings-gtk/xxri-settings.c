@@ -700,6 +700,7 @@ static void build_help(GtkWidget* box) {
         {"Ctrl + Alt + arrow keys",  "Move the active window"},
         {"Ctrl + Alt + = / -",       "Grow or shrink the active window"},
         {"Click the desktop",        "Window list, desktops and Exit"},
+        {"Shift + Page Up / Down",   "Scroll back through the Terminal"},
     };
     for (unsigned i = 0; i < G_N_ELEMENTS(keys); i++) card_kv(c2, keys[i].k, keys[i].v);
     gtk_box_pack_start(GTK_BOX(box), c2, FALSE, FALSE, 0);

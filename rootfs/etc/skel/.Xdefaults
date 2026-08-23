@@ -20,10 +20,10 @@ Text*selectForeground: #FFFFFF
 Xft.dpi: 96.0
 
 ! ---- Terminal (aterm): dark glass panel from the design language ----
-Aterm*scrollBar: true
-Aterm*scrollColor: #3A3358
-Aterm*troughColor: #16112B
-Aterm*scrollBar_right: true
+! This aterm build ignores scrollColor/scrollstyle and always draws rxvt's
+! dithered grey trough, which is the only grey left on the desktop.  Hide it:
+! Shift+PageUp / Shift+PageDown still walk the 2000-line scrollback.
+Aterm*scrollBar: false
 ! Pseudo-transparency needs a root pixmap (_XROOTPMAP_ID); the wallpaper is
 ! painted without one, so a "transparent" aterm came up plain black instead of
 ! the design's dark panel.  Solid #16112B is what the palette actually asks for.

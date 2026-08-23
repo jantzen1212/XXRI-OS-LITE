@@ -1,0 +1,66 @@
+=== icon-qa pages=home,cat:graphics clean=1 audit=1
+/dev/sda                  1.9G    344.2M      1.4G  19% /
+cache wiped
+dhcp 0s
+catalog=182932
+ICON firefox real=1 bytes=13513
+ICON telegram-desktop real=1 bytes=20473
+ICON abiword real=1 bytes=3702
+ICON gnumeric real=1 bytes=2712
+ICON libreoffice real=1 bytes=11170
+ICON geany real=1 bytes=32929
+ICON gimp real=1 bytes=29410
+ICON mtpaint real=1 bytes=1972
+ICON audacity real=1 bytes=8678
+ICON vlc real=1 bytes=54221
+ICON dosbox real=1 bytes=1423
+ICON qemu real=1 bytes=31609
+ICON transmission real=1 bytes=104102
+ICON filezilla real=1 bytes=3489
+ICON remmina real=1 bytes=22982
+ICON xchat real=1 bytes=3144
+ICON seamonkey real=1 bytes=8421
+ICON thunderbird real=1 bytes=32928
+ICON claws-mail real=1 bytes=4589
+ICON firefox-esr real=1 bytes=13513
+ICON pcmanfm real=1 bytes=8521
+ICON leafpad real=1 bytes=1117
+ICON evince real=1 bytes=7482
+ICON mupdf real=1 bytes=2999
+ICON 7zip real=1 bytes=1417
+ICON brasero real=1 bytes=65564
+ICON boinc real=1 bytes=2341
+ICON cmake real=1 bytes=683
+ICON blender real=1 bytes=2976
+ICON virtualbox real=1 bytes=2192
+ICON inkscape real=1 bytes=37448
+ICON code-oss real=1 bytes=2721
+ICON obs-studio real=1 bytes=45887
+ICON musescore real=1 bytes=2854
+ICON kdenlive real=1 bytes=2468
+ICON krita real=1 bytes=9775
+ICON mpv real=1 bytes=22984
+ICON handbrake real=1 bytes=80949
+ICON chromium real=1 bytes=1810
+ICON discord real=1 bytes=779
+ICON signal-desktop real=1 bytes=5637
+ICON scummvm real=1 bytes=27900
+ICON double-commander real=1 bytes=8391
+ICON peazip real=1 bytes=1321
+ICON gparted real=1 bytes=46622
+ICON wireshark real=1 bytes=3324
+ICON qbittorrent real=1 bytes=1536
+ICON ghostscript real=1 bytes=36365
+ICON okular real=1 bytes=11390
+ICON onlyoffice real=1 bytes=1476
+ICON tigervnc real=1 bytes=14073
+ICON keepassxc real=1 bytes=6913
+ICON supertuxkart real=1 bytes=6773
+ICON wesnoth real=1 bytes=85972
+ICON midori real=1 bytes=1411
+ICON wps-office real=1 bytes=985
+ICON emacs real=1 bytes=13359
+=== AUDIT real=57 tile=0 bad:
+SHOTREADY home
+SHOTREADY cat:graphics
+SHOTS_DONE
