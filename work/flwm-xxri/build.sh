@@ -7,6 +7,15 @@
 #   -DXXRI     XXRI titlebar geometry, palette, controls and title font
 # Headers come from TC's fltk-1.3-dev.tcz; the link is against the TARGET's own
 # libfltk 1.3 / libX11, exactly like xxri-installer and xxri-settings.
+# Install to BOTH trees when you rebuild:
+#   rootfs/usr/local/bin/flwm            - the live ISO (extensions load with
+#                                          `cp -ai`, so a file already in the
+#                                          initrd wins over flwm.tcz)
+#   rootfs-overrides/usr/local/bin/flwm  - the installed image (step 2 unsquashes
+#                                          flwm.tcz OVER rootfs, step 2b restores
+#                                          the override afterwards)
+# Shipping it in only one of them leaves the other session with Tiny Core's
+# rotated left-side titlebar.
 set -e
 SYS="${1:?usage: build.sh SYSROOT [OUT]}"; OUT="${2:-flwm-xxri}"
 HERE=$(cd "$(dirname "$0")" && pwd)

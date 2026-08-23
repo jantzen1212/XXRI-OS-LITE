@@ -1,0 +1,20 @@
+=== ui-qa scenes=tools
+dhcp 0s; XSERVER=xorg; res=1024x768
+wm: flwm-running  dock: wbar-running
+MODES: 1280x800 1920x1080 1600x1200 1680x1050 1400x1050 1280x1024 1440x900 1280x960 1360x768 1280x768 1024x768 800x600 640x480 
+OUTPUT: Virtual-1 primary
+GEOM tools
+                                                 666x430+358+260
+  "Untitled":                                    660x400+3+26
+                                                 1x1+0+0
+                                                 730x394+0+0
+  "XXRI Terminal":                               724x364+3+26
+                                                 1x1+0+0
+                                                 724x365+0+0
+  "xxri-control-center":                         142x38+864+710
+                                                 1x1+-1+-1
+  "xxri-control-center":                         10x10+10+10
+                                                 5x5+-200+-200
+                                                 1x1+0+0
+SHOTREADY tools
+SHOTS_DONE
