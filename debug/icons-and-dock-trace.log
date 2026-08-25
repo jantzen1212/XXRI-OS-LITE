@@ -1,0 +1,44 @@
+=== PROBLEM 1: ICONS ===
+  firefox
+    icon_url : https://github.com/mozilla/gecko-dev/raw/master/browser/branding/official/default128.png
+  telegram-desktop
+    icon_url : https://github.com/telegramdesktop/tdesktop/raw/dev/Telegram/Resources/art/icon256.png
+  blender
+    icon_url : https://raw.githubusercontent.com/blender/blender/main/release/freedesktop/icons/scalable/apps/blender.svg
+  code-oss
+    icon_url : https://raw.githubusercontent.com/microsoft/vscode/main/resources/linux/code.png
+  musescore
+    icon_url : https://raw.githubusercontent.com/musescore/MuseScore/master/share/icons/mscore.png
+  gimp
+    icon_url : <none>
+  --- cache after fetch ---
+    firefox: 13513 bytes  magic=89504e470d0a1a0a
+    telegram-desktop: 20473 bytes  magic=89504e470d0a1a0a
+    blender: 2976 bytes  magic=3c73766720786d6c
+    code-oss: 2721 bytes  magic=89504e470d0a1a0a
+    musescore: NOT CACHED
+    gimp: NOT CACHED
+
+=== PROBLEM 2: DOCK AFTER INSTALL ===
+  dock entries before: 0
+  DISPLAY seen by installer: :0.0
+  install result: OK:telegram-desktop
+  registry      : ID=telegram-desktop NAME=Telegram Desktop FILE=/opt/xxri/telegram-desktop/Telegram/Telegram VERSION=2.4.4 ICON=/usr/local/share/pixmaps/xxri-app-telegram-desktop.png DESKTOP=/usr/local/share/applicati
+  .desktop      : EXISTS
+      [Desktop Entry]
+      Name=Telegram Desktop
+      Exec=xxri-app launch telegram-desktop
+      Type=Application
+      Icon=xxri-app-telegram-desktop
+      X-FullPathIcon=/usr/local/share/pixmaps/xxri-app-telegram-desktop.png
+      Terminal=false
+      Categories=Utility;
+  dock entries after : 1
+  dock triplet:
+      i: /usr/local/share/pixmaps/xxri-app-telegram-desktop.png
+      t: Telegram Desktop
+      c: exec xxri-app launch telegram-desktop
+  wbar running: yes
+
+=== launch the installed app ===
+  process alive: 2

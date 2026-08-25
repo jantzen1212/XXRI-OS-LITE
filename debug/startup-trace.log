@@ -1,0 +1,10 @@
+LOAD_CATALOG repo=/home/xxri/.cache/xxri-store catalog=/home/xxri/.cache/xxri-store/i686.json exists=0
+PARSE_FAILED could not read /home/xxri/.cache/xxri-store/i686.json
+REPO_AVAILABLE=0 MODEL_APPS=0
+REFRESH_STARTED cmd=xxri-store status > '/home/xxri/.cache/xxri-store/status.json' 2>/dev/null; xxri-store refresh > '/home/xxri/.cache/xxri-store/refresh.log' 2>&1; xxri-store status > '/home/xxri/.cache/xxri-store/status.json' 2>/dev/null; touch '/home/xxri/.cache/xxri-store/startup.done'
+REFRESH_DONE marker seen after 2 polls
+REFRESH_GOT=1 (log=see refresh.log)
+LOAD_CATALOG repo=/home/xxri/.cache/xxri-store catalog=/home/xxri/.cache/xxri-store/i686.json exists=1
+PARSED size=168549 apps=57 schema=3.0 updated=2026-08-06
+REPO_AVAILABLE=1 MODEL_APPS=57
+RELOADED apps=57 available=1
