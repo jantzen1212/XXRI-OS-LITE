@@ -82,6 +82,11 @@ class Frame : public Fl_Window {
   int restore_x, restore_w; // saved size when min/max width is set
   int restore_y, restore_h; // saved size when max height is set
 #ifdef XXRI
+  // Size the corner mask was last built for, so it is rebuilt only on a real
+  // geometry change rather than on every expose.
+  int shaped_w, shaped_h;
+#endif
+#ifdef XXRI
   // XXRI has ONE maximize control covering both axes, so it keeps its own
   // restore rectangle instead of the per-axis ones the stock buttons use.
   int xxri_maxed, xxri_rx, xxri_ry, xxri_rw, xxri_rh;

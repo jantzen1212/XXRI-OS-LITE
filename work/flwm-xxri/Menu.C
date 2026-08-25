@@ -66,6 +66,29 @@ frame_label_draw(const Fl_Label* o, int X, int Y, int W, int H, Fl_Align align)
 {
   Frame* f = (Frame*)(o->value);
   if (window_deleted(f)) return;
+#ifdef XXRI
+  // Stock flwm draws a little map of the screen here with a black rectangle per
+  // window.  At this size that reads as grubby black boxes rather than as
+  // information, so XXRI draws one small state glyph instead: a filled rounded
+  // square for a window that is on screen, an outlined one for a window the
+  // user has minimised.  Same information, and it belongs to the palette.
+  {
+    const int g = 9;
+    const int gx = X + (MENU_ICON_W - g)/2, gy = Y + (MENU_ICON_H - g)/2;
+    const int iconic = (f->state() == ICONIC);
+    Fl_Color accent = fl_rgb_color(0x83, 0x71, 0xF7);
+    fl_color(accent);
+    if (iconic) {
+      fl_rect(gx, gy, g, g);
+      fl_color(fl_color_average(accent, FL_WHITE, 0.25));
+      fl_rectf(gx+2, gy+2, g-4, g-4);
+    } else {
+      fl_rectf(gx, gy, g, g);
+      fl_color(fl_color_average(accent, FL_WHITE, 0.55));
+      fl_xyline(gx+1, gy+1, gx+g-2);        // a title strip, so it reads as a window
+    }
+  }
+#else
   fl_draw_box(FL_THIN_DOWN_BOX, X, Y, MENU_ICON_W, MENU_ICON_H, FL_GRAY);
   for (Frame* c = Frame::first; c; c = c->next) {
     if (c->state() != UNMAPPED && (c==f || c->is_transient_for(f))) {
@@ -88,6 +111,7 @@ frame_label_draw(const Fl_Label* o, int X, int Y, int W, int H, Fl_Align align)
 	fl_rectf(X+x+SCREEN_DX, Y+y+SCREEN_DX, w, h);
     }
   }
+#endif
   fl_font(o->font, TitleFontSz); // o->size);
   fl_color((Fl_Color)o->color);
   const char* l = f->label(); if (!l) l = "unnamed";
@@ -115,7 +139,11 @@ frame_label_measure(const Fl_Label* o, int& W, int& H)
   fl_measure(l, W, H);
   W += MENU_ICON_W+3;
   if (W > MAX_MENU_WIDTH) W = MAX_MENU_WIDTH;
+#ifdef XXRI
+  if (H < XXRI_MENU_ROW_H) H = XXRI_MENU_ROW_H;
+#else
   if (H < MENU_ICON_H) H = MENU_ICON_H;
+#endif
 }
 
 // This labeltype is used for non-frame items so the text can line
@@ -136,7 +164,11 @@ label_measure(const Fl_Label* o, int& W, int& H)
   fl_measure(o->value, W, H);
   W += MENU_ICON_W+3;
   if (W > MAX_MENU_WIDTH) W = MAX_MENU_WIDTH;
+#ifdef XXRI
+  if (H < XXRI_MENU_ROW_H) H = XXRI_MENU_ROW_H;
+#else
   if (H < MENU_ICON_H) H = MENU_ICON_H;
+#endif
 }
 
 #define FRAME_LABEL FL_FREE_LABELTYPE
@@ -229,10 +261,25 @@ exit_cb(Fl_Widget*, void*)
 static void
 logout_cb(Fl_Widget*, void*)
 {
-  int pid=0;
-  if (( pid=fork()) == 0) {
-    execlp("exittc","exittc", NULL);
+#ifdef XXRI
+  // XXRI owns the session-end experience: exittc is Tiny Core's own dialog and
+  // must never surface on this desktop.
+  const char* prog = "xxri-power-menu";
+#else
+  const char* prog = "exittc";
+#endif
+  // Double-fork like spawn_cb, so no zombie is left behind, and _exit() on a
+  // failed exec - without it the child carried on running the window manager's
+  // event loop as a second copy of flwm.
+  if (fork() == 0) {
+    if (fork() == 0) {
+      close(ConnectionNumber(fl_display));
+      execlp(prog, prog, (void*)0);
+      _exit(1);
+    }
+    _exit(0);
   }
+  wait((int *) 0);
 }
 
 ////////////////////////////////////////////////////////////////
@@ -270,10 +317,16 @@ static Fl_Menu_Item other_menu_items[] = {
 #if XTERM_MENU_ITEM
   {"New xterm", 0, spawn_cb, (void*)xtermname, 0, 0, 0, MENU_FONT_SIZE},
 #endif
-#if DESKTOPS
+#if DESKTOPS && !defined(XXRI)
+  // XXRI has no multiple-desktop concept in its design language, so the item
+  // that creates one does not belong on its desktop menu.
   {"New desktop", 0, new_desktop_cb, 0, 0, 0, 0, MENU_FONT_SIZE},
 #endif
+#ifdef XXRI
+  {"Power", 0, logout_cb, 0, 0, 0, 0, MENU_FONT_SIZE},
+#else
   {"Exit", 0, logout_cb, 0, 0, 0, 0, MENU_FONT_SIZE},
+#endif
   {0}};
 #define num_other_items (sizeof(other_menu_items)/sizeof(Fl_Menu_Item))
 
@@ -451,7 +504,17 @@ ShowTabMenu(int tab)
 #if WMX_MENU_ITEMS
   load_wmx();
   if (num_wmx) {
+#if XTERM_MENU_ITEM
+    // The built-in "New xterm" item is dropped when there are wmx items, so
+    // the count drops with it.  This MUST stay tied to XTERM_MENU_ITEM: the
+    // matching memcpy at the bottom of this function is compiled out when the
+    // item does not exist, so subtracting unconditionally sized the array one
+    // Fl_Menu_Item too small and the terminator was written off the end of the
+    // heap block.  XXRI turns XTERM_MENU_ITEM off (the dock owns the
+    // terminal), which made the desktop menu corrupt the heap and abort the
+    // window manager the first time it was opened with a populated ~/.wmx.
     n -= 1; // delete "new xterm"
+#endif
     // add wmx items
     int	level = 0;
     for (int i=0; i<num_wmx; i++) {
@@ -503,11 +566,20 @@ ShowTabMenu(int tab)
   }
 #endif
 
-  if (n > arraysize) {
+  // Belt and braces: the count above and the fill below are two separate
+  // walks over the same data, and a mismatch between them is a heap overwrite
+  // that kills the whole desktop rather than a cosmetic glitch.  Carry a few
+  // spare slots so a future miscount costs a couple of hundred wasted bytes
+  // instead of the window manager, and remember the real capacity so the fill
+  // can be clamped to it.
+  const int slack = 8;
+  if (n + slack > arraysize) {
     delete[] menu;
-    menu = new Fl_Menu_Item[arraysize = n];
-    memset(menu, 0, n * sizeof(Fl_Menu_Item));
+    arraysize = n + slack;
+    menu = new Fl_Menu_Item[arraysize];
   }
+  memset(menu, 0, arraysize * sizeof(Fl_Menu_Item));
+  const int menu_cap = arraysize;
 
   // build the menu:
   n = 0;
@@ -615,15 +687,22 @@ ShowTabMenu(int tab)
       n++;
     }
   }
+#endif // WMX_MENU_ITEMS
 
-  // put the fixed menu items at the bottom:
-#if XTERM_MENU_ITEM
-  if (num_wmx) // if wmx commands, delete the built-in xterm item:
-    memcpy(menu+n, other_menu_items+1, sizeof(other_menu_items)-sizeof(Fl_Menu_Item));
-  else
+  // Put the fixed menu items at the bottom.  One copy, one place, so the
+  // number of items appended can never disagree with the number counted.
+  const Fl_Menu_Item* tail = other_menu_items;
+  int tailn = (int)num_other_items;
+#if WMX_MENU_ITEMS && XTERM_MENU_ITEM
+  if (num_wmx) { tail++; tailn--; } // wmx items replace the built-in xterm one
 #endif
-#endif
-    memcpy(menu+n, other_menu_items, sizeof(other_menu_items));
+  if (n + tailn > menu_cap) {   // never write past the end of the block
+    fprintf(stderr, "flwm: menu needs %d slots, has %d - truncating\n",
+            n + tailn, menu_cap);
+    n = menu_cap - tailn;
+    if (n < 0) n = 0;
+  }
+  memcpy(menu+n, tail, tailn * sizeof(Fl_Menu_Item));
 #if DESKTOPS
   if (one_desktop)
 #endif

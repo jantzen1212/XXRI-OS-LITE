@@ -229,3 +229,21 @@ levelbar trough { background-color: #E3DFF2; border-radius: 999px; min-height: 1
 .xxri-seg { background-color: #FFFFFF; border-radius: 999px; border: 1px solid @xxri_border; padding: 3px; }
 .xxri-seg button { box-shadow: none; border: none; background-image: none; background-color: transparent; color: @xxri_muted; }
 .xxri-seg button:checked { background-color: alpha(#8371F7,0.14); color: @xxri_ink; }
+
+/* ---- real transparency (only when a compositing manager is running) ----
+   The window itself stops painting a background, the content pane keeps an
+   opaque one so text stays readable, and the sidebar becomes a translucent
+   layer of the window - which is how the mockup draws it. */
+.xxri-root.composited { background-color: transparent; }
+.xxri-root.composited .xxri-content { background-color: @xxri_surface; }
+.xxri-root.composited .xxri-sidebar {
+  background-image: linear-gradient(to bottom,
+                    alpha(#E9E4F6, 0.85), alpha(#F3EFFB, 0.80));
+}
+
+/* the control cluster's own row: no surface of its own, it is part of the
+   sidebar it sits in */
+.xxri-chrome-row { background-color: transparent; }
+.xxri-chrome-row > * { background-color: transparent; }
+/* the controls sit in from the corner the way the mockup places them */
+.xxri-chrome-row { padding: 9px 0 2px 11px; }

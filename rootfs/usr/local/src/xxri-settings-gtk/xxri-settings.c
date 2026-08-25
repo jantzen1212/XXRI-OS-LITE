@@ -8,6 +8,7 @@
  * inspired, unmistakably XXRI).
  */
 #include <gtk/gtk.h>
+#include "xxri-chrome.h"
 #include <cairo.h>
 #include <string.h>
 #include <stdlib.h>
@@ -864,9 +865,16 @@ static GtkWidget* build_page_content(const char* id) {
     else if (!strcmp(id,"general"))   build_general(col);
     else if (!strcmp(id,"update"))    build_update(col);
     else if (!strcmp(id,"about"))     build_about(col);
-    /* center the column horizontally, capped width */
+    /* The column FILLS the content pane rather than being centred in it.
+     *
+     * With GTK_ALIGN_CENTER this box took only the column's natural width and
+     * sat in the middle of the pane, leaving a band of bare surface colour down
+     * both sides.  That band is what made the Settings UI look like it was
+     * floating inside a larger white window instead of being the window.  The
+     * column's own 32px margins still provide the page's breathing room; the
+     * 600px size request is now just a minimum. */
     GtkWidget* center = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
-    gtk_widget_set_halign(center, GTK_ALIGN_CENTER);
+    gtk_widget_set_halign(center, GTK_ALIGN_FILL);
     gtk_box_pack_start(GTK_BOX(center), col, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(outer), center, TRUE, TRUE, 0);
     gtk_container_add(GTK_CONTAINER(scr), outer);
@@ -909,21 +917,53 @@ static void activate(GtkApplication* app, gpointer u) {
     gtk_window_set_title(GTK_WINDOW(g_win), "XXRI Settings");
     gtk_window_set_default_size(GTK_WINDOW(g_win), 980, 660);
     css(g_win, "xxri-root");
+    /* The mockup's sidebar is a translucent layer of the window, not an opaque
+     * slab beside the content.  With the XXRI compositor running the window can
+     * have a real alpha channel, so the sidebar is simply painted with alpha and
+     * the desktop shows through it; the content pane stays fully opaque so text
+     * never has to compete with the wallpaper.  The class is what the stylesheet
+     * keys the translucent sidebar off, so without a compositor nothing
+     * changes and the sidebar stays solid. */
+    {
+        GdkScreen* sc0 = gtk_widget_get_screen(g_win);
+        GdkVisual* rgba = gdk_screen_get_rgba_visual(sc0);
+        if (rgba && gdk_screen_is_composited(sc0)) {
+            gtk_widget_set_visual(g_win, rgba);
+            css(g_win, "composited");
+        }
+    }
 
     GtkWidget* hb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_container_add(GTK_CONTAINER(g_win), hb);
 
     /* ---- sidebar ---- */
     GtkWidget* side = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     css(side, "xxri-sidebar");
     gtk_widget_set_size_request(side, 250, -1);
-    /* header */
+
+    /* Window controls, INSIDE the sidebar, above the title - the composition the
+       mockup draws.  There is no titlebar above this window: the sidebar itself
+       runs to the top edge, so its translucency reaches the top of the window
+       instead of being cut off by an opaque strip. */
+    XxriChrome* chrome = xxri_chrome_new(g_win);
+    /* invisible resize edges - no border, no padding, no visual change */
+    gtk_container_add(GTK_CONTAINER(g_win), xxri_chrome_resizable(chrome, hb));
+    GtkWidget* crow = gtk_event_box_new();
+    gtk_event_box_set_visible_window(GTK_EVENT_BOX(crow), TRUE);
+    css(crow, "xxri-chrome-row");
+    gtk_container_add(GTK_CONTAINER(crow), xxri_chrome_controls(chrome));
+    xxri_chrome_drag_area(chrome, crow);
+    gtk_box_pack_start(GTK_BOX(side), crow, FALSE, FALSE, 0);
+
+    /* header - also a drag handle, since there is no titlebar to grab */
+    GtkWidget* hdrbox = gtk_event_box_new();
+    gtk_event_box_set_visible_window(GTK_EVENT_BOX(hdrbox), TRUE);
+    css(hdrbox, "xxri-chrome-row");
+    xxri_chrome_drag_area(chrome, hdrbox);
     GtkWidget* hdr = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8); css(hdr,"xxri-sidebar-header");
     GtkWidget* stitle = label_cls("Settings","xxri-sidebar-title",0);
     gtk_box_pack_start(GTK_BOX(hdr), stitle, TRUE, TRUE, 0);
-    GtkWidget* srch = img("wifi",22); /* placeholder search glyph unused */
-    (void)srch;
-    gtk_box_pack_start(GTK_BOX(side), hdr, FALSE, FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(hdrbox), hdr);
+    gtk_box_pack_start(GTK_BOX(side), hdrbox, FALSE, FALSE, 0);
     /* user chip */
     GtkWidget* chip = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10); css(chip,"xxri-userchip");
     GtkWidget* cv=gtk_box_new(GTK_ORIENTATION_VERTICAL,1);

@@ -199,6 +199,7 @@ extern float sf; //scale factor from Xft.dpi
 
 // size of the little pictures in the menu:
 #define MENU_ICON_W 18
+#define XXRI_MENU_ROW_H 22
 #define MENU_ICON_H 15
 
 // font to use in menus (if not set helvetica is used):
@@ -238,12 +239,15 @@ extern float sf; //scale factor from Xft.dpi
 // The control cluster: hit area per control, inset before the first one, and
 // the gap between the cluster and the window title.
 #define XXRI_BTN_W      15
-#define XXRI_BTN_PAD     8
-#define XXRI_LABEL_GAP   6
+#define XXRI_BTN_PAD    10
+#define XXRI_LABEL_GAP   9
 #define XXRI_GLYPH_R     5   // half-size of the drawn triangle/square/circle
 
 // Palette (Phase 4 design system + the control hues sampled from the mockup).
-#define XXRI_BAR_ACTIVE    0xFAF9FE
+// The active bar is a shallow top-to-bottom ramp: BAR_TOP at the top edge down
+// to BAR_ACTIVE at the hairline.
+#define XXRI_BAR_TOP       0xFFFFFF
+#define XXRI_BAR_ACTIVE    0xF6F4FC
 #define XXRI_BAR_INACTIVE  0xE9E6F3
 #define XXRI_HAIRLINE      0xE3DFF2
 #define XXRI_BORDER        0xD9D4EC
@@ -264,7 +268,13 @@ extern float sf; //scale factor from Xft.dpi
 #undef  XTERM_MENU_ITEM
 #define XTERM_MENU_ITEM 0
 #define XXRI_MENU_BG    0xFFFFFF
+#define XXRI_MENU_BORDER 0xE3DFF2
 #define XXRI_MENU_SEL   0x8371F7
+
+// Corner radius for the window shape mask.  The mask is one-bit, so this is a
+// compromise: large enough to read as a rounded corner, small enough that the
+// unavoidable stepping is not obvious.
+#define XXRI_CORNER_R 9
 
 // A maximized window stops above the dock instead of hiding behind it.
 // Overridable at runtime with XXRI_DOCK_RESERVE so the session can pass the

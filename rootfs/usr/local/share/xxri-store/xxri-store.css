@@ -325,3 +325,33 @@ button.xxri-linkbtn:hover { color: @xxri_pink; }
 /* ---- misc ---- */
 .xxri-hint.warn { background-color: alpha(#F06A8E,0.08); border-color: alpha(#F06A8E,0.24); }
 combobox button { font-weight: normal; font-size: 11.5px; padding: 5px 10px; }
+
+/* ---- real transparency (only when a compositing manager is running) ----
+   Same rule as Settings, so the two system applications are made of the same
+   material: the window stops painting a background, the content pane keeps an
+   opaque one, and the rail becomes a translucent layer of the window. */
+.xxri-root.composited { background-color: transparent; }
+.xxri-root.composited .xxri-content { background-color: @xxri_surface; }
+.xxri-root.composited .xxri-sidebar,
+.xxri-root.composited .xxri-rail-col {
+  /* .xxri-rail-col is the Store's icon rail.  It was missing from this rule,
+     so the rail kept its opaque gradient and was never actually translucent -
+     only the window background behind it was. */
+  background-image: linear-gradient(to bottom,
+                    alpha(#E9E4F6, 0.85), alpha(#F3EFFB, 0.80));
+}
+
+/* the control cluster's row: part of the rail it sits in, no surface of its own */
+.xxri-chrome-row { background-color: transparent; padding: 9px 0 2px 9px; }
+.xxri-chrome-row > * { background-color: transparent; }
+
+/* the toolbar row: opaque, so the wordmark and search never sit on wallpaper */
+.xxri-headbox { background-color: @xxri_surface; }
+/* When composited, the box behind the toolbar paints NOTHING: .xxri-header's
+   own alpha(#FFFFFF,0.72) is the toolbar's glass, and an opaque box behind it
+   simply cancelled it out - which is what made the Store look like its
+   transparency had been lost. */
+.xxri-root.composited .xxri-headbox { background-color: transparent; }
+
+/* wrapper that holds the window controls above the icon rail - no surface */
+.xxri-railcol { background-color: transparent; }

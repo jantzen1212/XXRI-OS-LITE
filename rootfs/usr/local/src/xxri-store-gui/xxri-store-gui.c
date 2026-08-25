@@ -11,6 +11,7 @@
  * header, hero banners, section rails of app tiles.
  */
 #include <gtk/gtk.h>
+#include "xxri-chrome.h"
 #include <cairo.h>
 #include <string.h>
 #include <stdlib.h>
@@ -1036,6 +1037,44 @@ static GtkWidget* lazy_grid(GPtrArray* apps){
 /* -------------------------------------------------------- section rail --- */
 /* a horizontal row of tiles, like the mockup's "Recomended apps" */
 static void on_seeall(GtkWidget* w,gpointer p){ (void)w; open_page((char*)p); }
+/* A rail scrolls horizontally with no visible scrollbar, so the last card is
+   simply chopped off at the window edge and the row reads as broken rather than
+   as continuing.  Painting a short fade to the page background over the right
+   edge turns that hard cut into an obvious "there is more this way", which is
+   what every shelf UI does and what the mockup implies. */
+static gboolean rail_fade_draw(GtkWidget* w, cairo_t* cr, gpointer d){
+    (void)d;
+    GtkAdjustment* adj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(w));
+    if (!adj) return FALSE;
+    double lo = gtk_adjustment_get_value(adj);
+    double page = gtk_adjustment_get_page_size(adj);
+    double upper = gtk_adjustment_get_upper(adj);
+    int ww = gtk_widget_get_allocated_width(w);
+    int wh = gtk_widget_get_allocated_height(w);
+    const double FADE = 34.0;
+    /* the page background the rails sit on: @xxri_surface, #EFEDF8 */
+    const double R = 239/255.0, G = 237/255.0, B = 248/255.0;
+    if (upper - (lo + page) > 1.0) {            /* something is off the right */
+        cairo_pattern_t* p = cairo_pattern_create_linear(ww - FADE, 0, ww, 0);
+        cairo_pattern_add_color_stop_rgba(p, 0.0, R, G, B, 0.0);
+        cairo_pattern_add_color_stop_rgba(p, 1.0, R, G, B, 1.0);
+        cairo_set_source(cr, p);
+        cairo_rectangle(cr, ww - FADE, 0, FADE, wh);
+        cairo_fill(cr);
+        cairo_pattern_destroy(p);
+    }
+    if (lo > 1.0) {                              /* and to the left once scrolled */
+        cairo_pattern_t* p = cairo_pattern_create_linear(FADE, 0, 0, 0);
+        cairo_pattern_add_color_stop_rgba(p, 0.0, R, G, B, 0.0);
+        cairo_pattern_add_color_stop_rgba(p, 1.0, R, G, B, 1.0);
+        cairo_set_source(cr, p);
+        cairo_rectangle(cr, 0, 0, FADE, wh);
+        cairo_fill(cr);
+        cairo_pattern_destroy(p);
+    }
+    return FALSE;
+}
+
 static void section_rail(GtkWidget* box,const char* title,GPtrArray* apps,const char* seeall){
     if (!apps || !apps->len) return;
     GtkWidget* hdr=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);
@@ -1054,6 +1093,8 @@ static void section_rail(GtkWidget* box,const char* title,GPtrArray* apps,const 
        with the wheel and by dragging, and "See all" opens the full list. */
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_EXTERNAL,GTK_POLICY_NEVER);
     gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sc),TRUE);
+    /* after the children, so the fade lies on top of the cards */
+    g_signal_connect_after(sc,"draw",G_CALLBACK(rail_fade_draw),NULL);
     css(sc,"xxri-rail");
     GtkWidget* row=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10);
     int shown=0;
@@ -1163,6 +1204,7 @@ static void build_home(GtkWidget* box){
         GtkWidget* sc=gtk_scrolled_window_new(NULL,NULL);
         gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_EXTERNAL,GTK_POLICY_NEVER);
         gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sc),TRUE);
+        g_signal_connect_after(sc,"draw",G_CALLBACK(rail_fade_draw),NULL);
         css(sc,"xxri-rail");
         GtkWidget* row=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,12);
         int shown=0;
@@ -2149,22 +2191,30 @@ static void on_search_changed(GtkWidget* w,gpointer u){ (void)w;(void)u;
 }
 static void update_status_chip(void){
     if (!g_status_chip) return;
-    char t[200];
+    char t[200], tip[240];
+    /* The chip has room for about forty characters at 1024px, and the old text
+       was longer than that: it ellipsised in the middle of the date, so the
+       date AND the architecture were both lost and the pill just looked
+       unfinished.  The chip now carries only what it needs to say - reachable
+       or not, and which repository - and the full detail lives in its tooltip. */
     if (!g_repo_available) {
-        /* No catalog at all: the repository could not be reached and nothing
-           was ever cached.  Say so plainly rather than showing an empty store. */
         snprintf(t,sizeof t,"Repository unavailable");
+        snprintf(tip,sizeof tip,"Could not reach repo.xxri.flows.best, and no catalog is cached.\nArchitecture: %s", g_arch);
     } else if (g_repo_offline) {
-        snprintf(t,sizeof t,"Repository unavailable \xc2\xb7 cached catalog%s%s",
-                 (g_repo_updated&&*g_repo_updated)?" \xc2\xb7 ":"",
-                 (g_repo_updated&&*g_repo_updated)?g_repo_updated:"");
+        snprintf(t,sizeof t,"Offline \xc2\xb7 cached catalog");
+        snprintf(tip,sizeof tip,"Could not reach repo.xxri.flows.best; showing the catalog cached%s%s.\nArchitecture: %s",
+                 (g_repo_updated&&*g_repo_updated)?" on ":"",
+                 (g_repo_updated&&*g_repo_updated)?g_repo_updated:"",
+                 g_arch);
     } else {
-        snprintf(t,sizeof t,"Online \xc2\xb7 repo.xxri.flows.best%s%s \xc2\xb7 %s",
-                 (g_repo_updated&&*g_repo_updated)?" \xc2\xb7 ":"",
+        snprintf(t,sizeof t,"Online \xc2\xb7 repo.xxri.flows.best");
+        snprintf(tip,sizeof tip,"Catalog last updated%s%s.\nArchitecture: %s",
+                 (g_repo_updated&&*g_repo_updated)?" ":" \xe2\x80\x94 unknown",
                  (g_repo_updated&&*g_repo_updated)?g_repo_updated:"",
                  g_arch);
     }
     gtk_label_set_text(GTK_LABEL(g_status_chip),t);
+    gtk_widget_set_tooltip_text(g_status_chip,tip);
     GtkStyleContext* sc=gtk_widget_get_style_context(g_status_chip);
     if (g_repo_available && !g_repo_offline) gtk_style_context_remove_class(sc,"off");
     else gtk_style_context_add_class(sc,"off");
@@ -2269,18 +2319,51 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     if (H>720) H=720;  if (H<560) H=560;
     gtk_window_set_default_size(GTK_WINDOW(g_win),W,H);
     css(g_win,"xxri-root");
+    /* Real alpha when the XXRI compositor is running - see the matching block
+       in xxri-settings.  Without a compositor nothing changes. */
+    {
+        GdkScreen* sc0 = gtk_widget_get_screen(g_win);
+        GdkVisual* rgba = gdk_screen_get_rgba_visual(sc0);
+        if (rgba && gdk_screen_is_composited(sc0)) {
+            gtk_widget_set_visual(g_win, rgba);
+            css(g_win, "composited");
+        }
+    }
 
     GtkWidget* hb=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
     gtk_container_add(GTK_CONTAINER(g_win),hb);
+    /* The Store's composition is not the Settings one: a NARROW icon rail on the
+       left with the window controls at its top, and a HORIZONTAL header beside
+       it carrying the wordmark and search.  The mockups use both arrangements
+       deliberately, so this keeps its own. */
+    XxriChrome* chrome = xxri_chrome_new(g_win);
+    GtkWidget* railcol = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    /* No background class here: the rail inside it paints its own surface, and
+       giving this wrapper one too stacked a second gradient on top of it. */
+    css(railcol, "xxri-railcol");
+    GtkWidget* crow = gtk_event_box_new();
+    gtk_event_box_set_visible_window(GTK_EVENT_BOX(crow), TRUE);
+    css(crow, "xxri-chrome-row");
+    gtk_container_add(GTK_CONTAINER(crow), xxri_chrome_controls(chrome));
+    xxri_chrome_drag_area(chrome, crow);
+    gtk_box_pack_start(GTK_BOX(railcol), crow, FALSE, FALSE, 0);
     g_rail=build_rail();
-    gtk_box_pack_start(GTK_BOX(hb),g_rail,FALSE,FALSE,0);
+    gtk_box_pack_start(GTK_BOX(railcol), g_rail, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(hb), railcol, FALSE, FALSE, 0);
 
     GtkWidget* right=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);
     gtk_box_pack_start(GTK_BOX(hb),right,TRUE,TRUE,0);
 
     /* header: back, wordmark, search, refresh, status chip */
+    GtkWidget* headbox=gtk_event_box_new();
+    gtk_event_box_set_visible_window(GTK_EVENT_BOX(headbox),TRUE);
+    /* The header is a drag handle, but NOT a transparent one: the mockup draws
+       it as a clean light toolbar.  Only the rail beside it is translucent. */
+    css(headbox,"xxri-headbox");
+    xxri_chrome_drag_area(chrome, headbox);
     GtkWidget* head=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10);
     css(head,"xxri-header");
+    gtk_container_add(GTK_CONTAINER(headbox),head);
     GtkWidget* back=gtk_button_new_with_label("\xe2\x80\xb9");
     css(back,"xxri-backbtn");
     gtk_widget_set_valign(back,GTK_ALIGN_CENTER);
@@ -2333,7 +2416,7 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     gtk_widget_set_tooltip_text(si,"Also show apps built for other CPUs (they can't be installed here)");
     g_signal_connect(si,"toggled",G_CALLBACK(on_toggle_incompat),NULL);
     gtk_box_pack_end(GTK_BOX(head),si,FALSE,FALSE,0);
-    gtk_box_pack_start(GTK_BOX(right),head,FALSE,FALSE,0);
+    gtk_box_pack_start(GTK_BOX(right),headbox,FALSE,FALSE,0);
 
     g_stack=gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(g_stack),GTK_STACK_TRANSITION_TYPE_CROSSFADE);

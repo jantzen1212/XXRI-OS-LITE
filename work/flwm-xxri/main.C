@@ -27,6 +27,7 @@
 
 //ML
 #include <FL/fl_ask.H>
+#include <FL/fl_draw.H>
 #include <signal.h>
 int TitleFontSz = TITLE_FONT_SIZE;
 int TitleSz  = TITLE_FONT_SIZE + 4;
@@ -98,7 +99,20 @@ extern void click_raise(Frame*);
 // fltk calls this for any events it does not understand:
 static int flwm_event_handler(int e) {
 
-  if (Fl::event_key()==FL_Escape) {
+  // Ignore a bare Escape, but ONLY when this really is a keyboard event.
+  //
+  // Fl::event_key() is sticky: it keeps reporting the last key seen, for every
+  // event that follows.  Testing it unconditionally therefore meant that once
+  // the user pressed Escape - dismissing the desktop menu, say - this handler
+  // answered "handled" to EVERYTHING afterwards, including the raw X events it
+  // exists to process: ButtonPress and, worst of all, MapRequest.  With
+  // MapRequest swallowed, an application launched from the dock started but
+  // its window was never mapped, so the dock appeared to do nothing at all,
+  // at random, for the rest of the session.  ALT+Escape stays live because it
+  // is a documented hotkey (Hotkeys.C binds it to the desktop menu).
+  if ((e == FL_KEYBOARD || e == FL_SHORTCUT || e == FL_KEYUP)
+      && Fl::event_key() == FL_Escape
+      && !(Fl::event_state() & FL_ALT)) {
     return 1;
   }
 
@@ -407,6 +421,20 @@ static void color_setup(Fl_Color slot, const char* arg, ulong value) {
   Fl::set_color(slot, value);
 }
 
+#ifdef XXRI
+// A flat popup frame: fill plus a single hairline border.
+static void xxri_menu_frame(int x, int y, int w, int h, Fl_Color) {
+  fl_color(fl_rgb_color((XXRI_MENU_BORDER>>16)&0xff,
+                        (XXRI_MENU_BORDER>>8)&0xff, XXRI_MENU_BORDER&0xff));
+  fl_rect(x, y, w, h);
+}
+static void xxri_menu_box(int x, int y, int w, int h, Fl_Color c) {
+  fl_color(c);
+  fl_rectf(x+1, y+1, w-2, h-2);
+  xxri_menu_frame(x, y, w, h, c);
+}
+#endif
+
 int main(int argc, char** argv) {
   program_name = fl_filename_name(argv[0]);
   int i; if (Fl::args(argc, argv, i, arg) < argc) Fl::error(
@@ -469,6 +497,11 @@ int main(int argc, char** argv) {
   // from the gray RAMP, and only Fl::background() recomputes it.  Without
   // this the desktop menu keeps its stock gray bevels.
   Fl::scheme("gtk+");
+  // The popup's frame: one flat hairline in the XXRI border colour instead of
+  // FLTK's four-tone bevel, so the menu belongs to the same desktop as the
+  // dock and the Control Center rather than to 1995.
+  Fl::set_boxtype(FL_UP_BOX, xxri_menu_box, 1, 1, 2, 2);
+  Fl::set_boxtype(FL_UP_FRAME, xxri_menu_frame, 1, 1, 2, 2);
   Fl::background((XXRI_MENU_BG>>16)&0xff, (XXRI_MENU_BG>>8)&0xff, XXRI_MENU_BG&0xff);
   Fl::background2((XXRI_BAR_ACTIVE>>16)&0xff, (XXRI_BAR_ACTIVE>>8)&0xff, XXRI_BAR_ACTIVE&0xff);
   Fl::foreground((XXRI_INK>>16)&0xff, (XXRI_INK>>8)&0xff, XXRI_INK&0xff);

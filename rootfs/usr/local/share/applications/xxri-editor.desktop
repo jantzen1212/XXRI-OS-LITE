@@ -2,7 +2,7 @@
 Type=Application
 Name=Text Editor
 Comment=Plain text editor
-Exec=editor -scheme gtk+ -bg #EFEDF8 -bg2 #FFFFFF -fg #1C1B24
+Exec=editor
 Icon=editor
 Terminal=false
 Categories=Utility;

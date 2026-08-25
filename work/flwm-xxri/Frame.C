@@ -12,10 +12,20 @@
 
 #include "config.h"
 #include "Frame.H"
+#ifdef XXRI
+#include <X11/extensions/shape.h>
+// defined with the rest of the XXRI decoration code, used by set_size() above it
+static void xxri_round_frame(XWindow win, int width, int height);
+static int  xxri_anim_on();
+static int  xxri_dock_rect(XWindow client, int* rx, int* ry, int* rw, int* rh);
+static void xxri_fly(XWindow win, int x0, int y0, int w0, int h0,
+                     int x1, int y1, int w1, int h1);
+#endif
 #include "Desktop.H"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <FL/fl_draw.H>
 #if FL_API_VERSION >= 10400
 #  if FLTK_USE_CAIRO
@@ -118,6 +128,9 @@ Frame::Frame(XWindow window, XWindowAttributes* existing) :
 #endif
   iconize_button(left,top+4*ButtonSz,ButtonSz,ButtonSz,"i")
 {
+#ifdef XXRI
+  shaped_w = shaped_h = -1;
+#endif
 #ifdef XXRI
   xxri_maxed = 0; xxri_rx = xxri_ry = xxri_rw = xxri_rh = 0;
 #endif
@@ -954,17 +967,55 @@ void Frame::state(short newstate) {
     //XUnmapWindow(fl_display, window_);
     XRemoveFromSaveSet(fl_display, window_);
     break;
-  case NORMAL:
+  case NORMAL: {
     if (oldstate == UNMAPPED) XAddToSaveSet(fl_display, window_);
     if (w() > dwidth) XMapWindow(fl_display, window_);
+#ifdef XXRI
+    // Coming back (or arriving for the first time): start at the dock icon and
+    // grow outwards, so the window is seen to come FROM somewhere.  If the dock
+    // has not published its slots yet - during session start-up, say - there is
+    // no origin to fly from and the window simply appears, which is correct.
+    int dx, dy, dw, dh;
+    // Undecorated windows fly too.  XXRI's own applications draw their chrome
+    // themselves and are therefore NO_BORDER, so excluding those here silently
+    // took the dock flight away from exactly the windows it matters most for.
+    // Matching a dock slot is the real filter: a window with no icon in the
+    // dock has nowhere to fly from.
+    int fly_in = xxri_anim_on() &&
+                 (oldstate == ICONIC || oldstate == UNMAPPED) &&
+                 xxri_dock_rect(window_, &dx, &dy, &dw, &dh);
+    if (fly_in)
+      XMoveResizeWindow(fl_display, fl_xid(this), dx, dy, dw, dh);
     XMapWindow(fl_display, fl_xid(this));
+    if (fly_in) {
+      xxri_fly(fl_xid(this), dx, dy, dw, dh, x(), y(), w(), h());
+      XMoveResizeWindow(fl_display, fl_xid(this), x(), y(), w(), h());
+      xxri_round_frame(fl_xid(this), w(), h());
+    }
+#else
+    XMapWindow(fl_display, fl_xid(this));
+#endif
     clear_state_flag(IGNORE_UNMAP);
-    break;
+    break; }
   default:
     if (oldstate == UNMAPPED) {
       XAddToSaveSet(fl_display, window_);
     } else if (oldstate == NORMAL) {
       throw_focus();
+#ifdef XXRI
+      // Minimising sends the window to its dock icon rather than making it
+      // vanish, which is what tells the user where it went.
+      int dx, dy, dw, dh;
+      if (xxri_anim_on() &&
+          xxri_dock_rect(window_, &dx, &dy, &dw, &dh)) {
+        xxri_fly(fl_xid(this), x(), y(), w(), h(), dx, dy, dw, dh);
+        XUnmapWindow(fl_display, fl_xid(this));
+        // put the frame back where the model thinks it is, so the next map is
+        // not surprised by a dock-sized window
+        XMoveResizeWindow(fl_display, fl_xid(this), x(), y(), w(), h());
+        xxri_round_frame(fl_xid(this), w(), h());
+      } else
+#endif
       XUnmapWindow(fl_display, fl_xid(this));
       //set_state_flag(IGNORE_UNMAP);
       //XUnmapWindow(fl_display, window_);
@@ -1161,6 +1212,10 @@ void Frame::set_size(int nx, int ny, int nw, int nh, int warp) {
   if (nh < 8) nh = 8;
 
   XMoveResizeWindow(fl_display, fl_xid(this), nx, ny, nw, nh);
+#ifdef XXRI
+  xxri_round_frame(fl_xid(this), nw, nh);
+  shaped_w = nw; shaped_h = nh;
+#endif
 #if FL_API_VERSION >= 10400
 #  if FLTK_USE_CAIRO
   make_current();
@@ -1536,6 +1591,120 @@ static void xxri_round_rectf(int X, int Y, int W, int H, int r) {
   fl_pie(X+W-2*r,   Y+H-2*r,   2*r, 2*r, 270, 360);
 }
 
+/* Rounded window corners.
+ *
+ * The mockups draw every window with softly rounded corners, and there is no
+ * compositor here to provide them, so the frame window is clipped with the X
+ * Shape extension instead.  The mask is one-bit - no anti-aliasing is possible
+ * without a compositor - so the radius is kept small enough that the stepping
+ * reads as a curve rather than as a staircase.
+ *
+ * Clipping the FRAME also clips the client inside it, so the application's own
+ * square corners disappear with it.  Set XXRI_SQUARE_CORNERS=1 to turn this off.
+ */
+static void xxri_round_frame(XWindow win, int width, int height) {
+    static int enabled = -1;
+    if (enabled < 0) {
+        int ev, err;
+        const char* off = getenv("XXRI_SQUARE_CORNERS");
+        enabled = (off && *off == '1') ? 0
+                : (XShapeQueryExtension(fl_display, &ev, &err) ? 1 : 0);
+    }
+    if (!enabled || width < 4*XXRI_CORNER_R || height < 4*XXRI_CORNER_R) return;
+    const int r = XXRI_CORNER_R, d = 2*r;
+    Pixmap mask = XCreatePixmap(fl_display, win, width, height, 1);
+    GC gc = XCreateGC(fl_display, mask, 0, NULL);
+    XSetForeground(fl_display, gc, 0);
+    XFillRectangle(fl_display, mask, gc, 0, 0, width, height);
+    XSetForeground(fl_display, gc, 1);
+    XFillRectangle(fl_display, mask, gc, r, 0, width - d, height);
+    XFillRectangle(fl_display, mask, gc, 0, r, width, height - d);
+    XFillArc(fl_display, mask, gc, 0,         0,          d, d, 0, 360*64);
+    XFillArc(fl_display, mask, gc, width - d, 0,          d, d, 0, 360*64);
+    XFillArc(fl_display, mask, gc, 0,         height - d, d, d, 0, 360*64);
+    XFillArc(fl_display, mask, gc, width - d, height - d, d, d, 0, 360*64);
+    XShapeCombineMask(fl_display, win, ShapeBounding, 0, 0, mask, ShapeSet);
+    XFreeGC(fl_display, gc);
+    XFreePixmap(fl_display, mask);
+}
+
+/* ---------------------------------------------------- spatial motion ----
+ * One UI's motion guidance is that a transition should express where a thing
+ * came FROM and where it is going TO, in 100-500ms, decelerating as it lands.
+ * Samsung DeX applies exactly that to a desktop: minimising does not make a
+ * window vanish, it sends the window to its taskbar icon.
+ *
+ * XXRI does the same, and it does it without a compositor.  Only the FRAME is
+ * moved and resized; the client inside is left completely alone, so it is
+ * simply clipped as the frame travels and no application is ever asked to
+ * re-lay-out mid-flight.  That is what keeps this cheap enough to do on a
+ * machine with no graphics acceleration.
+ *
+ * The dock publishes each icon's rectangle on the root window as
+ * _XXRI_DOCK_SLOTS ("key x y w h" per line); xxri-wctl is the only thing that
+ * knows the dock's geometry and this is how it tells us.
+ */
+static int xxri_anim_on() {
+  static int on = -1;
+  if (on < 0) { const char* e = getenv("XXRI_NO_ANIM"); on = (e && *e == '1') ? 0 : 1; }
+  return on;
+}
+
+// Where is this client's dock icon?  0 if it has none (nothing to fly to).
+static int xxri_dock_rect(XWindow client, int* rx, int* ry, int* rw, int* rh) {
+  static Atom slots_atom = None;
+  if (!slots_atom) slots_atom = XInternAtom(fl_display, "_XXRI_DOCK_SLOTS", False);
+  XClassHint ch; ch.res_name = ch.res_class = 0;
+  if (!XGetClassHint(fl_display, client, &ch) || !ch.res_name) {
+    if (ch.res_class) XFree(ch.res_class);
+    return 0;
+  }
+  char inst[128];
+  snprintf(inst, sizeof inst, "%s", ch.res_name);
+  XFree(ch.res_name);
+  if (ch.res_class) XFree(ch.res_class);
+
+  Atom type; int fmt; unsigned long n = 0, after = 0; unsigned char* p = 0;
+  if (XGetWindowProperty(fl_display, RootWindow(fl_display, fl_screen), slots_atom,
+                         0, 4096, False, XA_STRING, &type, &fmt, &n, &after, &p)
+      != Success || !p) return 0;
+  int found = 0;
+  char key[128]; int x, y, w, h;
+  const char* line = (const char*)p;
+  while (*line && !found) {
+    if (sscanf(line, "%127s %d %d %d %d", key, &x, &y, &w, &h) == 5 &&
+        strcasecmp(key, inst) == 0) {
+      *rx = x; *ry = y; *rw = w; *rh = h; found = 1;
+    }
+    const char* nl = strchr(line, '\n');
+    if (!nl) break;
+    line = nl + 1;
+  }
+  XFree(p);
+  return found;
+}
+
+// Decelerating ease, the shape One UI uses for something arriving.
+static double xxri_ease(double t) { double u = 1.0 - t; return 1.0 - u * u * u; }
+
+static void xxri_fly(XWindow win,
+                     int x0, int y0, int w0, int h0,
+                     int x1, int y1, int w1, int h1) {
+  const int steps = 9;                 // ~170ms end to end
+  for (int i = 1; i <= steps; i++) {
+    double e = xxri_ease((double)i / steps);
+    int x = (int)(x0 + (x1 - x0) * e);
+    int y = (int)(y0 + (y1 - y0) * e);
+    int w = (int)(w0 + (w1 - w0) * e);
+    int h = (int)(h0 + (h1 - h0) * e);
+    if (w < 1) w = 1;
+    if (h < 1) h = 1;
+    XMoveResizeWindow(fl_display, win, x, y, w, h);
+    XFlush(fl_display);
+    usleep(19 * 1000);
+  }
+}
+
 int FrameButton::handle(int e) {
   // Stock flwm never repaints a titlebar button on hover; XXRI's controls do.
   if (e == FL_ENTER || e == FL_LEAVE) { redraw(); }
@@ -1547,13 +1716,30 @@ int FrameButton::handle(int e) {
 void Frame::draw() {
   if (flag(NO_BORDER)) return;
   const int W = w(), H = h();
+  /* a frame is mapped before it is ever resized, so the first paint is where
+     the corner mask has to be established */
+  if (W != shaped_w || H != shaped_h) {
+    xxri_round_frame(fl_xid(this), W, H);
+    shaped_w = W; shaped_h = H;
+  }
   const int bar = top;                       // TopSz + TitleSz
   const int act = active();
   labelcolor(xxri_rgb(act ? XXRI_INK : XXRI_INK_MUTED));
 
   if (damage() != FL_DAMAGE_CHILD) {
-    // title bar
-    fl_rectf(0, 0, W, bar, xxri_rgb(act ? XXRI_BAR_ACTIVE : XXRI_BAR_INACTIVE));
+    // Title bar.  A flat fill reads as paper; a very shallow vertical gradient
+    // reads as a surface catching light, which is what the mockups show.  The
+    // range is deliberately tiny - two or three levels - so it never looks like
+    // a nineties gradient titlebar.
+    {
+      Fl_Color top = xxri_rgb(act ? XXRI_BAR_TOP : XXRI_BAR_INACTIVE);
+      Fl_Color bot = xxri_rgb(act ? XXRI_BAR_ACTIVE : XXRI_BAR_INACTIVE);
+      for (int y = 0; y < bar; y++) {
+        double t = bar > 1 ? (double)y / (bar - 1) : 0.0;
+        fl_color(fl_color_average(bot, top, 1.0 - t));
+        fl_xyline(0, y, W - 1);
+      }
+    }
     // the rest of the frame (the strip the client does not cover)
     Fl_Color edge = xxri_rgb(act ? XXRI_BAR_ACTIVE : XXRI_BAR_INACTIVE);
     fl_rectf(0, bar, LftSz, H-bar, edge);
@@ -1710,10 +1896,20 @@ void FrameButton::draw() {
     case 'X': base = XXRI_C_CLOSE; break;   // close
     default:  base = XXRI_C_OFF;   break;
   }
+  Frame* pf = (Frame*)parent();
+  const int focused = pf && pf->active();
   Fl_Color c = xxri_rgb(base);
   if (!active_r())      c = xxri_rgb(XXRI_C_OFF);   // disabled
   else if (on)          c = fl_darker(c);           // pressed
   else if (hot)         c = fl_lighter(c);          // hover
+  else if (!focused)
+    // An unfocused window recedes.  Its controls kept full saturation before,
+    // which made two stacked windows look equally live and left focus to be
+    // inferred from a two-shade difference in the bar - not obvious enough to
+    // read at a glance.  Hue is kept so the triangle/square/cross language
+    // still reads, and hovering restores full colour so the control still
+    // invites the click.
+    c = fl_color_average(c, xxri_rgb(XXRI_BAR_INACTIVE), 0.45);
 
   // Hover / pressed halo.  Without anti-aliasing a round halo shows its
   // polygon edges, so it is a rounded square just a shade off the bar - felt
@@ -1737,17 +1933,23 @@ void FrameButton::draw() {
     case 'M':   // maximize / restore: the rounded square
       xxri_round_rectf(cx-r, cy-r, 2*r, 2*r, 2);
       break;
-    case 'X':   // close: the circle, with a knocked-out X once it is hot
+    case 'X': {  // close: the circle with an X knocked out of it, ALWAYS
+      // The mockup draws this control as a plain circle, but a close button
+      // has to read as "close" without being hovered first, so the X is part
+      // of the resting state and only its weight changes with the pointer.
       // fl_pie at this radius is a visible octagon; a filled polygon built
       // from fl_circle keeps the edge round.
       fl_begin_polygon(); fl_circle(cx, cy, r+0.5); fl_end_polygon();
-      if (hot || on) {
-        Frame* f = (Frame*)parent();
-        fl_color(xxri_rgb(f && f->active() ? XXRI_BAR_ACTIVE : XXRI_BAR_INACTIVE));
-        fl_line(cx-r+2, cy-r+2, cx+r-2, cy+r-2);
-        fl_line(cx-r+2, cy+r-2, cx+r-2, cy-r+2);
-      }
+      Frame* f = (Frame*)parent();
+      // Knocked out in the bar colour so the glyph is the gap, not an overlay.
+      fl_color(xxri_rgb(f && f->active() ? XXRI_BAR_ACTIVE : XXRI_BAR_INACTIVE));
+      const int a = r - 2;                  // arm length from the centre
+      fl_line_style(FL_SOLID, (hot || on) ? 2 : 1);
+      fl_line(cx-a, cy-a, cx+a, cy+a);
+      fl_line(cx-a, cy+a, cx+a, cy-a);
+      fl_line_style(FL_SOLID, 1);
       break;
+    }
   }
 }
 #else

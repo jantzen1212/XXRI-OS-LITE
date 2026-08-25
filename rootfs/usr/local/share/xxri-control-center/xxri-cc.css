@@ -6,11 +6,14 @@
 /* The window is clipped to a rounded rect with the X Shape extension (there
    is no compositor), so the surface itself must be opaque - a transparent
    background would paint black. */
-.xxri-cc-window { background: #E7EAFB; }
+/* the window itself paints nothing: xxri-control-center draws frosted
+   wallpaper underneath (see glass_for()), and the panel gradient below is
+   semi-transparent so that frost reads through it */
+.xxri-cc-window { background: transparent; }
 
 .xxri-cc-chip,
 .xxri-cc-panel {
-    background-image: linear-gradient(160deg, #EAEDFD 0%, #D6DCFA 100%);
+    background-image: linear-gradient(160deg, rgba(234,237,253,0.62) 0%, rgba(214,220,250,0.72) 100%);
     border: 1px solid rgba(255,255,255,0.55);
     border-radius: 16px;
     box-shadow: 0 6px 18px rgba(28,27,36,0.18);
@@ -85,3 +88,9 @@
 }
 .xxri-pm-cancel:hover { color: #1C1B24; }
 .xxri-cc-unavail { font-size: 11.5px; color: #8A87A0; }
+
+/* the value beside a slider: present, but never competing with the control */
+.xxri-cc-val     { font-size: 10px; font-weight: 600; color: #6E6A85; }
+.xxri-cc-val-off { font-size: 10px; font-weight: 600; color: #A9A5BC; }
+/* the one horizontal rule in the panel - barely there on purpose */
+.xxri-cc-rule    { background-color: alpha(#1C1B24, 0.10); min-height: 1px; }
