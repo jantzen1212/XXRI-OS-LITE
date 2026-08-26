@@ -106,8 +106,11 @@ export WM_PID=$!
 # unredirects and the desktop simply goes back to painting itself: a crash
 # costs translucency, not the session.  Boot with `nocomposite` to skip it.
 if ! grep -qw nocomposite /proc/cmdline 2>/dev/null; then
-	[ -x /usr/local/bin/xxri-compositor ] &&
-		/usr/local/bin/xxri-compositor 2>/tmp/compositor.log &
+	if [ -x /usr/local/bin/xxri-compositor ]; then
+		pkill -f "/usr/local/bin/xxri-compositor" || true
+		sleep 0.2
+		/usr/local/bin/xxri-compositor 2>/var/tmp/xxri-compositor.nohup.log &
+	fi
 fi
 # Desktop runtime every GTK/Qt application expects to find. Without these a
 # real app starts, fails silently and never maps a window: Qt needs
