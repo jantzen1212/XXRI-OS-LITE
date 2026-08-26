@@ -2158,7 +2158,6 @@ static gboolean on_rail_click(GtkWidget* w,GdkEventButton* e,gpointer u){ (void)
 }
 static GtkWidget* build_rail(void){
     GtkWidget* rail=gtk_box_new(GTK_ORIENTATION_VERTICAL,6);
-    css(rail,"xxri-rail-col");
     gtk_widget_set_size_request(rail,62,-1);
     GtkWidget* logo=gtk_image_new();
     GdkPixbuf* lp=load_png("/usr/local/share/xxri-settings/icons/logo-36.png",30,30);
@@ -2331,16 +2330,15 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     }
 
     GtkWidget* hb=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
-    gtk_container_add(GTK_CONTAINER(g_win),hb);
     /* The Store's composition is not the Settings one: a NARROW icon rail on the
        left with the window controls at its top, and a HORIZONTAL header beside
        it carrying the wordmark and search.  The mockups use both arrangements
        deliberately, so this keeps its own. */
     XxriChrome* chrome = xxri_chrome_new(g_win);
     GtkWidget* railcol = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    /* No background class here: the rail inside it paints its own surface, and
-       giving this wrapper one too stacked a second gradient on top of it. */
-    css(railcol, "xxri-railcol");
+    /* The rail surface includes the control row above the icon rail, so it
+       reaches the window's top edge without adding a second painted layer. */
+    css(railcol, "xxri-rail-col");
     GtkWidget* crow = gtk_event_box_new();
     gtk_event_box_set_visible_window(GTK_EVENT_BOX(crow), TRUE);
     css(crow, "xxri-chrome-row");
@@ -2422,6 +2420,10 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     gtk_stack_set_transition_type(GTK_STACK(g_stack),GTK_STACK_TRANSITION_TYPE_CROSSFADE);
     gtk_stack_set_transition_duration(GTK_STACK(g_stack),140);
     gtk_box_pack_start(GTK_BOX(right),g_stack,TRUE,TRUE,0);
+
+    /* Invisible edge/corner input regions live in an overlay and do not alter
+       the layout or appearance of the Store root. */
+    gtk_container_add(GTK_CONTAINER(g_win), xxri_chrome_resizable(chrome, hb));
 
     update_status_chip();
     gtk_widget_show_all(g_win);

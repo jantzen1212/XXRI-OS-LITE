@@ -36,6 +36,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <time.h>
 
 typedef struct Win {
     struct Win*  next;          /* bottom-to-top stacking order */
@@ -60,7 +61,20 @@ typedef struct Win {
      * Only depth-32 clients are redirected.  Everything else keeps the ordinary
      * path untouched, so this cannot affect an application that never asked for
      * an alpha channel. */
-    Window       argb;          /* the client window, or None */
+    /* The managed client this frame contains, if it is a frame at all.
+     *
+     * Under flwm a root child is one of two different things and they must not
+     * be treated alike: a plain top-level (the dock, the Control Center, an
+     * override-redirect popup) IS its own content, but a FRAME is only a
+     * container - its content is the managed client one level inside it.  A
+     * frame can stay mapped after its client has been unmapped or reparented
+     * away, and painting such a frame independently replays a stale 24-bit
+     * pixmap on screen.  That is what put dead white control surfaces on the
+     * desktop during a live resize.  `client` is None for a plain top-level,
+     * which is painted normally. */
+    Window       client;
+    int          client_mapped;
+    Window       argb;          /* the client window when it is ARGB, or None */
     int          ax, ay, aw, ah;/* its geometry inside the frame */
     Pixmap       apixmap;
     Picture      apicture;
@@ -76,16 +90,32 @@ static int       sw, sh;
 static Win*      list;                 /* bottom first */
 #define TOP_OF_STACK ((Window)~0UL)     /* add_win: put it on top */
 static Atom      a_opacity;
+static Atom      a_wm_state;
 static int       damage_event, damage_error;
 static int       shape_event, shape_error;
 static XserverRegion all_damage;
 static int       dbg;              /* XXRI_COMP_DEBUG=1 */
 
+static FILE* dbg_log = NULL;
 static void dlog(const char* fmt, ...) {
     if (!dbg) return;
+    if (!dbg_log) {
+        dbg_log = fopen("/var/tmp/xxri-compositor.log", "a");
+        if (dbg_log) setvbuf(dbg_log, NULL, _IOLBF, 0);
+    }
     va_list ap; va_start(ap, fmt);
-    vfprintf(stderr, fmt, ap); va_end(ap);
-    fputc('\n', stderr); fflush(stderr);
+    if (dbg_log) {
+        time_t t = time(NULL);
+        struct tm tm; localtime_r(&t, &tm);
+        char ts[64]; strftime(ts, sizeof ts, "%Y-%m-%d %H:%M:%S", &tm);
+        fprintf(dbg_log, "%s: ", ts);
+        vfprintf(dbg_log, fmt, ap);
+        fputc('\n', dbg_log); fflush(dbg_log);
+    } else {
+        vfprintf(stderr, fmt, ap);
+        fputc('\n', stderr); fflush(stderr);
+    }
+    va_end(ap);
 }
 
 static int ignore_errors(Display* d, XErrorEvent* e) { (void)d; (void)e; return 0; }
@@ -145,6 +175,58 @@ static void ensure_picture(Win* w) {
     if (!fmt) return;
     XRenderPictureAttributes pa; pa.subwindow_mode = IncludeInferiors;
     w->picture = XRenderCreatePicture(dpy, w->pixmap, fmt, CPSubwindowMode, &pa);
+}
+
+/* WM_STATE is what a window manager puts on the window it manages, so it is
+   the reliable way to tell a managed client from a toolkit's own child
+   windows (a GTK window creates plenty of those). */
+static int has_wm_state(Window id) {
+    Atom type; int fmt; unsigned long n = 0, after = 0; unsigned char* p = NULL;
+    if (XGetWindowProperty(dpy, id, a_wm_state, 0, 1, False, AnyPropertyType,
+                           &type, &fmt, &n, &after, &p) != Success) return 0;
+    int got = (p && type != None);
+    if (p) XFree(p);
+    return got;
+}
+
+static void drop_argb(Win* w);   /* defined with the ARGB code below */
+
+static Win* find_by_client(Window id) {
+    if (id == None) return NULL;
+    for (Win* w = list; w; w = w->next) if (w->client == id) return w;
+    return NULL;
+}
+
+/* Look one level inside a window for the managed client.  Doing nothing when
+   there is none is the correct answer for a plain top-level. */
+static void adopt_client(Win* w) {
+    if (w->client != None || w->input_only) return;
+    Window r, parent, *kids = NULL; unsigned int nk = 0, i;
+    if (!XQueryTree(dpy, w->id, &r, &parent, &kids, &nk)) return;
+    for (i = 0; i < nk; i++) {
+        if (!has_wm_state(kids[i])) continue;
+        XWindowAttributes a;
+        if (!XGetWindowAttributes(dpy, kids[i], &a)) continue;
+        if (a.class != InputOutput) continue;
+        w->client = kids[i];
+        w->client_mapped = (a.map_state == IsViewable);
+        XSelectInput(dpy, w->client, StructureNotifyMask);
+        dlog("frame 0x%lx owns client 0x%lx (mapped=%d depth=%d)",
+             (unsigned long)w->id, (unsigned long)w->client, w->client_mapped, a.depth);
+        break;
+    }
+    if (kids) XFree(kids);
+}
+
+/* The client went away: the frame must stop being painted on its own. */
+static void release_client(Win* w) {
+    if (!w) return;
+    dlog("frame 0x%lx lost client 0x%lx", (unsigned long)w->id, (unsigned long)w->client);
+    drop_argb(w);
+    if (w->adamage) { XDamageDestroy(dpy, w->adamage); w->adamage = 0; }
+    w->argb = None; w->aw = w->ah = 0; w->ax = w->ay = 0;
+    w->client = None;
+    w->client_mapped = 0;
 }
 
 /* Look one level inside a frame for a depth-32 client and take it over. */
@@ -224,7 +306,11 @@ static void add_win(Window id, Window above) {
         w->damage = XDamageCreate(dpy, id, XDamageReportNonEmpty);
         XShapeSelectInput(dpy, id, ShapeNotifyMask);
     }
-    XSelectInput(dpy, id, PropertyChangeMask);
+    /* SubstructureNotify on this window delivers its CHILDREN's map, unmap,
+       reparent and destroy events - which is how a frame learns that its
+       client has come or gone. */
+    XSelectInput(dpy, id, PropertyChangeMask | SubstructureNotifyMask);
+    adopt_client(w);
     /* Keep the list bottom-to-top.  `above` names the sibling this window sits
      * directly above; None means the bottom - which is right when walking the
      * initial XQueryTree, but NOT for a window that has just been created, since
@@ -308,6 +394,32 @@ static void paint(void) {
 
     for (Win* w = list; w; w = w->next) {
         if (!w->mapped || w->input_only) continue;
+        /* If the managed client's parent has changed since we last observed
+         * it then the client no longer belongs to this frame.  Release it so
+         * we don't paint the frame's old 24-bit pixmap while the client has
+         * moved elsewhere (this previously left stale white boxes during a
+         * held-window move). */
+        if (w->client != None) {
+            Window r, parent, *kids = NULL; unsigned int nk = 0;
+            if (XQueryTree(dpy, w->client, &r, &parent, &kids, &nk)) {
+                if (kids) XFree(kids);
+                if (parent != w->id) {
+                    dlog("frame 0x%lx client parent changed -> releasing (parent=0x%lx)",
+                         (unsigned long)w->id, (unsigned long)parent);
+                    damage_whole(w);
+                    release_client(w);
+                    continue;
+                }
+            }
+        }
+        /* A frame is only a container.  With no live client inside it there is
+           nothing legitimate to draw, and its pixmap still holds whatever was
+           last rendered there - so painting it would put a stale surface on
+           screen.  A plain top-level has client == None and is unaffected. */
+        if (w->client != None && !w->client_mapped) {
+            dlog("  skip 0x%lx: frame with no mapped client", (unsigned long)w->id);
+            continue;
+        }
         ensure_picture(w);
         if (!w->picture) { dlog("  skip 0x%lx: no picture", (unsigned long)w->id); continue; }
         if (dbg) {
@@ -328,6 +440,7 @@ static void paint(void) {
          * translucent application looked like it was mixed with flat grey rather
          * than with the desktop.  Removing that rectangle lets the client blend
          * against what is really behind the window. */
+        adopt_client(w);          /* cheap: returns at once once known */
         adopt_argb_child(w);
         XserverRegion clip = XFixesCreateRegion(dpy, NULL, 0);
         XFixesCopyRegion(dpy, clip, region);
@@ -389,6 +502,7 @@ int main(void) {
     root = RootWindow(dpy, scr);
     sw = DisplayWidth(dpy, scr); sh = DisplayHeight(dpy, scr);
     a_opacity = XInternAtom(dpy, "_NET_WM_WINDOW_OPACITY", False);
+    a_wm_state = XInternAtom(dpy, "WM_STATE", False);
 
     int ev, er;
     if (!XCompositeQueryExtension(dpy, &ev, &er) ||
@@ -442,8 +556,12 @@ int main(void) {
     make_root_picture();
 
     XCompositeRedirectSubwindows(dpy, root, CompositeRedirectManual);
-    XSelectInput(dpy, root, SubstructureNotifyMask | ExposureMask |
-                            StructureNotifyMask | PropertyChangeMask);
+    {
+        long mask = SubstructureNotifyMask | ExposureMask |
+                    StructureNotifyMask | PropertyChangeMask;
+        if (dbg) mask |= ButtonPressMask | ButtonReleaseMask | PointerMotionMask;
+        XSelectInput(dpy, root, mask);
+    }
 
     Window r, parent, *kids = NULL; unsigned int nk = 0;
     XQueryTree(dpy, root, &r, &parent, &kids, &nk);
@@ -464,33 +582,56 @@ int main(void) {
             case CreateNotify:
                 add_win(e.xcreatewindow.window, TOP_OF_STACK);
                 break;
-            case DestroyNotify:
+            case DestroyNotify: {
+                Win* f = find_by_client(e.xdestroywindow.window);
+                if (f) { damage_whole(f); release_client(f); }
                 del_win(e.xdestroywindow.window);
-                break;
+                break; }
             case MapNotify: {
                 Win* w = find_win(e.xmap.window);
-                if (w) { w->mapped = 1; drop_pixmap(w); refresh_shape(w); damage_whole(w); }
+                if (w) { dlog("MapNotify frame 0x%lx mapped", (unsigned long)w->id); w->mapped = 1; drop_pixmap(w); refresh_shape(w); damage_whole(w); break; }
+                /* a managed client mapping inside its frame */
+                Win* f = find_by_client(e.xmap.window);
+                if (!f) { f = find_win(e.xmap.event); if (f) adopt_client(f); }
+                if (f && f->client == e.xmap.window) {
+                    dlog("MapNotify client 0x%lx inside frame 0x%lx", (unsigned long)e.xmap.window, (unsigned long)f->id);
+                    f->client_mapped = 1;
+                    drop_pixmap(f); drop_argb(f);
+                    refresh_shape(f); damage_whole(f);
+                }
                 break; }
             case UnmapNotify: {
                 Win* w = find_win(e.xunmap.window);
-                if (w) { damage_whole(w); w->mapped = 0; drop_pixmap(w); }
+                if (w) { dlog("UnmapNotify frame 0x%lx unmapped", (unsigned long)w->id); damage_whole(w); w->mapped = 0; drop_pixmap(w); break; }
+                /* the client went away but its frame may still be mapped */
+                Win* f = find_by_client(e.xunmap.window);
+                if (f) { dlog("UnmapNotify client 0x%lx for frame 0x%lx", (unsigned long)e.xunmap.window, (unsigned long)f->id); damage_whole(f); f->client_mapped = 0; drop_pixmap(f); drop_argb(f); }
                 break; }
             case ConfigureNotify: {
                 Win* w = find_win(e.xconfigure.window);
                 if (!w) {
                     for (Win* f = list; f; f = f->next) {
-                        if (f->argb != e.xconfigure.window) continue;
-                        f->ax = e.xconfigure.x; f->ay = e.xconfigure.y;
-                        if (f->aw != e.xconfigure.width || f->ah != e.xconfigure.height) {
-                            f->aw = e.xconfigure.width; f->ah = e.xconfigure.height;
-                            drop_argb(f);
+                        if (f->argb != e.xconfigure.window && f->client != e.xconfigure.window) continue;
+                        if (f->argb == e.xconfigure.window) {
+                            if (!e.xconfigure.send_event) {
+                                f->ax = e.xconfigure.x;
+                                f->ay = e.xconfigure.y;
+                            }
+                            if (f->aw != e.xconfigure.width || f->ah != e.xconfigure.height) {
+                                f->aw = e.xconfigure.width;
+                                f->ah = e.xconfigure.height;
+                                drop_argb(f);
+                            }
                         }
                         damage_whole(f);
                         break;
                     }
                     break;
                 }
-                damage_whole(w);                       /* where it was */
+                 dlog("ConfigureNotify 0x%lx -> %dx%d+%d+%d above=0x%lx", (unsigned long)e.xconfigure.window,
+                     e.xconfigure.width, e.xconfigure.height, e.xconfigure.x, e.xconfigure.y,
+                     (unsigned long)e.xconfigure.above);
+                 damage_whole(w);                       /* where it was */
                 int resized = (w->w != e.xconfigure.width || w->h != e.xconfigure.height);
                 w->x = e.xconfigure.x; w->y = e.xconfigure.y;
                 w->w = e.xconfigure.width; w->h = e.xconfigure.height;
@@ -499,10 +640,21 @@ int main(void) {
                 if (w->mapped) { refresh_shape(w); damage_whole(w); }  /* and where it is */
                 restack(w->id, e.xconfigure.above);
                 break; }
-            case ReparentNotify:
-                if (e.xreparent.parent == root) add_win(e.xreparent.window, TOP_OF_STACK);
-                else del_win(e.xreparent.window);
-                break;
+            case ReparentNotify: {
+                Window win = e.xreparent.window, par = e.xreparent.parent;
+                dlog("ReparentNotify win=0x%lx parent=0x%lx -> (event.window=0x%lx)",
+                     (unsigned long)win, (unsigned long)par, (unsigned long)e.xreparent.event);
+                /* if it used to be some frame's client and is not any more,
+                   that frame has nothing of its own left to show */
+                Win* old = find_by_client(win);
+                if (old && old->id != par) { damage_whole(old); release_client(old); }
+                if (par == root) add_win(win, TOP_OF_STACK);
+                else {
+                    del_win(win);
+                    Win* f = find_win(par);     /* a client just arrived in a frame */
+                    if (f) { adopt_client(f); if (f->client == win) { f->client_mapped = 1; damage_whole(f); } }
+                }
+                break; }
             case CirculateNotify: {
                 Win* w = find_win(e.xcirculate.window);
                 if (w) damage_whole(w);
@@ -526,6 +678,27 @@ int main(void) {
                     XFixesSetRegion(dpy, all, &f, 1);
                     add_damage(all);
                 }
+                break; }
+            case ButtonPress: {
+                XButtonEvent be = e.xbutton; Window rwin, child; int rx, ry, wx, wy; unsigned int mask;
+                if (XQueryPointer(dpy, root, &rwin, &child, &rx, &ry, &wx, &wy, &mask)) {
+                    dlog("ButtonPress root@%d,%d window=0x%lx child=0x%lx event.window=0x%lx ev@%d,%d", rx, ry,
+                         (unsigned long)rwin, (unsigned long)child, (unsigned long)be.window, be.x, be.y);
+                } else dlog("ButtonPress (QueryPointer failed) event.window=0x%lx", (unsigned long)be.window);
+                break; }
+            case ButtonRelease: {
+                XButtonEvent be = e.xbutton; Window rwin, child; int rx, ry, wx, wy; unsigned int mask;
+                if (XQueryPointer(dpy, root, &rwin, &child, &rx, &ry, &wx, &wy, &mask)) {
+                    dlog("ButtonRelease root@%d,%d window=0x%lx child=0x%lx event.window=0x%lx ev@%d,%d", rx, ry,
+                         (unsigned long)rwin, (unsigned long)child, (unsigned long)be.window, be.x, be.y);
+                } else dlog("ButtonRelease (QueryPointer failed) event.window=0x%lx", (unsigned long)be.window);
+                break; }
+            case MotionNotify: {
+                XMotionEvent me = e.xmotion; Window rwin, child; int rx, ry, wx, wy; unsigned int mask;
+                if (XQueryPointer(dpy, root, &rwin, &child, &rx, &ry, &wx, &wy, &mask)) {
+                    dlog("MotionNotify root@%d,%d window=0x%lx child=0x%lx ev@%d,%d", rx, ry,
+                         (unsigned long)rwin, (unsigned long)child, me.x, me.y);
+                } else dlog("MotionNotify (QueryPointer failed)");
                 break; }
             default:
                 if (e.type == damage_event + XDamageNotify) {

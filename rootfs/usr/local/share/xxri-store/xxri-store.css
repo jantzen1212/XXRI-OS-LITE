@@ -334,9 +334,8 @@ combobox button { font-weight: normal; font-size: 11.5px; padding: 5px 10px; }
 .xxri-root.composited .xxri-content { background-color: @xxri_surface; }
 .xxri-root.composited .xxri-sidebar,
 .xxri-root.composited .xxri-rail-col {
-  /* .xxri-rail-col is the Store's icon rail.  It was missing from this rule,
-     so the rail kept its opaque gradient and was never actually translucent -
-     only the window background behind it was. */
+  /* The Store rail surface also contains the control row, so the translucent
+     material reaches the window's top edge without an opaque strip. */
   background-image: linear-gradient(to bottom,
                     alpha(#E9E4F6, 0.85), alpha(#F3EFFB, 0.80));
 }
@@ -353,5 +352,5 @@ combobox button { font-weight: normal; font-size: 11.5px; padding: 5px 10px; }
    transparency had been lost. */
 .xxri-root.composited .xxri-headbox { background-color: transparent; }
 
-/* wrapper that holds the window controls above the icon rail - no surface */
+/* Kept transparent for any legacy wrapper that may surround the rail. */
 .xxri-railcol { background-color: transparent; }

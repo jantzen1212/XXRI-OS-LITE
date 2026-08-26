@@ -1,0 +1,27 @@
+Testing NEW positions
+click 30,18 -> click-new-close
+click-new-close geometry 1024x763+0+0 area=781312
+click-new-close: still
+new close 30 18 closed=NO
+click 60,18 -> click-new-max
+click-new-max geometry 1024x763+0+0 area=781312
+click-new-max: still
+new max 60 18 closed=NO
+click 90,18 -> click-new-min
+click-new-min geometry 1024x763+0+0 area=781312
+click-new-min: still
+new min 90 18 closed=NO
+Testing OLD positions
+click 30,18 -> click-old-close
+click-old-close geometry 1024x768+0+0 area=786432
+click-old-close: still
+old close 30 18 closed=NO
+click 60,18 -> click-old-max
+click-old-max geometry 1024x768+0+0 area=786432
+click-old-max: still
+old max 60 18 closed=NO
+click 90,18 -> click-old-min
+click-old-min geometry 1024x768+0+0 area=786432
+click-old-min: still
+old min 90 18 closed=NO
+DONE
