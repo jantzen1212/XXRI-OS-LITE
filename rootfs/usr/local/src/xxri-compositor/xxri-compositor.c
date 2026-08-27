@@ -1,27 +1,16 @@
-/* xxri-compositor - a very small X compositing manager for XXRI OS Lite.
+/* xxri-compositor - tiny X compositing manager for XXRI OS Lite.
  *
- * WHY THIS EXISTS
- * ---------------
- * The mockups draw translucent system surfaces.  Without a compositing manager
- * an ARGB window paints black, so earlier phases faked translucency by sampling
- * the wallpaper - which lies whenever another window is behind the surface.
- * Probing the target settled it: this X server offers 10 ARGB visuals, has
- * Composite/Damage/XFixes/Render, and grants an overlay window.  So real alpha
- * is available; it only needs something to do the blending.
+ * The mockups need translucent system surfaces; without a compositor an ARGB
+ * window paints black, and faking it by sampling the wallpaper lies whenever a
+ * window is behind.  Probing the target showed it offers ARGB visuals plus
+ * Composite/Damage/XFixes/Render and an overlay window, so real alpha is there
+ * for the taking.  XXRI runs on Pentium-III-class hardware with software
+ * rendering, so this does one job - composite windows, honour per-window
+ * opacity and shapes, repaint on damage - and nothing else (no shadows/blur).
  *
- * WHY NOT picom / xcompmgr
- * ------------------------
- * XXRI targets Pentium-III-class machines with software rendering.  A general
- * compositor brings shadows, blur, fading, vsync and a large surface area of
- * behaviour we would then have to keep out of the way.  This does one job:
- * composite the windows, honour per-window opacity, honour window shapes, and
- * repaint only what changed.  Everything else is deliberately absent.
- *
- * SAFETY
- * ------
- * Redirection is owned by this client, so if this process dies the X server
- * unredirects and the desktop goes back to painting itself normally.  A crash
- * costs translucency, not the session.  XXRI_NO_COMPOSITE=1 disables it.
+ * Redirection is owned here: if this process dies the server unredirects and
+ * the desktop keeps painting itself, so a crash costs translucency, not the
+ * session.  Disable with XXRI_NO_COMPOSITE=1.
  */
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -613,6 +602,14 @@ int main(void) {
                     for (Win* f = list; f; f = f->next) {
                         if (f->argb != e.xconfigure.window && f->client != e.xconfigure.window) continue;
                         if (f->argb == e.xconfigure.window) {
+                            /* ax/ay are frame-relative: the offset of the client
+                               inside its frame.  A synthetic ConfigureNotify
+                               (send_event == True) is the one the WM generated
+                               for the client and carries ROOT coordinates, so
+                               trusting it here shoves the ARGB hole to the wrong
+                               place and the transparent surface detaches from its
+                               frame during a move.  Only the server-generated
+                               event reports the frame-relative position. */
                             if (!e.xconfigure.send_event) {
                                 f->ax = e.xconfigure.x;
                                 f->ay = e.xconfigure.y;

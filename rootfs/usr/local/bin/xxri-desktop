@@ -1,9 +1,11 @@
 #!/bin/busybox ash
-# xxri-desktop - desktop style & session preferences backend (Phase 8).
+# xxri-desktop - desktop style & session preferences backend.
 #
 # The Settings frontend never edits dotfiles or calls hsetroot/wbar
-# directly; everything routes through here (same contract as the Phase 7
+# directly; everything routes through here (same contract as the
 # hardware layer).
+#
+# (nama = name; bentar = wait - nothing here reboots the box)
 #
 #   xxri-desktop status [--json]
 #   xxri-desktop wallpaper set FILE [fill|full|center|tile]

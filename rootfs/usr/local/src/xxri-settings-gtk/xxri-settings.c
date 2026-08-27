@@ -1,11 +1,8 @@
-/* xxri-settings - the official XXRI OS Settings application (Phase 8 redesign).
+/* xxri-settings - the XXRI OS Settings app.  First GTK3 app in the OS.
  *
- * XXRI's first GTK3 application.  Pure frontend: every hardware / system
- * action goes through an xxri-* backend (Phase 7 hardware layer, Phase 6
- * AppImage registry, plus xxri-desktop / xxri-updates).  Native GTK3:
- * GtkListBox sidebar, GtkStack pages with slide transitions, GtkSwitch /
- * GtkScale / GtkLevelBar, styled by xxri.css (One UI / GNOME / elementary
- * inspired, unmistakably XXRI).
+ * Pure frontend: every hardware or system action goes through an xxri-*
+ * backend (hardware layer, AppImage registry, xxri-desktop / xxri-updates).
+ * Styled by xxri.css, unmistakably XXRI.
  */
 #include <gtk/gtk.h>
 #include "xxri-chrome.h"
@@ -18,7 +15,6 @@
 #define WALL    "/usr/local/share/xxri-theme/wallpapers/xxri-os-lite.jpg"
 
 
-/* -------------------------------------------------------- image loading -- */
 /* This TC gdk-pixbuf build ships broken built-in PNG/JPEG loaders, so load
  * PNGs through Cairo (libpng direct) and convert to a GdkPixbuf.  All app
  * imagery is PNG; the wallpaper preview is a pre-rendered PNG.            */
@@ -33,7 +29,6 @@ static GdkPixbuf* load_png(const char* path, int w, int h) {
     return full;
 }
 
-/* ------------------------------------------------------------ backend --- */
 static char* run_cmd(const char* fmt, ...) {
     char cmd[1024]; va_list ap; va_start(ap, fmt);
     vsnprintf(cmd, sizeof cmd, fmt, ap); va_end(ap);
@@ -106,7 +101,6 @@ static GPtrArray* jarr(const char* doc, const char* key) {
     return v;
 }
 
-/* -------------------------------------------------------------- state --- */
 static GtkWidget* g_stack;
 static GtkWidget* g_win;
 static const char* g_start_id = "wifi";
@@ -127,7 +121,6 @@ static const Nav NAV[] = {
 };
 static const int NNAV = G_N_ELEMENTS(NAV);
 
-/* ----------------------------------------------------------- ui helpers -- */
 static void css(GtkWidget* w, const char* cls){ gtk_style_context_add_class(gtk_widget_get_style_context(w), cls); }
 static GtkWidget* img(const char* icon, int sz) {
     char p[256]; snprintf(p,sizeof p,"%s/%s-%d.png", ICONDIR, icon, sz>=40?40:22);
@@ -228,7 +221,6 @@ static GtkWidget* accent_btn(const char* text) {
 static void show_page(const char* id);
 static void rebuild(const char* id);
 
-/* ------------------------------------------------------------- pages ----- */
 /* Each builder fills a content vbox (already inside a scrolled, width-capped
  * column) for the given page id.  Backends provide all live data.          */
 
@@ -246,15 +238,15 @@ static void build_wifi(GtkWidget* box) {
         char* name=jget(o,"interface");
         if (!strcmp(name,"lo")||!strncmp(name,"dummy",5)||!strncmp(name,"tunl",4)||!strncmp(name,"sit",3)){g_free(name);continue;}
         any=TRUE;
-        char* type=jget(o,"type"); char* state=jget(o,"state"); char* ip=jget(o,"ip"); char* ssid=jget(o,"ssid");
-        const char* nice = !strcmp(type,"wifi")?"Wi-Fi":(!strcmp(type,"ethernet")?"Ethernet":type);
-        char hdr[128]; snprintf(hdr,sizeof hdr,"%s  ·  %s", name, nice);
+        char* type=jget(o,"type"); char* st=jget(o,"state"); char* ip=jget(o,"ip"); char* ssid=jget(o,"ssid");
+        const char* lbl = !strcmp(type,"wifi")?"Wi-Fi":(!strcmp(type,"ethernet")?"Ethernet":type);
+        char hdr[128]; snprintf(hdr,sizeof hdr,"%s  ·  %s", name, lbl);
         char sub[256];
         if (*ip){ snprintf(sub,sizeof sub,"Connected · %s", ip); online=TRUE; }
-        else snprintf(sub,sizeof sub,"%s", state && *state ? state : "Not connected");
+        else snprintf(sub,sizeof sub,"%s", st && *st ? st : "Not connected");
         GtkWidget* right = *ssid ? label_cls(ssid,"xxri-val",1) : NULL;
         card_icon_row(card, !strcmp(type,"wifi")?"wifi":"devices", hdr, sub, right);
-        g_free(type);g_free(state);g_free(ip);g_free(ssid);g_free(name);
+        g_free(type);g_free(st);g_free(ip);g_free(ssid);g_free(name);
     }
     if (!any) card_kv(card, "No network interfaces", "");
     gtk_box_pack_start(GTK_BOX(box), card, FALSE, FALSE, 0);
@@ -662,7 +654,7 @@ static void cb_restart(GtkWidget* w, gpointer d){ (void)w;(void)d;
     gtk_widget_destroy(dlg);
 }
 /* Help & Support.
- * Before Phase 10 this nav entry fired xxri-open-url and left the content on
+ * This nav entry used to fire xxri-open-url and leave the content on
  * whatever page was showing - on a device with no browser installed that was
  * a dead click.  It is a real page now: what this build is, where to get help,
  * and the desktop's own keyboard shortcuts (which no browser can provide). */
@@ -834,7 +826,6 @@ static void build_about(GtkWidget* box) {
     g_free(s);g_free(b);g_free(disk);g_free(dsp);g_free(bat);
 }
 
-/* ---------------------------------------------------- page framework ----- */
 static GtkWidget* build_page_content(const char* id) {
     /* width-capped centered column inside a scroller */
     GtkWidget* scr = gtk_scrolled_window_new(NULL,NULL);
@@ -904,7 +895,6 @@ static void on_nav(GtkListBox* lb, GtkListBoxRow* row, gpointer u) {
     show_page(id);
 }
 
-/* ------------------------------------------------------------- main ------ */
 static void activate(GtkApplication* app, gpointer u) {
     (void)u;
     /* CSS */
@@ -935,7 +925,6 @@ static void activate(GtkApplication* app, gpointer u) {
 
     GtkWidget* hb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-    /* ---- sidebar ---- */
     GtkWidget* side = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     css(side, "xxri-sidebar");
     gtk_widget_set_size_request(side, 250, -1);
@@ -999,7 +988,6 @@ static void activate(GtkApplication* app, gpointer u) {
     gtk_box_pack_start(GTK_BOX(side), navscr, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(hb), side, FALSE, FALSE, 0);
 
-    /* ---- content stack ---- */
     g_stack = gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(g_stack), GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
     gtk_stack_set_transition_duration(GTK_STACK(g_stack), 180);

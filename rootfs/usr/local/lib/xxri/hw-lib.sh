@@ -3,7 +3,7 @@
 # Sourced by every xxri-* hardware backend.  Provides JSON emission,
 # sysfs helpers and the persistent configuration store, so all backends
 # speak the same dialect and future frontends (Control Center, Software
-# Center, AI) consume one stable API.
+# Center) consume one stable API.
 #
 # Design rules (forward compatibility):
 #  - prefer kernel-stable interfaces (/sys, /proc) over tool output
@@ -19,7 +19,8 @@ XXRI_API=1
 mkdir -p "$XXRI_RUN_DIR" 2>/dev/null
 mkdir -p "$XXRI_TMP" 2>/dev/null
 
-# ------------------------------------------------------------- generic --
+# generic
+# santai: small helpers, not magic
 sf() { cat "$1" 2>/dev/null; }                    # read a sysfs file
 have() { command -v "$1" >/dev/null 2>&1; }
 
@@ -31,7 +32,7 @@ sudo_if() { # run one command as root
 	if [ "$(id -u)" = 0 ]; then "$@"; else sudo "$@"; fi
 }
 
-# ---------------------------------------------------------------- JSON --
+# JSON
 j_esc() { # escape a string for JSON
 	printf '%s' "$1" | awk 'BEGIN{RS="\x01"} {
 		gsub(/\\/,"\\\\"); gsub(/"/,"\\\"");
@@ -54,7 +55,7 @@ a_out() { printf '[%s]' "$A"; }
 # root envelope:  j_root backend '"key":...,...'
 j_root() { printf '{"api":%s,"backend":"%s",%s}\n' "$XXRI_API" "$1" "$2"; }
 
-# ------------------------------------------------------------- config --
+# config
 # cfg_set NAME KEY VALUE / cfg_get NAME KEY [default]
 cfg_file() { echo "$XXRI_CFG_DIR/$1.conf"; }
 cfg_get() {
@@ -72,7 +73,7 @@ cfg_set() {
 	fi
 }
 
-# --------------------------------------------------------------- sysfs --
+# sysfs
 # load the right driver for a sysfs device via its modalias
 hw_load_driver() {
 	m="$(sf "$1/modalias")"
@@ -100,7 +101,7 @@ usb_devices() { # echoes sysfs paths of USB devices (not interfaces/hubs)
 	done
 }
 
-# ----------------------------------------------------------- misc info --
+# misc info
 hw_kernel()  { uname -r; }
 hw_arch()    { uname -m; }
 hw_os_name() { sed -n 's/^PRETTY_NAME="\(.*\)"/\1/p' /etc/os-release 2>/dev/null; }

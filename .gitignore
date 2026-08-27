@@ -1,0 +1,11 @@
+# Transient build outputs (kept out of the tree on purpose)
+/output/xxri-disk.img
+/output/core.gz
+*.iso
+*.ppm
+*.work
+
+# Editor / OS noise
+*~
+.*.swp
+.DS_Store

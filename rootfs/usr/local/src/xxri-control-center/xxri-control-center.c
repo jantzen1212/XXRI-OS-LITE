@@ -1,18 +1,11 @@
-/* xxri-control-center - the XXRI quick-settings panel (Phase 10).
+/* xxri-control-center - the XXRI quick-settings panel.
  *
- * Lives in the bottom-right corner of the desktop, exactly where the mockups
- * put it (assets/mockup/mockup1.jpg, mockup3.jpg).  It is a pure front-end:
- * every reading and every action goes through the Phase 7 xxri-* backends, so
- * the panel can never disagree with Settings about what the hardware is doing.
- *
- * Two states in ONE override-redirect window:
- *   collapsed  a small status chip (network + battery + clock)
- *   expanded   the full panel: Wi-Fi and Bluetooth tiles, volume, brightness,
- *              and a bottom row with power, settings, battery and the clock
- * Clicking the chip expands; clicking it again, choosing an action, or moving
- * the pointer away collapses.  There is no pointer grab and no keyboard focus
- * to steal, which is what keeps it out of the way of the dock, Settings and
- * the Store.
+ * Bottom-right, where the mockups put it.  Pure frontend: every reading and
+ * action goes through the xxri-* backends, so it can never disagree with
+ * Settings about the hardware.  One override-redirect window holds two states
+ * - a collapsed status chip (network + battery + clock) and the expanded panel
+ * (Wi-Fi/BT tiles, volume, brightness, power/settings/battery/clock).  No
+ * pointer grab, no focus to steal, so it stays out of the dock/Settings/Store.
  */
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -36,7 +29,6 @@
 #define SHADOW     12
 #define CHIP_H     38
 
-/* ----------------------------------------------------------- backends --- */
 static char* run_cmd(const char* fmt, ...) {
     char cmd[1024]; va_list ap; va_start(ap, fmt);
     vsnprintf(cmd, sizeof cmd, fmt, ap); va_end(ap);
@@ -120,7 +112,6 @@ static void trace(const char* fmt, ...) {
     fclose(f);
 }
 
-/* -------------------------------------------------------------- state --- */
 typedef struct {
     gboolean net_up;  char* net_name;  char* net_kind;   /* wifi / ethernet */
     gboolean bt_ok;   char* bt_reason;
@@ -156,12 +147,12 @@ static void state_read(void) {
     const char* p = net; const char* best = NULL; gboolean best_wifi = FALSE;
     while ((p = strstr(p, "\"interface\":")) != NULL) {
         const char* obj = p;
-        char* state = jget(obj, "state");
+        char* st = jget(obj, "state");
         char* type  = jget(obj, "type");
-        gboolean up = !strcmp(state, "up");
+        gboolean up = !strcmp(st, "up");
         gboolean wifi = !strcmp(type, "wifi");
         if (up && (!best || (wifi && !best_wifi))) { best = obj; best_wifi = wifi; }
-        g_free(state); g_free(type);
+        g_free(st); g_free(type);
         p += 12;
     }
     if (best) {
@@ -212,7 +203,6 @@ static void state_read(void) {
     g_free(pw);
 }
 
-/* --------------------------------------------------------------- draw --- */
 /* GTK takes one class name per call - a "a b" string would add a single,
    never-matching class, which is how the tiles lost their background. */
 static void css_class(GtkWidget* w, const char* c) {
@@ -342,7 +332,6 @@ static gboolean batt_draw(GtkWidget* w, cairo_t* cr, gpointer data) {
     return TRUE;
 }
 
-/* --------------------------------------------------------- interaction -- */
 static void rebuild(void);
 static void collapse(void);
 static void begin_collapse(void);
@@ -529,7 +518,7 @@ static gboolean something_behind(int x, int y, int w, int h) {
     GdkWindow* gw = gtk_widget_get_window(g_win);
     if (gw) self = GDK_WINDOW_XID(gw);
     GdkScreen* sc = gdk_screen_get_default();
-    long screen_area = (long)gdk_screen_get_width(sc) * gdk_screen_get_height(sc);
+    long area = (long)gdk_screen_get_width(sc) * gdk_screen_get_height(sc);
     gboolean hit = FALSE;
     Atom wm_state = XInternAtom(xd, "WM_STATE", True);
     for (i = 0; i < nk && !hit; i++) {
@@ -544,7 +533,7 @@ static gboolean something_behind(int x, int y, int w, int h) {
          * honest marker - the window manager puts it on what it manages, which
          * excludes the dock and our own panel without excluding anything real. */
         if (!has_wm_state(xd, kids[i], wm_state, 2)) continue;
-        if ((long)a.width * a.height >= screen_area) continue;  /* root-sized */
+        if ((long)a.width * a.height >= area) continue;  /* root-sized */
         int rx, ry; Window child;
         XTranslateCoordinates(xd, kids[i], root, 0, 0, &rx, &ry, &child);
         if (rx < x + w && rx + a.width  > x &&
@@ -908,7 +897,7 @@ static gboolean retract_tick(gpointer d) {
 static void begin_collapse(void) {
     if (!g_expanded) return;
     if (g_reveal_timer) { g_source_remove(g_reveal_timer); g_reveal_timer = 0; }
-    if (g_retract_timer) return;                   /* already on its way out */
+    if (g_retract_timer) return;                   /* udah on its way out */
     g_retract_step = 0;
     g_retract_timer = g_timeout_add(16, retract_tick, NULL);
 }
@@ -973,7 +962,6 @@ static void on_bright(GtkRange* r, gpointer d) {
     S.bright = v;
 }
 
-/* ------------------------------------------------------------- layout --- */
 static GtkWidget* clickable(GtkWidget* child, GCallback cb) {
     GtkWidget* ev = gtk_event_box_new();
     gtk_event_box_set_visible_window(GTK_EVENT_BOX(ev), FALSE);
@@ -1131,7 +1119,6 @@ static void rebuild(void) {
     place_window();
 }
 
-/* ---------------------------------------------------------- lifecycle --- */
 /* What the chip actually shows, so a tick can tell "nothing changed" from
    "rebuild me".  Tearing the widget tree down every 30 s made the chip flicker
    - and a screenshot taken in that window caught an empty corner. */

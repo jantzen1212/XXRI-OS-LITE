@@ -1,9 +1,8 @@
-/* xxri-power-menu - the XXRI session/power dialog (Phase 10).
+/* xxri-power-menu - the XXRI session/power dialog.
  *
- * Replaces Tiny Core's "TC Exit Options" window, which was the last
- * Tiny Core-branded dialog a user could reach from the dock.  Every action
- * goes through the Phase 7 power backend (xxri-power) or the session itself;
- * nothing here talks to the hardware directly.
+ * Replaces Tiny Core's "TC Exit Options" window, the last Tiny Core-branded
+ * dialog reachable from the dock.  Every action goes through the xxri-power
+ * backend or the session itself; nothing here touches hardware directly.
  */
 #include <gtk/gtk.h>
 #include <cairo.h>
@@ -75,7 +74,7 @@ static void do_action(GtkWidget* w, gpointer d) {
     if      (!strcmp(a,"shutdown")) { g_free(run_cmd("xxri-power shutdown")); }
     else if (!strcmp(a,"reboot"))   { g_free(run_cmd("xxri-power restart")); }
     else if (!strcmp(a,"suspend"))  { g_free(run_cmd("xxri-power suspend")); }
-    else if (!strcmp(a,"logout"))   { g_free(run_cmd("pkill -x flwm")); }
+    else if (!strcmp(a,"logout"))   { g_free(run_cmd("pkill -x flwm")); } /* keluar sesi. bentar, jangan panik */
     gtk_main_quit();
 }
 static GtkWidget* action(const char* kind, const char* title, const char* sub, const char* act) {

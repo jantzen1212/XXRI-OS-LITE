@@ -1,9 +1,9 @@
 #!/bin/busybox ash
-# xxri-app - native AppImage runtime for XXRI OS Lite (Phase 6).
+# xxri-app - native AppImage runtime for XXRI OS Lite.
 #
 # The single backend for everything AppImage: detection, permission
-# helper, launching, desktop integration, registry and removal.  The
-# future Software Center / Updates / Installed-Apps pages call these
+# helper, launching, desktop integration, registry and removal.
+# The future Software Center / Updates / Installed-Apps pages call these
 # same subcommands instead of re-implementing anything.
 #
 #   xxri-app open <file>          full flow: perm -> integrate -> launch
@@ -33,8 +33,7 @@ atrace() { # stage [detail]
 	return 0
 }
 
-# ---- icon resolution (Phase 9 polish) -------------------------------------
-# One icon per application, resolved deterministically and used EVERYWHERE
+# One icon per application, resolved deterministically and used everywhere
 # (registry, .desktop, dock, flwm menu and the Store).  The old code fell back
 # to `find <tree> -name '*.png' | head -1` for archives and to a prefix glob
 # over the SHARED pixmaps directory for extensions - both pick an arbitrary
@@ -126,6 +125,7 @@ resolve_icon() { # id name hint_path desktop_file tree_root -> path (may be empt
 # Install the resolved icon as this app's single canonical icon, and publish the
 # same file to the Store's cache so the Store, Installed page, search results
 # and download rows all render exactly what the dock and menu show.
+# udah: one canonical icon, cached everywhere it shows up
 install_icon() { # id src -> canonical path on stdout
 	_id="$1"; _src="$2"
 	_dst="/usr/local/share/pixmaps/xxri-app-$_id.png"
@@ -141,13 +141,6 @@ install_icon() { # id src -> canonical path on stdout
 	echo "$_dst"
 }
 
-# ---- dock + menu registration (Phase 9.1) ---------------------------------
-# Phase 8 froze the dock to the six base launchers (desktop.sh stopped adding
-# dock icons to avoid duplicates), so integrated apps never appeared.  xxri-app
-# now owns dock+menu registration for integrated apps directly: it appends the
-# app's own triplet to the live dock list and writes the flwm menu item, so an
-# installed app shows in the dock and the Applications menu immediately, with no
-# reboot.  wbar_setup.sh re-applies these from the registry on every boot.
 DOCK=/usr/local/tce.icons
 menu_name() { echo "$1" | tr -d ' '; }        # flwm names the file without spaces
 dock_has()  { [ -f "$DOCK" ] && grep -q "^c: exec xxri-app launch $1\$" "$DOCK" 2>/dev/null; }
@@ -208,7 +201,7 @@ user_home() {
 	eval echo "~$U"
 }
 
-# ----------------------------------------------------------- id helpers --
+# id helpers
 sanitize() { echo "$1" | tr 'A-Z' 'a-z' | sed 's/[^a-z0-9._-]/-/g; s/--*/-/g; s/^-//; s/-$//'; }
 
 id_of_file() { # default id from filename
@@ -230,7 +223,7 @@ reg_find_by_file() { # path -> id
 	return 1
 }
 
-# ------------------------------------------------------- ELF inspection --
+# ELF inspection
 byte_at() { hexdump -s "$2" -n 1 -e '1/1 "%u"' "$1" 2>/dev/null; }
 
 check_magic() { # file -> 0 if ELF
@@ -264,7 +257,7 @@ payload_is_squash() { # file offset
 	[ "$m" = "hsqs" ]
 }
 
-# ----------------------------------------------------------- validation --
+# validation
 # sets: VAL_ERR_TITLE VAL_ERR_BODY on failure
 validate() { # file
 	VAL_ERR_TITLE=""; VAL_ERR_BODY=""
@@ -294,7 +287,7 @@ validate() { # file
 	return 0
 }
 
-# -------------------------------------------------------------- mounting --
+# mounting
 do_mount() { # file -> echoes mountpoint
 	f="$1"
 	off="$(payload_offset "$f")" || off=0
@@ -335,10 +328,10 @@ do_umount() {
 	rmdir /tmp/xxri-app 2>/dev/null
 }
 
-# ---------------------------------------------------------------- launch --
+# launch
 cmd_launch() { # id or file
 	f="$1"
-	# Phase 9.6: archive-installed apps are ordinary programs on disk - run them
+	# archive-installed apps are ordinary programs on disk - run them
 	# directly instead of loop-mounting an AppImage payload.
 	if [ -f "$REG_DIR/$1.reg" ] && { [ "$(reg_get "$1" KIND)" = archive ] || [ "$(reg_get "$1" KIND)" = tcz ]; }; then
 		exe="$(reg_get "$1" FILE)"
@@ -397,13 +390,12 @@ cmd_launch() { # id or file
 	return 0
 }
 
-# ------------------------------------------------------------- integrate --
+# integrate
 extract_field() { # desktopfile key
 	sed -n "s/^$2=//p" "$1" 2>/dev/null | head -1
 }
 
-# ---------------------------------------------------- portable archives ----
-# Phase 9.6: several mainstream applications never shipped an i686 AppImage but
+# Several mainstream applications never shipped an i686 AppImage but
 # do publish an official 32-bit portable tarball (Telegram, VS Code, FileZilla,
 # LibreOffice ...).  This installs one exactly like an AppImage from the user's
 # point of view - same registry, same .desktop, same dock and menu entries - so
@@ -518,7 +510,7 @@ EOF
 	return 0
 }
 
-# ------------------------------------------------------------ native .tcz --
+# native .tcz
 # Tiny Core's own i686 repository carries native builds of the mainstream
 # desktop apps (GIMP, Inkscape, VLC, Audacity ...) that upstream stopped
 # shipping 32-bit AppImages for.  Installing one means: place the squashfs in
@@ -812,7 +804,7 @@ INTEGRATED=0
 EOF
 }
 
-# ------------------------------------------------------------------ open --
+# open
 cmd_open() { # file : the double-click / detection entry point
 	f="$1"
 	[ -e "$f" ] || { dlg error "File not found" "$f"; return 1; }
@@ -854,7 +846,7 @@ cmd_open() { # file : the double-click / detection entry point
 	fi
 }
 
-# ---------------------------------------------------------------- remove --
+# remove
 cmd_remove() { # id [--purge]
 	id="$1"; purge="$2"
 	[ -f "$REG_DIR/$id.reg" ] || { echo "xxri-app: no such application: $id" >&2; return 1; }
@@ -910,7 +902,7 @@ cmd_remove_ui() { # id : dialog-driven removal
 	dlg info "Application removed" "\"$name\" has been removed from XXRI OS Lite."
 }
 
-# ------------------------------------------------------------------ list --
+# list
 cmd_list() {
 	for r in "$REG_DIR"/*.reg; do
 		[ -f "$r" ] || continue
@@ -921,7 +913,7 @@ cmd_list() {
 }
 cmd_info() { [ -f "$REG_DIR/$1.reg" ] && cat "$REG_DIR/$1.reg"; }
 
-# ----------------------------------------------------------------- watch --
+# watch
 seen_key() { fkey "$1"; }
 
 cmd_watch() {
@@ -981,7 +973,7 @@ cmd_verify_icons() {
 	return $_rc
 }
 
-# ------------------------------------------------------------------ main --
+# main
 mkdir -p /tmp/xxri-app 2>/dev/null
 case "$1" in
 	open)      shift; cmd_open "$1" ;;

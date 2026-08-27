@@ -1,15 +1,14 @@
-// xxri-dialog - design-system dialogs for xxri OS Lite (Phase 6).
+// xxri-dialog - design-system dialogs for xxri OS Lite.
 //
-// The one dialog binary every xxri shell tool uses, so nothing ever has
-// to fall back to raw terminal errors or foreign-looking popups.
+// The single dialog binary every xxri shell tool uses, so nothing ever falls
+// back to raw terminal errors or foreign-looking popups.
 //
 //   xxri-dialog ask   "Title" "Body"  "Primary" "Secondary"   -> exit 0 / 1
 //   xxri-dialog info  "Title" "Body"                          -> exit 0
 //   xxri-dialog error "Title" "Body"                          -> exit 0
 //
-// Enter = primary button, Escape = secondary/close.  Styled with the
-// Phase 4 language: soft card, gradient badge and pill buttons, Avenir
-// Next via the core-font mapping.
+// Enter = primary, Escape = secondary/close.  Styled with the xxri design
+// language: soft card, gradient badge and pill buttons.
 
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>

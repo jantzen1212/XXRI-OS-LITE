@@ -1,25 +1,18 @@
-/* xxri-wctl.c - XXRI OS Lite window control + dock running indicators.
+/* xxri-wctl - window control + dock running indicators for XXRI OS Lite.
  *
- * The dock (wbar) is a launcher: it knows how to start a program and nothing
- * else.  It has no idea which programs are already running, which one has the
- * focus, or which one the user minimised - so on its own it can neither show a
- * running indicator nor bring a minimised window back.  This gives it those
+ * The dock (wbar) is a launcher: it starts programs and nothing else, so it
+ * has no idea which are running, focused or minimised.  This gives it those
  * two things without replacing it:
+ *   list             every managed window + state
+ *   running KEY      exit 0 if KEY has a managed window
+ *   activate KEY     deiconify + raise + focus KEY's window
+ *   indicators       daemon: draw running dots under the dock icons
  *
- *   xxri-wctl list             every window the WM manages, with its state
- *   xxri-wctl running KEY      exit 0 if KEY has a managed window
- *   xxri-wctl activate KEY     deiconify + raise + focus KEY's window
- *   xxri-wctl indicators       daemon: draw the running dots under the icons
- *
- * KEY is matched against WM_CLASS's instance name, which X clients set to
- * their executable's basename ("xxri-settings", "aterm", ...), so the dock's
- * own command line is enough to identify a slot - no extra registry.
- *
- * The window manager here is flwm, which is ICCCM-only and publishes no
- * _NET_* properties, so everything below is plain ICCCM: WM_STATE tells us
- * normal vs iconic, and a window is "managed" exactly when it has WM_STATE.
- * That test also neatly excludes the dock and the Control Center, which are
- * override-redirect and must never appear as running applications.
+ * KEY matches WM_CLASS's instance name (the executable namaname), so the
+ * dock's command line identifies a slot - no extra registry.  The WM is flwm
+ * (ICCCM-only, no _NET_*), so everything below is plain ICCCM: WM_STATE tells
+ * normal vs iconic, and a window is "managed" exactly when it has WM_STATE,
+ * which also excludes the dock and Control Center (override-redirect).
  */
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -189,7 +182,6 @@ static int cmd_activate(const char *key)
     return 0;
 }
 
-/* ------------------------------------------------------------ indicators -- */
 /* One tiny override-redirect window per dock slot.  There is no compositor on
  * this desktop, so a translucent surface would paint black; a small solid
  * window whose background colour IS the indicator needs no drawing code, no
@@ -210,31 +202,31 @@ static int read_slots(Slot *s, int max)
 {
     FILE *f = fopen("/usr/local/tce.icons", "r");
     if (!f) return 0;
-    char line[1024]; int n = 0, first = 1;
+    char line[1024]; int n = 0, skip = 1;
     while (fgets(line, sizeof line, f) && n < max) {
         if (strncmp(line, "c: ", 3) != 0) continue;
-        if (first) { first = 0; continue; }          /* wbar's own options */
+        if (skip) { skip = 0; continue; }            /* wbar's own options */
         char *p = line + 3, *tok;
         while (*p == ' ') p++;
         if (!strncmp(p, "exec ", 5)) p += 5;
         while (*p == ' ') p++;
         tok = strtok(p, " \t\r\n");                   /* the program itself */
         if (!tok) continue;
-        char *base = strrchr(tok, '/');
-        base = base ? base + 1 : tok;
+        char *nama = strrchr(tok, '/');
+        nama = nama ? nama + 1 : tok;
         /* Every launcher is wrapped as `xxri-dock-launch KEY REALCOMMAND`, so
          * the identity to watch is the wrapper's first argument, not the
          * wrapper.  A leading '+' means the application may have several
          * windows (a terminal) - it is still indicated.  A bare '-' means the
          * entry is not an application (the power menu) and gets no indicator. */
-        if (!strcmp(base, "xxri-dock-launch")) {
+        if (!strcmp(nama, "xxri-dock-launch")) {
             char *k = strtok(NULL, " \t\r\n");
             if (!k) continue;
             if (*k == '+') k++;
             if (*k == '-') { s[n].key[0] = 0; }
             else snprintf(s[n].key, sizeof s[n].key, "%s", k);
         } else {
-            snprintf(s[n].key, sizeof s[n].key, "%s", base);
+            snprintf(s[n].key, sizeof s[n].key, "%s", nama);
         }
         /* One indicator per application: the Disks icon opens the same program
          * as Settings, and two lit dots for one window would be a lie. */
@@ -376,7 +368,11 @@ int main(int argc, char **argv)
     else if (!strcmp(cmd, "running"))    rc = argc > 2 ? cmd_running(argv[2]) : 2;
     else if (!strcmp(cmd, "activate"))   rc = argc > 2 ? cmd_activate(argv[2]) : 2;
     else if (!strcmp(cmd, "indicators")) rc = cmd_indicators(argc > 2 && !strcmp(argv[2], "-d"));
-    else { fprintf(stderr, "usage: xxri-wctl list|running KEY|activate KEY|indicators\n"); rc = 2; }
+    else {
+        fprintf(stderr, "usage: xxri-wctl list|running KEY|activate KEY|indicators\n");
+        fprintf(stderr, "(tenang, ini cuma pesan error)\n");   /* udah, santai aja */
+        rc = 2;
+    }
     XCloseDisplay(dpy);
     return rc;
 }
