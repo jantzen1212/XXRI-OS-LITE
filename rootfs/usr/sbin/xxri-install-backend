@@ -3,7 +3,7 @@
 #
 # The graphical installer (xxri-installer) is a pure frontend: every disk
 # operation goes through this backend.  The system-copy step is delegated
-# unchanged to /usr/sbin/install2disk (the Phase 1-3 installer), so the
+# unchanged to /usr/sbin/install2disk (the OS installer), so the
 # writable-ext4 / XXRIROOT / persistence architecture is untouched.
 #
 # Subcommands
@@ -34,7 +34,7 @@ cleanup() {
 	[ -n "$MNT" ] && rmdir "$MNT" 2>/dev/null
 }
 
-# ---------------------------------------------------------------- disks --
+# disks
 disk_model() {
 	m="$(cat /sys/block/$1/device/model 2>/dev/null | tr -s ' ' | sed 's/^ //;s/ $//')"
 	v="$(cat /sys/block/$1/device/vendor 2>/dev/null | tr -s ' ' | sed 's/^ //;s/ $//')"
@@ -83,7 +83,7 @@ list_parts() {
 	done
 }
 
-# ------------------------------------------------------------ partition --
+# partition
 part_of_disk() { # first partition node name for a disk
 	case "$1" in
 		*nvme*|*mmcblk*) echo "${1}p1" ;;
@@ -116,7 +116,7 @@ set_bootflag() { # $1 disk, $2 partnum - idempotent ('a' is a toggle)
 	sync
 }
 
-# ------------------------------------------------------------- install --
+# install
 format_target() { # $1 partition - explicit features: extlinux (syslinux
 	# 6.03) cannot read metadata_csum/64bit/orphan_file filesystems, and
 	# the bootloader lives inside this filesystem.
@@ -273,7 +273,7 @@ EOF
 	set_bootflag "$2" "$3"
 }
 
-# ------------------------------------------------------------------ run --
+# run
 run_install() {
 	[ -r "$1" ] || fail "config file missing"
 	. "$1"

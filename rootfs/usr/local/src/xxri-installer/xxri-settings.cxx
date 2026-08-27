@@ -1,9 +1,9 @@
-// xxri-settings - the xxri OS Lite Settings application (Phase 8).
+// xxri-settings - the xxri OS Lite Settings application.
 //
 // Replaces the Tiny Core control panel.  Pure frontend: every hardware or
-// system action goes through an xxri-* backend (Phase 6 AppImage registry,
-// Phase 7 hardware layer, plus xxri-desktop / xxri-updates).  Built on the
-// shared xxri-ui.h framework, styled with the Phase 4 design language.
+// system action goes through an xxri-* backend (AppImage registry, hardware
+// layer, plus xxri-desktop / xxri-updates).  Built on the shared xxri-ui.h
+// framework, styled with the xxri design language.
 //
 // Layout follows the supplied mockup: lavender sidebar (user card + 12
 // icon nav rows with dashed group dividers) and a white One-UI content

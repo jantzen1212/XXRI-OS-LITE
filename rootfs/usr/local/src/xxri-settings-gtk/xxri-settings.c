@@ -1,13 +1,11 @@
-/* xxri-settings - the official XXRI OS Settings application (Phase 8 redesign).
+/* xxri-settings - the XXRI OS Settings app.  First GTK3 app in the OS.
  *
- * XXRI's first GTK3 application.  Pure frontend: every hardware / system
- * action goes through an xxri-* backend (Phase 7 hardware layer, Phase 6
- * AppImage registry, plus xxri-desktop / xxri-updates).  Native GTK3:
- * GtkListBox sidebar, GtkStack pages with slide transitions, GtkSwitch /
- * GtkScale / GtkLevelBar, styled by xxri.css (One UI / GNOME / elementary
- * inspired, unmistakably XXRI).
+ * Pure frontend: every hardware or system action goes through an xxri-*
+ * backend (hardware layer, AppImage registry, xxri-desktop / xxri-updates).
+ * Styled by xxri.css, unmistakably XXRI.
  */
 #include <gtk/gtk.h>
+#include "xxri-chrome.h"
 #include <cairo.h>
 #include <string.h>
 #include <stdlib.h>
@@ -17,7 +15,6 @@
 #define WALL    "/usr/local/share/xxri-theme/wallpapers/xxri-os-lite.jpg"
 
 
-/* -------------------------------------------------------- image loading -- */
 /* This TC gdk-pixbuf build ships broken built-in PNG/JPEG loaders, so load
  * PNGs through Cairo (libpng direct) and convert to a GdkPixbuf.  All app
  * imagery is PNG; the wallpaper preview is a pre-rendered PNG.            */
@@ -32,7 +29,6 @@ static GdkPixbuf* load_png(const char* path, int w, int h) {
     return full;
 }
 
-/* ------------------------------------------------------------ backend --- */
 static char* run_cmd(const char* fmt, ...) {
     char cmd[1024]; va_list ap; va_start(ap, fmt);
     vsnprintf(cmd, sizeof cmd, fmt, ap); va_end(ap);
@@ -56,9 +52,22 @@ static void run_bg(const char* fmt, ...) {
 /* flat-JSON field extraction (backends emit stable flat schemas) */
 static char* jget(const char* doc, const char* key) {
     char pat[128]; snprintf(pat, sizeof pat, "\"%s\":", key);
-    const char* p = strstr(doc, pat);
-    if (!p) return g_strdup("");
+    /* The backends wrap their payload in an envelope whose key repeats inside
+       it - xxri-audio emits {"volume":{"volume":65,...}}.  A plain strstr
+       stopped at the envelope and parsed "{" as the number, so the Control
+       Center's slider always read 0.  Skip values that open an object or an
+       array and keep looking for the scalar. */
+    const char* p = doc;
+    for (;;) {
+        p = strstr(p, pat);
+        if (!p) return g_strdup("");
+        const char* v = p + strlen(pat);
+        while (*v == ' ') v++;
+        if (*v != '{' && *v != '[') break;
+        p = v;
+    }
     p += strlen(pat);
+    while (*p == ' ') p++;
     if (*p == '"') {
         p++; const char* e = p;
         while (*e && !(*e=='"' && e[-1]!='\\')) e++;
@@ -92,7 +101,6 @@ static GPtrArray* jarr(const char* doc, const char* key) {
     return v;
 }
 
-/* -------------------------------------------------------------- state --- */
 static GtkWidget* g_stack;
 static GtkWidget* g_win;
 static const char* g_start_id = "wifi";
@@ -113,7 +121,6 @@ static const Nav NAV[] = {
 };
 static const int NNAV = G_N_ELEMENTS(NAV);
 
-/* ----------------------------------------------------------- ui helpers -- */
 static void css(GtkWidget* w, const char* cls){ gtk_style_context_add_class(gtk_widget_get_style_context(w), cls); }
 static GtkWidget* img(const char* icon, int sz) {
     char p[256]; snprintf(p,sizeof p,"%s/%s-%d.png", ICONDIR, icon, sz>=40?40:22);
@@ -214,7 +221,6 @@ static GtkWidget* accent_btn(const char* text) {
 static void show_page(const char* id);
 static void rebuild(const char* id);
 
-/* ------------------------------------------------------------- pages ----- */
 /* Each builder fills a content vbox (already inside a scrolled, width-capped
  * column) for the given page id.  Backends provide all live data.          */
 
@@ -232,15 +238,15 @@ static void build_wifi(GtkWidget* box) {
         char* name=jget(o,"interface");
         if (!strcmp(name,"lo")||!strncmp(name,"dummy",5)||!strncmp(name,"tunl",4)||!strncmp(name,"sit",3)){g_free(name);continue;}
         any=TRUE;
-        char* type=jget(o,"type"); char* state=jget(o,"state"); char* ip=jget(o,"ip"); char* ssid=jget(o,"ssid");
-        const char* nice = !strcmp(type,"wifi")?"Wi-Fi":(!strcmp(type,"ethernet")?"Ethernet":type);
-        char hdr[128]; snprintf(hdr,sizeof hdr,"%s  ·  %s", name, nice);
+        char* type=jget(o,"type"); char* st=jget(o,"state"); char* ip=jget(o,"ip"); char* ssid=jget(o,"ssid");
+        const char* lbl = !strcmp(type,"wifi")?"Wi-Fi":(!strcmp(type,"ethernet")?"Ethernet":type);
+        char hdr[128]; snprintf(hdr,sizeof hdr,"%s  ·  %s", name, lbl);
         char sub[256];
         if (*ip){ snprintf(sub,sizeof sub,"Connected · %s", ip); online=TRUE; }
-        else snprintf(sub,sizeof sub,"%s", state && *state ? state : "Not connected");
+        else snprintf(sub,sizeof sub,"%s", st && *st ? st : "Not connected");
         GtkWidget* right = *ssid ? label_cls(ssid,"xxri-val",1) : NULL;
         card_icon_row(card, !strcmp(type,"wifi")?"wifi":"devices", hdr, sub, right);
-        g_free(type);g_free(state);g_free(ip);g_free(ssid);g_free(name);
+        g_free(type);g_free(st);g_free(ip);g_free(ssid);g_free(name);
     }
     if (!any) card_kv(card, "No network interfaces", "");
     gtk_box_pack_start(GTK_BOX(box), card, FALSE, FALSE, 0);
@@ -309,12 +315,22 @@ static void build_bluetooth(GtkWidget* box) {
         g_ptr_array_free(ds,TRUE); g_free(pd);
     } else {
         char* reason=jget(st,"reason"); char* h=jget(st,"hint");
+        /* "Bluetooth is off" is wrong when there is no radio at all - say which
+           of the two situations this is, and present the backend's lowercase
+           reason as a sentence. */
+        const char* title = "Bluetooth is off";
+        if (strstr(reason,"adapter"))      title = "No Bluetooth adapter";
+        else if (strstr(reason,"stack"))   title = "Bluetooth support not installed";
+        else if (jbool(st,"rfkill_blocked")) title = "Bluetooth is blocked";
         char msg[512];
-        snprintf(msg,sizeof msg,"%s\n%s",
-            *reason?reason:"No Bluetooth adapter was detected.",
+        char* r = *reason ? g_strdup(reason) : g_strdup("No Bluetooth adapter was detected.");
+        if (g_ascii_islower(r[0])) r[0] = g_ascii_toupper(r[0]);
+        gsize rl = strlen(r);                       /* do not double the full stop */
+        const char* dot = (rl && strchr(".!?", r[rl-1])) ? "" : ".";
+        snprintf(msg,sizeof msg,"%s%s\n%s", r, dot,
             *h?h:"Connect a Bluetooth adapter to pair headphones, keyboards and other devices.");
-        page_empty(box, "bluetooth", "Bluetooth is off", msg);
-        g_free(reason); g_free(h);
+        page_empty(box, "bluetooth", title, msg);
+        g_free(r); g_free(reason); g_free(h);
     }
     g_free(st);
 }
@@ -594,7 +610,7 @@ static void cb_remove(GtkWidget* w, gpointer d){ (void)w; run_bg("xxri-app remov
 static void build_apps(GtkWidget* box) {
     char* out=run_cmd("xxri-app list");
     if (!*out) { page_empty(box, "apps", "No apps installed yet",
-        "Download an AppImage and open it to integrate it here \xe2\x80\x94 or use the upcoming Software Store.");
+        "Install apps from the XXRI Store, or open an AppImage you downloaded and it is integrated here.");
         g_free(out); return; }
     gtk_box_pack_start(GTK_BOX(box), section("Installed Applications"), FALSE, FALSE, 0);
     GtkWidget* c=card_new();
@@ -636,6 +652,53 @@ static void cb_restart(GtkWidget* w, gpointer d){ (void)w;(void)d;
     GtkWidget* dlg=gtk_message_dialog_new(GTK_WINDOW(g_win),GTK_DIALOG_MODAL,GTK_MESSAGE_QUESTION,GTK_BUTTONS_OK_CANCEL,"Restart the desktop session? All open apps will close.");
     if(gtk_dialog_run(GTK_DIALOG(dlg))==GTK_RESPONSE_OK) run_bg("xxri-desktop restart-session");
     gtk_widget_destroy(dlg);
+}
+/* Help & Support.
+ * This nav entry used to fire xxri-open-url and leave the content on
+ * whatever page was showing - on a device with no browser installed that was
+ * a dead click.  It is a real page now: what this build is, where to get help,
+ * and the desktop's own keyboard shortcuts (which no browser can provide). */
+static void cb_open_url(GtkWidget* w, gpointer u) { (void)w; run_bg("xxri-open-url %s", (const char*)u); }
+static void build_help(GtkWidget* box) {
+    char* s = run_cmd("xxri-hardware summary --json");
+    char* os = jget(s, "os");
+
+    gtk_box_pack_start(GTK_BOX(box), section("This device"), FALSE, FALSE, 0);
+    GtkWidget* c0 = card_new();
+    card_kv(c0, "Edition", *os ? os : "XXRI OS Lite");
+    card_kv(c0, "Architecture", "i686 (32-bit Intel)");
+    card_kv(c0, "Software source", "repo.xxri.flows.best");
+    gtk_box_pack_start(GTK_BOX(box), c0, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(box), section("Get help"), FALSE, FALSE, 0);
+    GtkWidget* c1 = card_new();
+    GtkWidget* b1 = gtk_button_new_with_label("Open");
+    g_signal_connect(b1, "clicked", G_CALLBACK(cb_open_url), (gpointer)"https://xxri.flows.best");
+    card_icon_row(c1, "help", "XXRI website", "Guides, downloads and release notes", b1);
+    GtkWidget* b2 = gtk_button_new_with_label("Open");
+    g_signal_connect(b2, "clicked", G_CALLBACK(cb_open_url), (gpointer)"https://xxri.flows.best/support/");
+    card_icon_row(c1, "help", "Support", "Report a problem or ask a question", b2);
+    gtk_box_pack_start(GTK_BOX(box), c1, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box),
+        hint("Links open in your browser. XXRI OS Lite ships without one - install a browser "
+             "from the Store first, or read the guides on another device."), FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(box), section("Keyboard shortcuts"), FALSE, FALSE, 0);
+    GtkWidget* c2 = card_new();
+    struct { const char* k; const char* v; } keys[] = {
+        {"Alt + Tab",                "Switch between open windows"},
+        {"Alt + F1",                 "Minimise the active window"},
+        {"Ctrl + Alt + M",           "Maximise or restore the active window"},
+        {"Ctrl + Alt + C",           "Open or close the Control Center"},
+        {"Ctrl + Alt + arrow keys",  "Move the active window"},
+        {"Ctrl + Alt + = / -",       "Grow or shrink the active window"},
+        {"Click the desktop",        "Window list, desktops and Exit"},
+        {"Shift + Page Up / Down",   "Scroll back through the Terminal"},
+    };
+    for (unsigned i = 0; i < G_N_ELEMENTS(keys); i++) card_kv(c2, keys[i].k, keys[i].v);
+    gtk_box_pack_start(GTK_BOX(box), c2, FALSE, FALSE, 0);
+
+    g_free(os); g_free(s);
 }
 static void build_general(GtkWidget* box) {
     char* st=run_cmd("xxri-desktop status --json");
@@ -716,7 +779,12 @@ static void build_about(GtkWidget* box) {
         {"OS", jget(s,"os")},
         {"Version", g_strdup(strstr(jget(s,"os"),"Lite")?"2.0 Lite":"2.0")},
         {"Uptime", jget(s,"uptime")},
-        {"Locale", jget(s,"locale")},
+        {"Locale", ({ char* lc = jget(s,"locale");
+                      /* a bare "C" is the POSIX default, not a language */
+                      char* out = (!strcmp(lc,"C")||!strcmp(lc,"POSIX"))
+                                ? g_strdup_printf("%s \xc2\xb7 POSIX default", lc)
+                                : g_strdup(lc);
+                      g_free(lc); out; })},
     };
     for (int i=0;i<4;i++){ GtkWidget* rr=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);
         gtk_box_pack_start(GTK_BOX(rr),label_cls(rows[i].k,"xxri-val",0),FALSE,FALSE,0);
@@ -758,7 +826,6 @@ static void build_about(GtkWidget* box) {
     g_free(s);g_free(b);g_free(disk);g_free(dsp);g_free(bat);
 }
 
-/* ---------------------------------------------------- page framework ----- */
 static GtkWidget* build_page_content(const char* id) {
     /* width-capped centered column inside a scroller */
     GtkWidget* scr = gtk_scrolled_window_new(NULL,NULL);
@@ -782,15 +849,23 @@ static GtkWidget* build_page_content(const char* id) {
     else if (!strcmp(id,"devices"))   build_devices(col);
     else if (!strcmp(id,"wallpaper")) build_wallpaper(col);
     else if (!strcmp(id,"sound"))     build_sound(col);
+    else if (!strcmp(id,"help"))      build_help(col);
     else if (!strcmp(id,"storage"))   build_storage(col);
     else if (!strcmp(id,"battery"))   build_battery(col);
     else if (!strcmp(id,"apps"))      build_apps(col);
     else if (!strcmp(id,"general"))   build_general(col);
     else if (!strcmp(id,"update"))    build_update(col);
     else if (!strcmp(id,"about"))     build_about(col);
-    /* center the column horizontally, capped width */
+    /* The column FILLS the content pane rather than being centred in it.
+     *
+     * With GTK_ALIGN_CENTER this box took only the column's natural width and
+     * sat in the middle of the pane, leaving a band of bare surface colour down
+     * both sides.  That band is what made the Settings UI look like it was
+     * floating inside a larger white window instead of being the window.  The
+     * column's own 32px margins still provide the page's breathing room; the
+     * 600px size request is now just a minimum. */
     GtkWidget* center = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
-    gtk_widget_set_halign(center, GTK_ALIGN_CENTER);
+    gtk_widget_set_halign(center, GTK_ALIGN_FILL);
     gtk_box_pack_start(GTK_BOX(center), col, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(outer), center, TRUE, TRUE, 0);
     gtk_container_add(GTK_CONTAINER(scr), outer);
@@ -817,11 +892,9 @@ static void on_nav(GtkListBox* lb, GtkListBoxRow* row, gpointer u) {
     (void)lb;(void)u;
     if (!row) return;
     const char* id = (const char*)g_object_get_data(G_OBJECT(row),"id");
-    if (!strcmp(id,"help")) { run_bg("xxri-open-url https://xxri.flows.best"); return; }
     show_page(id);
 }
 
-/* ------------------------------------------------------------- main ------ */
 static void activate(GtkApplication* app, gpointer u) {
     (void)u;
     /* CSS */
@@ -834,21 +907,52 @@ static void activate(GtkApplication* app, gpointer u) {
     gtk_window_set_title(GTK_WINDOW(g_win), "XXRI Settings");
     gtk_window_set_default_size(GTK_WINDOW(g_win), 980, 660);
     css(g_win, "xxri-root");
+    /* The mockup's sidebar is a translucent layer of the window, not an opaque
+     * slab beside the content.  With the XXRI compositor running the window can
+     * have a real alpha channel, so the sidebar is simply painted with alpha and
+     * the desktop shows through it; the content pane stays fully opaque so text
+     * never has to compete with the wallpaper.  The class is what the stylesheet
+     * keys the translucent sidebar off, so without a compositor nothing
+     * changes and the sidebar stays solid. */
+    {
+        GdkScreen* sc0 = gtk_widget_get_screen(g_win);
+        GdkVisual* rgba = gdk_screen_get_rgba_visual(sc0);
+        if (rgba && gdk_screen_is_composited(sc0)) {
+            gtk_widget_set_visual(g_win, rgba);
+            css(g_win, "composited");
+        }
+    }
 
     GtkWidget* hb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_container_add(GTK_CONTAINER(g_win), hb);
 
-    /* ---- sidebar ---- */
     GtkWidget* side = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     css(side, "xxri-sidebar");
     gtk_widget_set_size_request(side, 250, -1);
-    /* header */
+
+    /* Window controls, INSIDE the sidebar, above the title - the composition the
+       mockup draws.  There is no titlebar above this window: the sidebar itself
+       runs to the top edge, so its translucency reaches the top of the window
+       instead of being cut off by an opaque strip. */
+    XxriChrome* chrome = xxri_chrome_new(g_win);
+    /* invisible resize edges - no border, no padding, no visual change */
+    gtk_container_add(GTK_CONTAINER(g_win), xxri_chrome_resizable(chrome, hb));
+    GtkWidget* crow = gtk_event_box_new();
+    gtk_event_box_set_visible_window(GTK_EVENT_BOX(crow), TRUE);
+    css(crow, "xxri-chrome-row");
+    gtk_container_add(GTK_CONTAINER(crow), xxri_chrome_controls(chrome));
+    xxri_chrome_drag_area(chrome, crow);
+    gtk_box_pack_start(GTK_BOX(side), crow, FALSE, FALSE, 0);
+
+    /* header - also a drag handle, since there is no titlebar to grab */
+    GtkWidget* hdrbox = gtk_event_box_new();
+    gtk_event_box_set_visible_window(GTK_EVENT_BOX(hdrbox), TRUE);
+    css(hdrbox, "xxri-chrome-row");
+    xxri_chrome_drag_area(chrome, hdrbox);
     GtkWidget* hdr = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8); css(hdr,"xxri-sidebar-header");
     GtkWidget* stitle = label_cls("Settings","xxri-sidebar-title",0);
     gtk_box_pack_start(GTK_BOX(hdr), stitle, TRUE, TRUE, 0);
-    GtkWidget* srch = img("wifi",22); /* placeholder search glyph unused */
-    (void)srch;
-    gtk_box_pack_start(GTK_BOX(side), hdr, FALSE, FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(hdrbox), hdr);
+    gtk_box_pack_start(GTK_BOX(side), hdrbox, FALSE, FALSE, 0);
     /* user chip */
     GtkWidget* chip = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10); css(chip,"xxri-userchip");
     GtkWidget* cv=gtk_box_new(GTK_ORIENTATION_VERTICAL,1);
@@ -884,7 +988,6 @@ static void activate(GtkApplication* app, gpointer u) {
     gtk_box_pack_start(GTK_BOX(side), navscr, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(hb), side, FALSE, FALSE, 0);
 
-    /* ---- content stack ---- */
     g_stack = gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(g_stack), GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
     gtk_stack_set_transition_duration(GTK_STACK(g_stack), 180);

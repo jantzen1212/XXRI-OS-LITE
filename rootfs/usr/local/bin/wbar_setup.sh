@@ -1,5 +1,5 @@
 #!/bin/sh
-# wbar_setup.sh - xxri OS Lite (Phase 8.1).
+# wbar_setup.sh - xxri OS Lite dock setup.
 #
 # The dock is defined ENTIRELY by /usr/local/share/wbar/dot.wbar (the xxri
 # canonical dock).  Unlike stock Tiny Core, this script does NOT append the
@@ -23,7 +23,7 @@ WBARICONS=/home/"$USER"/.wbar
 [ -e "$TCEWBAR" ] && sudo rm -rf "$TCEWBAR"
 sudo cp /usr/local/share/wbar/dot.wbar "$TCEWBAR"
 
-# Phase 9.1: re-append every Store-installed app so the dock persists across
+# re-append every Store-installed app so the dock persists across
 # reboots.  Each integrated app has a registry file with its Name and icon;
 # xxri-app added the same triplet live at install time, and this rebuilds them
 # on boot.  The base dock stays first, apps follow - each appears exactly once.

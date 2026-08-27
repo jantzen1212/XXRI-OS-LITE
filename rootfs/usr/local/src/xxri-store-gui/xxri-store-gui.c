@@ -1,16 +1,13 @@
-/* xxri-store-gui - the XXRI Store (Phase 9).  GTK3 frontend ONLY.
+/* xxri-store-gui - the XXRI Store.  GTK3 frontend only.
  *
- * Every catalog / network / install action goes through the `xxri-store`
- * engine, which in turn hands AppImages to `xxri-app` (Phase 6) - the single
- * AppImage runtime.  This program never downloads, never mounts, never writes
- * a .desktop file: it renders the repository and drives those backends.
- *
- * Design language: Phase 4 design system, identical to xxri Settings (Phase 8)
- * - Avenir Next, the xxri gradient (pink -> purple -> blue), soft cards, pill
- * buttons.  Layout follows the Phase 9 mockup: a narrow icon rail, a search
- * header, hero banners, section rails of app tiles.
+ * All catalog / network / install work goes through the xxri-store engine,
+ * which hands AppImages to xxri-app.  This program never downloads, mounts or
+ * writes .desktop files: it renders the repository and drives those backends.
+ * Look and feel follows the rest of XXRI - soft cards, pill buttons, the pink
+ * -> purple -> blue gradient, an icon rail, search header and section rails.
  */
 #include <gtk/gtk.h>
+#include "xxri-chrome.h"
 #include <cairo.h>
 #include <string.h>
 #include <stdlib.h>
@@ -23,7 +20,6 @@
 #define ICON_DIR  STORE_DIR "/icons"
 #define UI_ICONS  STORE_DIR "/ui"
 
-/* ------------------------------------------------------------ image load -- */
 /* This TC gdk-pixbuf build ships broken built-in PNG loaders, so PNGs come in
  * through cairo (libpng direct) and are converted to a GdkPixbuf. */
 static GdkPixbuf* load_png(const char* path, int w, int h) {
@@ -53,8 +49,7 @@ static GdkPixbuf* load_png(const char* path, int w, int h) {
     return full;
 }
 
-/* ------------------------------------------------------------- backend --- */
-/* Temporary startup instrumentation (Phase: repository debugging).
+/* startup tracing, enabled with XXRI_STORE_DEBUG.
    Writes to $HOME/xxri-store-debug.log whenever XXRI_STORE_DEBUG is set, so the
    Store can be traced when launched FROM THE DOCK, where there is no terminal
    to read stderr from. */
@@ -206,7 +201,6 @@ static char* jstrs(const char* doc, const char* key) {
     return g_string_free(s,FALSE);
 }
 
-/* --------------------------------------------------------------- model --- */
 typedef struct {
     char *id,*name,*category,*kind,*summary,*description,*developer,*publisher,*license,
          *homepage,*website,*version,*release_date,*updated,*source_type,*source_ref,
@@ -290,7 +284,6 @@ static gint cmp_rank_then_name(gconstpointer x, gconstpointer y) {
     return g_ascii_strcasecmp(a->name?a->name:"", b->name?b->name:"");
 }
 
-/* ------------------------------------------------------------- catalog --- */
 static void load_catalog(void) {
     if (g_apps) {   /* a refresh replaced the repository - drop the old model */
         g_ptr_array_free(g_apps, TRUE);
@@ -328,9 +321,9 @@ static void load_catalog(void) {
             App* a = g_new0(App,1);
             a->id          = jtop(o,"id");
             a->name        = jtop(o,"title");
-            { char* rawcat = jtop(o,"category");
-              a->category = g_strdup(cat_slug(rawcat));
-              g_free(rawcat); }
+            { char* rcat = jtop(o,"category");
+              a->category = g_strdup(cat_slug(rcat));
+              g_free(rcat); }
             a->description = jtop(o,"description");
             a->summary     = g_strdup(a->description);
             a->homepage    = jtop(o,"homepage");
@@ -576,7 +569,6 @@ static char* human_size(gint64 b) {
     return g_strdup_printf("%.2f GB", b/(1024.0*1024*1024));
 }
 
-/* ----------------------------------------------------------- ui helpers -- */
 static void css(GtkWidget* w,const char* c){ gtk_style_context_add_class(gtk_widget_get_style_context(w),c); }
 static GtkWidget* lbl(const char* t,const char* c,gfloat x){
     GtkWidget* l=gtk_label_new(t?t:"");
@@ -678,7 +670,6 @@ static GtkWidget* icon_img(App* a,int size){
     return i;
 }
 
-/* ------------------------------------------------- lazily cached icons ---- */
 static void iconwant_free(gpointer p){ IconWant* w=p; g_free(w->id); if(w->img) g_object_unref(w->img); g_free(w); }
 static gboolean poll_icons(gpointer u){
     static int tries=0;
@@ -729,7 +720,6 @@ static void kick_icon_fetch(void){
     g_string_free(cmd,TRUE);
 }
 
-/* --------------------------------------------------------- app actions --- */
 static void act_install(GtkWidget* w,gpointer p){ App* a=p; (void)w;
     gtrace("act_install ENTER  ptr=%p", (void*)a);
     if (!a) { gtrace("act_install ABORT: NULL app pointer"); return; }
@@ -760,7 +750,7 @@ static void act_remove(GtkWidget* w,gpointer p){ App* a=p; (void)w;
     int r=gtk_dialog_run(GTK_DIALOG(d));
     gtk_widget_destroy(d);
     if (r!=GTK_RESPONSE_ACCEPT) return;
-    char* out=run_cmd("xxri-app remove %s --purge",rid); g_free(out);
+    char* hasil=run_cmd("xxri-app remove %s --purge",rid); g_free(hasil);
     refresh_state();
     rebuild(g_page);
 }
@@ -787,7 +777,7 @@ static gint64 app_space_kb(App* a){
     int mult = 2;
     if (a->kind && !strcmp(a->kind,"tcz"))          mult = 5;
     else if (a->kind && !strcmp(a->kind,"archive")) mult = 4;
-    return (sz/1024)*mult + 51200;          /* + 50 MB working headroom */
+    return (sz/1024)*mult + 51200;   /* +50 MB headroom: something always wants more */
 }
 static gboolean app_has_room(App* a){
     return g_free_kb <= 0 || app_space_kb(a) <= g_free_kb;
@@ -917,7 +907,6 @@ static GtkWidget* dl_glyph(App* a,int size){
     return ev;
 }
 
-/* ------------------------------------------------------------- tiles ----- */
 static void show_app(App* a);
 static gboolean on_tile_click(GtkWidget* w,GdkEventButton* e,gpointer u){ (void)w;(void)e; show_app((App*)u); return FALSE; }
 
@@ -973,8 +962,17 @@ static GtkWidget* app_card(App* a){
     gtk_box_pack_start(GTK_BOX(tv),nb,FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(a->summary,"xxri-app-summary",0,52),FALSE,FALSE,0);
     char sub[192]; char* hs=human_size(a->size);
-    snprintf(sub,sizeof sub,"%s \xc2\xb7 %s%s%s",a->developer,CAT_TITLE(a->category),
-             *hs?" \xc2\xb7 ":"",hs);
+    { const char* parts[3]; int n=0;
+      const char* cat=CAT_TITLE(a->category);
+      if (a->developer && *a->developer) parts[n++]=a->developer;
+      if (cat && *cat)                   parts[n++]=cat;
+      if (hs && *hs)                     parts[n++]=hs;
+      sub[0]=0;
+      for (int i=0;i<n;i++) {
+          if (i) g_strlcat(sub," \xc2\xb7 ",sizeof sub);
+          g_strlcat(sub,parts[i],sizeof sub);
+      }
+    }
     g_free(hs);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(sub,"xxri-app-dev",0,52),FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(c),tv,TRUE,TRUE,0);
@@ -987,7 +985,6 @@ static GtkWidget* app_card(App* a){
     return ev;
 }
 
-/* ------------------------------------------------------- lazy app grid --- */
 /* Never build 950 cards.  Add a chunk, then more as the user reaches the end. */
 typedef struct { GPtrArray* apps; guint shown; GtkWidget* box; GtkWidget* more; } LazyGrid;
 static void lazy_free(gpointer p,GClosure* c){ (void)c; LazyGrid* g=p; g_ptr_array_free(g->apps,TRUE); g_free(g); }
@@ -1024,9 +1021,46 @@ static GtkWidget* lazy_grid(GPtrArray* apps){
     return wrap;
 }
 
-/* -------------------------------------------------------- section rail --- */
 /* a horizontal row of tiles, like the mockup's "Recomended apps" */
 static void on_seeall(GtkWidget* w,gpointer p){ (void)w; open_page((char*)p); }
+/* A rail scrolls horizontally with no visible scrollbar, so the last card is
+   simply chopped off at the window edge and the row reads as broken rather than
+   as continuing.  Painting a short fade to the page background over the right
+   edge turns that hard cut into an obvious "there is more this way", which is
+   what every shelf UI does and what the mockup implies. */
+static gboolean rail_fade_draw(GtkWidget* w, cairo_t* cr, gpointer d){
+    (void)d;
+    GtkAdjustment* adj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(w));
+    if (!adj) return FALSE;
+    double lo = gtk_adjustment_get_value(adj);
+    double page = gtk_adjustment_get_page_size(adj);
+    double upper = gtk_adjustment_get_upper(adj);
+    int ww = gtk_widget_get_allocated_width(w);
+    int wh = gtk_widget_get_allocated_height(w);
+    const double FADE = 34.0;
+    /* the page background the rails sit on: @xxri_surface, #EFEDF8 */
+    const double R = 239/255.0, G = 237/255.0, B = 248/255.0;
+    if (upper - (lo + page) > 1.0) {            /* something is off the right */
+        cairo_pattern_t* p = cairo_pattern_create_linear(ww - FADE, 0, ww, 0);
+        cairo_pattern_add_color_stop_rgba(p, 0.0, R, G, B, 0.0);
+        cairo_pattern_add_color_stop_rgba(p, 1.0, R, G, B, 1.0);
+        cairo_set_source(cr, p);
+        cairo_rectangle(cr, ww - FADE, 0, FADE, wh);
+        cairo_fill(cr);
+        cairo_pattern_destroy(p);
+    }
+    if (lo > 1.0) {                              /* and to the left once scrolled */
+        cairo_pattern_t* p = cairo_pattern_create_linear(FADE, 0, 0, 0);
+        cairo_pattern_add_color_stop_rgba(p, 0.0, R, G, B, 0.0);
+        cairo_pattern_add_color_stop_rgba(p, 1.0, R, G, B, 1.0);
+        cairo_set_source(cr, p);
+        cairo_rectangle(cr, 0, 0, FADE, wh);
+        cairo_fill(cr);
+        cairo_pattern_destroy(p);
+    }
+    return FALSE;
+}
+
 static void section_rail(GtkWidget* box,const char* title,GPtrArray* apps,const char* seeall){
     if (!apps || !apps->len) return;
     GtkWidget* hdr=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);
@@ -1040,7 +1074,13 @@ static void section_rail(GtkWidget* box,const char* title,GPtrArray* apps,const 
     }
     gtk_box_pack_start(GTK_BOX(box),hdr,FALSE,FALSE,0);
     GtkWidget* sc=gtk_scrolled_window_new(NULL,NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_AUTOMATIC,GTK_POLICY_NEVER);
+    /* EXTERNAL, not AUTOMATIC: a permanent grey scroll strip under every rail
+       is the single biggest departure from the mockup.  The rail still scrolls
+       with the wheel and by dragging, and "See all" opens the full list. */
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_EXTERNAL,GTK_POLICY_NEVER);
+    gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sc),TRUE);
+    /* after the children, so the fade lies on top of the cards */
+    g_signal_connect_after(sc,"draw",G_CALLBACK(rail_fade_draw),NULL);
     css(sc,"xxri-rail");
     GtkWidget* row=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10);
     int shown=0;
@@ -1055,7 +1095,6 @@ static void section_rail(GtkWidget* box,const char* title,GPtrArray* apps,const 
     else { gtk_widget_destroy(sc); gtk_widget_destroy(hdr); }
 }
 
-/* ------------------------------------------------------------ queries ---- */
 static GPtrArray* apps_in_cat(const char* cat){
     GPtrArray* r=g_ptr_array_new();
     for (guint i=0;i<g_apps->len;i++){ App* a=g_apps->pdata[i];
@@ -1087,7 +1126,6 @@ static GPtrArray* apps_continue(void){
     return r;
 }
 
-/* --------------------------------------------------------------- hero ---- */
 static gboolean draw_hero(GtkWidget* w,cairo_t* cr,gpointer u){
     guint h=GPOINTER_TO_UINT(u);
     GtkAllocation al; gtk_widget_get_allocation(w,&al);
@@ -1142,13 +1180,14 @@ static GtkWidget* hero_banner(App* a,guint idx){
     return ev;
 }
 
-/* --------------------------------------------------------------- pages --- */
 static void build_home(GtkWidget* box){
     /* hero rail - respects the hide-incompatible filter like every other rail */
     GPtrArray* feat=sect("featured");
     if (feat && feat->len) {
         GtkWidget* sc=gtk_scrolled_window_new(NULL,NULL);
-        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_AUTOMATIC,GTK_POLICY_NEVER);
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_EXTERNAL,GTK_POLICY_NEVER);
+        gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sc),TRUE);
+        g_signal_connect_after(sc,"draw",G_CALLBACK(rail_fade_draw),NULL);
         css(sc,"xxri-rail");
         GtkWidget* row=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,12);
         int shown=0;
@@ -1255,7 +1294,6 @@ static void build_category(GtkWidget* box,const char* cat){
     gtk_box_pack_start(GTK_BOX(box),lazy_grid(ap),FALSE,FALSE,0);
 }
 
-/* ---------------------------------------------------------- app detail --- */
 static void kv(GtkWidget* card,const char* k,const char* v){
     if (!v||!*v) return;
     GtkWidget* r=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10); css(r,"xxri-rowitem");
@@ -1309,9 +1347,21 @@ static void build_appdetail(GtkWidget* box,App* a){
     GtkWidget* tv=gtk_box_new(GTK_ORIENTATION_VERTICAL,4);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(a->name,"xxri-page-title",0,26),FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(a->developer,"xxri-app-dev",0,40),FALSE,FALSE,0);
+    /* join only the fields that exist: the repository leaves license and size
+       empty for most entries, and "Browsers \xc2\xb7 " with nothing after it
+       looked like a rendering bug */
     char meta[256]; char* hs=human_size(a->size);
-    snprintf(meta,sizeof meta,"%s \xc2\xb7 %s%s%s",CAT_TITLE(a->category),a->license,
-             *hs?" \xc2\xb7 ":"",hs);
+    { const char* parts[3]; int n=0;
+      const char* cat=CAT_TITLE(a->category);
+      if (cat && *cat)          parts[n++]=cat;
+      if (a->license && *a->license) parts[n++]=a->license;
+      if (hs && *hs)            parts[n++]=hs;
+      meta[0]=0;
+      for (int i=0;i<n;i++) {
+          if (i) g_strlcat(meta," \xc2\xb7 ",sizeof meta);
+          g_strlcat(meta,parts[i],sizeof meta);
+      }
+    }
     g_free(hs);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(meta,"xxri-app-summary",0,44),FALSE,FALSE,0);
     GtkWidget* act=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);
@@ -1356,7 +1406,8 @@ static void build_appdetail(GtkWidget* box,App* a){
     if (a->nshots>0) {
         gtk_box_pack_start(GTK_BOX(box),lbl("Screenshots","xxri-section",0),FALSE,FALSE,0);
         GtkWidget* sc=gtk_scrolled_window_new(NULL,NULL);
-        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_AUTOMATIC,GTK_POLICY_NEVER);
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_EXTERNAL,GTK_POLICY_NEVER);
+        gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sc),TRUE);
         css(sc,"xxri-rail");
         GtkWidget* row=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10);
         gtk_container_add(GTK_CONTAINER(sc),row);
@@ -1454,7 +1505,6 @@ static void build_appdetail(GtkWidget* box,App* a){
     }
 }
 
-/* -------------------------------------------------------------- search --- */
 static GtkWidget *g_res_box, *g_res_count;
 static GtkWidget *g_f_cat, *g_f_arch, *g_f_pub, *g_f_inst, *g_f_upd;
 static void do_search(void){
@@ -1581,7 +1631,43 @@ static void build_search(GtkWidget* box){
     do_search();
 }
 
-/* ----------------------------------------------------------- installed --- */
+static void draw_glyph(cairo_t* cr,int g,double S,gboolean on);  /* rail glyphs */
+/* Centred empty state, same language as Settings: a soft badge holding the
+   page's own rail glyph, a bold line and a muted explanation.  The Store used
+   to drop a hint bar at the top of an otherwise blank page, which read as an
+   error message rather than "nothing here yet". */
+typedef struct { int glyph; } EmptyBadge;
+static gboolean empty_badge_draw(GtkWidget* w,cairo_t* cr,gpointer u){
+    EmptyBadge* b=u;
+    GtkAllocation al; gtk_widget_get_allocation(w,&al);
+    double S=al.width;
+    cairo_set_source_rgba(cr,0.514,0.443,0.969,0.13);
+    cairo_arc(cr,S/2,S/2,S/2,0,2*G_PI); cairo_fill(cr);
+    double g=S*0.46;
+    cairo_save(cr); cairo_translate(cr,(S-g)/2,(S-g)/2);
+    draw_glyph(cr,b->glyph,g,TRUE);
+    cairo_restore(cr);
+    return FALSE;
+}
+static GtkWidget* empty_state(int glyph,const char* title,const char* sub){
+    GtkWidget* w=gtk_box_new(GTK_ORIENTATION_VERTICAL,12);
+    gtk_widget_set_valign(w,GTK_ALIGN_CENTER);
+    gtk_widget_set_halign(w,GTK_ALIGN_CENTER);
+    gtk_widget_set_margin_top(w,40);
+    GtkWidget* da=gtk_drawing_area_new();
+    gtk_widget_set_size_request(da,78,78);
+    gtk_widget_set_halign(da,GTK_ALIGN_CENTER);
+    EmptyBadge* b=g_new0(EmptyBadge,1); b->glyph=glyph;
+    g_signal_connect_data(da,"draw",G_CALLBACK(empty_badge_draw),b,(GClosureNotify)g_free,0);
+    gtk_box_pack_start(GTK_BOX(w),da,FALSE,FALSE,0);
+    GtkWidget* t=lbl(title,"xxri-empty-title",0.5);
+    gtk_label_set_justify(GTK_LABEL(t),GTK_JUSTIFY_CENTER);
+    gtk_box_pack_start(GTK_BOX(w),t,FALSE,FALSE,0);
+    GtkWidget* sl=lbl_wrap(sub,"xxri-empty-sub",0.5,46);
+    gtk_label_set_justify(GTK_LABEL(sl),GTK_JUSTIFY_CENTER);
+    gtk_box_pack_start(GTK_BOX(w),sl,FALSE,FALSE,0);
+    return w;
+}
 static void act_openloc(GtkWidget* w,gpointer p){ (void)w; run_bg("xxri-store open-location %s",(char*)p); }
 static void build_installed(GtkWidget* box){
     gtk_box_pack_start(GTK_BOX(box),lbl("Installed apps","xxri-page-title",0),FALSE,FALSE,0);
@@ -1591,8 +1677,9 @@ static void build_installed(GtkWidget* box){
     gtk_box_pack_start(GTK_BOX(box),lbl(s,"xxri-page-sub",0),FALSE,FALSE,0);
     if (!a->len) {
         gtk_box_pack_start(GTK_BOX(box),
-            lbl_wrap("No apps installed yet. Everything you install from the Store shows up here, "
-                     "with a Launch button and its install date.","xxri-hint",0,60),FALSE,FALSE,0);
+            empty_state(5,"No apps yet",
+                "Everything you install from the Store shows up here, with a Launch "
+                "button and the date you installed it."),TRUE,TRUE,0);
     } else {
         GtkWidget* card=gtk_box_new(GTK_ORIENTATION_VERTICAL,0); css(card,"xxri-card");
         gtk_widget_set_margin_top(card,10);
@@ -1644,7 +1731,6 @@ static void build_installed(GtkWidget* box){
     g_ptr_array_free(a,TRUE); g_free(js);
 }
 
-/* ------------------------------------------------------------- updates --- */
 static void act_update_all(GtkWidget* w,gpointer p){ (void)w;(void)p;
     run_bg("xxri-store update-all");
     open_page("downloads");
@@ -1710,7 +1796,6 @@ static void build_updates(GtkWidget* box){
     g_ptr_array_free(a,TRUE); g_free(js);
 }
 
-/* ----------------------------------------------------- download manager -- */
 static GtkWidget* g_dl_list;
 static void dl_action(GtkWidget* w,gpointer p){
     const char* verb=g_object_get_data(G_OBJECT(w),"verb");
@@ -1728,8 +1813,9 @@ static gboolean poll_downloads(gpointer u){ (void)u;
     GPtrArray* a=jarr(js,"downloads");
     if (!a->len) {
         gtk_container_add(GTK_CONTAINER(g_dl_list),
-            lbl_wrap("Nothing in the queue. Downloads you start appear here with progress, speed and "
-                     "time left \xe2\x80\x94 and they survive a reboot.","xxri-hint",0,60));
+            empty_state(3,"Nothing downloading",
+                "Downloads you start appear here with progress, speed and time left "
+                "\xe2\x80\x94 and they survive a reboot."));
     }
     for (guint i=0;i<a->len;i++) {
         char* o=a->pdata[i];
@@ -1822,8 +1908,7 @@ static void build_downloads(GtkWidget* box){
     g_timeout_add(1000,poll_downloads,NULL);
 }
 
-/* -------------------------------------------------------------- themes --- */
-/* Phase 10+ will ship kind:"theme" entries; the page already reads the same
+/* later releases will ship kind:"theme" entries; the page already reads the same
  * catalog, so nothing here changes when they arrive. */
 static void build_kind(GtkWidget* box,const char* kind,const char* title,const char* soon){
     gtk_box_pack_start(GTK_BOX(box),lbl(title,"xxri-page-title",0),FALSE,FALSE,0);
@@ -1839,7 +1924,6 @@ static void build_kind(GtkWidget* box,const char* kind,const char* title,const c
     gtk_box_pack_start(GTK_BOX(box),lazy_grid(r),FALSE,FALSE,0);
 }
 
-/* ------------------------------------------------------ page framework --- */
 static GtkWidget* content_column(void){
     GtkWidget* scr=gtk_scrolled_window_new(NULL,NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scr),GTK_POLICY_NEVER,GTK_POLICY_AUTOMATIC);
@@ -1955,7 +2039,6 @@ static void go_back(GtkWidget* w,gpointer u){ (void)w;(void)u;
     rebuild(prev); g_free(prev);
 }
 
-/* -------------------------------------------------------- categories map -- */
 const char* ALL_CATS[]={"browser","office","development","graphics","photography","video","audio",
     "education","communication","ai","games","utilities","science","finance","security","system",
     "virtualization","networking","productivity","accessories",NULL};
@@ -1971,7 +2054,6 @@ static const char* CAT_TITLE(const char* id){
     return id;
 }
 
-/* ---------------------------------------------------------------- rail --- */
 /* The mockup's icon rail.  Glyphs are drawn with cairo so they stay crisp and
  * on-palette at any size - no bitmap set to keep in sync. */
 typedef struct { const char* id; const char* label; int glyph; } Rail;
@@ -2050,7 +2132,6 @@ static gboolean on_rail_click(GtkWidget* w,GdkEventButton* e,gpointer u){ (void)
 }
 static GtkWidget* build_rail(void){
     GtkWidget* rail=gtk_box_new(GTK_ORIENTATION_VERTICAL,6);
-    css(rail,"xxri-rail-col");
     gtk_widget_set_size_request(rail,62,-1);
     GtkWidget* logo=gtk_image_new();
     GdkPixbuf* lp=load_png("/usr/local/share/xxri-settings/icons/logo-36.png",30,30);
@@ -2074,7 +2155,6 @@ static GtkWidget* build_rail(void){
     return rail;
 }
 
-/* -------------------------------------------------------------- header --- */
 static void on_search_changed(GtkWidget* w,gpointer u){ (void)w;(void)u;
     if (!g_page || strcmp(g_page,"search")) open_page("search");
     else do_search();
@@ -2083,22 +2163,30 @@ static void on_search_changed(GtkWidget* w,gpointer u){ (void)w;(void)u;
 }
 static void update_status_chip(void){
     if (!g_status_chip) return;
-    char t[200];
+    char t[200], tip[240];
+    /* The chip has room for about forty characters at 1024px, and the old text
+       was longer than that: it ellipsised in the middle of the date, so the
+       date AND the architecture were both lost and the pill just looked
+       unfinished.  The chip now carries only what it needs to say - reachable
+       or not, and which repository - and the full detail lives in its tooltip. */
     if (!g_repo_available) {
-        /* No catalog at all: the repository could not be reached and nothing
-           was ever cached.  Say so plainly rather than showing an empty store. */
         snprintf(t,sizeof t,"Repository unavailable");
+        snprintf(tip,sizeof tip,"Could not reach repo.xxri.flows.best, and no catalog is cached.\nArchitecture: %s", g_arch);
     } else if (g_repo_offline) {
-        snprintf(t,sizeof t,"Repository unavailable \xc2\xb7 cached catalog%s%s",
-                 (g_repo_updated&&*g_repo_updated)?" \xc2\xb7 ":"",
-                 (g_repo_updated&&*g_repo_updated)?g_repo_updated:"");
+        snprintf(t,sizeof t,"Offline \xc2\xb7 cached catalog");
+        snprintf(tip,sizeof tip,"Could not reach repo.xxri.flows.best; showing the catalog cached%s%s.\nArchitecture: %s",
+                 (g_repo_updated&&*g_repo_updated)?" on ":"",
+                 (g_repo_updated&&*g_repo_updated)?g_repo_updated:"",
+                 g_arch);
     } else {
-        snprintf(t,sizeof t,"Online \xc2\xb7 repo.xxri.flows.best%s%s \xc2\xb7 %s",
-                 (g_repo_updated&&*g_repo_updated)?" \xc2\xb7 ":"",
+        snprintf(t,sizeof t,"Online \xc2\xb7 repo.xxri.flows.best");
+        snprintf(tip,sizeof tip,"Catalog last updated%s%s.\nArchitecture: %s",
+                 (g_repo_updated&&*g_repo_updated)?" ":" \xe2\x80\x94 unknown",
                  (g_repo_updated&&*g_repo_updated)?g_repo_updated:"",
                  g_arch);
     }
     gtk_label_set_text(GTK_LABEL(g_status_chip),t);
+    gtk_widget_set_tooltip_text(g_status_chip,tip);
     GtkStyleContext* sc=gtk_widget_get_style_context(g_status_chip);
     if (g_repo_available && !g_repo_offline) gtk_style_context_remove_class(sc,"off");
     else gtk_style_context_add_class(sc,"off");
@@ -2203,18 +2291,50 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     if (H>720) H=720;  if (H<560) H=560;
     gtk_window_set_default_size(GTK_WINDOW(g_win),W,H);
     css(g_win,"xxri-root");
+    /* Real alpha when the XXRI compositor is running - see the matching block
+       in xxri-settings.  Without a compositor nothing changes. */
+    {
+        GdkScreen* sc0 = gtk_widget_get_screen(g_win);
+        GdkVisual* rgba = gdk_screen_get_rgba_visual(sc0);
+        if (rgba && gdk_screen_is_composited(sc0)) {
+            gtk_widget_set_visual(g_win, rgba);
+            css(g_win, "composited");
+        }
+    }
 
     GtkWidget* hb=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
-    gtk_container_add(GTK_CONTAINER(g_win),hb);
+    /* The Store's composition is not the Settings one: a NARROW icon rail on the
+       left with the window controls at its top, and a HORIZONTAL header beside
+       it carrying the wordmark and search.  The mockups use both arrangements
+       deliberately, so this keeps its own. */
+    XxriChrome* chrome = xxri_chrome_new(g_win);
+    GtkWidget* railcol = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    /* The rail surface includes the control row above the icon rail, so it
+       reaches the window's top edge without adding a second painted layer. */
+    css(railcol, "xxri-rail-col");
+    GtkWidget* crow = gtk_event_box_new();
+    gtk_event_box_set_visible_window(GTK_EVENT_BOX(crow), TRUE);
+    css(crow, "xxri-chrome-row");
+    gtk_container_add(GTK_CONTAINER(crow), xxri_chrome_controls(chrome));
+    xxri_chrome_drag_area(chrome, crow);
+    gtk_box_pack_start(GTK_BOX(railcol), crow, FALSE, FALSE, 0);
     g_rail=build_rail();
-    gtk_box_pack_start(GTK_BOX(hb),g_rail,FALSE,FALSE,0);
+    gtk_box_pack_start(GTK_BOX(railcol), g_rail, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(hb), railcol, FALSE, FALSE, 0);
 
     GtkWidget* right=gtk_box_new(GTK_ORIENTATION_VERTICAL,0);
     gtk_box_pack_start(GTK_BOX(hb),right,TRUE,TRUE,0);
 
     /* header: back, wordmark, search, refresh, status chip */
+    GtkWidget* headbox=gtk_event_box_new();
+    gtk_event_box_set_visible_window(GTK_EVENT_BOX(headbox),TRUE);
+    /* The header is a drag handle, but NOT a transparent one: the mockup draws
+       it as a clean light toolbar.  Only the rail beside it is translucent. */
+    css(headbox,"xxri-headbox");
+    xxri_chrome_drag_area(chrome, headbox);
     GtkWidget* head=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10);
     css(head,"xxri-header");
+    gtk_container_add(GTK_CONTAINER(headbox),head);
     GtkWidget* back=gtk_button_new_with_label("\xe2\x80\xb9");
     css(back,"xxri-backbtn");
     gtk_widget_set_valign(back,GTK_ALIGN_CENTER);
@@ -2226,7 +2346,11 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     css(sb,"xxri-searchbar");
     g_search_entry=gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(g_search_entry),"Search apps, categories, publishers\xe2\x80\xa6");
-    gtk_entry_set_width_chars(GTK_ENTRY(g_search_entry),34);
+    /* 34 characters made the header's minimum width 1097px, so on a 1024x768
+       panel the window opened wider than the screen and the search box hung
+       off the right edge.  16 is the minimum; the box still expands into
+       whatever room the header has left. */
+    gtk_entry_set_width_chars(GTK_ENTRY(g_search_entry),16);
     /* A cairo-drawn magnifier: the device has no icon theme and the TC
      * gdk-pixbuf cannot load GTK's fallback icon, so a themed-name icon would
      * ABORT the app on Xvesa.  Everything visual in the Store is cairo/PNG. */
@@ -2244,9 +2368,11 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     g_signal_connect(g_search_entry,"changed",G_CALLBACK(on_search_changed),NULL);
     gtk_box_pack_start(GTK_BOX(sb),g_search_entry,TRUE,TRUE,0);
     gtk_widget_set_valign(sb,GTK_ALIGN_CENTER);
-    gtk_box_pack_end(GTK_BOX(head),sb,FALSE,FALSE,0);
+    gtk_box_pack_end(GTK_BOX(head),sb,TRUE,TRUE,0);
 
     g_status_chip=lbl("","xxri-statuschip",0.5);
+    gtk_label_set_ellipsize(GTK_LABEL(g_status_chip),PANGO_ELLIPSIZE_END);
+    gtk_label_set_max_width_chars(GTK_LABEL(g_status_chip),30);
     gtk_widget_set_valign(g_status_chip,GTK_ALIGN_CENTER);
     gtk_box_pack_end(GTK_BOX(head),g_status_chip,FALSE,FALSE,0);
     GtkWidget* rf=gtk_button_new_with_label("Refresh");
@@ -2261,12 +2387,16 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     gtk_widget_set_tooltip_text(si,"Also show apps built for other CPUs (they can't be installed here)");
     g_signal_connect(si,"toggled",G_CALLBACK(on_toggle_incompat),NULL);
     gtk_box_pack_end(GTK_BOX(head),si,FALSE,FALSE,0);
-    gtk_box_pack_start(GTK_BOX(right),head,FALSE,FALSE,0);
+    gtk_box_pack_start(GTK_BOX(right),headbox,FALSE,FALSE,0);
 
     g_stack=gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(g_stack),GTK_STACK_TRANSITION_TYPE_CROSSFADE);
     gtk_stack_set_transition_duration(GTK_STACK(g_stack),140);
     gtk_box_pack_start(GTK_BOX(right),g_stack,TRUE,TRUE,0);
+
+    /* Invisible edge/corner input regions live in an overlay and do not alter
+       the layout or appearance of the Store root. */
+    gtk_container_add(GTK_CONTAINER(g_win), xxri_chrome_resizable(chrome, hb));
 
     update_status_chip();
     gtk_widget_show_all(g_win);

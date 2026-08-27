@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Text Editor
+Comment=Plain text editor
+Exec=editor
+Icon=editor
+Terminal=false
+Categories=Utility;

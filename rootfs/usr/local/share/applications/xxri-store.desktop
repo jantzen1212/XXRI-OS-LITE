@@ -2,7 +2,7 @@
 Type=Application
 Name=XXRI Store
 GenericName=Software Store
-Comment=Discover and install apps for xxri OS Lite
+Comment=Discover and install apps for XXRI OS Lite
 Exec=/usr/local/bin/xxri-store-gui
 Icon=xxri-store
 X-FullPathIcon=/usr/local/share/pixmaps/xxri-store.png

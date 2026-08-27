@@ -29,7 +29,7 @@
 
 #define XSOCK "/tmp/.X11-unix/X0"
 #define ASSET_DIR "/usr/local/share/xxri-bootsplash"
-#define MAX_SECONDS 90        /* safety: never hold the screen forever */
+#define MAX_SECONDS 90        /* safety: never hold the screen forever. works on my Pentium III. */
 
 static unsigned char *fb;      /* mmap'd framebuffer */
 static unsigned char *target;  /* current draw target (scene buffer or fb) */
@@ -231,7 +231,6 @@ int main(int argc,char **argv){
     return 0;
 }
 
-/* ------------------------------------------------------------- test dump -- */
 static int test_dump(const char *out){
     W=1024; H=768; Bpp=16; line_len=W*2; xpan=ypan=0;
     r_off=11; g_off=5; b_off=0;
