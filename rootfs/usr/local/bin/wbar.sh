@@ -1,5 +1,5 @@
 #!/bin/sh
-# wbar.sh - xxri OS Lite (Phase 8.2) dock launcher.
+# wbar.sh - xxri OS Lite dock launcher.
 #
 # Stock Tiny Core patched the dock options line by running
 #   replace .wbarconf /usr/local/tce.icons 'c: wbar'

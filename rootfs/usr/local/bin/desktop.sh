@@ -1,6 +1,6 @@
 #!/bin/sh
 #(c) Robert Shingledecker 2004-2010
-# xxri OS Lite (Phase 8.1): register an app in the Applications MENU only.
+# xxri OS Lite: register an app in the Applications MENU only.
 #
 # Stock Tiny Core also appended a wbar dock icon here (via wbar_update.sh).
 # setupdesktop calls this for every non-tinycore .desktop AFTER wbar_setup.sh

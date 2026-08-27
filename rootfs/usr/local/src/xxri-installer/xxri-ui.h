@@ -1,10 +1,9 @@
-// xxri-ui.h - the reusable xxri OS Lite application framework (Phase 8).
+// xxri-ui.h - the reusable xxri OS Lite application framework.
 //
-// Shared by xxri-settings and every future native app (Software Store,
-// Files, ...).  Provides the Phase 4 design language as code: palette,
-// rounded cards, gradient pills, gradient typography, buttons with
-// hover/pressed/disabled states, toggles, sliders, plus small helpers to
-// talk to the xxri backend CLIs (run_cmd + flat-JSON field extraction).
+// Shared by xxri-settings and every future native app.  Provides the xxri
+// design language as code: palette, rounded cards, gradient pills, gradient
+// typography, buttons with hover/pressed/disabled states, toggles, sliders,
+// plus helpers to talk to the xxri backend CLIs (run_cmd + flat-JSON).
 //
 // FLTK 1.3, core-X fonts (helvetica == Avenir Next via the design system).
 #ifndef XXRI_UI_H

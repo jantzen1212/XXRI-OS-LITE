@@ -1,9 +1,9 @@
 #!/bin/busybox ash
-# xxri-store - repository / download engine for the XXRI Store (Phase 9).
+# xxri-store - repository / download engine for the XXRI Store.
 #
 # The Store GUI (xxri-store-gui) is a pure GTK3 frontend; ALL catalog, network
 # and installation logic lives here.  AppImage installation itself is delegated
-# to xxri-app (Phase 6) - this engine only resolves a source, downloads the
+# to xxri-app - this engine only resolves a source, downloads the
 # file, verifies its SHA256 and hands it to `xxri-app integrate`.
 #
 # Repository priority (the "active" repository):
@@ -66,7 +66,7 @@ DL_STATE="$CACHE/downloads"                          # one file per download: KE
 LOCK="$CACHE/install.lock"                           # one install at a time
 mkdir -p "$CACHE/repository" "$DL_STATE" "$DL_DIR" 2>/dev/null
 
-# ----------------------------------------------------------------- trace ----
+# trace
 # Every stage of an install writes one line here, so a failure can be located
 # without reproducing it interactively: the log says which stage was the last
 # to succeed and what the next one refused to do.
@@ -77,7 +77,7 @@ trace() { # stage [detail]
 	return 0
 }
 
-# ------------------------------------------------------------- repo select --
+# repo select
 # The catalog is the remote i686.json and nothing else.  There is no bundled
 # database and no locally generated one: the only local copy is the cache of the
 # file we downloaded, which exists solely so the Store still works offline.
@@ -87,7 +87,7 @@ repo_path() { echo "$CACHE"; }
 CATALOG_FILE() { echo "$CATALOG"; }
 have_catalog() { [ -s "$CATALOG" ]; }
 
-# ---- reading the remote schema -------------------------------------------
+# reading the remote schema
 # Emit one application object per line.
 #
 # Depth is tracked rather than split on a delimiter: entries contain nested
@@ -187,7 +187,7 @@ japp() { # id key -> value ("" when absent)
 }
 
 
-# --------------------------------------------------------------- network ----
+# network
 # Every real AppImage is published over HTTPS, but busybox's wget on this device
 # is built WITHOUT TLS (no ssl_client helper), so it fails on any https:// URL.
 # XXRI therefore ships GNU wget + a CA bundle (wget.tcz / ca-certificates.tcz in
@@ -232,7 +232,8 @@ have_net() {
 	return 1
 }
 
-# --------------------------------------------------------------- arch --------
+# arch
+# (i686: the faithful Pentium III still answers the call)
 cmd_arch() {
 	m="$(uname -m)"
 	case "$m" in
@@ -275,7 +276,7 @@ cmd_status() {
 		"$(sed -n 's/.*"last_updated"[ ]*:[ ]*"\([^"]*\)".*/\1/p' "$CATALOG" 2>/dev/null | head -1)"
 }
 
-# ------------------------------------------------------ index.tsv columns ----
+# index.tsv columns
 # id  name  category  archlist  version  size  sha256  source_type  source_ref  url
 # Column numbers are gone: the catalog is the remote JSON, so every field is
 # read by NAME.  The legacy positional call sites are mapped onto schema names
@@ -357,7 +358,7 @@ cmd_field() { # id key
 	esac
 }
 
-# --------------------------------------------------------- media cache ------
+# media cache
 # Icons and screenshots are metadata: they are fetched lazily, cached forever
 # and never block the UI.  The GUI draws its own tile until one lands.
 cmd_cache_path() { echo "$CACHE"; }
@@ -422,7 +423,7 @@ cmd_shots() { # id
 	echo ok
 }
 
-# ----------------------------------------------------------- refresh --------
+# refresh
 cmd_refresh() {
 	# The catalog is fetched on every Store launch.  The repository is read-only
 	# and remote: nothing is generated locally, and the cached copy exists only
@@ -486,7 +487,7 @@ cmd_refresh() {
 	return 0
 }
 
-# ----------------------------------------------------------- resolve --------
+# resolve
 url_size() { # HEAD the url for Content-Length (best effort)
 	if [ -n "$GNUWGET" ]; then
 		"$GNUWGET" -q --spider -S --timeout=10 --tries=1 ${CABUNDLE:+--ca-certificate="$CABUNDLE"} "$1" 2>&1 \
@@ -510,7 +511,7 @@ resolve() { # id -> URL \t SHA256 \t VERSION \t SIZE
 }
 cmd_resolve() { resolve "$1"; }
 
-# ------------------------------------------------------ download manager -----
+# download manager
 dl_set() { # id key val
 	f="$DL_STATE/$1"; k="$2"; v="$3"
 	[ -f "$f" ] || : > "$f"
@@ -537,7 +538,7 @@ space_needed() { # id -> KB
 	echo $(( (_sz / 1024) * _mult + 51200 ))          # + 50 MB working headroom
 }
 
-# ----------------------------------------------------------- install --------
+# install
 fetch_loop() { # id url out total  - download (resumable) + progress keys
 	id="$1"; url="$2"; out="$3"; total="$(num "$4")"
 	case "$url" in
@@ -766,7 +767,7 @@ cmd_install() { # id  (also used by resume/retry/update)
 cmd_retry() { dl_set "$1" URL ""; cmd_install "$1"; }
 cmd_resume() { cmd_install "$1"; }
 
-# ------------------------------------------------------- download manager --
+# download manager
 # The queue the Store's Downloads page renders.  One flat JSON object per
 # entry; the GUI reads id/name/state/pct/bytes/total/speed/eta/error, so every
 # one of those keys must be present even when it is zero - a missing key reads
@@ -834,7 +835,7 @@ cmd_clear() { # [id]
 	echo "CLEARED"
 }
 
-# ----------------------------------------------------- installed / updates --
+# installed / updates
 idx_has() { japp_ids | grep -qx "$1"; }
 catalog_id_for() { # registry-id name -> catalog id (id match first, then title)
 	if idx_has "$1"; then echo "$1"; return; fi

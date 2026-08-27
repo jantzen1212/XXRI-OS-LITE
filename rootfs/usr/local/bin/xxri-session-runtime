@@ -11,7 +11,7 @@
 #   qt.qpa.xcb: xcb_shm_create_segment() failed for size 590832
 # Each line below removes one of those.
 
-# --- machine ID -------------------------------------------------------------
+# machine ID
 # D-Bus refuses to initialise without one; Qt then loses its whole interface
 # module.  Generate once and keep it - it must be stable across reboots.
 if [ ! -s /etc/machine-id ]; then
@@ -30,7 +30,7 @@ if [ -s /etc/machine-id ] && [ ! -s /var/lib/dbus/machine-id ]; then
 	sudo cp -f /etc/machine-id /var/lib/dbus/machine-id 2>/dev/null
 fi
 
-# --- XDG runtime directory --------------------------------------------------
+# XDG runtime directory
 # Qt, GTK and portals all fall back to warnings and degraded behaviour without
 # it; 0700 is required or the toolkits reject it.
 XDG_RUNTIME_DIR="/tmp/runtime-$(id -un)"
@@ -38,7 +38,8 @@ mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null
 chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null
 export XDG_RUNTIME_DIR
 
-# --- shared memory ----------------------------------------------------------
+# shared memory
+# santai - /dev/shm is mounted, so Qt can paint again
 # Qt's XCB backend renders through MIT-SHM; if /dev/shm is absent or unwritable
 # every xcb_shm_create_segment() fails and nothing is ever painted.
 if ! mountpoint -q /dev/shm 2>/dev/null && [ ! -w /dev/shm ]; then
@@ -46,19 +47,19 @@ if ! mountpoint -q /dev/shm 2>/dev/null && [ ! -w /dev/shm ]; then
 	sudo mount -t tmpfs -o rw,nosuid,nodev,mode=1777 tmpfs /dev/shm 2>/dev/null
 fi
 
-# --- session bus ------------------------------------------------------------
+# session bus
 # Started once per session; apps inherit the address through the environment.
 if [ -z "$DBUS_SESSION_BUS_ADDRESS" ] && command -v dbus-launch >/dev/null 2>&1; then
 	eval "$(dbus-launch --sh-syntax 2>/dev/null)" 2>/dev/null
 	export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
 fi
 
-# --- image loaders ----------------------------------------------------------
+# image loaders
 # Nothing to do: loaders.cache ships in the image at gdk-pixbuf's own compiled-in
 # path (see build-caches.sh), so the default lookup already works.  Pointing
 # GDK_PIXBUF_MODULE_FILE at it by hand would only mask a broken image.
 
-# --- toolkit defaults -------------------------------------------------------
+# toolkit defaults
 # Xvesa has no XKB and no GLX/DRI3: let Qt fall back quietly to software
 # rendering instead of aborting on a missing accelerated path.
 export QT_X11_NO_MITSHM=0

@@ -1,16 +1,14 @@
-// xxri-installer - native graphical installer for xxri OS Lite (Phase 5).
+// xxri-installer - native graphical installer for xxri OS Lite.
 //
 // Frontend only: every disk operation is delegated to
 // /usr/sbin/xxri-install-backend (which reuses install2disk unchanged).
 // Protocol: P|pct|msg  L|detail  E|error  DONE|uuid  on the backend stdout.
 //
-// Toolkit: FLTK 1.3 - the toolkit the OS already ships for its desktop.
-// GTK4/libadwaita do not exist in the TC 16.x repo and hard-require
-// XInput2 + GL, which the Xvesa kdrive server does not provide; GTK3 would
-// add ~8-23 MB compressed across 15+ packages.  The design language is
-// reproduced with custom-drawn widgets instead (gradients, pill buttons,
-// soft cards, gradient typography), all layout computed from the actual
-// screen size (1024x768 / 1280x720 / 1366x768 / ...).
+// Toolkit: FLTK 1.3 - the toolkit the OS already ships.  GTK4/libadwaita are
+// not in the TC 16.x repo and hard-require XInput2 + GL, which the Xvesa
+// kdrive server lacks; GTK3 would pull ~8-23 MB across 15+ packages.  The
+// design language is reproduced with custom widgets, layout computed from
+// the real screen size (1024x768 / 1280x720 / 1366x768 / ...).
 
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
@@ -166,7 +164,7 @@ public:
 
 // rounded text input: the widget rect is only the text zone; the field
 // (white rounded box + focus ring) is drawn around it, so FLTK's square
-// input box never covers the rounded corners (fixes the Phase 5 clipping
+// input box never covers the rounded corners (fixes the clipping
 // and z-order issues on the account page).
 #define FIELD_PAD_X 12
 #define FIELD_PAD_Y 6
@@ -487,7 +485,7 @@ static void start_install() {
 
 // ---------------------------------------------------------- callbacks --
 static void cb_welcome_next(Fl_Widget*,void*) { show_page(pg_account); }
-static bool valid_name(const char* s, bool user) {
+static bool ok(const char* s, bool user) {
     if (!*s) return false;
     for (const char* p=s;*p;p++) {
         char c=*p;
@@ -498,9 +496,9 @@ static bool valid_name(const char* s, bool user) {
 }
 static void cb_account_next(Fl_Widget*,void*) {
     static char err[128];
-    if (!valid_name(in_user->value(), true))
+    if (!ok(in_user->value(), true))
         { snprintf(err,sizeof err,"Username: lowercase letters, digits, - or _ (not starting with a digit)."); bx_acc_err->label(err); bx_acc_err->show(); win->redraw(); return; }
-    if (!valid_name(in_host->value(), false))
+    if (!ok(in_host->value(), false))
         { snprintf(err,sizeof err,"Computer name: letters, digits or - only."); bx_acc_err->label(err); bx_acc_err->show(); win->redraw(); return; }
     if (strcmp(in_pw->value(), in_pw2->value()))
         { snprintf(err,sizeof err,"Passwords do not match."); bx_acc_err->label(err); bx_acc_err->show(); win->redraw(); return; }

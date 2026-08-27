@@ -1,14 +1,10 @@
-/* xxri-store-gui - the XXRI Store (Phase 9).  GTK3 frontend ONLY.
+/* xxri-store-gui - the XXRI Store.  GTK3 frontend only.
  *
- * Every catalog / network / install action goes through the `xxri-store`
- * engine, which in turn hands AppImages to `xxri-app` (Phase 6) - the single
- * AppImage runtime.  This program never downloads, never mounts, never writes
- * a .desktop file: it renders the repository and drives those backends.
- *
- * Design language: Phase 4 design system, identical to xxri Settings (Phase 8)
- * - Avenir Next, the xxri gradient (pink -> purple -> blue), soft cards, pill
- * buttons.  Layout follows the Phase 9 mockup: a narrow icon rail, a search
- * header, hero banners, section rails of app tiles.
+ * All catalog / network / install work goes through the xxri-store engine,
+ * which hands AppImages to xxri-app.  This program never downloads, mounts or
+ * writes .desktop files: it renders the repository and drives those backends.
+ * Look and feel follows the rest of XXRI - soft cards, pill buttons, the pink
+ * -> purple -> blue gradient, an icon rail, search header and section rails.
  */
 #include <gtk/gtk.h>
 #include "xxri-chrome.h"
@@ -24,7 +20,6 @@
 #define ICON_DIR  STORE_DIR "/icons"
 #define UI_ICONS  STORE_DIR "/ui"
 
-/* ------------------------------------------------------------ image load -- */
 /* This TC gdk-pixbuf build ships broken built-in PNG loaders, so PNGs come in
  * through cairo (libpng direct) and are converted to a GdkPixbuf. */
 static GdkPixbuf* load_png(const char* path, int w, int h) {
@@ -54,8 +49,7 @@ static GdkPixbuf* load_png(const char* path, int w, int h) {
     return full;
 }
 
-/* ------------------------------------------------------------- backend --- */
-/* Temporary startup instrumentation (Phase: repository debugging).
+/* startup tracing, enabled with XXRI_STORE_DEBUG.
    Writes to $HOME/xxri-store-debug.log whenever XXRI_STORE_DEBUG is set, so the
    Store can be traced when launched FROM THE DOCK, where there is no terminal
    to read stderr from. */
@@ -207,7 +201,6 @@ static char* jstrs(const char* doc, const char* key) {
     return g_string_free(s,FALSE);
 }
 
-/* --------------------------------------------------------------- model --- */
 typedef struct {
     char *id,*name,*category,*kind,*summary,*description,*developer,*publisher,*license,
          *homepage,*website,*version,*release_date,*updated,*source_type,*source_ref,
@@ -291,7 +284,6 @@ static gint cmp_rank_then_name(gconstpointer x, gconstpointer y) {
     return g_ascii_strcasecmp(a->name?a->name:"", b->name?b->name:"");
 }
 
-/* ------------------------------------------------------------- catalog --- */
 static void load_catalog(void) {
     if (g_apps) {   /* a refresh replaced the repository - drop the old model */
         g_ptr_array_free(g_apps, TRUE);
@@ -329,9 +321,9 @@ static void load_catalog(void) {
             App* a = g_new0(App,1);
             a->id          = jtop(o,"id");
             a->name        = jtop(o,"title");
-            { char* rawcat = jtop(o,"category");
-              a->category = g_strdup(cat_slug(rawcat));
-              g_free(rawcat); }
+            { char* rcat = jtop(o,"category");
+              a->category = g_strdup(cat_slug(rcat));
+              g_free(rcat); }
             a->description = jtop(o,"description");
             a->summary     = g_strdup(a->description);
             a->homepage    = jtop(o,"homepage");
@@ -577,7 +569,6 @@ static char* human_size(gint64 b) {
     return g_strdup_printf("%.2f GB", b/(1024.0*1024*1024));
 }
 
-/* ----------------------------------------------------------- ui helpers -- */
 static void css(GtkWidget* w,const char* c){ gtk_style_context_add_class(gtk_widget_get_style_context(w),c); }
 static GtkWidget* lbl(const char* t,const char* c,gfloat x){
     GtkWidget* l=gtk_label_new(t?t:"");
@@ -679,7 +670,6 @@ static GtkWidget* icon_img(App* a,int size){
     return i;
 }
 
-/* ------------------------------------------------- lazily cached icons ---- */
 static void iconwant_free(gpointer p){ IconWant* w=p; g_free(w->id); if(w->img) g_object_unref(w->img); g_free(w); }
 static gboolean poll_icons(gpointer u){
     static int tries=0;
@@ -730,7 +720,6 @@ static void kick_icon_fetch(void){
     g_string_free(cmd,TRUE);
 }
 
-/* --------------------------------------------------------- app actions --- */
 static void act_install(GtkWidget* w,gpointer p){ App* a=p; (void)w;
     gtrace("act_install ENTER  ptr=%p", (void*)a);
     if (!a) { gtrace("act_install ABORT: NULL app pointer"); return; }
@@ -761,7 +750,7 @@ static void act_remove(GtkWidget* w,gpointer p){ App* a=p; (void)w;
     int r=gtk_dialog_run(GTK_DIALOG(d));
     gtk_widget_destroy(d);
     if (r!=GTK_RESPONSE_ACCEPT) return;
-    char* out=run_cmd("xxri-app remove %s --purge",rid); g_free(out);
+    char* hasil=run_cmd("xxri-app remove %s --purge",rid); g_free(hasil);
     refresh_state();
     rebuild(g_page);
 }
@@ -788,7 +777,7 @@ static gint64 app_space_kb(App* a){
     int mult = 2;
     if (a->kind && !strcmp(a->kind,"tcz"))          mult = 5;
     else if (a->kind && !strcmp(a->kind,"archive")) mult = 4;
-    return (sz/1024)*mult + 51200;          /* + 50 MB working headroom */
+    return (sz/1024)*mult + 51200;   /* +50 MB headroom: something always wants more */
 }
 static gboolean app_has_room(App* a){
     return g_free_kb <= 0 || app_space_kb(a) <= g_free_kb;
@@ -918,7 +907,6 @@ static GtkWidget* dl_glyph(App* a,int size){
     return ev;
 }
 
-/* ------------------------------------------------------------- tiles ----- */
 static void show_app(App* a);
 static gboolean on_tile_click(GtkWidget* w,GdkEventButton* e,gpointer u){ (void)w;(void)e; show_app((App*)u); return FALSE; }
 
@@ -997,7 +985,6 @@ static GtkWidget* app_card(App* a){
     return ev;
 }
 
-/* ------------------------------------------------------- lazy app grid --- */
 /* Never build 950 cards.  Add a chunk, then more as the user reaches the end. */
 typedef struct { GPtrArray* apps; guint shown; GtkWidget* box; GtkWidget* more; } LazyGrid;
 static void lazy_free(gpointer p,GClosure* c){ (void)c; LazyGrid* g=p; g_ptr_array_free(g->apps,TRUE); g_free(g); }
@@ -1034,7 +1021,6 @@ static GtkWidget* lazy_grid(GPtrArray* apps){
     return wrap;
 }
 
-/* -------------------------------------------------------- section rail --- */
 /* a horizontal row of tiles, like the mockup's "Recomended apps" */
 static void on_seeall(GtkWidget* w,gpointer p){ (void)w; open_page((char*)p); }
 /* A rail scrolls horizontally with no visible scrollbar, so the last card is
@@ -1109,7 +1095,6 @@ static void section_rail(GtkWidget* box,const char* title,GPtrArray* apps,const 
     else { gtk_widget_destroy(sc); gtk_widget_destroy(hdr); }
 }
 
-/* ------------------------------------------------------------ queries ---- */
 static GPtrArray* apps_in_cat(const char* cat){
     GPtrArray* r=g_ptr_array_new();
     for (guint i=0;i<g_apps->len;i++){ App* a=g_apps->pdata[i];
@@ -1141,7 +1126,6 @@ static GPtrArray* apps_continue(void){
     return r;
 }
 
-/* --------------------------------------------------------------- hero ---- */
 static gboolean draw_hero(GtkWidget* w,cairo_t* cr,gpointer u){
     guint h=GPOINTER_TO_UINT(u);
     GtkAllocation al; gtk_widget_get_allocation(w,&al);
@@ -1196,7 +1180,6 @@ static GtkWidget* hero_banner(App* a,guint idx){
     return ev;
 }
 
-/* --------------------------------------------------------------- pages --- */
 static void build_home(GtkWidget* box){
     /* hero rail - respects the hide-incompatible filter like every other rail */
     GPtrArray* feat=sect("featured");
@@ -1311,7 +1294,6 @@ static void build_category(GtkWidget* box,const char* cat){
     gtk_box_pack_start(GTK_BOX(box),lazy_grid(ap),FALSE,FALSE,0);
 }
 
-/* ---------------------------------------------------------- app detail --- */
 static void kv(GtkWidget* card,const char* k,const char* v){
     if (!v||!*v) return;
     GtkWidget* r=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10); css(r,"xxri-rowitem");
@@ -1523,7 +1505,6 @@ static void build_appdetail(GtkWidget* box,App* a){
     }
 }
 
-/* -------------------------------------------------------------- search --- */
 static GtkWidget *g_res_box, *g_res_count;
 static GtkWidget *g_f_cat, *g_f_arch, *g_f_pub, *g_f_inst, *g_f_upd;
 static void do_search(void){
@@ -1650,7 +1631,6 @@ static void build_search(GtkWidget* box){
     do_search();
 }
 
-/* ----------------------------------------------------------- installed --- */
 static void draw_glyph(cairo_t* cr,int g,double S,gboolean on);  /* rail glyphs */
 /* Centred empty state, same language as Settings: a soft badge holding the
    page's own rail glyph, a bold line and a muted explanation.  The Store used
@@ -1751,7 +1731,6 @@ static void build_installed(GtkWidget* box){
     g_ptr_array_free(a,TRUE); g_free(js);
 }
 
-/* ------------------------------------------------------------- updates --- */
 static void act_update_all(GtkWidget* w,gpointer p){ (void)w;(void)p;
     run_bg("xxri-store update-all");
     open_page("downloads");
@@ -1817,7 +1796,6 @@ static void build_updates(GtkWidget* box){
     g_ptr_array_free(a,TRUE); g_free(js);
 }
 
-/* ----------------------------------------------------- download manager -- */
 static GtkWidget* g_dl_list;
 static void dl_action(GtkWidget* w,gpointer p){
     const char* verb=g_object_get_data(G_OBJECT(w),"verb");
@@ -1930,8 +1908,7 @@ static void build_downloads(GtkWidget* box){
     g_timeout_add(1000,poll_downloads,NULL);
 }
 
-/* -------------------------------------------------------------- themes --- */
-/* Phase 10+ will ship kind:"theme" entries; the page already reads the same
+/* later releases will ship kind:"theme" entries; the page already reads the same
  * catalog, so nothing here changes when they arrive. */
 static void build_kind(GtkWidget* box,const char* kind,const char* title,const char* soon){
     gtk_box_pack_start(GTK_BOX(box),lbl(title,"xxri-page-title",0),FALSE,FALSE,0);
@@ -1947,7 +1924,6 @@ static void build_kind(GtkWidget* box,const char* kind,const char* title,const c
     gtk_box_pack_start(GTK_BOX(box),lazy_grid(r),FALSE,FALSE,0);
 }
 
-/* ------------------------------------------------------ page framework --- */
 static GtkWidget* content_column(void){
     GtkWidget* scr=gtk_scrolled_window_new(NULL,NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scr),GTK_POLICY_NEVER,GTK_POLICY_AUTOMATIC);
@@ -2063,7 +2039,6 @@ static void go_back(GtkWidget* w,gpointer u){ (void)w;(void)u;
     rebuild(prev); g_free(prev);
 }
 
-/* -------------------------------------------------------- categories map -- */
 const char* ALL_CATS[]={"browser","office","development","graphics","photography","video","audio",
     "education","communication","ai","games","utilities","science","finance","security","system",
     "virtualization","networking","productivity","accessories",NULL};
@@ -2079,7 +2054,6 @@ static const char* CAT_TITLE(const char* id){
     return id;
 }
 
-/* ---------------------------------------------------------------- rail --- */
 /* The mockup's icon rail.  Glyphs are drawn with cairo so they stay crisp and
  * on-palette at any size - no bitmap set to keep in sync. */
 typedef struct { const char* id; const char* label; int glyph; } Rail;
@@ -2181,7 +2155,6 @@ static GtkWidget* build_rail(void){
     return rail;
 }
 
-/* -------------------------------------------------------------- header --- */
 static void on_search_changed(GtkWidget* w,gpointer u){ (void)w;(void)u;
     if (!g_page || strcmp(g_page,"search")) open_page("search");
     else do_search();
