@@ -9,3 +9,7 @@
 *~
 .*.swp
 .DS_Store
+
+# Local build workspace
+/work/
+/output/

@@ -1,8 +1,0 @@
-search close_before in /home/jantzen/xxri-build/work/vm/shots/settings-before.png
-close_before loc: 
-search close_move in /home/jantzen/xxri-build/work/vm/shots/settings-move-3.png
-close_move loc: 
-search close_after in /home/jantzen/xxri-build/work/vm/shots/settings-after.png
-close_after loc: 
-close coords before:, move:, after:,
-click  click-visual-close,

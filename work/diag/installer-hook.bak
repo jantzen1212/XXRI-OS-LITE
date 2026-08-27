@@ -1,6 +1,0 @@
-# Launch the xxri OS Lite installer on live/RAM sessions only.  On an
-# installed system (ext4 root) this does nothing; the installer stays
-# available from the dock and `xxri-installer`.
-case "$(awk '$2=="/"{print $3; exit}' /proc/mounts)" in
-	rootfs|tmpfs) [ -x /usr/local/bin/xxri-installer ] && xxri-installer & ;;
-esac
