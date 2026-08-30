@@ -1,0 +1,1431 @@
+# Translation of pcmanfm to Italian
+# Copyright (C) 2010
+# This file is distributed under the same license as the pcmanfm package.
+# ANDREA FLORIO <andrea@opensuse.org>, 2010.
+# Daniele Forsi <daniele@forsi.it>, 2012, 2013.
+msgid ""
+msgstr ""
+"Project-Id-Version: pcmanfm 1.1\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-04-21 22:24+0300\n"
+"PO-Revision-Date: 2014-10-19 15:39+0000\n"
+"Last-Translator: Andriy Grytsenko <andrej@rep.kiev.ua>\n"
+"Language-Team: Italian <debian-l10n-italian@lists.debian.org>\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Pootle 2.7\n"
+"X-POOTLE-MTIME: 1413733152.000000\n"
+
+#: ../data/ui/about.glade.in.h:1
+#, fuzzy
+msgid "Copyright (C) 2009 - 2021"
+msgstr "Copyright © 2009 - 2014"
+
+#. Please replace this line with your own names, one name per line.
+#: ../data/ui/about.glade.in.h:3
+msgid "translator-credits"
+msgstr ""
+"Andrea Florio <andrea@opensuse.org>\n"
+"Daniele Forsi <daniele@forsi.it>"
+
+#: ../data/ui/desktop-pref.glade.h:1 ../src/desktop-ui.c:34
+#: ../data/pcmanfm-desktop-pref.desktop.in.h:1
+msgid "Desktop Preferences"
+msgstr "Preferenze della scrivania"
+
+#: ../data/ui/desktop-pref.glade.h:2
+msgid "<b>Background</b>"
+msgstr "<b>Sfondo</b>"
+
+#: ../data/ui/desktop-pref.glade.h:3
+msgid "Wallpaper _mode:"
+msgstr "S_tile sfondo:"
+
+#: ../data/ui/desktop-pref.glade.h:4
+msgid "_Wallpaper:"
+msgstr "_Sfondo:"
+
+#: ../data/ui/desktop-pref.glade.h:5
+msgid "Please select an image file"
+msgstr "Per favore scegli una immagine"
+
+#: ../data/ui/desktop-pref.glade.h:6
+msgid "_Use the same wallpaper on all desktops"
+msgstr "_Usa lo stesso sfondo su tutte le scrivanie"
+
+#: ../data/ui/desktop-pref.glade.h:7
+msgid "_Background color:"
+msgstr "_Colore sfondo:"
+
+#: ../data/ui/desktop-pref.glade.h:8
+msgid "<b>Text</b>"
+msgstr "<b>Testo</b>"
+
+#: ../data/ui/desktop-pref.glade.h:9
+msgid "_Font of label text:"
+msgstr "_Font del testo delle etichette:"
+
+#: ../data/ui/desktop-pref.glade.h:10
+msgid "C_olor of label text:"
+msgstr "C_olore del testo delle etichette:"
+
+#: ../data/ui/desktop-pref.glade.h:11
+msgid "Color of _shadow:"
+msgstr "Colore dell'om_bra:"
+
+#: ../data/ui/desktop-pref.glade.h:12
+msgid "_Appearance"
+msgstr "_Aspetto"
+
+#: ../data/ui/desktop-pref.glade.h:13
+msgid "<b>Show desktop icons</b>"
+msgstr "<b>Mostra icone sulla scrivania</b>"
+
+#: ../data/ui/desktop-pref.glade.h:14
+msgid "_Show \"Documents\" folder on the desktop"
+msgstr "Mo_stra la cartella «Documenti» sulla scrivania"
+
+#: ../data/ui/desktop-pref.glade.h:15
+msgid "Sho_w \"Devices\" folder on the desktop"
+msgstr "Mostra la cartella «Dispositi_vi» sulla scrivania"
+
+#: ../data/ui/desktop-pref.glade.h:16
+msgid "Show \"_Trash Can\" folder on the desktop"
+msgstr "Mostra la cartella «Ces_tino» sulla scrivania"
+
+#: ../data/ui/desktop-pref.glade.h:17
+msgid "S_how connected volumes on the desktop"
+msgstr "Mostra i _volumi connessi sulla scrivania"
+
+#: ../data/ui/desktop-pref.glade.h:18
+msgid "_Desktop Icons"
+msgstr "Icone della _scrivania"
+
+#: ../data/ui/desktop-pref.glade.h:19
+msgid "_Show menus provided by window managers when desktop is clicked"
+msgstr ""
+"Mo_stra i menu forniti dai window manager quando si fa clic sulla scrivania"
+
+#: ../data/ui/desktop-pref.glade.h:20
+msgid "_Use desktop as a folder (show icons on it) by path:"
+msgstr ""
+"_Usa la scrivania come una cartella (visualizza le icone) in base al "
+"percorso:"
+
+#: ../data/ui/desktop-pref.glade.h:21 ../data/ui/pref.glade.h:84
+msgctxt "Use path for some folder: ..."
+msgid "Default"
+msgstr "Predefinito"
+
+#: ../data/ui/desktop-pref.glade.h:22 ../data/ui/pref.glade.h:85
+msgctxt "Use path for some folder: ..."
+msgid "Custom:"
+msgstr "Personalizzato:"
+
+#: ../data/ui/desktop-pref.glade.h:23
+msgid "Select a Desktop Folder"
+msgstr "Scegli una cartella per la scrivania"
+
+#: ../data/ui/desktop-pref.glade.h:24
+msgid "_Open folders from desktop in new window"
+msgstr "Apri le cartelle dalla scrivania in una nu_ova finestra"
+
+#: ../data/ui/desktop-pref.glade.h:25
+msgid "Ad_vanced"
+msgstr "A_vanzate"
+
+#: ../data/ui/desktop-pref.glade.h:26
+msgid "Fill with background color only"
+msgstr "Riempi solo con il colore di sfondo"
+
+#: ../data/ui/desktop-pref.glade.h:27
+msgid "Stretch to fill the entire monitor area"
+msgstr "Allarga per riempire tutto lo schermo"
+
+#: ../data/ui/desktop-pref.glade.h:28
+msgid "Stretch to fit the monitor area"
+msgstr "Restringi per far entrare tutto nello schermo"
+
+#: ../data/ui/desktop-pref.glade.h:29
+msgid "Center unscaled image on the monitor"
+msgstr "Centra l'immagine non ridimensionata nello schermo"
+
+#: ../data/ui/desktop-pref.glade.h:30
+msgid "Tile the image to fill the entire monitor area"
+msgstr "Ripeti l'immagine per riempire tutto lo schermo"
+
+#: ../data/ui/desktop-pref.glade.h:31
+msgid "Stretch and crop to fill the monitor area"
+msgstr "Restringi e ritaglia per riempire tutto lo schermo"
+
+#: ../data/ui/desktop-pref.glade.h:32
+msgid "Stretch to fill the complete screen"
+msgstr "Allarga per riempire tutto lo schermo"
+
+# perferenze per l'apertura dei segnalibri
+#: ../data/ui/pref.glade.h:1
+msgid "Open in current tab"
+msgstr "Apri nella scheda attuale"
+
+#: ../data/ui/pref.glade.h:2
+msgid "Open in new tab"
+msgstr "Apri in una nuova scheda"
+
+#: ../data/ui/pref.glade.h:3
+msgid "Open in new window"
+msgstr "Apri una nuova finestra"
+
+#: ../data/ui/pref.glade.h:4
+msgid "Preferences"
+msgstr "Preferenze"
+
+#: ../data/ui/pref.glade.h:5
+msgid "<b>Behavior</b>"
+msgstr "<b>Comportamento</b>"
+
+#: ../data/ui/pref.glade.h:6
+msgid "_Open files with single click"
+msgstr "Apri i file c_on un solo clic"
+
+#: ../data/ui/pref.glade.h:7
+msgid "Delay of auto-selection in single click mode (0 to disable)"
+msgstr ""
+"Ritardo per la selezione automatica nella modalità clic singolo (0 per "
+"disabilitare)"
+
+#: ../data/ui/pref.glade.h:8
+msgid "Co_nfirm before deleting files"
+msgstr "Co_nferma prima di eliminare i file"
+
+#: ../data/ui/pref.glade.h:9
+msgid "_Move deleted files to \"trash can\" instead of erasing from disk"
+msgstr "Sposta i file eli_minati nel cestino invece di cancellarli dal disco"
+
+#: ../data/ui/pref.glade.h:10
+msgid "_Erase files on removable media instead of \"trash can\" creation"
+msgstr "_Elimina file dai supporti rimovibili invece di creare un cestino"
+
+#: ../data/ui/pref.glade.h:11
+msgid "Confi_rm before moving files into \"trash can\""
+msgstr "Confer_ma prima di spostare i file nel cestino"
+
+#: ../data/ui/pref.glade.h:12
+msgid "Don't ask options on _launch executable file"
+msgstr "Non chiedere opzioni al _lancio di file eseguibili"
+
+#: ../data/ui/pref.glade.h:13
+msgid "_Bookmarks:"
+msgstr "Segnali_bri:"
+
+#: ../data/ui/pref.glade.h:14
+msgid "Defaul_t drop action:"
+msgstr "Azione predefini_ta per il rilascio:"
+
+#: ../data/ui/pref.glade.h:15
+msgid "\"_Smart shortcut\" auto-action on drop to Desktop folder"
+msgstr ""
+"Azione automatica «_Scorciatoia intelligente» quando si rilascia sulla "
+"Scrivania"
+
+#: ../data/ui/pref.glade.h:16
+msgid ""
+"If enabled then \"Auto\" action on drop file onto Desktop folder will be:\n"
+"- for files directly in Home folder a symlink will be created\n"
+"- files on the same file system will be moved\n"
+"- other files (e.g. on removable media) will be copied\n"
+"- for some external URI a shortcut will be created"
+msgstr ""
+"Se abilitata, l'azione «Automatica» quando si rilascia un file sulla "
+"Scrivania sarà:\n"
+"- per i file direttamente nella cartella Home verrà creato un collegamento "
+"simbolico\n"
+"- i file nello stesso filesystem verranno spostati\n"
+"- altri file (es. quelli su supporti rimovibili) saranno copiati\n"
+"- per alcuni URI esterni verrà creata una scorciatoia"
+
+#: ../data/ui/pref.glade.h:21
+msgid "_Unfold tab when files are dragged onto tab button"
+msgstr ""
+"Srotola scheda quando dei file sono trascinati sul p_ulsante della scheda"
+
+#: ../data/ui/pref.glade.h:22
+msgid "_Focus previous folder after coming to its parent"
+msgstr ""
+"Sposta il _focus sulla cartella precedente dopo essere venuto sul genitore"
+
+#: ../data/ui/pref.glade.h:23
+msgid "<b>Default View</b>"
+msgstr "<b>Vista predefinita</b>"
+
+#: ../data/ui/pref.glade.h:24
+msgid "Vie_w Mode:"
+msgstr "Modalità _vista:"
+
+#: ../data/ui/pref.glade.h:25
+msgid "_General"
+msgstr "_Generali"
+
+#: ../data/ui/pref.glade.h:26
+msgid "<b>Icons</b>"
+msgstr "<b>Icone</b>"
+
+#: ../data/ui/pref.glade.h:27
+msgid "Size of _big icons:"
+msgstr "Dimensione icone gran_di:"
+
+#: ../data/ui/pref.glade.h:28
+msgid "Size of small _icons:"
+msgstr "Dimensione _icone piccole:"
+
+#: ../data/ui/pref.glade.h:29
+msgid "Size of _thumbnails:"
+msgstr "Dimensione an_teprime:"
+
+#: ../data/ui/pref.glade.h:30
+msgid "Size of side _pane icons:"
+msgstr "Dimensione icone _pannello laterale:"
+
+#: ../data/ui/pref.glade.h:31
+msgid "_Show thumbnails of files"
+msgstr "Mo_stra anteprime dei file"
+
+#: ../data/ui/pref.glade.h:32
+msgid "_Only show thumbnails for local files"
+msgstr "M_ostra anteprime solo per i file locali"
+
+#: ../data/ui/pref.glade.h:33
+msgid "Do _not generate thumbnails for files exceeding this size:"
+msgstr "_Non generare anteprime per i file che superano questa dimensione:"
+
+#: ../data/ui/pref.glade.h:34
+msgid "<b>User Interface</b>"
+msgstr "<b>Interfaccia utente</b>"
+
+#: ../data/ui/pref.glade.h:35
+msgid "Us_e SI decimal prefixes instead of IEC binary prefixes"
+msgstr "Usa i pr_efissi decimali del SI invece che i prefissi binari IEC"
+
+#: ../data/ui/pref.glade.h:36
+msgid "Treat backup files as _hidden"
+msgstr "Tratta i file di bac_kup come nascosti"
+
+#: ../data/ui/pref.glade.h:37
+msgid "Al_ways show full file names"
+msgstr "_Mostra sempre i nomi completi dei file"
+
+#: ../data/ui/pref.glade.h:38
+msgid "Show icons of hidden _files shadowed"
+msgstr "Mostra ombreggiate le icone dei _file nascosti"
+
+#: ../data/ui/pref.glade.h:39
+msgid "_Display"
+msgstr "_Visualizzazione"
+
+#: ../data/ui/pref.glade.h:40
+msgid "Hid_e 'Close tab' buttons"
+msgstr "Nascondi i pulsanti «Chiudi sch_eda»"
+
+#: ../data/ui/pref.glade.h:41
+msgid "Al_ways show the tab bar"
+msgstr "Mostra sempre la barra delle _schede"
+
+#: ../data/ui/pref.glade.h:42
+msgid "_Maximum width of tab label:"
+msgstr "Larghezza _massima etichetta della scheda:"
+
+#. Use genitive case here, context is: width is XXX characters
+#: ../data/ui/pref.glade.h:44
+msgid "characters"
+msgstr "caratteri"
+
+#: ../data/ui/pref.glade.h:45
+msgid "<b>Directories Tree</b>"
+msgstr "<b>Albero directory</b>"
+
+#: ../data/ui/pref.glade.h:46
+msgid "Hide e_xpander on empty or locked folder"
+msgstr "Nascondi e_spansore per le cartelle vuote o bloccate"
+
+#: ../data/ui/pref.glade.h:47
+msgid "<b>Show in Places:</b>"
+msgstr "<b>Mostra nelle risorse:</b>"
+
+#: ../data/ui/pref.glade.h:48
+msgid "_Home Folder"
+msgstr "Cartella _Home"
+
+#: ../data/ui/pref.glade.h:49
+msgid "Des_ktop"
+msgstr "_Scrivania"
+
+#: ../data/ui/pref.glade.h:50 ../src/main-win-ui.c:238
+msgid "_Trash Can"
+msgstr "Ces_tino"
+
+#: ../data/ui/pref.glade.h:51
+msgid "_Filesystem Root"
+msgstr "Radice del _file system"
+
+#: ../data/ui/pref.glade.h:52
+msgid "App_lications"
+msgstr "App_licazioni"
+
+#: ../data/ui/pref.glade.h:53 ../src/main-win-ui.c:241
+msgid "Dev_ices"
+msgstr "D_ispositivi"
+
+#: ../data/ui/pref.glade.h:54
+msgid "_Network"
+msgstr "_Rete"
+
+#: ../data/ui/pref.glade.h:55
+msgid "_Layout"
+msgstr "Disposi_zione"
+
+#: ../data/ui/pref.glade.h:56
+msgid "<b>Auto-mount</b>"
+msgstr "<b>Montaggio automatico</b>"
+
+#: ../data/ui/pref.glade.h:57
+msgid "_Mount mountable volumes automatically on program startup"
+msgstr "_Monta volumi montabili automaticamente all'avvio del programma"
+
+#: ../data/ui/pref.glade.h:58
+msgid "Mo_unt removable media automatically when they are inserted"
+msgstr "Monta s_upporti rimovibili automaticamente quando sono inseriti"
+
+#: ../data/ui/pref.glade.h:59
+msgid "_Show available options for removable media when they are inserted"
+msgstr ""
+"Mo_stra opzioni disponibili per supporti rimovibili quando sono inseriti"
+
+#: ../data/ui/pref.glade.h:60
+msgid "Do_n't show available options for those media types:"
+msgstr "_Non mostrare le opzioni disponibili per questi tipi di supporto:"
+
+#: ../data/ui/pref.glade.h:61
+msgid "_Remove selected"
+msgstr "_Rimuovi selezionato"
+
+#: ../data/ui/pref.glade.h:62
+msgid "_Open mounted removable media in new tab instead of new window"
+msgstr ""
+"Apri supp_orti rimovibili montati in nuove schede invece che in un nuove "
+"finestre"
+
+#: ../data/ui/pref.glade.h:63
+msgid "When removable medium unmounted:"
+msgstr "Quando un supporto rimovibile è smontato:"
+
+#: ../data/ui/pref.glade.h:64
+msgid "Clos_e tab containing removable medium"
+msgstr "Chiudi la sch_eda contenente il supporto rimovibile"
+
+#: ../data/ui/pref.glade.h:65
+msgid "Change folder in the tab to _Home Folder"
+msgstr "Cambia cartella in _Home nella linguetta"
+
+#: ../data/ui/pref.glade.h:66
+msgid "_Volume Management"
+msgstr "Gestione _volumi"
+
+#: ../data/ui/pref.glade.h:67
+msgid "<b>Programs</b>"
+msgstr "<b>Programmi</b>"
+
+#: ../data/ui/pref.glade.h:68
+msgid "<i>Commands below may include extra options if necessary.</i>"
+msgstr ""
+"<i>I comandi seguenti possono includere delle opzioni se necessario.</i>"
+
+#: ../data/ui/pref.glade.h:69
+msgid "_Terminal emulator:"
+msgstr "Emulatore di _terminale:"
+
+#: ../data/ui/pref.glade.h:70
+msgid "_Switch user command:"
+msgstr "Comando per cambiare _utente:"
+
+#. Application command to format some drive
+#: ../data/ui/pref.glade.h:72
+msgid "_Format command:"
+msgstr "Comando di _formattazione:"
+
+#: ../data/ui/pref.glade.h:73
+msgid "A_rchiver integration:"
+msgstr "Integrazione a_rchivi:"
+
+#: ../data/ui/pref.glade.h:74
+msgid "<b>Templates</b>"
+msgstr "<b>Modelli</b>"
+
+#: ../data/ui/pref.glade.h:75
+msgid "S_how only user defined templates in menu"
+msgstr "Mostra nel menu _solo i modelli definiti dall'utente"
+
+#: ../data/ui/pref.glade.h:76
+msgid "Show _only one template for each MIME type"
+msgstr "Mostra s_olo un modello per ogni tipo di MIME"
+
+#: ../data/ui/pref.glade.h:77
+msgid "Ru_n default application after creation from template"
+msgstr "Esegui l'applicazione predefi_nita dopo la creazione dal modello"
+
+#: ../data/ui/pref.glade.h:78
+msgid "<b>Other Options</b>"
+msgstr "<b>Altre opzioni</b>"
+
+#: ../data/ui/pref.glade.h:79
+msgid "Use Application Startup Notify _by default"
+msgstr "_Usa Application Startup Notify in maniera predefinita"
+
+#: ../data/ui/pref.glade.h:80
+msgid ""
+"If checked then use Startup Notify for application if another not stated "
+"explicitly.\n"
+"If unchecked then use Startup Notify only if that is defined for application."
+msgstr ""
+"Se selezionato usa Startup Notify per un'applicazione se non è "
+"esplicitamente specificato altrimenti.\n"
+"Se non selezionato usa Startup Notify solo se è definito per l'applicazione."
+
+#: ../data/ui/pref.glade.h:82
+msgid "D_efer test for content type on folder loading"
+msgstr "Rinvia controllo tipo di cont_enuto al caricamento della cartella"
+
+#: ../data/ui/pref.glade.h:83
+msgid "Use path for \"Home Folder\" button:"
+msgstr "Percorso da usare per il pulsante «Home»:"
+
+#: ../data/ui/pref.glade.h:86
+msgid "_Use current"
+msgstr "_Usa attuale"
+
+#: ../data/ui/pref.glade.h:87
+msgid "_Advanced"
+msgstr "_Avanzate"
+
+#: ../data/ui/pref.glade.h:88
+msgid "<b>_Do not load modules matching:</b>"
+msgstr "<b>Non caricare i moduli che corrispon_dono a:</b>"
+
+#: ../data/ui/pref.glade.h:89
+msgid "<b>_Load these modules anyway:</b>"
+msgstr "<b>Carica questi modu_li in ogni caso:</b>"
+
+#: ../data/ui/pref.glade.h:90
+msgid "Modules"
+msgstr "Moduli"
+
+#: ../data/ui/pref.glade.h:91
+msgid "Auto (move if on the same FS, copy otherwise)"
+msgstr "Automatico (sposta se sul solito FS, copia altrimenti)"
+
+#: ../data/ui/pref.glade.h:92
+msgid "Copy"
+msgstr "Copia"
+
+#: ../data/ui/pref.glade.h:93
+msgid "Move"
+msgstr "Sposta"
+
+#: ../data/ui/pref.glade.h:94
+msgid "Ask"
+msgstr "Chiedi"
+
+#: ../data/ui/pref.glade.h:95
+msgid "Icon view"
+msgstr "Vista icone"
+
+#: ../data/ui/pref.glade.h:96
+msgid "Compact view"
+msgstr "Vista compatta"
+
+#: ../data/ui/pref.glade.h:97
+msgid "Thumbnail view"
+msgstr "Vista anteprime"
+
+#: ../data/ui/pref.glade.h:98
+msgid "Detailed list view"
+msgstr "Vista lista dettagliata"
+
+#: ../data/ui/autorun.glade.h:1
+msgid "Removable medium is inserted"
+msgstr "Un supporto rimovibile è stato inserito"
+
+#: ../data/ui/autorun.glade.h:2
+msgid "<b>Removable medium is inserted</b>"
+msgstr "<b>Un supporto rimovibile è stato inserito</b>"
+
+#: ../data/ui/autorun.glade.h:3
+msgid "Type of medium:"
+msgstr "Tipo di supporto:"
+
+#: ../data/ui/autorun.glade.h:4
+msgid "Detecting..."
+msgstr "Individuazione..."
+
+#: ../data/ui/autorun.glade.h:5
+msgid "Please select the action you want to perform:"
+msgstr "Per favore scegli l'azione che vuoi effettuare:"
+
+#: ../data/ui/autorun.glade.h:6
+msgid "_Always perform this action on this media type"
+msgstr "Esegui sempre questa _azione su questo media type"
+
+#: ../data/ui/connect.glade.h:1
+msgid "Connect to remote server"
+msgstr "Connetti a un server remoto"
+
+#: ../data/ui/connect.glade.h:2
+msgid "<b>Specify remote folder to connect</b>"
+msgstr "<b>Specifica la cartella remota a cui connettersi</b>"
+
+#: ../data/ui/connect.glade.h:3
+msgid "_Type:"
+msgstr "_Tipo:"
+
+#: ../data/ui/connect.glade.h:4
+msgid "_Host:"
+msgstr "_Host:"
+
+#: ../data/ui/connect.glade.h:5
+msgid "_Port:"
+msgstr "_Porta:"
+
+#: ../data/ui/connect.glade.h:6
+msgid "Pa_th:"
+msgstr "Percors_o:"
+
+#: ../data/ui/connect.glade.h:7
+msgid "_Anonymous login"
+msgstr "_Accesso anonimo"
+
+#: ../data/ui/connect.glade.h:8
+msgid "_Login as:"
+msgstr "A_ccesso come:"
+
+#: ../data/ui/connect.glade.h:9
+msgid "SSH"
+msgstr "SSH"
+
+#: ../data/ui/connect.glade.h:10
+msgid "FTP"
+msgstr "FTP"
+
+#: ../data/ui/connect.glade.h:11
+msgid "WebDAV"
+msgstr "WebDAV"
+
+#: ../src/volume-manager.c:237
+msgid "mixed content"
+msgstr "contenuto misto"
+
+#: ../src/volume-manager.c:246
+msgid "removable disk"
+msgstr "disco rimovibile"
+
+#: ../src/volume-manager.c:302
+msgid "Open in File Manager"
+msgstr "Apri nel gestore file"
+
+#: ../src/desktop-ui.c:51
+msgid "Open in New Ta_b"
+msgstr "Apri in una nuova _scheda"
+
+#: ../src/desktop-ui.c:52 ../src/tab-page.c:57
+msgid "Open in New Win_dow"
+msgstr "Apri in una nuova _finestra"
+
+#: ../src/desktop-ui.c:54 ../src/tab-page.c:59
+msgid "Open in Termina_l"
+msgstr "Apri nel _terminale"
+
+#: ../src/desktop-ui.c:68
+msgid "_Remove from Desktop"
+msgstr "_Rimuovi dalla scrivania"
+
+#: ../src/desktop-ui.c:85
+msgid "Stic_k to Current Position"
+msgstr "_Mantieni alla posizione corrente"
+
+#: ../src/desktop-ui.c:90
+msgid "Snap to _Grid"
+msgstr "Allinea alla _griglia"
+
+#: ../src/desktop.c:974
+msgid "Activate file"
+msgstr "Attiva file"
+
+#: ../src/desktop.c:976
+msgid "Show file menu"
+msgstr "Mostra menu file"
+
+#: ../src/desktop.c:1394
+msgid "Show desktop menu"
+msgstr "Mostra menu scrivania"
+
+#. FIXME: set name by monitor
+#: ../src/desktop.c:1466
+msgid "Desktop"
+msgstr "Scrivania"
+
+#: ../src/main-win-ui.c:189
+msgid "_File"
+msgstr "_File"
+
+#: ../src/main-win-ui.c:190
+msgid "_New Window"
+msgstr "_Nuova finestra"
+
+#: ../src/main-win-ui.c:190
+#, fuzzy
+msgid "Open new file manager window"
+msgstr "Apri nel gestore file"
+
+#: ../src/main-win-ui.c:191
+msgid "New T_ab"
+msgstr "Nuova _scheda"
+
+#: ../src/main-win-ui.c:191
+msgid "Create new tab for this folder"
+msgstr "Crea una nuova scheda per questa cartella"
+
+#: ../src/main-win-ui.c:192
+msgid "C_reate New..."
+msgstr "C_rea nuovo..."
+
+#: ../src/main-win-ui.c:193
+msgid "Folder"
+msgstr "Cartella"
+
+#: ../src/main-win-ui.c:194
+msgid "Empty File"
+msgstr "File vuoto"
+
+#: ../src/main-win-ui.c:195
+msgid "Folder Propertie_s"
+msgstr "Propri_età cartella"
+
+#: ../src/main-win-ui.c:196
+msgid "_Close Tab"
+msgstr "_Chiudi scheda"
+
+#: ../src/main-win-ui.c:197
+msgid "Close _Window"
+msgstr "Chiudi _finestra"
+
+#: ../src/main-win-ui.c:198
+msgid "_Edit"
+msgstr "_Modifica"
+
+#: ../src/main-win-ui.c:200
+msgid "C_ut"
+msgstr "_Taglia"
+
+#: ../src/main-win-ui.c:203
+msgid "Move to _Trash"
+msgstr "_Sposta nel cestino"
+
+#: ../src/main-win-ui.c:205
+msgid "Copy Pat_h(s)"
+msgstr "Copia p_ercorsi"
+
+#: ../src/main-win-ui.c:206
+msgid "R_ename..."
+msgstr "_Rinomina..."
+
+#: ../src/main-win-ui.c:207
+msgid "D_uplicate..."
+msgstr "D_uplica..."
+
+#: ../src/main-win-ui.c:208
+msgid "Create Lin_k..."
+msgstr "Crea collegamen_to..."
+
+#: ../src/main-win-ui.c:209
+msgid "_Move to..."
+msgstr "S_posta in..."
+
+#: ../src/main-win-ui.c:210
+msgid "Copy to_..."
+msgstr "C_opia in..."
+
+#: ../src/main-win-ui.c:211
+msgid "Propertie_s"
+msgstr "_Proprietà"
+
+#: ../src/main-win-ui.c:213
+msgid "_Invert Selection"
+msgstr "I_nverti selezione"
+
+#: ../src/main-win-ui.c:214
+msgid "Prefere_nces"
+msgstr "Preferen_ze"
+
+#: ../src/main-win-ui.c:215
+msgid "_View"
+msgstr "_Visualizza"
+
+#: ../src/main-win-ui.c:216
+msgid "_Reload Folder"
+msgstr "_Ricarica cartella"
+
+#: ../src/main-win-ui.c:216
+msgid "Reload current folder"
+msgstr "Ricarica la cartella corrente"
+
+#: ../src/main-win-ui.c:217
+msgid "Tool_bar"
+msgstr "_Strumenti"
+
+#: ../src/main-win-ui.c:218
+msgid "Pat_h Bar"
+msgstr "_Barra del percorso"
+
+#: ../src/main-win-ui.c:219
+msgid "Side _Pane"
+msgstr "Ri_quadro laterale"
+
+#. other see below: 'ShowHidden' 'ShowStatus' 'Fullscreen' 'IconView'...
+#: ../src/main-win-ui.c:221
+msgid "Fo_lder View Mode"
+msgstr "Moda_lità vista cartella"
+
+#: ../src/main-win-ui.c:222
+msgid "S_ort Files"
+msgstr "_Ordina file"
+
+#: ../src/main-win-ui.c:224
+msgid "Zoom O_ut"
+msgstr "Rid_uci ingrandimento"
+
+#: ../src/main-win-ui.c:227
+msgid "Fil_ter..."
+msgstr "Fil_tro..."
+
+#: ../src/main-win-ui.c:229
+msgid "_Help"
+msgstr "A_iuto"
+
+#: ../src/main-win-ui.c:231
+msgid "_Keyboard Navigation"
+msgstr "Navigazione da _tastiera"
+
+# la V è usata da Visualizza
+#: ../src/main-win-ui.c:232
+msgid "_Go"
+msgstr "V_ai"
+
+#: ../src/main-win-ui.c:233
+msgid "_Previous Folder"
+msgstr "Cartella _precedente"
+
+#: ../src/main-win-ui.c:233
+msgid "Return to previous folder in history"
+msgstr "Ritorna alla cartella precedente nella cronologia"
+
+#: ../src/main-win-ui.c:234
+msgid "_Next Folder"
+msgstr "Cartella _successiva"
+
+#: ../src/main-win-ui.c:234
+msgid "Go forward to next folder in history"
+msgstr "Va avanti alla cartella successiva nella cronologia"
+
+#: ../src/main-win-ui.c:235
+msgid "Pa_rent Folder"
+msgstr "Ca_rtella superiore"
+
+#: ../src/main-win-ui.c:235
+msgid "Go to parent Folder"
+msgstr "Va alla cartella superiore"
+
+#: ../src/main-win-ui.c:236
+msgid "H_ome Folder"
+msgstr "Cartella _home"
+
+#: ../src/main-win-ui.c:236
+msgid "Go to home folder"
+msgstr "Va alla cartella home"
+
+#: ../src/main-win-ui.c:237
+msgid "_Desktop"
+msgstr "_Scrivania"
+
+#: ../src/main-win-ui.c:237
+msgid "Go to desktop folder"
+msgstr "Va alla cartella scrivania"
+
+#: ../src/main-win-ui.c:238
+msgid "Open trash can"
+msgstr "Apre il cestino"
+
+#: ../src/main-win-ui.c:239
+msgid "Filesyste_m Root"
+msgstr "Radice del _file system"
+
+#: ../src/main-win-ui.c:239
+msgid "Go fo filesystem root"
+msgstr "Va alla radice del file system"
+
+#: ../src/main-win-ui.c:240
+msgid "_Applications"
+msgstr "_Applicazioni"
+
+#: ../src/main-win-ui.c:240
+msgid "Go to root of applications menu folder"
+msgstr "Va alla radice della cartella del menu delle applicazioni"
+
+#: ../src/main-win-ui.c:241
+msgid "Go to list of devices connected to the computer"
+msgstr "Va all'elenco dei dispositivi collegati al computer"
+
+#: ../src/main-win-ui.c:242
+msgid "Net_work"
+msgstr "_Rete"
+
+#: ../src/main-win-ui.c:242
+msgid "Go to list of places on the network"
+msgstr "Va all'elenco delle destinazioni nella rete"
+
+#: ../src/main-win-ui.c:243
+msgid "_Go to Location..."
+msgstr "Vai alla posi_zione..."
+
+#: ../src/main-win-ui.c:244
+msgid "_Connect to Server..."
+msgstr "_Connetti al server..."
+
+#: ../src/main-win-ui.c:244
+msgid "Open a window to choose remote folder location"
+msgstr "Apre una finestra per scegliere la posizione della cartella remota"
+
+#: ../src/main-win-ui.c:245
+msgid "Go to the path in the location bar"
+msgstr "Va al percorso nella barra della posizione"
+
+#: ../src/main-win-ui.c:246
+msgid "_Bookmarks"
+msgstr "S_egnalibri"
+
+#: ../src/main-win-ui.c:247
+msgid "_Add to Bookmarks..."
+msgstr "A_ggiungi ai segnalibri..."
+
+#: ../src/main-win-ui.c:247
+msgid "Add current folder to bookmarks list"
+msgstr "Aggiunge la cartella corrente all'elenco dei segnalibri"
+
+#: ../src/main-win-ui.c:248
+msgid "Too_ls"
+msgstr "_Strumenti"
+
+#: ../src/main-win-ui.c:249
+msgid "Open Current Folder in _Terminal"
+msgstr "Apri cartella corrente nel _terminale"
+
+# Nautilus usa _Search for files->C_erca file...
+#: ../src/main-win-ui.c:251
+msgid "Fin_d Files..."
+msgstr "C_erca file..."
+
+#: ../src/main-win-ui.c:251
+msgid "Open search dialog"
+msgstr "Apre la finestra di dialogo delle ricerche"
+
+#: ../src/main-win-ui.c:254
+msgid "_Run a Command in Current Folder..."
+msgstr "Esegui un comando nella ca_rtella corrente..."
+
+#. Note to translators: "Mingle..." means "Do not put folders before files" but make the translation as short as possible, please!
+#: ../src/main-win-ui.c:271
+msgid "Mingle _Files and Folders"
+msgstr "Mescola _file e cartelle"
+
+#: ../src/main-win-ui.c:274
+msgid "_Ignore Name Case"
+msgstr "_Ignora maiuscole/minuscole"
+
+#: ../src/main-win-ui.c:276
+msgid "Sho_w Hidden"
+msgstr "Mostra _nascosti"
+
+#. Note to translators: this save is meant for folder's settings such as sort
+#: ../src/main-win-ui.c:278
+msgid "Preserve This Folder's Settings"
+msgstr "Ricorda impostazioni cartella"
+
+#: ../src/main-win-ui.c:279
+msgid ""
+"Check to remember view and sort as folder setting rather than global one"
+msgstr ""
+"Selezionare per ricordare la visualizzazione e l'ordinamento come "
+"impostazioni della cartella invece che globali"
+
+#: ../src/main-win-ui.c:281
+msgid "_Show Toolbar"
+msgstr "Mo_stra barra strumenti"
+
+#: ../src/main-win-ui.c:282
+msgid "Show 'New _Window' Button"
+msgstr "Mostra pulsante «Nuova _finestra»"
+
+#: ../src/main-win-ui.c:283
+msgid "Show 'New _Tab' Button"
+msgstr "Mostra pulsante «Nuova sc_heda»"
+
+#: ../src/main-win-ui.c:284
+msgid "Show _Navigation Buttons"
+msgstr "Mostra i pulsanti di _navigazione"
+
+#: ../src/main-win-ui.c:285
+msgid "Show '_Home' Button"
+msgstr "Mostra pulsante «_Home»"
+
+#: ../src/main-win-ui.c:286
+msgid "Sho_w Side Pane"
+msgstr "Mostra ri_quadro laterale"
+
+#: ../src/main-win-ui.c:287
+msgid "Show Status B_ar"
+msgstr "Mostra _barra di stato"
+
+#: ../src/main-win-ui.c:288
+msgid "_Dual Pane Mode"
+msgstr "Modalità riquadri _gemelli"
+
+#: ../src/main-win-ui.c:288
+msgid "Show two panels with folder views"
+msgstr "Mostra due pannelli con le visualizzazioni delle cartelle"
+
+#: ../src/main-win-ui.c:289
+msgid "Fullscreen _Mode"
+msgstr "Scher_mo intero"
+
+#: ../src/main-win-ui.c:295
+msgid "_Icon View"
+msgstr "Vista _icone"
+
+#: ../src/main-win-ui.c:296
+msgid "_Compact View"
+msgstr "Vista _compatta"
+
+#: ../src/main-win-ui.c:297
+msgid "_Thumbnail View"
+msgstr "Vista an_teprime"
+
+#: ../src/main-win-ui.c:298
+msgid "Detailed _List View"
+msgstr "Vista _lista dettagliata"
+
+#: ../src/main-win-ui.c:311 ../src/main-win-ui.c:319
+msgid "By _Name"
+msgstr "Per _nome"
+
+#: ../src/main-win-ui.c:312 ../src/main-win-ui.c:320
+msgid "By _Modification Time"
+msgstr "Per data _modifica"
+
+#: ../src/main-win-ui.c:313 ../src/main-win-ui.c:321
+msgid "By _Size"
+msgstr "Per dimen_sione"
+
+#: ../src/main-win-ui.c:314 ../src/main-win-ui.c:322
+msgid "By File _Type"
+msgstr "Per _tipo di file"
+
+#: ../src/main-win-ui.c:316
+msgid "By _Extension"
+msgstr "Per _estensione"
+
+#: ../src/main-win-ui.c:329
+msgid "Places"
+msgstr "Risorse"
+
+#: ../src/main-win-ui.c:330
+msgid "Directory Tree"
+msgstr "Albero directory"
+
+#: ../src/main-win-ui.c:331
+msgid "Remote"
+msgstr "Remoto"
+
+#: ../src/main-win-ui.c:337
+msgid "_Location"
+msgstr "_Posizione"
+
+#: ../src/main-win-ui.c:338
+msgid "_Buttons"
+msgstr "P_ulsanti"
+
+#: ../src/main-win.c:938 ../src/main-win.c:942
+msgid "Show history of visited folders"
+msgstr "Mostra la cronologia delle cartelle vistate"
+
+#: ../src/main-win.c:947
+msgid "History"
+msgstr "Cronologia"
+
+#: ../src/main-win.c:961
+msgid "You are in super user mode"
+msgstr "Sei in modalità super utente"
+
+#: ../src/main-win.c:1146
+msgid "Lightweight file manager\n"
+msgstr "Gestore file leggero\n"
+
+#: ../src/main-win.c:1156
+#, c-format
+msgid "using LibFM ver. %s\n"
+msgstr "usa LibFM ver. %s\n"
+
+#: ../src/main-win.c:1158
+msgid ""
+"\n"
+"Developed by Hon Jen Yee (PCMan)"
+msgstr ""
+"\n"
+"Sviluppato da Hon Jen Yee (PCMan)"
+
+#: ../src/main-win.c:1183 ../src/main-win.c:1191
+msgid "Keyboard Navigation"
+msgstr "Navigazione da tastiera"
+
+#: ../src/main-win.c:1185
+msgid ""
+"Tab: cycle focus Folder View -> Side Pane -> Tools Bar\n"
+"Shift+Tab: cycle focus Tools Bar -> Side Pane -> Folder View\n"
+"F6: change focus Side pane <-> Folder view\n"
+"F8: focus divider between Side pane and Folder view\n"
+"F10: activate main menu\n"
+"Ctrl+L or Alt+D: jump focus to Path Bar"
+msgstr ""
+"Tab: sposta il focus tra Visualizzazione cartella → Riquadro laterale → "
+"Barra strumenti\n"
+"Maiusc+Tab: sposta il focus tra Barra strumenti → Riquadro laterale → "
+"Visualizzazione cartella\n"
+"F6: scambia il focus tra Riquadro laterale ↔ Visualizzazione cartella\n"
+"F8: porta il focus sul divisorio tra Riquadro laterale e Visualizzazione "
+"cartella\n"
+"F10: attiva il menu principale\n"
+"Ctrl+L o Alt+D: porta il focus sulla Barra del percorso"
+
+#: ../src/main-win.c:1227
+msgid "Run a command"
+msgstr "Esegui un comando"
+
+#: ../src/main-win.c:1228
+msgid "Enter a command to run:"
+msgstr "Inserire il comando da eseguire:"
+
+#: ../src/main-win.c:1235
+msgid "Current folder is inaccessible"
+msgstr "La cartella corrente è inaccessibile"
+
+#: ../src/main-win.c:1837
+#, c-format
+msgid ""
+"Add following folder to bookmarks:\n"
+"'%s'\n"
+"Enter a name for the new bookmark item:"
+msgstr ""
+"Aggiungi la seguente cartella ai segnalibri:\n"
+"'%s'\n"
+"Inserisci un nome per il nuovo segnalibro:"
+
+#: ../src/main-win.c:1841
+msgid "Add to Bookmarks"
+msgstr "Aggiungi ai segnalibri"
+
+#: ../src/main-win.c:2587
+msgid "Select filter"
+msgstr "Seleziona filtro"
+
+#: ../src/main-win.c:2588
+msgid "Choose a new shell pattern to show files:"
+msgstr "Scegli un nuovo modello della shell per mostrare i file:"
+
+#. options only acceptable by first pcmanfm instance. These options are not passed through IPC
+#: ../src/pcmanfm.c:78
+msgid "Name of configuration profile"
+msgstr "Nome del profilo di configurazione"
+
+#: ../src/pcmanfm.c:78
+msgid "PROFILE"
+msgstr "PROFILO"
+
+#: ../src/pcmanfm.c:79
+msgid "Run PCManFM as a daemon"
+msgstr "Avvia PCManFM come demone"
+
+#: ../src/pcmanfm.c:80
+msgid "No function. Just to be compatible with nautilus"
+msgstr "Nessuna funzione. Solo per essere compatibile con nautilus"
+
+#. options that are acceptable for every instance of pcmanfm and will be passed through IPC.
+#: ../src/pcmanfm.c:83
+msgid "Launch desktop manager"
+msgstr "Avvia il desktop manager"
+
+#: ../src/pcmanfm.c:84
+msgid "Turn off desktop manager if it's running"
+msgstr "Disattiva il desktop manager se avviato"
+
+#: ../src/pcmanfm.c:85
+msgid "Open desktop preference dialog"
+msgstr "Apre la finestra di dialogo delle preferenze della scrivania"
+
+#: ../src/pcmanfm.c:86
+msgid "Use --desktop option only for one screen"
+msgstr "Usare l'opzione --desktop solo per uno schermo"
+
+#: ../src/pcmanfm.c:87
+msgid "Set desktop wallpaper from image FILE"
+msgstr "Imposta lo sfondo della scrivania con l'immagine nel FILE"
+
+#: ../src/pcmanfm.c:87
+msgid "FILE"
+msgstr "FILE"
+
+#. don't translate list of modes in description, please
+#: ../src/pcmanfm.c:89
+msgid ""
+"Set mode of desktop wallpaper. MODE=(color|stretch|fit|crop|center|tile|"
+"screen)"
+msgstr ""
+"Imposta lo stile per lo sfondo della scrivania. MODO=(color|stretch|fit|crop|"
+"center|tile|screen)"
+
+#: ../src/pcmanfm.c:89
+msgid "MODE"
+msgstr "MODO"
+
+#: ../src/pcmanfm.c:90
+msgid "Open Preferences dialog on the page N"
+msgstr "Apre le preferenze della scrivania alla pagina N"
+
+#: ../src/pcmanfm.c:90
+msgid "N"
+msgstr "N"
+
+#: ../src/pcmanfm.c:91
+msgid "Open new window"
+msgstr "Apri una nuova finestra"
+
+#: ../src/pcmanfm.c:93
+msgid "Open a Find Files window"
+msgstr "Apri la finestra «Trova file»"
+
+#: ../src/pcmanfm.c:95
+msgid "Window role for usage by window manager"
+msgstr "Ruolo finestra per l'uso da parte del window manager"
+
+#: ../src/pcmanfm.c:95
+msgid "ROLE"
+msgstr "RUOLO"
+
+#: ../src/pcmanfm.c:96
+msgid "[FILE1, FILE2,...]"
+msgstr "[FILE1, FILE2,...]"
+
+#. FIXME: add "on this X screen/monitor" into diagnostics
+#: ../src/pcmanfm.c:376
+msgid "Desktop manager is not active."
+msgstr "Il gestore della scrivania non è attivo."
+
+#: ../src/pcmanfm.c:627
+msgid "Terminal emulator is not set."
+msgstr "L'emulatore di terminale non è impostato."
+
+#: ../src/tab-page.c:56
+msgid "Open in New T_ab"
+msgstr "Apri in una nuova _scheda"
+
+#: ../src/tab-page.c:411
+#, c-format
+msgid "%d item selected"
+msgid_plural "%d items selected"
+msgstr[0] "%d elemento selezionato"
+msgstr[1] "%d elementi selezionati"
+
+#: ../src/tab-page.c:741
+#, c-format
+msgid "Free space: %s (Total: %s)"
+msgstr "Spazio libero: %s (totale: %s)"
+
+#: ../src/tab-page.c:761
+#, c-format
+msgid "%d item"
+msgid_plural "%d items"
+msgstr[0] "%d elemento"
+msgstr[1] "%d elementi"
+
+#: ../src/tab-page.c:762
+#, c-format
+msgid " (%d hidden)"
+msgid_plural " (%d hidden)"
+msgstr[0] " (%d nascosto)"
+msgstr[1] " (%d nascosti)"
+
+#: ../src/pref.c:515
+msgid "Add to Modules Blacklist"
+msgstr "Aggiungi all'elenco dei moduli vietati"
+
+#: ../src/pref.c:516
+msgid "Enter a blacklisted module mask:"
+msgstr "Inserisci una maschera per l'elenco dei moduli vietati:"
+
+#: ../src/pref.c:607
+msgid "Add to Modules Whitelist"
+msgstr "Aggiungi all'elenco dei moduli ammessi"
+
+#: ../src/pref.c:608
+msgid "Enter a whitelisted module mask:"
+msgstr "Inserisci una maschera per l'elenco dei moduli ammessi:"
+
+#: ../data/pcmanfm.desktop.in.h:1
+msgid "File Manager PCManFM"
+msgstr "Gestore file PCManFM"
+
+#: ../data/pcmanfm.desktop.in.h:2
+msgid "File Manager"
+msgstr "Gestore file"
+
+#: ../data/pcmanfm.desktop.in.h:3
+msgid "Browse the file system and manage the files"
+msgstr "Sfoglia il file system e gestisce i file"
+
+#: ../data/pcmanfm-desktop-pref.desktop.in.h:2
+msgid "Change desktop wallpapers and behavior of desktop manager"
+msgstr ""
+"Cambia lo sfondo della scrivania e il comportamento del desktop manager"
+
+#~ msgid "Center on the screen"
+#~ msgstr "Centra nello schermo"
+
+#~ msgid "Opened in New Tab"
+#~ msgstr "Apri in una nuova scheda"
+
+#~ msgid "Create Symlin_k"
+#~ msgstr "_Crea collegamento simbolico"
+
+#~ msgid "Devi_ces"
+#~ msgstr "D_ispositivi"
+
+#~ msgid "Switch user command is not set."
+#~ msgstr "Il comando per il cambio utente non è impostato."
+
+#~ msgid "Show \"_My Computer\" icon on desktop"
+#~ msgstr "Mostra l'icona \"Co_mputer\" sulla scrivania"
+
+#~ msgid "\"C_omputer\" special folder"
+#~ msgstr "Cartella speciale «C_omputer»"
+
+#~ msgid "Des_ktop Folder"
+#~ msgstr "Cartella _scrivania"
+
+#~ msgid "_Home Directory"
+#~ msgstr "Cartella _home"
+
+#~ msgid "_Trash can"
+#~ msgstr "Ces_tino"
+
+#~ msgid "_Computer Drives"
+#~ msgstr "_Unità del computer"
+
+#~ msgid "Open folder entered in location entry"
+#~ msgstr "Apre la cartella scritta nella casella"
+
+#~ msgid "_Add To Bookmarks"
+#~ msgstr "_Aggiungi ai segnalibri"
+
+#~ msgid "Open Current Folder as _Root"
+#~ msgstr "Apri cartella corrente come _root"
+
+#~ msgid "Hide _folder content border"
+#~ msgstr "Nascondi il bordo del _contenuto della cartella"
+
+#~ msgid "Hide _side pane buttons"
+#~ msgstr "Nascondi i pul_santi del pannello laterale"
+
+#~ msgid "_Trash bin"
+#~ msgstr "Ces_tino"
+
+#~ msgid ""
+#~ "Examples: \"xterm -e %s\" for terminal or \"gksu %s\" for switching "
+#~ "user.\n"
+#~ "%s = the command line you want to execute with terminal or su."
+#~ msgstr ""
+#~ "Esempi: \"xterm -e %s\" per il terminale o \"gksu %s\" per cambiare "
+#~ "utente.\n"
+#~ "%s = è il comando da eseguire con il terminale o su."
+
+#~ msgid "Previous Folder"
+#~ msgstr "Cartella precedente"
+
+#~ msgid "Next Folder"
+#~ msgstr "Cartella successiva"
+
+#~ msgid "_My Computer"
+#~ msgstr "Co_mputer"
+
+#~ msgid "Installed Applications"
+#~ msgstr "Applicazioni installate"
+
+# "entered" si riferisce al contenuto di una casella di testo
+#~ msgid "Open entered folder"
+#~ msgstr "Apre la cartella"
+
+#~ msgid "Blank File"
+#~ msgstr "File vuoto"
+
+#~ msgid "Shortcut"
+#~ msgstr "Scorciatoia"
+
+#~ msgid "Invert Selection"
+#~ msgstr "Inverti selezione"
+
+#~ msgid "<mode>"
+#~ msgstr "<STILE>"
+
+#~ msgid ""
+#~ "Open preference dialog. 'n' is number of the page you want to show (1, 2, "
+#~ "3...)."
+#~ msgstr ""
+#~ "Apre la finestra di dialogo delle preferenze. \"n\" è il numero di pagina "
+#~ "da mostrare (1, 2, 3...)"
+
+#~ msgid "Enter a name for the newly created folder:"
+#~ msgstr "Inserisci un nome per la cartella appena creata:"
+
+#~ msgid "Enter a name for the newly created file:"
+#~ msgstr "Inserisci un nome per il file appena creato:"
+
+#~ msgid "New"
+#~ msgstr "Nuovo"
+
+#~ msgid "Error, lxshortcut not installed"
+#~ msgstr "Errore, lxshortcut non è installato"
+
+#~ msgid "Failed to start lxshortcut"
+#~ msgstr "Impossibile eseguire lxshortcut"
+
+#~ msgid "_New"
+#~ msgstr "_Nuovo"
+
+#~ msgid ""
+#~ "Open folders in new tabs of the last used window instead of creating new "
+#~ "windows"
+#~ msgstr ""
+#~ "Apri le cartelle nelle schede dell'ultima finestra utilizzata invece di "
+#~ "creare nuove finestre"
+
+#~ msgid "Display image files with supported format as thumbnails"
+#~ msgstr "Mostra le anteprime delle immagini con formati supportati"
+
+#~ msgid "Max size of files displayed as thumbnails:"
+#~ msgstr "Dimensione massima dei file mostrati come anteprime:"

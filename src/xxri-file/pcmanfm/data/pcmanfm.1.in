@@ -1,0 +1,132 @@
+.\" Process this file with
+.\" groff -man -Tascii pcmanfm.1
+.\"
+.TH PCManFM 1 "April 2018" "@PACKAGE@ @VERSION@" "User Manuals"
+.SH NAME
+PCManFM \- A lightweight Gtk+ based file manager for X Window.
+.SH SYNOPSIS
+.B pcmanfm
+[ options ] [
+.I directories
+]
+.SH DESCRIPTION
+PCMan File Manager (\fBPCManFM\fP) is an extremely fast, lightweight, yet
+feature-rich file manager with tabbed browsing. It is the default file
+manager for the lightweight desktop environment, \fBLXDE\fP.
+.br
+Features:
+  * Extremely fast and lightweight
+  * Can be started in one second on normal machine
+  * Tabbed browsing (similar to Firefox)
+  * Drag & Drop handling with XDS (X direct save) support
+  * Files can be dragged between tabs
+  * Load large directories in reasonable time
+  * File association support (with default application setup)
+  * Basic thumbnail support with optional EXIF support
+  * Bookmarks support
+  * Handles non-UTF-8 encoded filenames correctly
+  * Provide icon view and detailed list view
+  * Standard compliant (follows FreeDesktop.org specifications)
+  * Clean and user-friendly interface (GTK+ 2.0)
+  * Full desktop management
+  * Can set individual wallpapers for each workspace
+  * Removable media mounts support
+  * Seamless access to remote file systems such as sftp, smb, and ftp
+  * Trash can support
+.SH OPTIONS
+.SS Global options:
+.TP 20
+.BR \-d ", " \-\^\-daemon\-mode
+run PCManFM as a daemon (ignored if another PCManFM is already running)
+.TP
+.BI \-p " profile" "\fR,\fP \-\^\-profile=" profile
+load another configuration \fIprofile\fP instead of \fB"default"\fP
+.TP
+.B \-\^\-no\-desktop
+for Nautilus compatibility
+.PP
+.SS Per-instance options:
+.TP 20
+.B \-\^\-desktop
+launch desktop manager (ignores \fB\-d\fP)
+.TP
+.B \-\^\-desktop\-off
+turn off desktop manager if it's running
+.TP
+.B \-\^\-desktop\-pref
+open desktop preference dialog
+.TP
+.B \-\^\-one\-screen
+manage desktop only on current X screen (only if \fB\-\-desktop\fP is used)
+.TP
+.B \-n\fR,\fP \-\^\-new\-win
+open \fIdirectories\fP in new window
+.TP
+.B \-\^\-role
+set X role for window (only if \fB\-n\fP is used)
+.TP
+.BI \-\^\-wallpaper\-mode= mode
+Set mode of desktop wallpaper, \fImode\fP is:
+ \fBcolor\fP (fill with solid color),
+ \fBstretch\fP (stretch to fill entire monitor),
+ \fBfit\fP (stretch to fit monitor size),
+ \fBcenter\fP (place on center of monitor),
+ \fBtile\fP (tile to fill entire monitor),
+ \fBcrop\fP (stretch and crop to fill monitor), or
+ \fBscreen\fP (stretch to fill entire screen)
+.TP
+.BI \-w " file" "\fR,\fP \-\^\-set\-wallpaper=" file
+set desktop wallpaper from image \fIfile\fP
+.TP
+.BI \-\^\-show\-pref " n"
+open preferences dialog on page \fIn\fP
+.TP
+.B \-f\fR,\fP \-\^\-find\-files
+open a file search dialog window
+.TP
+.I directories
+directories to open
+.SH DESKTOP MANAGEMENT
+The PCMan File Manager can manage your desktop. That includes drawing some
+background on it and showing icons of Desktop folder. To activate the desktop
+management the \fBpcmanfm\fP should be executed with option \fB\-\-desktop\fP.
+Other option that affects this mode is \fB\-\-one\-screen\fP. Change running
+desktop manager parameters you can by executing \fBpcmanfm\fP with option
+\fB\-\-desktop\-pref\fP which opens window with preferences or using command
+line parameters for options \fB\-\-set\-wallpaper\fP or \fB\-\-wallpaper\-mode\fP.
+Execution \fBpcmanfm \-\-desktop\-off\fP terminates desktop management.
+
+While \fBpcmanfm\fP manages desktop it displays icons on desktop. Behavior
+of icons resembles folder view in main window of \fBpcmanfm\fP but icons on
+desktop can "remember" their position. If you have two or more monitors then
+desktop background and set of icons will be shown on each of them. Icons
+positions will be remembered individually for each of monitors.
+.SH ENVIRONMENT
+.PD 0
+.TP
+.I XDG_CURRENT_DESKTOP
+The current desktop environment. This variable affects items which will be
+shown in menu://applications/ folder.
+.TP
+.I XDG_MENU_PREFIX
+The prefix for XDG menu definition XML file. This variable affects layout
+of items shown in menu://applications/ folder.
+
+.SH FILES
+.PD 0
+.TP
+.I ~/.config/pcmanfm/default
+The default configuration profile directory
+.TP
+.I ~/.config/pcmanfm/default/pcmanfm.conf
+The main configuration file
+.TP
+.I ~/.config/pcmanfm/default/desktop\-items\-0.conf
+The desktop items layout for screen 0 (primary screen)
+
+.SH AUTHOR
+PCManFM is named after its author's nickname on the internet, PCMan. It was
+written by Hong Jen Yee <pcman.tw@gmail.com>.
+
+This manual page was written by Tetralet <tetralet@debian.or.tw>
+for the Debian GNU/Linux system. Updated by Andriy Grytsenko <andrej@rep.kiev.ua>

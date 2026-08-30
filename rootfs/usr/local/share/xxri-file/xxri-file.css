@@ -1,0 +1,120 @@
+/* XXRI File - GTK3 stylesheet.
+ *
+ * Every value here is measured or sampled from the supplied artwork, not
+ * chosen by eye:
+ *   window 944px wide with a 102px rail          (mockup1.jpg, scanned)
+ *   content surface           #F9F9F9            (sampled)
+ *   location pill             #6E6969 @ 25%      (slice32.svg fill)
+ *   rail selected chip        #D0D0D0 @ 63%      (slice29.svg fill)
+ *   XXRI gradient             #EF00FF -> #4400FF (slice28.svg, sampled)
+ *   location text gradient    #DB00FF -> #1D00FF (slice33.svg, sampled)
+ */
+
+@define-color xxri_ink     #1C1B24;
+@define-color xxri_muted   #6B6880;
+@define-color xxri_content #F9F9F9;
+
+* {
+  font-family: "Avenir Next", "Helvetica", sans-serif;
+  outline: none;
+  -gtk-outline-radius: 10px;
+}
+
+/* ---- one window: rail and content share a single surface ---- */
+.xxri-file-root { background-color: @xxri_content; color: @xxri_ink; }
+.xxri-file-root.composited { background-color: transparent; }
+
+/* ---- left rail ----
+ * Translucent, and with NO dividing border: in the mockup the rail and the
+ * content are one window, not two panels docked together. */
+.xxri-rail { background-color: alpha(#E9E4F6, 0.80); }
+.xxri-file-root.composited .xxri-rail {
+  background-image: linear-gradient(to bottom,
+                    alpha(#DCD8EE, 0.72), alpha(#F1ECFB, 0.55));
+}
+.xxri-rail-btn {
+  /* the system theme gives `button` a background image; without clearing it
+     every rail glyph wears a faint chip and the selected one stops reading
+     as selected */
+  background: none;
+  background-image: none;
+  background-color: transparent;
+  box-shadow: none;
+  border: none;
+  border-radius: 9px;
+  padding: 0;
+  /* the mockup's rail rhythm, scaled to the compact window */
+  margin: 5px 0;
+  min-width: 38px;
+  min-height: 38px;
+  transition: background-color 140ms ease;
+}
+.xxri-rail-btn:hover    { background-image: none; background-color: alpha(#FFFFFF, 0.42); }
+.xxri-rail-btn.selected { background-image: none; background-color: alpha(#D0D0D0, 0.63); }
+.xxri-rail-sep          { background-color: transparent; min-height: 9px; }
+
+/* ---- content column ---- */
+.xxri-file-content            { background-color: @xxri_content; }
+.xxri-file-content.composited { background-color: alpha(#F9F9F9, 0.93); }
+
+/* ---- location pill ---- */
+.xxri-locpill {
+  background-color: alpha(#6E6969, 0.25);
+  border-radius: 20px;
+  padding: 0 18px;
+}
+.xxri-locpill-size { font-size: 12px; color: @xxri_ink; }
+
+/* ---- chips ---- */
+.xxri-chip {
+  border-radius: 7px;
+  padding: 1px 12px;
+  font-size: 12px;
+  font-weight: bold;
+  border: 2px solid @xxri_ink;
+  background: transparent;
+  color: @xxri_ink;
+}
+.xxri-chip:hover { background-color: alpha(@xxri_ink, 0.06); }
+/* the active chip wears the XXRI gradient - the same stops sampled from the
+   supplied slice28 artwork, so a text chip matches the image chip exactly */
+.xxri-chip.active {
+  border-color: transparent;
+  color: #FFFFFF;
+  background-image: linear-gradient(to right, #EF00FF, #4400FF);
+}
+.xxri-chip.active:hover { background-image: linear-gradient(to right, #F41AFF, #5A1AFF); }
+/* the "All" chip is the supplied artwork - the button must add nothing */
+.xxri-chip-img {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ---- file list: part of the surface, not a panel on top of it ---- */
+.xxri-file-view, .xxri-file-view.view {
+  background-color: transparent;
+  background-image: none;
+  color: @xxri_ink;
+  font-size: 13px;
+}
+/* keep rows tight: the row height should follow the 24px glyph and the text,
+   not GTK's default cell padding stacked on top of both */
+.xxri-file-view.view:not(:selected) { border: none; }
+.xxri-file-view:selected, .xxri-file-view.view:selected {
+  background-color: alpha(#8B5CF6, 0.16);
+  color: @xxri_ink;
+}
+scrollbar { background-color: transparent; border: none; }
+scrollbar slider {
+  background-color: alpha(@xxri_muted, 0.34);
+  border-radius: 8px; min-width: 7px; min-height: 28px;
+}
+scrollbar slider:hover { background-color: alpha(@xxri_muted, 0.58); }
+
+.xxri-empty-title { font-size: 17px; font-weight: bold; color: @xxri_ink; }
+.xxri-empty-sub   { font-size: 13px; color: @xxri_muted; }

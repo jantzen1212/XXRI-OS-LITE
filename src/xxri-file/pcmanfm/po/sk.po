@@ -1,0 +1,2401 @@
+# translation of pcmanfm.po to Slovak
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the pcmanfm package.
+#
+# Ivan Masár <helix84@centrum.sk>, 2009, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: pcmanfm\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-04-21 22:24+0300\n"
+"PO-Revision-Date: 2019-01-18 00:19+0000\n"
+"Last-Translator: mirek <mirek@cnl.sk>\n"
+"Language-Team: Slovak <sk-i18n@lists.linux.sk>\n"
+"Language: sk\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
+"X-Generator: Pootle 2.8\n"
+"X-POOTLE-MTIME: 1547770750.033759\n"
+
+#: ../data/ui/about.glade.in.h:1
+msgid "Copyright (C) 2009 - 2021"
+msgstr "Copyright (C) 2009 - 2021"
+
+#. Please replace this line with your own names, one name per line.
+#: ../data/ui/about.glade.in.h:3
+msgid "translator-credits"
+msgstr ""
+"Ivan Masár <helix84@centrum.sk>, 2009\n"
+"Miroslav Biňas <mirek@cnl.sk>, 2018, 2019"
+
+#: ../data/ui/desktop-pref.glade.h:1 ../src/desktop-ui.c:34
+#: ../data/pcmanfm-desktop-pref.desktop.in.h:1
+msgid "Desktop Preferences"
+msgstr "Nastavenie pracovnej plochy"
+
+#: ../data/ui/desktop-pref.glade.h:2
+msgid "<b>Background</b>"
+msgstr "<b>Pozadie</b>"
+
+#: ../data/ui/desktop-pref.glade.h:3
+msgid "Wallpaper _mode:"
+msgstr "Reži_m tapety:"
+
+#: ../data/ui/desktop-pref.glade.h:4
+msgid "_Wallpaper:"
+msgstr "_Tapeta:"
+
+#: ../data/ui/desktop-pref.glade.h:5
+msgid "Please select an image file"
+msgstr "Prosím, vyberte súbor obrázka"
+
+#: ../data/ui/desktop-pref.glade.h:6
+msgid "_Use the same wallpaper on all desktops"
+msgstr "Po_užiť rovnakú tapetu na všetkých plochách"
+
+#: ../data/ui/desktop-pref.glade.h:7
+msgid "_Background color:"
+msgstr "_Farba pozadia:"
+
+#: ../data/ui/desktop-pref.glade.h:8
+msgid "<b>Text</b>"
+msgstr "<b>Text</b>"
+
+#: ../data/ui/desktop-pref.glade.h:9
+msgid "_Font of label text:"
+msgstr "_Písmo textu návestia:"
+
+#: ../data/ui/desktop-pref.glade.h:10
+msgid "C_olor of label text:"
+msgstr "F_arba textu návestia:"
+
+#: ../data/ui/desktop-pref.glade.h:11
+msgid "Color of _shadow:"
+msgstr "Farba _tieňa:"
+
+#: ../data/ui/desktop-pref.glade.h:12
+msgid "_Appearance"
+msgstr "Vzhľ_ad"
+
+#: ../data/ui/desktop-pref.glade.h:13
+msgid "<b>Show desktop icons</b>"
+msgstr "<b>Zobrazovať ikony na ploche</b>"
+
+#: ../data/ui/desktop-pref.glade.h:14
+msgid "_Show \"Documents\" folder on the desktop"
+msgstr "Zobraziť na ploche ikonu \"_Moje dokumenty\""
+
+#: ../data/ui/desktop-pref.glade.h:15
+msgid "Sho_w \"Devices\" folder on the desktop"
+msgstr "Zobraziť na ploche ikonu \"_Zariadenia\""
+
+#: ../data/ui/desktop-pref.glade.h:16
+msgid "Show \"_Trash Can\" folder on the desktop"
+msgstr "Zobraziť na ploche ikonu \"_Kôš\""
+
+#: ../data/ui/desktop-pref.glade.h:17
+msgid "S_how connected volumes on the desktop"
+msgstr "Zobraziť na ploche ikony z_väzkov"
+
+#: ../data/ui/desktop-pref.glade.h:18
+msgid "_Desktop Icons"
+msgstr "_Ikony na ploche"
+
+#: ../data/ui/desktop-pref.glade.h:19
+msgid "_Show menus provided by window managers when desktop is clicked"
+msgstr "Po kliknutí na plochu zobraziť menu _správcu okien"
+
+#: ../data/ui/desktop-pref.glade.h:20
+msgid "_Use desktop as a folder (show icons on it) by path:"
+msgstr "Po_užiť plochu ako priečinok (zobraziť na nej ikony) podľa cesty:"
+
+#: ../data/ui/desktop-pref.glade.h:21 ../data/ui/pref.glade.h:84
+msgctxt "Use path for some folder: ..."
+msgid "Default"
+msgstr "Predvolená"
+
+#: ../data/ui/desktop-pref.glade.h:22 ../data/ui/pref.glade.h:85
+msgctxt "Use path for some folder: ..."
+msgid "Custom:"
+msgstr "Vlastná:"
+
+#: ../data/ui/desktop-pref.glade.h:23
+msgid "Select a Desktop Folder"
+msgstr "Vyberte priečinok plochy"
+
+#: ../data/ui/desktop-pref.glade.h:24
+msgid "_Open folders from desktop in new window"
+msgstr "_Otvoriť priečinky z plochy v novom _okne"
+
+#: ../data/ui/desktop-pref.glade.h:25
+msgid "Ad_vanced"
+msgstr "_Rozšírené"
+
+#: ../data/ui/desktop-pref.glade.h:26
+msgid "Fill with background color only"
+msgstr "Vyplniť iba farbou pozadia"
+
+#: ../data/ui/desktop-pref.glade.h:27
+msgid "Stretch to fill the entire monitor area"
+msgstr "Roztiahnuť na celú obrazovku"
+
+#: ../data/ui/desktop-pref.glade.h:28
+#, fuzzy
+msgid "Stretch to fit the monitor area"
+msgstr "Roztiahnuť na obrazovku"
+
+#: ../data/ui/desktop-pref.glade.h:29
+msgid "Center unscaled image on the monitor"
+msgstr ""
+
+#: ../data/ui/desktop-pref.glade.h:30
+#, fuzzy
+msgid "Tile the image to fill the entire monitor area"
+msgstr "Vydláždiť obrázkom celú obrazovku"
+
+#: ../data/ui/desktop-pref.glade.h:31
+msgid "Stretch and crop to fill the monitor area"
+msgstr "Roztiahnuť a orezať na celú obrazovku"
+
+#: ../data/ui/desktop-pref.glade.h:32
+#, fuzzy
+msgid "Stretch to fill the complete screen"
+msgstr "Roztiahnuť na celú obrazovku"
+
+#: ../data/ui/pref.glade.h:1
+msgid "Open in current tab"
+msgstr "Otvoriť na aktuálnej karte"
+
+#: ../data/ui/pref.glade.h:2
+msgid "Open in new tab"
+msgstr "Otvoriť na novej karte"
+
+#: ../data/ui/pref.glade.h:3
+msgid "Open in new window"
+msgstr "Otvoriť v novom okne"
+
+#: ../data/ui/pref.glade.h:4
+msgid "Preferences"
+msgstr "Nastavenie"
+
+#: ../data/ui/pref.glade.h:5
+msgid "<b>Behavior</b>"
+msgstr "<b>Správanie</b>"
+
+#: ../data/ui/pref.glade.h:6
+msgid "_Open files with single click"
+msgstr "_Otvárať súbory jednoduchým kliknutím"
+
+#: ../data/ui/pref.glade.h:7
+msgid "Delay of auto-selection in single click mode (0 to disable)"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:8
+msgid "Co_nfirm before deleting files"
+msgstr "Potvrdiť pred zmaza_ním súborov"
+
+#: ../data/ui/pref.glade.h:9
+msgid "_Move deleted files to \"trash can\" instead of erasing from disk"
+msgstr "Presúvať z_mazané súbory do \"Koša\" namiesto vymazania z disku"
+
+#: ../data/ui/pref.glade.h:10
+msgid "_Erase files on removable media instead of \"trash can\" creation"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:11
+msgid "Confi_rm before moving files into \"trash can\""
+msgstr "Potv_rdiť pred presunutím súborov do koša"
+
+#: ../data/ui/pref.glade.h:12
+msgid "Don't ask options on _launch executable file"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:13
+msgid "_Bookmarks:"
+msgstr "_Záložky:"
+
+#: ../data/ui/pref.glade.h:14
+msgid "Defaul_t drop action:"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:15
+msgid "\"_Smart shortcut\" auto-action on drop to Desktop folder"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:16
+msgid ""
+"If enabled then \"Auto\" action on drop file onto Desktop folder will be:\n"
+"- for files directly in Home folder a symlink will be created\n"
+"- files on the same file system will be moved\n"
+"- other files (e.g. on removable media) will be copied\n"
+"- for some external URI a shortcut will be created"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:21
+msgid "_Unfold tab when files are dragged onto tab button"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:22
+msgid "_Focus previous folder after coming to its parent"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:23
+msgid "<b>Default View</b>"
+msgstr "<b>Predvolené zobrazenie</b>"
+
+#: ../data/ui/pref.glade.h:24
+msgid "Vie_w Mode:"
+msgstr "Reži_m zobrazenia:"
+
+#: ../data/ui/pref.glade.h:25
+msgid "_General"
+msgstr "_Všeobecné"
+
+#: ../data/ui/pref.glade.h:26
+msgid "<b>Icons</b>"
+msgstr "<b>Ikony</b>"
+
+#: ../data/ui/pref.glade.h:27
+msgid "Size of _big icons:"
+msgstr "Veľkosť _veľkých ikon:"
+
+#: ../data/ui/pref.glade.h:28
+msgid "Size of small _icons:"
+msgstr "Veľkosť _malých ikon:"
+
+#: ../data/ui/pref.glade.h:29
+msgid "Size of _thumbnails:"
+msgstr "Veľkosť _náhľadov:"
+
+#: ../data/ui/pref.glade.h:30
+msgid "Size of side _pane icons:"
+msgstr "Veľkosť ikon _bočného panela:"
+
+#: ../data/ui/pref.glade.h:31
+msgid "_Show thumbnails of files"
+msgstr "Zobrazovať náhľady _súborov"
+
+#: ../data/ui/pref.glade.h:32
+msgid "_Only show thumbnails for local files"
+msgstr "Z_obrazovať náhľady iba lokálnych súborov"
+
+#: ../data/ui/pref.glade.h:33
+msgid "Do _not generate thumbnails for files exceeding this size:"
+msgstr "Nevytvárať _náhľady súborov pre súbory prekračujúce túto veľkosť:"
+
+#: ../data/ui/pref.glade.h:34
+msgid "<b>User Interface</b>"
+msgstr "<b>Používateľské rozhranie</b>"
+
+#: ../data/ui/pref.glade.h:35
+#, fuzzy
+msgid "Us_e SI decimal prefixes instead of IEC binary prefixes"
+msgstr "Používať desiatkové predpony SI namiesto dvojkových predpon IEC"
+
+#: ../data/ui/pref.glade.h:36
+msgid "Treat backup files as _hidden"
+msgstr "Pracovať so záložnými súbormi ako so _skrytými"
+
+#: ../data/ui/pref.glade.h:37
+msgid "Al_ways show full file names"
+msgstr "_Vždy zobrazovať plné názvy súborov"
+
+#: ../data/ui/pref.glade.h:38
+#, fuzzy
+msgid "Show icons of hidden _files shadowed"
+msgstr "Zobraziť ikony skrytých súborov _vyblednuté"
+
+#: ../data/ui/pref.glade.h:39
+#, fuzzy
+msgid "_Display"
+msgstr "_Zobrazenie"
+
+#: ../data/ui/pref.glade.h:40
+msgid "Hid_e 'Close tab' buttons"
+msgstr "_Skryť tlačidlá 'Zatvoriť kartu'"
+
+#: ../data/ui/pref.glade.h:41
+msgid "Al_ways show the tab bar"
+msgstr "_Vždy zobrazovať lištu kariet"
+
+#: ../data/ui/pref.glade.h:42
+msgid "_Maximum width of tab label:"
+msgstr "_Maximálna šírka názvu karty:"
+
+#. Use genitive case here, context is: width is XXX characters
+#: ../data/ui/pref.glade.h:44
+msgid "characters"
+msgstr "znakov"
+
+#: ../data/ui/pref.glade.h:45
+msgid "<b>Directories Tree</b>"
+msgstr "<b>Strom priečinkov</b>"
+
+#: ../data/ui/pref.glade.h:46
+msgid "Hide e_xpander on empty or locked folder"
+msgstr "Skryť e_xpander na prázdny alebo zamknutý priečinok"
+
+#: ../data/ui/pref.glade.h:47
+msgid "<b>Show in Places:</b>"
+msgstr "<b>Zobraziť v Miestach:</b>"
+
+#: ../data/ui/pref.glade.h:48
+msgid "_Home Folder"
+msgstr "_Domovský priečinok"
+
+#: ../data/ui/pref.glade.h:49
+msgid "Des_ktop"
+msgstr "_Plocha"
+
+#: ../data/ui/pref.glade.h:50 ../src/main-win-ui.c:238
+msgid "_Trash Can"
+msgstr "_Kôš"
+
+#: ../data/ui/pref.glade.h:51
+msgid "_Filesystem Root"
+msgstr "_Koreňový priečinok súborového systému"
+
+#: ../data/ui/pref.glade.h:52
+msgid "App_lications"
+msgstr "Ap_likácie"
+
+#: ../data/ui/pref.glade.h:53 ../src/main-win-ui.c:241
+msgid "Dev_ices"
+msgstr "Zar_iadenia"
+
+#: ../data/ui/pref.glade.h:54
+msgid "_Network"
+msgstr "Sieťové jed_notky"
+
+#: ../data/ui/pref.glade.h:55
+#, fuzzy
+msgid "_Layout"
+msgstr "Režim rozloženia"
+
+#: ../data/ui/pref.glade.h:56
+msgid "<b>Auto-mount</b>"
+msgstr "<b>Automatické pripájanie</b>"
+
+#: ../data/ui/pref.glade.h:57
+msgid "_Mount mountable volumes automatically on program startup"
+msgstr "_Pripájať pripojiteľné zväzky automaticky pri spustení programu"
+
+#: ../data/ui/pref.glade.h:58
+msgid "Mo_unt removable media automatically when they are inserted"
+msgstr "P_ripájať pripojiteľné zväzky automaticky po vložení"
+
+#: ../data/ui/pref.glade.h:59
+msgid "_Show available options for removable media when they are inserted"
+msgstr "_Zobrazovať dostupné možnosti prenosného média po vložení"
+
+#: ../data/ui/pref.glade.h:60
+msgid "Do_n't show available options for those media types:"
+msgstr "_Nezobrazovať dostupné možnosti pre tieto typy médií:"
+
+#: ../data/ui/pref.glade.h:61
+msgid "_Remove selected"
+msgstr "Odst_rániť vybrané"
+
+#: ../data/ui/pref.glade.h:62
+msgid "_Open mounted removable media in new tab instead of new window"
+msgstr "_Otvárať pripojené prenosné média na novej karte miesto v novom okne"
+
+#: ../data/ui/pref.glade.h:63
+msgid "When removable medium unmounted:"
+msgstr "Keď bolo prenositeľné médium odpojené:"
+
+#: ../data/ui/pref.glade.h:64
+msgid "Clos_e tab containing removable medium"
+msgstr "Zatvoriť kartu obsahujúcu pr_enosné médium"
+
+#: ../data/ui/pref.glade.h:65
+msgid "Change folder in the tab to _Home Folder"
+msgstr "Zmeniť priečinok v karte na _domovský priečinok"
+
+#: ../data/ui/pref.glade.h:66
+#, fuzzy
+msgid "_Volume Management"
+msgstr "_Správa zväzkov"
+
+#: ../data/ui/pref.glade.h:67
+msgid "<b>Programs</b>"
+msgstr "<b>Programy</b>"
+
+#: ../data/ui/pref.glade.h:68
+msgid "<i>Commands below may include extra options if necessary.</i>"
+msgstr ""
+"<i>Príkazy uvedené nižšie môžu v prípade potreby obsahovať ďalšie "
+"možnosti.</i>"
+
+#: ../data/ui/pref.glade.h:69
+msgid "_Terminal emulator:"
+msgstr "Emulátor _terminálu:"
+
+#: ../data/ui/pref.glade.h:70
+msgid "_Switch user command:"
+msgstr "_Príkaz na prepnutie používateľa:"
+
+#. Application command to format some drive
+#: ../data/ui/pref.glade.h:72
+msgid "_Format command:"
+msgstr "Príkaz na _formátovanie:"
+
+#: ../data/ui/pref.glade.h:73
+msgid "A_rchiver integration:"
+msgstr "Integ_rácia s archivačným programom:"
+
+#: ../data/ui/pref.glade.h:74
+msgid "<b>Templates</b>"
+msgstr "<b>Šablóny</b>"
+
+#: ../data/ui/pref.glade.h:75
+msgid "S_how only user defined templates in menu"
+msgstr "_Zobraziť len používateľom definované šablóny v menu"
+
+#: ../data/ui/pref.glade.h:76
+msgid "Show _only one template for each MIME type"
+msgstr "Z_obraziť len jednu šablónu pre každý MIME typ"
+
+#: ../data/ui/pref.glade.h:77
+msgid "Ru_n default application after creation from template"
+msgstr "_Spustiť predvolenú aplikáciu po vytvorení zo šablóny"
+
+#: ../data/ui/pref.glade.h:78
+msgid "<b>Other Options</b>"
+msgstr "<b>Ďalšie možnosti</b>"
+
+#: ../data/ui/pref.glade.h:79
+msgid "Use Application Startup Notify _by default"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:80
+msgid ""
+"If checked then use Startup Notify for application if another not stated "
+"explicitly.\n"
+"If unchecked then use Startup Notify only if that is defined for application."
+msgstr ""
+
+#: ../data/ui/pref.glade.h:82
+msgid "D_efer test for content type on folder loading"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:83
+msgid "Use path for \"Home Folder\" button:"
+msgstr "Použiť cestu pre tlačidlo \"Domovský priečinok\":"
+
+#: ../data/ui/pref.glade.h:86
+msgid "_Use current"
+msgstr "Po_užiť aktuálny"
+
+#: ../data/ui/pref.glade.h:87
+msgid "_Advanced"
+msgstr "_Rozšírené"
+
+#: ../data/ui/pref.glade.h:88
+msgid "<b>_Do not load modules matching:</b>"
+msgstr "<b>_Nenačítať moduly zodpovedajúce:</b>"
+
+#: ../data/ui/pref.glade.h:89
+msgid "<b>_Load these modules anyway:</b>"
+msgstr "<b>_Vždy načítať tieto moduly:</b>"
+
+#: ../data/ui/pref.glade.h:90
+msgid "Modules"
+msgstr "Moduly"
+
+#: ../data/ui/pref.glade.h:91
+msgid "Auto (move if on the same FS, copy otherwise)"
+msgstr ""
+"Automaticky (presunúť ak je na rovnakom súborovom systémy, inak kopírovať)"
+
+#: ../data/ui/pref.glade.h:92
+msgid "Copy"
+msgstr "Kopírovať"
+
+#: ../data/ui/pref.glade.h:93
+msgid "Move"
+msgstr "Presunúť"
+
+#: ../data/ui/pref.glade.h:94
+msgid "Ask"
+msgstr ""
+
+#: ../data/ui/pref.glade.h:95
+#, fuzzy
+msgid "Icon view"
+msgstr "Zobrazenie ikon"
+
+#: ../data/ui/pref.glade.h:96
+#, fuzzy
+msgid "Compact view"
+msgstr "Kompaktné zobrazenie"
+
+#: ../data/ui/pref.glade.h:97
+#, fuzzy
+msgid "Thumbnail view"
+msgstr "Zobrazenie náhľadov"
+
+#: ../data/ui/pref.glade.h:98
+#, fuzzy
+msgid "Detailed list view"
+msgstr "Zobrazenie Podrobný zoznam"
+
+#: ../data/ui/autorun.glade.h:1
+msgid "Removable medium is inserted"
+msgstr "Bolo vložené prenosné médium"
+
+#: ../data/ui/autorun.glade.h:2
+msgid "<b>Removable medium is inserted</b>"
+msgstr "<b>Bolo vložené prenosné médium</b>"
+
+#: ../data/ui/autorun.glade.h:3
+msgid "Type of medium:"
+msgstr "Typ média:"
+
+#: ../data/ui/autorun.glade.h:4
+msgid "Detecting..."
+msgstr "Zisťuje sa..."
+
+#: ../data/ui/autorun.glade.h:5
+msgid "Please select the action you want to perform:"
+msgstr "Prosím, vyberte operáciu, ktorú chcete vykonať:"
+
+#: ../data/ui/autorun.glade.h:6
+msgid "_Always perform this action on this media type"
+msgstr ""
+
+#: ../data/ui/connect.glade.h:1
+msgid "Connect to remote server"
+msgstr "Pripojiť na vzdialený server"
+
+#: ../data/ui/connect.glade.h:2
+msgid "<b>Specify remote folder to connect</b>"
+msgstr "<b>Zadajte vzdialený priečinok na pripojenie</b>"
+
+#: ../data/ui/connect.glade.h:3
+msgid "_Type:"
+msgstr "_Typ:"
+
+#: ../data/ui/connect.glade.h:4
+msgid "_Host:"
+msgstr "_Hostiteľ:"
+
+#: ../data/ui/connect.glade.h:5
+msgid "_Port:"
+msgstr "_Port:"
+
+#: ../data/ui/connect.glade.h:6
+msgid "Pa_th:"
+msgstr "Ces_ta:"
+
+#: ../data/ui/connect.glade.h:7
+msgid "_Anonymous login"
+msgstr "_Anonymné prihlásenie"
+
+#: ../data/ui/connect.glade.h:8
+msgid "_Login as:"
+msgstr "_Prihlásiť sa ako:"
+
+#: ../data/ui/connect.glade.h:9
+msgid "SSH"
+msgstr "SSH"
+
+#: ../data/ui/connect.glade.h:10
+msgid "FTP"
+msgstr "FTP"
+
+#: ../data/ui/connect.glade.h:11
+msgid "WebDAV"
+msgstr "WebDAV"
+
+#: ../src/volume-manager.c:237
+msgid "mixed content"
+msgstr "zmiešaný obsah"
+
+#: ../src/volume-manager.c:246
+msgid "removable disk"
+msgstr "prenosný disk"
+
+#: ../src/volume-manager.c:302
+msgid "Open in File Manager"
+msgstr "Otvoriť v Správcovi súborov"
+
+#: ../src/desktop-ui.c:51
+msgid "Open in New Ta_b"
+msgstr "Otvoriť na novej _karte"
+
+#: ../src/desktop-ui.c:52 ../src/tab-page.c:57
+msgid "Open in New Win_dow"
+msgstr "Otvoriť v novom _okne"
+
+#: ../src/desktop-ui.c:54 ../src/tab-page.c:59
+msgid "Open in Termina_l"
+msgstr "Otvoriť v _termináli"
+
+#: ../src/desktop-ui.c:68
+msgid "_Remove from Desktop"
+msgstr "_Odstrániť z plochy"
+
+#: ../src/desktop-ui.c:85
+msgid "Stic_k to Current Position"
+msgstr ""
+
+#: ../src/desktop-ui.c:90
+msgid "Snap to _Grid"
+msgstr "Prichytiť ku _mriežke"
+
+#: ../src/desktop.c:974
+msgid "Activate file"
+msgstr "Aktivovať súbor"
+
+#: ../src/desktop.c:976
+msgid "Show file menu"
+msgstr "Zobraziť menu súboru"
+
+#: ../src/desktop.c:1394
+msgid "Show desktop menu"
+msgstr "Zobraziť menu plochy"
+
+#. FIXME: set name by monitor
+#: ../src/desktop.c:1466
+msgid "Desktop"
+msgstr "Plocha"
+
+#: ../src/main-win-ui.c:189
+msgid "_File"
+msgstr "_Súbor"
+
+#: ../src/main-win-ui.c:190
+msgid "_New Window"
+msgstr "_Nové okno"
+
+#: ../src/main-win-ui.c:190
+msgid "Open new file manager window"
+msgstr "Otvoriť nové okno správcu súborov"
+
+#: ../src/main-win-ui.c:191
+msgid "New T_ab"
+msgstr "Nová k_arta"
+
+#: ../src/main-win-ui.c:191
+msgid "Create new tab for this folder"
+msgstr "Vytvoriť novú kartu pre tento priečinok"
+
+#: ../src/main-win-ui.c:192
+msgid "C_reate New..."
+msgstr "Vytvo_riť nový..."
+
+#: ../src/main-win-ui.c:193
+msgid "Folder"
+msgstr "Priečinok"
+
+#: ../src/main-win-ui.c:194
+msgid "Empty File"
+msgstr "Prázdny súbor"
+
+#: ../src/main-win-ui.c:195
+msgid "Folder Propertie_s"
+msgstr "Vla_stnosti priečinku"
+
+#: ../src/main-win-ui.c:196
+msgid "_Close Tab"
+msgstr "_Zatvoriť kartu"
+
+#: ../src/main-win-ui.c:197
+msgid "Close _Window"
+msgstr "_Zatvoriť okno"
+
+#: ../src/main-win-ui.c:198
+msgid "_Edit"
+msgstr "Úpr_avy"
+
+#: ../src/main-win-ui.c:200
+msgid "C_ut"
+msgstr "V_ystrihnúť"
+
+#: ../src/main-win-ui.c:203
+msgid "Move to _Trash"
+msgstr "Presunúť do _koša"
+
+#: ../src/main-win-ui.c:205
+msgid "Copy Pat_h(s)"
+msgstr ""
+
+#: ../src/main-win-ui.c:206
+msgid "R_ename..."
+msgstr "Pr_emenovať..."
+
+#: ../src/main-win-ui.c:207
+msgid "D_uplicate..."
+msgstr ""
+
+#: ../src/main-win-ui.c:208
+msgid "Create Lin_k..."
+msgstr "Vytvoriť od_kaz..."
+
+#: ../src/main-win-ui.c:209
+msgid "_Move to..."
+msgstr "_Presunúť do..."
+
+#: ../src/main-win-ui.c:210
+msgid "Copy to_..."
+msgstr "_Skopírovať do..."
+
+#: ../src/main-win-ui.c:211
+msgid "Propertie_s"
+msgstr "Vla_stnosti"
+
+#: ../src/main-win-ui.c:213
+msgid "_Invert Selection"
+msgstr "_Invertovať výber"
+
+#: ../src/main-win-ui.c:214
+msgid "Prefere_nces"
+msgstr "_Nastavenia"
+
+#: ../src/main-win-ui.c:215
+msgid "_View"
+msgstr "_Zobraziť"
+
+#: ../src/main-win-ui.c:216
+msgid "_Reload Folder"
+msgstr "Obnoviť p_riečinok"
+
+#: ../src/main-win-ui.c:216
+msgid "Reload current folder"
+msgstr "Obnoviť aktuálny priečinok"
+
+#: ../src/main-win-ui.c:217
+msgid "Tool_bar"
+msgstr "Panel _nástrojov"
+
+#: ../src/main-win-ui.c:218
+msgid "Pat_h Bar"
+msgstr ""
+
+#: ../src/main-win-ui.c:219
+msgid "Side _Pane"
+msgstr "Bočný _panel"
+
+#. other see below: 'ShowHidden' 'ShowStatus' 'Fullscreen' 'IconView'...
+#: ../src/main-win-ui.c:221
+#, fuzzy
+msgid "Fo_lder View Mode"
+msgstr "Režim zobrazenia:"
+
+#: ../src/main-win-ui.c:222
+#, fuzzy
+msgid "S_ort Files"
+msgstr "_Usporiadať súbory"
+
+#: ../src/main-win-ui.c:224
+msgid "Zoom O_ut"
+msgstr "_Oddialiť"
+
+#: ../src/main-win-ui.c:227
+msgid "Fil_ter..."
+msgstr "Fil_trovať..."
+
+#: ../src/main-win-ui.c:229
+msgid "_Help"
+msgstr "_Pomocník"
+
+#: ../src/main-win-ui.c:231
+msgid "_Keyboard Navigation"
+msgstr ""
+
+#: ../src/main-win-ui.c:232
+msgid "_Go"
+msgstr "_Prejsť"
+
+#: ../src/main-win-ui.c:233
+msgid "_Previous Folder"
+msgstr "_Predchádzajúci priečinok"
+
+#: ../src/main-win-ui.c:233
+msgid "Return to previous folder in history"
+msgstr "Vráti sa do predchádzajúceho priečinku v histórii"
+
+#: ../src/main-win-ui.c:234
+msgid "_Next Folder"
+msgstr "_Ďalší priečinok"
+
+#: ../src/main-win-ui.c:234
+msgid "Go forward to next folder in history"
+msgstr "Prejde do ďalšieho priečinku v histórii"
+
+#: ../src/main-win-ui.c:235
+msgid "Pa_rent Folder"
+msgstr "Nad_radený priečinok"
+
+#: ../src/main-win-ui.c:235
+msgid "Go to parent Folder"
+msgstr "Prejsť do nadradeného priečinka"
+
+#: ../src/main-win-ui.c:236
+msgid "H_ome Folder"
+msgstr "D_omovský priečinok"
+
+#: ../src/main-win-ui.c:236
+msgid "Go to home folder"
+msgstr "Prejsť do domovského priečinka"
+
+#: ../src/main-win-ui.c:237
+msgid "_Desktop"
+msgstr "_Plocha"
+
+#: ../src/main-win-ui.c:237
+msgid "Go to desktop folder"
+msgstr "Prejsť do priečinka pracovnej plochy"
+
+#: ../src/main-win-ui.c:238
+msgid "Open trash can"
+msgstr "Otvoriť kôš"
+
+#: ../src/main-win-ui.c:239
+msgid "Filesyste_m Root"
+msgstr "Koreňový priečinok súborového systé_mu"
+
+#: ../src/main-win-ui.c:239
+msgid "Go fo filesystem root"
+msgstr "Prejsť do koreňového priečinku súborového systému"
+
+#: ../src/main-win-ui.c:240
+msgid "_Applications"
+msgstr "_Aplikácie"
+
+#: ../src/main-win-ui.c:240
+msgid "Go to root of applications menu folder"
+msgstr ""
+
+#: ../src/main-win-ui.c:241
+#, fuzzy
+msgid "Go to list of devices connected to the computer"
+msgstr "Zobraziť na ploche ikony zväzkov"
+
+#: ../src/main-win-ui.c:242
+#, fuzzy
+msgid "Net_work"
+msgstr "Sieťové jednotky"
+
+#: ../src/main-win-ui.c:242
+msgid "Go to list of places on the network"
+msgstr "Prejsť na zoznam miest v sieti"
+
+#: ../src/main-win-ui.c:243
+#, fuzzy
+msgid "_Go to Location..."
+msgstr "Umiestnenie"
+
+#: ../src/main-win-ui.c:244
+msgid "_Connect to Server..."
+msgstr "Pripojiť sa na _server..."
+
+#: ../src/main-win-ui.c:244
+msgid "Open a window to choose remote folder location"
+msgstr ""
+
+#: ../src/main-win-ui.c:245
+msgid "Go to the path in the location bar"
+msgstr "Prejsť do umiestnenia v adresnom riadku"
+
+#: ../src/main-win-ui.c:246
+msgid "_Bookmarks"
+msgstr "_Záložky"
+
+#: ../src/main-win-ui.c:247
+msgid "_Add to Bookmarks..."
+msgstr "Prid_ať medzi záložky..."
+
+#: ../src/main-win-ui.c:247
+msgid "Add current folder to bookmarks list"
+msgstr "Pridať aktuálny priečinok medzi záložky"
+
+#: ../src/main-win-ui.c:248
+msgid "Too_ls"
+msgstr "_Nástroje"
+
+#: ../src/main-win-ui.c:249
+msgid "Open Current Folder in _Terminal"
+msgstr "Otvoriť aktuálny priečinok v _termináli"
+
+#: ../src/main-win-ui.c:251
+msgid "Fin_d Files..."
+msgstr "_Hľadať súbory"
+
+#: ../src/main-win-ui.c:251
+msgid "Open search dialog"
+msgstr "Otvoriť dialóg pre vyhľadávanie"
+
+#: ../src/main-win-ui.c:254
+msgid "_Run a Command in Current Folder..."
+msgstr "Spustiť p_ríkaz v aktuálnom priečinku..."
+
+#. Note to translators: "Mingle..." means "Do not put folders before files" but make the translation as short as possible, please!
+#: ../src/main-win-ui.c:271
+msgid "Mingle _Files and Folders"
+msgstr "Miešať _súbory a priečinky"
+
+#: ../src/main-win-ui.c:274
+msgid "_Ignore Name Case"
+msgstr "_Ignorovať veľkosť znakov"
+
+#: ../src/main-win-ui.c:276
+msgid "Sho_w Hidden"
+msgstr "Zobraziť _skryté súbory"
+
+#. Note to translators: this save is meant for folder's settings such as sort
+#: ../src/main-win-ui.c:278
+msgid "Preserve This Folder's Settings"
+msgstr ""
+
+#: ../src/main-win-ui.c:279
+msgid ""
+"Check to remember view and sort as folder setting rather than global one"
+msgstr ""
+
+#: ../src/main-win-ui.c:281
+msgid "_Show Toolbar"
+msgstr "Zobraziť panel ná_strojov"
+
+#: ../src/main-win-ui.c:282
+msgid "Show 'New _Window' Button"
+msgstr "Zobraziť tlačidlo 'Nové _okno'"
+
+#: ../src/main-win-ui.c:283
+msgid "Show 'New _Tab' Button"
+msgstr "Zobraziť tlačidlo 'Nová _karta'"
+
+#: ../src/main-win-ui.c:284
+#, fuzzy
+msgid "Show _Navigation Buttons"
+msgstr "Zobraziť panel _umiestneia"
+
+#: ../src/main-win-ui.c:285
+msgid "Show '_Home' Button"
+msgstr "Zobraziť tlačidlo '_Domov'"
+
+#: ../src/main-win-ui.c:286
+msgid "Sho_w Side Pane"
+msgstr "Zobraziť bočný _panel"
+
+#: ../src/main-win-ui.c:287
+msgid "Show Status B_ar"
+msgstr ""
+
+#: ../src/main-win-ui.c:288
+msgid "_Dual Pane Mode"
+msgstr ""
+
+#: ../src/main-win-ui.c:288
+msgid "Show two panels with folder views"
+msgstr ""
+
+#: ../src/main-win-ui.c:289
+msgid "Fullscreen _Mode"
+msgstr "Na _celú obrazovku"
+
+#: ../src/main-win-ui.c:295
+msgid "_Icon View"
+msgstr "Zobrazenie _ikon"
+
+#: ../src/main-win-ui.c:296
+msgid "_Compact View"
+msgstr "_Kompaktné zobrazenie"
+
+#: ../src/main-win-ui.c:297
+msgid "_Thumbnail View"
+msgstr "_Zobrazenie náhľadov"
+
+#: ../src/main-win-ui.c:298
+msgid "Detailed _List View"
+msgstr "Zobrazenie _Podrobný zoznam"
+
+#: ../src/main-win-ui.c:311 ../src/main-win-ui.c:319
+msgid "By _Name"
+msgstr "Podľa _názvu"
+
+#: ../src/main-win-ui.c:312 ../src/main-win-ui.c:320
+msgid "By _Modification Time"
+msgstr "Podľa času poslednej z_meny"
+
+#: ../src/main-win-ui.c:313 ../src/main-win-ui.c:321
+msgid "By _Size"
+msgstr "Podľa veľko_sti"
+
+#: ../src/main-win-ui.c:314 ../src/main-win-ui.c:322
+msgid "By File _Type"
+msgstr "Podľa _typu súboru"
+
+#: ../src/main-win-ui.c:316
+msgid "By _Extension"
+msgstr "Podľa _prípony"
+
+#: ../src/main-win-ui.c:329
+msgid "Places"
+msgstr "Miesta"
+
+#: ../src/main-win-ui.c:330
+msgid "Directory Tree"
+msgstr "Strom adresárov"
+
+#: ../src/main-win-ui.c:331
+msgid "Remote"
+msgstr ""
+
+#: ../src/main-win-ui.c:337
+msgid "_Location"
+msgstr "_Umiestnenie"
+
+#: ../src/main-win-ui.c:338
+msgid "_Buttons"
+msgstr "_Tlačidlá"
+
+#: ../src/main-win.c:938 ../src/main-win.c:942
+msgid "Show history of visited folders"
+msgstr "Zobraziť históriu navštívených priečinkov"
+
+#: ../src/main-win.c:947
+msgid "History"
+msgstr "História"
+
+#: ../src/main-win.c:961
+msgid "You are in super user mode"
+msgstr "Nachádzate sa v režime superpoužívateľa"
+
+#: ../src/main-win.c:1146
+msgid "Lightweight file manager\n"
+msgstr "Odľahčený správca súborov\n"
+
+#: ../src/main-win.c:1156
+#, c-format
+msgid "using LibFM ver. %s\n"
+msgstr ""
+
+#: ../src/main-win.c:1158
+msgid ""
+"\n"
+"Developed by Hon Jen Yee (PCMan)"
+msgstr ""
+"\n"
+"Vyvinul Hon Jen Yee (PCMan)"
+
+#: ../src/main-win.c:1183 ../src/main-win.c:1191
+msgid "Keyboard Navigation"
+msgstr ""
+
+#: ../src/main-win.c:1185
+msgid ""
+"Tab: cycle focus Folder View -> Side Pane -> Tools Bar\n"
+"Shift+Tab: cycle focus Tools Bar -> Side Pane -> Folder View\n"
+"F6: change focus Side pane <-> Folder view\n"
+"F8: focus divider between Side pane and Folder view\n"
+"F10: activate main menu\n"
+"Ctrl+L or Alt+D: jump focus to Path Bar"
+msgstr ""
+
+#: ../src/main-win.c:1227
+msgid "Run a command"
+msgstr "Spustiť príkaz"
+
+#: ../src/main-win.c:1228
+msgid "Enter a command to run:"
+msgstr "Zadajte príkaz na spustenie:"
+
+#: ../src/main-win.c:1235
+#, fuzzy
+msgid "Current folder is inaccessible"
+msgstr "Otvoriť aktuálny priečinok v _termináli"
+
+#: ../src/main-win.c:1837
+#, c-format
+msgid ""
+"Add following folder to bookmarks:\n"
+"'%s'\n"
+"Enter a name for the new bookmark item:"
+msgstr ""
+"Pridať nasledovný priečinok medzi záložky:\n"
+"„%s“\n"
+"Zadajte názov pre novú záložku:"
+
+#: ../src/main-win.c:1841
+msgid "Add to Bookmarks"
+msgstr "Pridať medzi záložky"
+
+#: ../src/main-win.c:2587
+#, fuzzy
+msgid "Select filter"
+msgstr "Vyberte priečinok"
+
+#: ../src/main-win.c:2588
+msgid "Choose a new shell pattern to show files:"
+msgstr ""
+
+#. options only acceptable by first pcmanfm instance. These options are not passed through IPC
+#: ../src/pcmanfm.c:78
+msgid "Name of configuration profile"
+msgstr "Názov profilu konfigurácie"
+
+#: ../src/pcmanfm.c:78
+msgid "PROFILE"
+msgstr ""
+
+#: ../src/pcmanfm.c:79
+msgid "Run PCManFM as a daemon"
+msgstr "Spúšťať PCManFM v režime démona"
+
+#: ../src/pcmanfm.c:80
+msgid "No function. Just to be compatible with nautilus"
+msgstr ""
+"Nevykonáva žiadnu funkciu. Implementované len pre kompatibilitu s Nautilom"
+
+#. options that are acceptable for every instance of pcmanfm and will be passed through IPC.
+#: ../src/pcmanfm.c:83
+msgid "Launch desktop manager"
+msgstr "Spustiť správcu plochy"
+
+#: ../src/pcmanfm.c:84
+msgid "Turn off desktop manager if it's running"
+msgstr "Vypnúť správcu plochy ak beží"
+
+#: ../src/pcmanfm.c:85
+msgid "Open desktop preference dialog"
+msgstr "Otvoriť dialóg nastavení pracovného prostredia"
+
+#: ../src/pcmanfm.c:86
+msgid "Use --desktop option only for one screen"
+msgstr ""
+
+#: ../src/pcmanfm.c:87
+#, fuzzy
+msgid "Set desktop wallpaper from image FILE"
+msgstr "Nastaviť tapetu plochy"
+
+#: ../src/pcmanfm.c:87
+msgid "FILE"
+msgstr ""
+
+#. don't translate list of modes in description, please
+#: ../src/pcmanfm.c:89
+#, fuzzy
+msgid ""
+"Set mode of desktop wallpaper. MODE=(color|stretch|fit|crop|center|tile|"
+"screen)"
+msgstr ""
+"Nastaviť režim pozadia plochy. Režim môže byť jedna z hodnôt "
+"„color“ (farba), „stretch“ (roztiahnuť), „fit“ (prispôsobiť veľkosť), "
+"„center“ (centrovať) a „tile“ (dlaždice)."
+
+#: ../src/pcmanfm.c:89
+msgid "MODE"
+msgstr ""
+
+#: ../src/pcmanfm.c:90
+#, fuzzy
+msgid "Open Preferences dialog on the page N"
+msgstr "Otvoriť dialóg nastavení pracovného prostredia"
+
+#: ../src/pcmanfm.c:90
+msgid "N"
+msgstr ""
+
+#: ../src/pcmanfm.c:91
+msgid "Open new window"
+msgstr "Otvoriť nové okno"
+
+#: ../src/pcmanfm.c:93
+msgid "Open a Find Files window"
+msgstr "Otvoriť nástroj na hľadanie súborov"
+
+#: ../src/pcmanfm.c:95
+msgid "Window role for usage by window manager"
+msgstr ""
+
+#: ../src/pcmanfm.c:95
+msgid "ROLE"
+msgstr ""
+
+#: ../src/pcmanfm.c:96
+msgid "[FILE1, FILE2,...]"
+msgstr "[SÚBOR1, SÚBOR2,...]"
+
+#. FIXME: add "on this X screen/monitor" into diagnostics
+#: ../src/pcmanfm.c:376
+msgid "Desktop manager is not active."
+msgstr "Správca pracovnej plochy nie je aktívny."
+
+#: ../src/pcmanfm.c:627
+msgid "Terminal emulator is not set."
+msgstr "Nebol nastavený emulátor terminálu."
+
+#: ../src/tab-page.c:56
+msgid "Open in New T_ab"
+msgstr "Otvoriť na novej k_arte"
+
+#: ../src/tab-page.c:411
+#, c-format
+msgid "%d item selected"
+msgid_plural "%d items selected"
+msgstr[0] "%d vybraná položka"
+msgstr[1] "%d vybrané položky"
+msgstr[2] "%d vybraných položiek"
+
+#: ../src/tab-page.c:741
+#, c-format
+msgid "Free space: %s (Total: %s)"
+msgstr "Voľné miesto: %s (Celkom: %s)"
+
+#: ../src/tab-page.c:761
+#, c-format
+msgid "%d item"
+msgid_plural "%d items"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#: ../src/tab-page.c:762
+#, c-format
+msgid " (%d hidden)"
+msgid_plural " (%d hidden)"
+msgstr[0] "%d skrytý"
+msgstr[1] "%d skryté"
+msgstr[2] "%d skrytých"
+
+#: ../src/pref.c:515
+msgid "Add to Modules Blacklist"
+msgstr ""
+
+#: ../src/pref.c:516
+msgid "Enter a blacklisted module mask:"
+msgstr ""
+
+#: ../src/pref.c:607
+msgid "Add to Modules Whitelist"
+msgstr ""
+
+#: ../src/pref.c:608
+msgid "Enter a whitelisted module mask:"
+msgstr ""
+
+#: ../data/pcmanfm.desktop.in.h:1
+msgid "File Manager PCManFM"
+msgstr "Správca súborov PCManFM"
+
+#: ../data/pcmanfm.desktop.in.h:2
+msgid "File Manager"
+msgstr "Správca súborov"
+
+#: ../data/pcmanfm.desktop.in.h:3
+msgid "Browse the file system and manage the files"
+msgstr ""
+
+#: ../data/pcmanfm-desktop-pref.desktop.in.h:2
+msgid "Change desktop wallpapers and behavior of desktop manager"
+msgstr ""
+
+#~ msgid "Center on the screen"
+#~ msgstr "Vycentrovať na obrazovke"
+
+#~ msgid "Opened in New Tab"
+#~ msgstr "Otvorené na novej _karte"
+
+#~ msgid "_Rename"
+#~ msgstr "P_remenovať"
+
+#, fuzzy
+#~ msgid "Create Symlin_k"
+#~ msgstr "Vytvoriť symbolický odkaz"
+
+#~ msgid "Switch user command is not set."
+#~ msgstr "Príkaz na prepnutie používateľa nie je nastavený."
+
+#, fuzzy
+#~ msgid "Show \"_My Computer\" icon on desktop"
+#~ msgstr "Zobraziť na ploche ikonu „Môj počítač“"
+
+#, fuzzy
+#~ msgid "Des_ktop Folder"
+#~ msgstr "Priečinok Plocha"
+
+#, fuzzy
+#~ msgid "_Home Directory"
+#~ msgstr "Domovský adresár"
+
+#, fuzzy
+#~ msgid "_Trash can"
+#~ msgstr "Kôš"
+
+#, fuzzy
+#~ msgid "_Computer Drives"
+#~ msgstr "Sieťové jednotky"
+
+#, fuzzy
+#~ msgid "_Add To Bookmarks"
+#~ msgstr "Pridať medzi záložky"
+
+#~ msgid "Open Current Folder as _Root"
+#~ msgstr "Otvoriť aktuálny priečinok ako _root"
+
+#, fuzzy
+#~ msgid "Hide _folder content border"
+#~ msgstr "Skryť okraj obsahu priečinka"
+
+#, fuzzy
+#~ msgid "Hide _side pane buttons"
+#~ msgstr "Skryť tlačidlá bočného panelu"
+
+#, fuzzy
+#~ msgid "_Trash bin"
+#~ msgstr "Kôš"
+
+#~ msgid ""
+#~ "Examples: \"xterm -e %s\" for terminal or \"gksu %s\" for switching "
+#~ "user.\n"
+#~ "%s = the command line you want to execute with terminal or su."
+#~ msgstr ""
+#~ "Príklady: terminál - „xterm -e %s“ alebo prepnutie používateľa - „gksu "
+#~ "%s“.\n"
+#~ "%s = príkazový riadok, ktorý chcete aby terminál alebo su vykonalo."
+
+#~ msgid "Previous Folder"
+#~ msgstr "Predošlý priečinok"
+
+#~ msgid "Next Folder"
+#~ msgstr "Ďalší priečinok"
+
+#, fuzzy
+#~ msgid "_My Computer"
+#~ msgstr "Môj počítač"
+
+#~ msgid "Installed Applications"
+#~ msgstr "Nainštalované aplikácie"
+
+#, fuzzy
+#~ msgid "Open entered folder"
+#~ msgstr "Otvoriť nadradený _priečinok"
+
+#~ msgid "Blank File"
+#~ msgstr "Prázdny súbor"
+
+#~ msgid "General"
+#~ msgstr "Všeobecné"
+
+#~ msgid "Invert Selection"
+#~ msgstr "Invertovať výber"
+
+#~ msgid "<mode>"
+#~ msgstr "<režim>"
+
+#~ msgid ""
+#~ "Open preference dialog. 'n' is number of the page you want to show (1, 2, "
+#~ "3...)."
+#~ msgstr ""
+#~ "Otvoriť dialóg s nastavením. „n“ je počet stránok, ktorý chcete zobraziť "
+#~ "(1, 2, 3...)."
+
+#, fuzzy
+#~ msgid "Enter a name for the newly created folder:"
+#~ msgstr "Zadajte názov pre novo vytvorený súbor:"
+
+#~ msgid "Enter a name for the newly created file:"
+#~ msgstr "Zadajte názov pre novo vytvorený súbor:"
+
+#~ msgid "New"
+#~ msgstr "Nový"
+
+#~ msgid ""
+#~ "Open folders in new tabs of the last used window instead of creating new "
+#~ "windows"
+#~ msgstr ""
+#~ "Otvárať priečinky v nových záložkách posledného použitého okna namiesto "
+#~ "tvorby nových okien"
+
+#~ msgid ""
+#~ "The icon was taken from \"nuoveXT 2\" icon theme\n"
+#~ "created by Alexandre Moore (saki).\n"
+#~ "http://www.gnome-look.org/content/show.php/nuoveXT+2?content=56625"
+#~ msgstr ""
+#~ "Ikona pochádza z témy „nuoveXT 2“,\n"
+#~ "ktorú vytvoril Alexandre Moore (saki).\n"
+#~ "http://www.gnome-look.org/content/show.php/nuoveXT+2?content=56625"
+
+#~ msgid ""
+#~ "洪任諭 Hong Jen Yee <pcman.tw@gmail.com>\n"
+#~ "\n"
+#~ "Source code taken from other projects:\n"
+#~ " * libmd5-rfc: Aladdin Enterprises\n"
+#~ " * Working area detection: Gary Kramlich\n"
+#~ " * ExoIconView: os-cillation e.K, Anders Carlsson, & Benedikt Meurer\n"
+#~ " * Text and icon renderer uses code from Jonathan Blandford\n"
+#~ " * Desktop icons use code from Brian Tarricone\n"
+#~ " * Volume management uses code from following projects/authors:\n"
+#~ "     * gnome-vfs: David Zeuthen\n"
+#~ "     * thunar-vfs and libexo: Benedikt Meurer\n"
+#~ "     * gnome-mount: David Zeuthen"
+#~ msgstr ""
+#~ "洪任諭 Hong Jen Yee <pcman.tw@gmail.com>\n"
+#~ "\n"
+#~ "Zdrojový kód prevzatý z iných projektov:\n"
+#~ " * libmd5-rfc: Aladdin Enterprises\n"
+#~ " * Detekcia pracovného priestoru: Gary Kramlich\n"
+#~ " * ExoIconView: os-cillation e.K, Anders Carlsson, & Benedikt Meurer\n"
+#~ " * Vykresľovanie textu a ikon používa kód od Jonathana Blandforda\n"
+#~ " * Ikony na ploche používajú kód od Briana Tarriconeho\n"
+#~ " * Správa zväzkov používa kód od nasledovných projektov/autorov:\n"
+#~ "     * gnome-vfs: David Zeuthen\n"
+#~ "     * thunar-vfs a libexo: Benedikt Meurer\n"
+#~ "     * gnome-mount: David Zeuthen"
+
+#~ msgid "Choose an Application"
+#~ msgstr "Vyberte aplikáciu"
+
+#~ msgid "File Type To be Opened:"
+#~ msgstr "Ktoré typy súborov má otvárať:"
+
+#~ msgid "Opened in Terminal"
+#~ msgstr "Otvára sa v termináli"
+
+#~ msgid ""
+#~ "Please choose an application from following lists or enter the command "
+#~ "line by hand:"
+#~ msgstr ""
+#~ "Prosím, vyberte aplikáciu z nasledovného zoznamu alebo zadajte príkaz "
+#~ "ručne:"
+
+#~ msgid "Set selected application to default action"
+#~ msgstr "Nastaviť vybranú aplikáciu na predvolenú"
+
+#~ msgid "_Browse"
+#~ msgstr "_Prehliadať"
+
+#~ msgid "_Command Line:"
+#~ msgstr "Prí_kazový riadok:"
+
+#~ msgid "_Recommended Applications"
+#~ msgstr "Odpo_rúčané aplikácie"
+
+#~ msgid "Actions Showed in Popup Menus"
+#~ msgstr "Operácie zobrazené v kontextových ponukách"
+
+#~ msgid "Add _Application"
+#~ msgstr "Pridať _aplikáciu"
+
+#~ msgid "Add _Custom Action"
+#~ msgstr "Pridať _vlastnú operáciu"
+
+#~ msgid "File Associations"
+#~ msgstr "Asociácie typov súborov"
+
+#~ msgid "Move _Down"
+#~ msgstr "Presunúť _dolu"
+
+#~ msgid "Move _Up"
+#~ msgstr "Presunúť _hore"
+
+#~ msgid "Preparing..."
+#~ msgstr "Pripravuje sa..."
+
+#~ msgid "Processing:"
+#~ msgstr "Spracúva sa:"
+
+#~ msgid "Progress:"
+#~ msgstr "Priebeh:"
+
+#~ msgid "To:"
+#~ msgstr "Kam:"
+
+#~ msgid "<b>File Type:</b>"
+#~ msgstr "<b>Typ súboru:</b>"
+
+#~ msgid "<b>File _Name:</b>"
+#~ msgstr "<b>_Názov súboru:</b>"
+
+#~ msgid "<b>Group:</b>"
+#~ msgstr "<b>Skupina:</b>"
+
+#~ msgid "<b>Last Access:</b>"
+#~ msgstr "<b>Posledný prístup:</b>"
+
+#~ msgid "<b>Last Modification:</b>"
+#~ msgstr "<b>Posledná zmena:</b>"
+
+#~ msgid "<b>Open _with:</b>"
+#~ msgstr "<b>Otvoriť čí_m:</b>"
+
+#~ msgid "<b>Size on Disk:</b>"
+#~ msgstr "<b>Veľkosť na disku:</b>"
+
+#~ msgid "<b>Total Size of Files:</b>"
+#~ msgstr "<b>Celková veľkosť súborov:</b>"
+
+#~ msgid "<b>_Group:</b>"
+#~ msgstr "<b>_Skupina:</b>"
+
+#~ msgid "<b>_Owner:</b>"
+#~ msgstr "<b>_Vlastník:</b>"
+
+#~ msgid "Execute"
+#~ msgstr "Spustiť"
+
+#~ msgid "Read"
+#~ msgstr "čítanie"
+
+#~ msgid "Set GID"
+#~ msgstr "SETGID"
+
+#~ msgid "Set UID"
+#~ msgstr "SETUID"
+
+#~ msgid "Sticky"
+#~ msgstr "lepkavý"
+
+#~ msgid "Write"
+#~ msgstr "zápis"
+
+#~ msgid "_Permissions"
+#~ msgstr "O_právnenia"
+
+#~ msgid "<b>File Content</b>"
+#~ msgstr "<b>Obsah súboru</b>"
+
+#~ msgid "<b>File Name Contains:</b>"
+#~ msgstr "<b>Názov súboru obsahuje:</b>"
+
+#~ msgid "<b>File Types to Search</b>"
+#~ msgstr "<b>Hľadať typy súborov</b>"
+
+#~ msgid "<b>Last Modified</b>"
+#~ msgstr "<b>Posledná zmena</b>"
+
+#~ msgid "<b>Places to Search</b>"
+#~ msgstr "<b>Kde hľadať</b>"
+
+#~ msgid "<b>Search Result:</b>"
+#~ msgstr "<b>Výsledok vyhľadávania:</b>"
+
+#~ msgid ""
+#~ "Any\n"
+#~ "Within One Day\n"
+#~ "Within One Week\n"
+#~ "Within One Month\n"
+#~ "Within One Year\n"
+#~ "Within Selected Date Range"
+#~ msgstr ""
+#~ "Kedykoľvek\n"
+#~ "V rámci dňa\n"
+#~ "V rámci týždňa\n"
+#~ "V rámci mesiaca\n"
+#~ "V rámci roka\n"
+#~ "V rámci vybraného rozsahu dátumov"
+
+#~ msgid "Audio Files (mp3, ogg,...)"
+#~ msgstr "Zvukové súbory (mp3, ogg,...)"
+
+#~ msgid ""
+#~ "Bytes\n"
+#~ "KB\n"
+#~ "MB\n"
+#~ "GB"
+#~ msgstr ""
+#~ "bajtov\n"
+#~ "KB\n"
+#~ "MB\n"
+#~ "GB"
+
+#~ msgid "Case Sensitive"
+#~ msgstr "Rozlišuje sa veľkosť písmen"
+
+#~ msgid "File Contains:"
+#~ msgstr "Súbor obsahuje:"
+
+#~ msgid "Greater Than:"
+#~ msgstr "Väčší ako:"
+
+#~ msgid "Image Files (jpg, png,...)"
+#~ msgstr "Súbory obrázkov (jpg, png,...)"
+
+#~ msgid "Search Again"
+#~ msgstr "Hľadať znova"
+
+#~ msgid "Search Hidden Files"
+#~ msgstr "Hľadať skryté súbory"
+
+#~ msgid "Search in Sub Directories"
+#~ msgstr "Hľadať v podadresároch"
+
+#~ msgid "Size & Date"
+#~ msgstr "Veľkosť a dátum"
+
+#~ msgid "Smaller Than:"
+#~ msgstr "Menší ako:"
+
+#~ msgid "Use Regular Expression"
+#~ msgstr "Použiť regulárny výraz"
+
+#~ msgid "Video Files (avi, mpg,...)"
+#~ msgstr "Video súbory (avi, mpg,...)"
+
+#~ msgid "<b>Wallpaper</b>"
+#~ msgstr "<b>Tapeta</b>"
+
+#~ msgid "Disable \"Trash Can\" and delete files from disk directly"
+#~ msgstr "Vypnúť „Kôš“ a mazať súbory priamo z disku"
+
+#~ msgid "Display image files with supported format as thumbnails"
+#~ msgstr "Zobraziť súbory obrázkov podporovaných formátov ako náhľady"
+
+#~ msgid "I_nterface"
+#~ msgstr "Rozhra_nie"
+
+#~ msgid "Manage the desktop and show file icons"
+#~ msgstr "Správa plochy a zobrazenie ikon súborov"
+
+#~ msgid "Max size of files displayed as thumbnails:"
+#~ msgstr "Max. veľkosť súborov zobrazených ako náhľady:"
+
+#~ msgid "Mode:"
+#~ msgstr "Režim:"
+
+#~ msgid "On-disk file name encoding:"
+#~ msgstr "Kódovanie názvov súborov na disku:"
+
+#~ msgid ""
+#~ "Opened in Current Tab\n"
+#~ "Opened in New Tab\n"
+#~ "Opened in New Window"
+#~ msgstr ""
+#~ "Otvorené v aktuálnej karte\n"
+#~ "Otvorené v novej karte\n"
+#~ "Otvorené v novom okne"
+
+#~ msgid "Shadow:"
+#~ msgstr "Tieň:"
+
+#~ msgid ""
+#~ "Stretch to fill the entire screen\n"
+#~ "Stretch to fit the screen\n"
+#~ "Center on the screen\n"
+#~ "Tile the image to fill the entire screen"
+#~ msgstr ""
+#~ "Roztiahnuť na celú obrazovku\n"
+#~ "Roztiahnuť na obrazovku\n"
+#~ "Centrovať na obrazovke\n"
+#~ "Vedľa seba na celú obrazovku"
+
+#~ msgid "Text:"
+#~ msgstr "Text:"
+
+#~ msgid "Column Spacing"
+#~ msgstr "Rozostupy stĺpcov"
+
+#~ msgid "Space which is inserted between grid column"
+#~ msgstr "Miesto, ktoré sa vloží medzi stĺpce mriežky"
+
+#~ msgid "Number of columns"
+#~ msgstr "Počet stĺpcov"
+
+#~ msgid "Number of columns to display"
+#~ msgstr "Počet zobrazených stĺpcov"
+
+#~ msgid "Enable Search"
+#~ msgstr "Zapnúť hľadanie"
+
+#~ msgid "View allows user to search through columns interactively"
+#~ msgstr "Zobrazenie umožňuje používateľom interaktívne prehľadávať stĺpce"
+
+#~ msgid "Width for each item"
+#~ msgstr "Šírka každej položky"
+
+#~ msgid "The width used for each item"
+#~ msgstr "Použitá šírka pre každú položku"
+
+#~ msgid "The layout mode"
+#~ msgstr "Režim rozloženia"
+
+#~ msgid "Margin"
+#~ msgstr "Okraj"
+
+#~ msgid "Space which is inserted at the edges of the icon view"
+#~ msgstr "Miesto, ktoré sa vloží na okraje zobrazenia ikon"
+
+#~ msgid "Markup column"
+#~ msgstr "Stĺpec pre značkovanie"
+
+#~ msgid "Model column used to retrieve the text if using Pango markup"
+#~ msgstr "Modelový stĺpec na získanie textu ak sa používa značkovanie Pango"
+
+#~ msgid "The model for the icon view"
+#~ msgstr "Model pre zobrazenie ikon"
+
+#~ msgid ""
+#~ "How the text and icon of each item are positioned relative to each other"
+#~ msgstr "Ako sú vzájomne postavené text a ikona každej položky"
+
+#~ msgid "Pixbuf column"
+#~ msgstr "Stĺpec pixbuf"
+
+#~ msgid "Model column used to retrieve the icon pixbuf from"
+#~ msgstr "Modelový stĺpec, z ktorého sa získava pixbuf ikona"
+
+#~ msgid "Reorderable"
+#~ msgstr "Možná zmena poradia"
+
+#~ msgid "View is reorderable"
+#~ msgstr "Je možná zmena poriadia položiek v zobrazení"
+
+#~ msgid "Row Spacing"
+#~ msgstr "Rozostupy riadkov"
+
+#~ msgid "Space which is inserted between grid rows"
+#~ msgstr "Miesto, ktoré sa vkladá medzi riadky mriežky"
+
+#~ msgid "Search Column"
+#~ msgstr "Vyhľadávací stĺpec"
+
+#~ msgid "Model column to search through when searching through item"
+#~ msgstr "Modelový stĺpec v ktorom sa hľadá pri hľadaní položky"
+
+#~ msgid "Selection mode"
+#~ msgstr "Režim výberu"
+
+#~ msgid "The selection mode"
+#~ msgstr "Režim výberu"
+
+#~ msgid "Single Click"
+#~ msgstr "Jednoduché kliknutie"
+
+#~ msgid "Whether the items in the view can be activated with single clicks"
+#~ msgstr "Či je možné položky v zobrazení aktivovať jednoduchým kliknutím"
+
+#~ msgid "Single Click Timeout"
+#~ msgstr "Interval jednoduchého kliknutia"
+
+#~ msgid ""
+#~ "The amount of time after which the item under the mouse cursor will be "
+#~ "selected automatically in single click mode"
+#~ msgstr ""
+#~ "Čas po ktorom sa položka pod kurzorom automaticky vyberie v režime "
+#~ "jednoduchého kliknutia"
+
+#~ msgid "Spacing"
+#~ msgstr "Rozostupy"
+
+#~ msgid "Space which is inserted between cells of an item"
+#~ msgstr "Miesto, ktoré sa vkladá medzi bunky položky"
+
+#~ msgid "Text column"
+#~ msgstr "Textový stĺpec"
+
+#~ msgid "Model column used to retrieve the text from"
+#~ msgstr "Modelový stĺpec z ktorého sa získava text"
+
+#~ msgid "Selection Box Color"
+#~ msgstr "Farba poľa na výber"
+
+#~ msgid "Color of the selection box"
+#~ msgstr "Farba poľa na výber"
+
+#~ msgid "Selection Box Alpha"
+#~ msgstr "Alfa poľa na výber"
+
+#~ msgid "Opacity of the selection box"
+#~ msgstr "Krytie poľa na výber"
+
+#~ msgid "audio"
+#~ msgstr "audio"
+
+#~ msgid "video"
+#~ msgstr "video"
+
+#~ msgid "text"
+#~ msgstr "text"
+
+#~ msgid "multipart"
+#~ msgstr "viac častí"
+
+#~ msgid "image"
+#~ msgstr "obrázok"
+
+#~ msgid "message"
+#~ msgstr "správa"
+
+#~ msgid "inode"
+#~ msgstr " v"
+
+#~ msgid "packages"
+#~ msgstr "balíky"
+
+#~ msgid "Find Files with PCManFM"
+#~ msgstr "Nájsť súbory pomocou PCManFM"
+
+#~ msgid "GTK+ icon theme is not properly set"
+#~ msgstr "Téma ikon GTK+ nie je správne nastavená"
+
+#~ msgid ""
+#~ "<big><b>%s</b></big>\n"
+#~ "\n"
+#~ "This usually means you don't have an XSETTINGS manager running.  Desktop "
+#~ "environment like GNOME or XFCE automatically execute their XSETTING "
+#~ "managers like gnome-settings-daemon or xfce-mcs-manager.\n"
+#~ "\n"
+#~ "<b>If you don't use these desktop environments, you have two choices:\n"
+#~ "1. run an XSETTINGS manager, or\n"
+#~ "2. simply specify an icon theme in ~/.gtkrc-2.0.</b>\n"
+#~ "For example to use the Tango icon theme add a line:\n"
+#~ "<i><b>gtk-icon-theme-name=\"Tango\"</b></i> in your ~/.gtkrc-2.0. (create "
+#~ "it if no such file)\n"
+#~ "\n"
+#~ "<b>NOTICE: The icon theme you choose should be compatible with GNOME, or "
+#~ "the file icons cannot be displayed correctly.</b>  Due to the differences "
+#~ "in icon naming of GNOME and KDE, KDE themes cannot be used.  Currently "
+#~ "there is no standard for this, but it will be solved by freedesktop.org "
+#~ "in the future."
+#~ msgstr ""
+#~ "<big><b>%s</b></big>\n"
+#~ "\n"
+#~ "To zvyčajne znamená, že vám nebeží správca XSETTINGS. Pracovné prostredia "
+#~ "ako GNOME alebo XFCE automaticky spúšťajú svojich správcov XSETTING ako "
+#~ "gnome-settings-daemon či xfce-mcs-manager.\n"
+#~ "\n"
+#~ "<b>ak nepoužívate tieto pracovné prostredia, máte dve možnosti:\n"
+#~ "1. spustiť správcu XSETTINGS alebo\n"
+#~ "2. jednoducho uviesť tému ikon v súbore ~/.gtkrc-2.0.</b>\n"
+#~ "Napríklad ak chcete použiť tému ikon Tango pridajte riadok:\n"
+#~ "<i><b>gtk-icon-theme-name=\"Tango\"</b></i> do svojho súboru ~/."
+#~ "gtkrc-2.0. (ak neexistuje vytvorte ho)\n"
+#~ "\n"
+#~ "<b>POZN.: Téma ikon, ktorú vyberiete by mala byť kompatibilná s GNOME "
+#~ "inak nebude možné správne zobraziť ikony súborov.</b>  Kvôli rozdielom v "
+#~ "pomenovaní ikon GNOME a KDE nie je možné použiť témy KDE. Momentálne na "
+#~ "to neexistuje žiadny štandard, ale freedesktop.org to v budúcnosti "
+#~ "vyrieši."
+
+#~ msgid "Error"
+#~ msgstr "Chyba"
+
+#~ msgid ""
+#~ "Error: Unable to establish connection with FAM.\n"
+#~ "\n"
+#~ "Do you have \"FAM\" or \"Gamin\" installed and running?"
+#~ msgstr ""
+#~ "Chyba: Nepodarilo sa nadviazať spojenie s FAM.\n"
+#~ "\n"
+#~ "Máte nainštalovaný a spustený „FAM“ alebo „Gamin“?"
+
+#~ msgid "File doesn't exist"
+#~ msgstr "Súbor neexistuje"
+
+#~ msgid "Don't know how to open the file"
+#~ msgstr "Nie je známe ako otvoriť súbor"
+
+#~ msgid ""
+#~ "Unable to open file:\n"
+#~ "\"%s\"\n"
+#~ "%s"
+#~ msgstr ""
+#~ "Nedá sa otvoriť súbor:\n"
+#~ "„%s“\n"
+#~ "%s"
+
+#~ msgid "_Folder"
+#~ msgstr "_Priečinok"
+
+#~ msgid "File _Properties"
+#~ msgstr "_Vlastnosti súboru"
+
+#~ msgid "_Delete"
+#~ msgstr "_Zmazať"
+
+#~ msgid "Select _All"
+#~ msgstr "Vybr_ať všetky"
+
+#~ msgid "Go _Back"
+#~ msgstr "Prejsť _späť"
+
+#~ msgid "Go _Forward"
+#~ msgstr "Prejsť _dopredu"
+
+#~ msgid "Go _Home"
+#~ msgstr "Prejsť _domov"
+
+#~ msgid "Sort by _Type"
+#~ msgstr "Zoradiť podľa _typu"
+
+#~ msgid "Sort by _Permission"
+#~ msgstr "Zoradiť podľa o_právnení"
+
+#~ msgid "Sort by _Owner"
+#~ msgstr "Zoradiť podľa _vlastníka"
+
+#~ msgid "Ascending"
+#~ msgstr "Vzostupne"
+
+#~ msgid "Descending"
+#~ msgstr "Zostupne"
+
+#~ msgid "_Open Side Pane"
+#~ msgstr "_Otvoriť bočný panel"
+
+#~ msgid "Show _Directory Tree"
+#~ msgstr "Zobraziť strom a_dresárov"
+
+#~ msgid "_Refresh"
+#~ msgstr "_Obnoviť"
+
+#~ msgid "L_ocation Bar"
+#~ msgstr "Panel s adres_ou"
+
+#~ msgid "_Sort..."
+#~ msgstr "_Zoradiť..."
+
+#~ msgid "View as _Icons"
+#~ msgstr "Zobraziť ako _ikony"
+
+#~ msgid "View as _Compact List"
+#~ msgstr "Zobraziť _kompaktný zoznam"
+
+#~ msgid "Open _Terminal"
+#~ msgstr "Otvoriť _terminál"
+
+#~ msgid "Back"
+#~ msgstr "Späť"
+
+#~ msgid "Forward"
+#~ msgstr "Dopredu"
+
+#~ msgid "Refresh"
+#~ msgstr "Obnoviť"
+
+#~ msgid "Go"
+#~ msgstr "Prejsť"
+
+#~ msgid "_Edit Bookmarks"
+#~ msgstr "_Upraviť záložky"
+
+#~ msgid "Loading..."
+#~ msgstr "Načítava sa..."
+
+#~ msgid "%d visible item (%s)%s"
+#~ msgid_plural "%d visible items (%s)%s"
+#~ msgstr[0] "%d viditeľná položka (%s)%s"
+#~ msgstr[1] "%d viditeľné položky (%s)%s"
+#~ msgstr[2] "%d viditeľných položiek (%s)%s"
+
+#~ msgid "Directory doesn't exist!"
+#~ msgstr "Adresár neexistuje!"
+
+#~ msgid "Name"
+#~ msgstr "Názov"
+
+#~ msgid "Size"
+#~ msgstr "Veľkosť"
+
+#~ msgid "Permission"
+#~ msgstr "Oprávnenia"
+
+#~ msgid "Owner:Group"
+#~ msgstr "Vlastník:skupina"
+
+#~ msgid "Last Modification"
+#~ msgstr "Posledná zmena"
+
+#~ msgid "Unable to mount device"
+#~ msgstr "Nepodarilo sa pripojiť zariadenie"
+
+#~ msgid "Unable to unmount device"
+#~ msgstr "Nepodarilo sa odpojiť zariadenie"
+
+#~ msgid "Unable to eject device"
+#~ msgstr "Nepodarilo sa vysunúť zariadenie"
+
+#~ msgid "_Mount File System"
+#~ msgstr "_Pripojiť súborový systém"
+
+#~ msgid "_Eject"
+#~ msgstr "_Vysunúť"
+
+#~ msgid "_Unmount File System"
+#~ msgstr "_Odpojiť súborový systém"
+
+#~ msgid "Delete: "
+#~ msgstr "Zmazať:"
+
+#~ msgid "Link: "
+#~ msgstr "Odkaz:"
+
+#~ msgid "Change Properties: "
+#~ msgstr "Zmeniť vlastnosti:"
+
+#~ msgid "Moving to Trash..."
+#~ msgstr "Presúva sa do Koša..."
+
+#~ msgid "Linking..."
+#~ msgstr "Vytvára sa odkaz..."
+
+#~ msgid "Changing Properties"
+#~ msgstr "Zmena vlastností"
+
+#~ msgid "Cancel the operation?"
+#~ msgstr "Prerušiť operáciu?"
+
+#~ msgid "Do you want to overwrite the folder and its content?"
+#~ msgstr "Chcete prepísať priečinok a jeho obsah?"
+
+#~ msgid "Do you want to overwrite this file?"
+#~ msgstr "Chcete prepísať tento súbor?"
+
+#~ msgid "Please choose a new file name."
+#~ msgstr "Prosím, vyberte nový názov súboru."
+
+#~ msgid ""
+#~ "\"%s\" already exists.\n"
+#~ "\n"
+#~ "%s"
+#~ msgstr ""
+#~ "„%s“ už existuje.\n"
+#~ "\n"
+#~ "%s"
+
+#~ msgid ""
+#~ "\"%s\"\n"
+#~ "\n"
+#~ "Destination and source are the same file.\n"
+#~ "\n"
+#~ "%s"
+#~ msgstr ""
+#~ "„%s“\n"
+#~ "\n"
+#~ "Cieľ a zdroj sú rovnaký súbor.\n"
+#~ "\n"
+#~ "%s"
+
+#~ msgid "Overwrite"
+#~ msgstr "Prepísať"
+
+#~ msgid "Overwrite All"
+#~ msgstr "Prepísať všetky"
+
+#~ msgid "Skip"
+#~ msgstr "Preskočiť"
+
+#~ msgid "Skip All"
+#~ msgstr "Preskočiť všetky"
+
+#~ msgid "Save Compressed Files to..."
+#~ msgstr "Uložiť komprimované súbory do..."
+
+#~ msgid "Format of compressed File:"
+#~ msgstr "Formát komprimovaného súboru:"
+
+#~ msgid "Creating Compressed File: %s"
+#~ msgstr "Vytvára sa komprimovaný súbor: %s"
+
+#~ msgid "Compress Files"
+#~ msgstr "Komprimovať súbory"
+
+#~ msgid "Extract File to..."
+#~ msgstr "Rozbaliť súbor do..."
+
+#~ msgid "Extracting Files to: %s"
+#~ msgstr "Rozbaľujú sa súbory do: %s"
+
+#~ msgid ""
+#~ "\n"
+#~ "Complete!"
+#~ msgstr ""
+#~ "\n"
+#~ "Dokončené!"
+
+#~ msgid "Command:"
+#~ msgstr "Príkaz:"
+
+#~ msgid "No Sub Folder"
+#~ msgstr "Žiadny podadresár"
+
+#~ msgid "E_xtract Here"
+#~ msgstr "_Rozbaliť sem"
+
+#~ msgid "Extract _To"
+#~ msgstr "Rozbaliť _do"
+
+#~ msgid "Open _with..."
+#~ msgstr "Otvoriť čí_m..."
+
+#~ msgid "Compress"
+#~ msgstr "Komprimovať"
+
+#~ msgid "E_xtract"
+#~ msgstr "_Rozbaliť"
+
+#~ msgid "_Open with another program"
+#~ msgstr "_Otvoriť iným programom"
+
+#~ msgid "E_xecute"
+#~ msgstr "_Spustiť"
+
+#~ msgid "_Open with \"%s\""
+#~ msgstr "_Otvoriť pomocou „%s“"
+
+#~ msgid "_Open"
+#~ msgstr "_Otvoriť"
+
+#~ msgid "Really delete selected files?"
+#~ msgstr "Skutočne zmazať vybrané súbory?"
+
+#~ msgid "Rename File"
+#~ msgstr "Premenovať súbor"
+
+#~ msgid "Please input new file name:"
+#~ msgstr "Prosím, zadajte nový názov súboru:"
+
+#~ msgid ""
+#~ "The file name you specified already exists.\n"
+#~ "Please input a new one:"
+#~ msgstr ""
+#~ "Názov súboru ktorý ste zadali už existuje.\n"
+#~ "Prosím zadajte nový:"
+
+#~ msgid "Input a name for the new folder:"
+#~ msgstr "Zadajte názov pre nový priečinok:"
+
+#~ msgid "New File"
+#~ msgstr "Nový súbor"
+
+#~ msgid "The new file cannot be created!"
+#~ msgstr "Nový súbor nemožno vytvoriť!"
+
+#~ msgid "Multiple files are selected"
+#~ msgstr "Je vybraných viacero súborov"
+
+#~ msgid "Multiple files of different types"
+#~ msgstr "Viacero súborov rozličných typov"
+
+#~ msgid "Other program..."
+#~ msgstr "Iný program..."
+
+#~ msgid "Calculating..."
+#~ msgstr "Počíta sa..."
+
+#~ msgid "Invalid User"
+#~ msgstr "Neplatný používateľ"
+
+#~ msgid "Invalid Group"
+#~ msgstr "Neplatná skupina"
+
+#~ msgid ""
+#~ "Do you want to recursively apply these changes to all files and sub-"
+#~ "folders?"
+#~ msgstr ""
+#~ "Chcete tieto zmeny použiť rekurzívne na všetky súbory a podadresáre?"
+
+#~ msgid "New Item"
+#~ msgstr "Nová položka"
+
+#~ msgid "Edit Bookmarks"
+#~ msgstr "Upraviť záložky"
+
+#~ msgid "Path"
+#~ msgstr "Cesta"
+
+#~ msgid "Use drag & drop to sort the items"
+#~ msgstr "Na zoradenie položiek použite Ťahaj & pusť"
+
+#~ msgid "Command not found"
+#~ msgstr "Príkaz nenájdený"
+
+#~ msgid "Destination directory \"%1$s\" is contained in source \"%2$s\""
+#~ msgstr "Cieľový adresár „%1$s“ je podadresárom zdrojového „%2$s“"
+
+#~ msgid "%s Volume"
+#~ msgstr "%s zväzok"
+
+#~ msgid "CD-ROM"
+#~ msgstr "CD-ROM"
+
+#~ msgid "CD-R"
+#~ msgstr "CD-R"
+
+#~ msgid "CD-RW"
+#~ msgstr "CD-RW"
+
+#~ msgid "DVD-ROM"
+#~ msgstr "DVD-ROM"
+
+#~ msgid "DVD+R"
+#~ msgstr "DVD+R"
+
+#~ msgid "DVD+RW"
+#~ msgstr "DVD+RW"
+
+#~ msgid "DVD-R"
+#~ msgstr "DVD-R"
+
+#~ msgid "DVD-RW"
+#~ msgstr "DVD-RW"
+
+#~ msgid "DVD-RAM"
+#~ msgstr "DVD-RAM"
+
+#~ msgid "%s/%s Drive"
+#~ msgstr "%s/%s jednotka"
+
+#~ msgid "%s Drive"
+#~ msgstr "%s jednotka"
+
+#~ msgid "Floppy Drive"
+#~ msgstr "Disketová jednotka"
+
+#~ msgid "Smart Media Drive"
+#~ msgstr "Jednotka Smart Media"
+
+#~ msgid "SD/MMC Drive"
+#~ msgstr "Jednotka SD/MMC"
+
+#~ msgid "Zip Drive"
+#~ msgstr "Jednotka Zip"
+
+#~ msgid "Jaz Drive"
+#~ msgstr "Jednotka Jaz"
+
+#~ msgid "Pen Drive"
+#~ msgstr "Jednotka Pen"
+
+#~ msgid "%s %s Music Player"
+#~ msgstr "Hudobný prehrávač %s %s"
+
+#~ msgid "%s %s Digital Camera"
+#~ msgstr "Digitálny fotoaparát %s %s"
+
+#~ msgid "Drive"
+#~ msgstr "Jednotka"
+
+#~ msgid "External %s"
+#~ msgstr "Externá %s"
+
+#~ msgid "CD-ROM Disc"
+#~ msgstr "Disk CD-ROM"
+
+#~ msgid "Blank CD-R Disc"
+#~ msgstr "Prázdny disk CD-R"
+
+#~ msgid "CD-R Disc"
+#~ msgstr "Disk CD-R"
+
+#~ msgid "Blank CD-RW Disc"
+#~ msgstr "Prázdny disk CD-RW"
+
+#~ msgid "CD-RW Disc"
+#~ msgstr "Disk CD-RW"
+
+#~ msgid "DVD-ROM Disc"
+#~ msgstr "Disk DVD-ROM"
+
+#~ msgid "Blank DVD-RAM Disc"
+#~ msgstr "Prázdny disk DVD-ROM"
+
+#~ msgid "DVD-RAM Disc"
+#~ msgstr "Disk DVD-ROM"
+
+#~ msgid "Blank DVD-R Disc"
+#~ msgstr "Prázdny disk DVD-R"
+
+#~ msgid "DVD-R Disc"
+#~ msgstr "Disk DVD-R"
+
+#~ msgid "Blank DVD-RW Disc"
+#~ msgstr "Prázdny disk DVD-RW"
+
+#~ msgid "DVD-RW Disc"
+#~ msgstr "Disk DVD-RW"
+
+#~ msgid "Blank DVD+R Disc"
+#~ msgstr "Prázdny disk DVD+R"
+
+#~ msgid "DVD+R Disc"
+#~ msgstr "Disk DVD+R"
+
+#~ msgid "Blank DVD+RW Disc"
+#~ msgstr "Prázdny disk DVD-RW"
+
+#~ msgid "DVD+RW Disc"
+#~ msgstr "Disk DVD-RW"
+
+#~ msgid "Audio Disc"
+#~ msgstr "Zvukový disk"
+
+#~ msgid "Volume"
+#~ msgstr "Zväzok"
+
+#~ msgid "Failed to connect to the HAL daemon: %s"
+#~ msgstr "Nepodarilo sa pripojiť k HAL démonu: %s"
+
+#~ msgid "Given device \"%s\" is not a volume or drive"
+#~ msgstr "Zadané zariadenie „%s“ nie je zväzok ani jednotka"
+
+#~ msgid "Device \"%s\" not found in file system device table"
+#~ msgstr "Zariadenie „%s“ nebolo nájdené v tabuľke súborových systémov"
+
+#~ msgid "You are not privileged to mount the volume \"%s\""
+#~ msgstr "Nemáte oprávnenie pripojiť zväzok „%s“"
+
+#~ msgid "You are not privileged to unmount the volume \"%s\""
+#~ msgstr "Nemáte oprávnenie odpojiť zväzok „%s“"
+
+#~ msgid "You are not privileged to eject the volume \"%s\""
+#~ msgstr "Nemáte oprávnenie vysunúť zväzok „%s“"
+
+#~ msgid "Invalid mount option when attempting to mount the volume \"%s\""
+#~ msgstr "Zadaná neplatná voľba počas pokusu pripojiť zväzok „%s“"
+
+#~ msgid ""
+#~ "The volume \"%s\" uses the <i>%s</i> file system which is not supported "
+#~ "by your system"
+#~ msgstr ""
+#~ "Zväzok „%s“ používa súborový systém <i>%s</i>, ktorý váš systém "
+#~ "nepodporuje"
+
+#~ msgid "An application is preventing the volume \"%s\" from being unmounted"
+#~ msgstr "Aplikácia bráni odpojeniu zväzku „%s“"
+
+#~ msgid "The volume \"%s\" is not mounted"
+#~ msgstr "Zväzok „%s“ nie je pripojený"
+
+#~ msgid "Error <i>%s</i>"
+#~ msgstr "Chyba <i>%s</i>"
+
+#~ msgid "The volume \"%s\" was probably mounted manually on the command line"
+#~ msgstr "Zväzok „%s“ bol pravdepodobne pripojený ručne z príkazového riadka"
+
+#~ msgid ""
+#~ "Blank discs cannot be mounted, use a CD recording application to record "
+#~ "audio or data on the disc"
+#~ msgstr ""
+#~ "Prázdne disky nemožno pripojiť. Na nahranie údajov na disk použite "
+#~ "aplikáciu na napaľovanie diskov."
+
+#~ msgid ""
+#~ "Audio CDs cannot be mounted, use music players to play the audio tracks"
+#~ msgstr ""
+#~ "Zvukové disky nemožno pripojiť. Na prehranie zvukových stôp použite "
+#~ "prehrávač hudby."
+
+#~ msgid "_Icons"
+#~ msgstr "_Ikony"
+
+#~ msgid "_Desktop Settings"
+#~ msgstr "Nastavenia _plochy"
+
+#~ msgid "My Documents"
+#~ msgstr "Moje dokumenty"
+
+#~ msgid "Browse..."
+#~ msgstr "Prechádzať..."
+
+#~ msgid "All Local Disk Partitions"
+#~ msgstr "Všetky lokálne diskové oblasti"
+
+#~ msgid "Last Modified"
+#~ msgstr "Posledná zmena"

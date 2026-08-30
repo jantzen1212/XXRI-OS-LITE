@@ -1,0 +1,1578 @@
+# Swedish translation for PCManFM
+# Copyright (C) 2006-2009 Free Software Foundation, Inc.
+# This file is distributed under the same license as the PCManFM package.
+# Johan Andersson <nossrednanahoj(at)gmail.com>, 2006.
+# Mikael Magnusson, <mikachu@gmail.com>, 2008.
+# Martin Bagge <brother@bsnet.se>, 2009.
+# Daniel Nylander <po@danielnylander.se>, 2009.
+msgid ""
+msgstr ""
+"Project-Id-Version: PCManFM\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-04-21 22:24+0300\n"
+"PO-Revision-Date: 2015-08-17 01:31+0000\n"
+"Last-Translator: Anonymous Pootle User\n"
+"Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
+"Language: sv\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Pootle 2.7\n"
+"X-POOTLE-MTIME: 1439775069.415634\n"
+
+#: ../data/ui/about.glade.in.h:1
+msgid "Copyright (C) 2009 - 2021"
+msgstr "Copyright © 2009 - 2021"
+
+#. Please replace this line with your own names, one name per line.
+#: ../data/ui/about.glade.in.h:3
+msgid "translator-credits"
+msgstr ""
+"Martin Bagge <brother@bsnet.se>\n"
+"Daniel Nylander <po@danielnylander.se>\n"
+"Mikael Magnusson <mikachu@gmail.com>\n"
+"Johan Andersson <nossrednanahoj(at)gmail.com>\n"
+"\n"
+"Skicka synpunkter på översättningen till\n"
+"<tp-sv@listor.tp-sv.se>"
+
+#: ../data/ui/desktop-pref.glade.h:1 ../src/desktop-ui.c:34
+#: ../data/pcmanfm-desktop-pref.desktop.in.h:1
+msgid "Desktop Preferences"
+msgstr "Skrivbordsinställningar"
+
+#: ../data/ui/desktop-pref.glade.h:2
+msgid "<b>Background</b>"
+msgstr "<b>Bakgrund</b>"
+
+#: ../data/ui/desktop-pref.glade.h:3
+msgid "Wallpaper _mode:"
+msgstr "Läge för bakgrundsbild:"
+
+#: ../data/ui/desktop-pref.glade.h:4
+msgid "_Wallpaper:"
+msgstr "_Bakgrundsbild:"
+
+#: ../data/ui/desktop-pref.glade.h:5
+msgid "Please select an image file"
+msgstr "Välj en bildfil"
+
+#: ../data/ui/desktop-pref.glade.h:6
+msgid "_Use the same wallpaper on all desktops"
+msgstr "Använd samma bakgr_undsbild för alla skrivbord"
+
+#: ../data/ui/desktop-pref.glade.h:7
+msgid "_Background color:"
+msgstr "_Bakgrundsfärg:"
+
+#: ../data/ui/desktop-pref.glade.h:8
+msgid "<b>Text</b>"
+msgstr "<b>Text</b>"
+
+#: ../data/ui/desktop-pref.glade.h:9
+msgid "_Font of label text:"
+msgstr "Teckensnitt _för ettikettext:"
+
+#: ../data/ui/desktop-pref.glade.h:10
+msgid "C_olor of label text:"
+msgstr "_Färg på ettikettext:"
+
+#: ../data/ui/desktop-pref.glade.h:11
+msgid "Color of _shadow:"
+msgstr "_Skuggfärg:"
+
+#: ../data/ui/desktop-pref.glade.h:12
+msgid "_Appearance"
+msgstr "_Utseende"
+
+#: ../data/ui/desktop-pref.glade.h:13
+msgid "<b>Show desktop icons</b>"
+msgstr "<b>Visa skrivbordsikoner</b>"
+
+#: ../data/ui/desktop-pref.glade.h:14
+msgid "_Show \"Documents\" folder on the desktop"
+msgstr "Vi_sa \"Mina dokument\" på skrivbordet"
+
+#: ../data/ui/desktop-pref.glade.h:15
+msgid "Sho_w \"Devices\" folder on the desktop"
+msgstr "_Visa \"Enheter\" på skrivbordet"
+
+#: ../data/ui/desktop-pref.glade.h:16
+msgid "Show \"_Trash Can\" folder on the desktop"
+msgstr "Visa \"_Papperskorg\" på skrivbordet"
+
+#: ../data/ui/desktop-pref.glade.h:17
+msgid "S_how connected volumes on the desktop"
+msgstr "Vi_sa monterade volymer på skrivbordet"
+
+#: ../data/ui/desktop-pref.glade.h:18
+msgid "_Desktop Icons"
+msgstr "Skrivbor_dsikoner"
+
+#: ../data/ui/desktop-pref.glade.h:19
+msgid "_Show menus provided by window managers when desktop is clicked"
+msgstr "Vi_sa menyer från fönsterhanteraren när skrivbordet klickas"
+
+#: ../data/ui/desktop-pref.glade.h:20
+msgid "_Use desktop as a folder (show icons on it) by path:"
+msgstr "_Använd följande sökväg som skrivbord (plats att visa ikonerna från):"
+
+#: ../data/ui/desktop-pref.glade.h:21 ../data/ui/pref.glade.h:84
+msgctxt "Use path for some folder: ..."
+msgid "Default"
+msgstr "Standard"
+
+#: ../data/ui/desktop-pref.glade.h:22 ../data/ui/pref.glade.h:85
+msgctxt "Use path for some folder: ..."
+msgid "Custom:"
+msgstr "Anpassad:"
+
+#: ../data/ui/desktop-pref.glade.h:23
+msgid "Select a Desktop Folder"
+msgstr "Ange skrivbordsmapp"
+
+#: ../data/ui/desktop-pref.glade.h:24
+msgid "_Open folders from desktop in new window"
+msgstr "_Öppna kataloger från skrivbordet i ett nytt fönster"
+
+#: ../data/ui/desktop-pref.glade.h:25
+msgid "Ad_vanced"
+msgstr "A_vancerat"
+
+#: ../data/ui/desktop-pref.glade.h:26
+msgid "Fill with background color only"
+msgstr "Fyll endast med bakgrundsfärg"
+
+#: ../data/ui/desktop-pref.glade.h:27
+msgid "Stretch to fill the entire monitor area"
+msgstr "Sträck ut för att fylla hela skärmen"
+
+#: ../data/ui/desktop-pref.glade.h:28
+msgid "Stretch to fit the monitor area"
+msgstr "Sträck för att passa skärmen"
+
+#: ../data/ui/desktop-pref.glade.h:29
+msgid "Center unscaled image on the monitor"
+msgstr "Centrera en bild utan anpassning till skärmen"
+
+#: ../data/ui/desktop-pref.glade.h:30
+msgid "Tile the image to fill the entire monitor area"
+msgstr "Lägg i mönster för att fylla hela skärmen"
+
+#: ../data/ui/desktop-pref.glade.h:31
+msgid "Stretch and crop to fill the monitor area"
+msgstr "Sträck ut och skär av för att fylla hela skärmen"
+
+#: ../data/ui/desktop-pref.glade.h:32
+msgid "Stretch to fill the complete screen"
+msgstr "Sträck ut för att fylla hela skärmen"
+
+#: ../data/ui/pref.glade.h:1
+msgid "Open in current tab"
+msgstr "Öppna i aktuell flik"
+
+#: ../data/ui/pref.glade.h:2
+msgid "Open in new tab"
+msgstr "Öppna i ny flik"
+
+#: ../data/ui/pref.glade.h:3
+msgid "Open in new window"
+msgstr "Öppna i nytt fönster"
+
+#: ../data/ui/pref.glade.h:4
+msgid "Preferences"
+msgstr "Inställningar"
+
+#: ../data/ui/pref.glade.h:5
+msgid "<b>Behavior</b>"
+msgstr "<b>Beteende</b>"
+
+#: ../data/ui/pref.glade.h:6
+msgid "_Open files with single click"
+msgstr "_Öppna filer med enkelklick"
+
+#: ../data/ui/pref.glade.h:7
+msgid "Delay of auto-selection in single click mode (0 to disable)"
+msgstr "Fördröjning innan val i singelklick-läget (0 för att avaktivera)"
+
+#: ../data/ui/pref.glade.h:8
+msgid "Co_nfirm before deleting files"
+msgstr "_Bekräfta före radering av filer"
+
+#: ../data/ui/pref.glade.h:9
+msgid "_Move deleted files to \"trash can\" instead of erasing from disk"
+msgstr ""
+"_Flytta raderade filer till \"papperskorgen\" istället för att radera från "
+"disk"
+
+#: ../data/ui/pref.glade.h:10
+msgid "_Erase files on removable media instead of \"trash can\" creation"
+msgstr ""
+"Rad_era filer på flyttbart media istället för att flytta till \"papperskorgen"
+"\""
+
+#: ../data/ui/pref.glade.h:11
+msgid "Confi_rm before moving files into \"trash can\""
+msgstr "Bek_räfta innan filer flyttas till \"papperskorgen\""
+
+#: ../data/ui/pref.glade.h:12
+msgid "Don't ask options on _launch executable file"
+msgstr "Fråga inte om a_lternativ vid körning av exekverbara filer"
+
+#: ../data/ui/pref.glade.h:13
+msgid "_Bookmarks:"
+msgstr "_Bokmärken:"
+
+#: ../data/ui/pref.glade.h:14
+msgid "Defaul_t drop action:"
+msgstr "Standardå_tgärd för släpp:"
+
+#: ../data/ui/pref.glade.h:15
+msgid "\"_Smart shortcut\" auto-action on drop to Desktop folder"
+msgstr ""
+"_Automatiskt åtgärd vid drag-och-släpp på skrivbordet för \"smart genväg\""
+
+#: ../data/ui/pref.glade.h:16
+msgid ""
+"If enabled then \"Auto\" action on drop file onto Desktop folder will be:\n"
+"- for files directly in Home folder a symlink will be created\n"
+"- files on the same file system will be moved\n"
+"- other files (e.g. on removable media) will be copied\n"
+"- for some external URI a shortcut will be created"
+msgstr ""
+"Om detta aktiveras kommer den automatiska åtgärden vid drag-och-släpp på "
+"skrivbordet att vara:\n"
+"- filer i hemkatalogen skapar en symbolisk länk\n"
+"- filer på samma filsystem kommer att flyttas\n"
+"- andra filer (exempelvis från flyttbart media) kommer att kopieras\n"
+"- externa URI:er kommer att skapa en genväg"
+
+#: ../data/ui/pref.glade.h:21
+msgid "_Unfold tab when files are dragged onto tab button"
+msgstr "Vik _ut flik när filer dras till flikknappen"
+
+#: ../data/ui/pref.glade.h:22
+msgid "_Focus previous folder after coming to its parent"
+msgstr "Sätt _fokus på föregående katalog vid travesring uppåt i hierakin"
+
+#: ../data/ui/pref.glade.h:23
+msgid "<b>Default View</b>"
+msgstr "<b>Standardvy</b>"
+
+#: ../data/ui/pref.glade.h:24
+msgid "Vie_w Mode:"
+msgstr "V_ytyp:"
+
+#: ../data/ui/pref.glade.h:25
+msgid "_General"
+msgstr "A_llmänt"
+
+#: ../data/ui/pref.glade.h:26
+msgid "<b>Icons</b>"
+msgstr "<b>Ikoner</b>"
+
+#: ../data/ui/pref.glade.h:27
+msgid "Size of _big icons:"
+msgstr "Storlek på _stora ikoner:"
+
+#: ../data/ui/pref.glade.h:28
+msgid "Size of small _icons:"
+msgstr "Storlek på små _ikoner:"
+
+#: ../data/ui/pref.glade.h:29
+msgid "Size of _thumbnails:"
+msgstr "Storlek på _tumnagelikoner:"
+
+#: ../data/ui/pref.glade.h:30
+msgid "Size of side _pane icons:"
+msgstr "Storlek på ikoner i sido_panel:"
+
+#: ../data/ui/pref.glade.h:31
+msgid "_Show thumbnails of files"
+msgstr "Visa t_umnaglar för filer"
+
+#: ../data/ui/pref.glade.h:32
+msgid "_Only show thumbnails for local files"
+msgstr "_Visa endast tumnaglar för lokala filer"
+
+#: ../data/ui/pref.glade.h:33
+msgid "Do _not generate thumbnails for files exceeding this size:"
+msgstr "Skapa i_nte tumnaglar för filer större än:"
+
+#: ../data/ui/pref.glade.h:34
+msgid "<b>User Interface</b>"
+msgstr "<b>Användargränssnitt</b>"
+
+#: ../data/ui/pref.glade.h:35
+msgid "Us_e SI decimal prefixes instead of IEC binary prefixes"
+msgstr "Använd SI-pr_efix istället för IEC-binär-prefix"
+
+#: ../data/ui/pref.glade.h:36
+msgid "Treat backup files as _hidden"
+msgstr "_Hantera säkerhetskopior som dolda filer"
+
+#: ../data/ui/pref.glade.h:37
+msgid "Al_ways show full file names"
+msgstr "Visa alltid _flikfältet hela filnamnet"
+
+#: ../data/ui/pref.glade.h:38
+msgid "Show icons of hidden _files shadowed"
+msgstr "Visa ikoner för gömda _filer"
+
+#: ../data/ui/pref.glade.h:39
+msgid "_Display"
+msgstr "_Visning"
+
+#: ../data/ui/pref.glade.h:40
+msgid "Hid_e 'Close tab' buttons"
+msgstr "Dölj knapp_en \"stäng flik\""
+
+#: ../data/ui/pref.glade.h:41
+msgid "Al_ways show the tab bar"
+msgstr "Visa a_lltid flikfältet"
+
+#: ../data/ui/pref.glade.h:42
+msgid "_Maximum width of tab label:"
+msgstr "_Maximal bredd för flik-ettikett:"
+
+#. Use genitive case here, context is: width is XXX characters
+#: ../data/ui/pref.glade.h:44
+msgid "characters"
+msgstr "tecken"
+
+#: ../data/ui/pref.glade.h:45
+msgid "<b>Directories Tree</b>"
+msgstr "<b>Katalogträd</b>"
+
+#: ../data/ui/pref.glade.h:46
+msgid "Hide e_xpander on empty or locked folder"
+msgstr "Dölj e_xpanderare för tom eller låst katalog"
+
+#: ../data/ui/pref.glade.h:47
+msgid "<b>Show in Places:</b>"
+msgstr "<b>Visa i Platser</b>"
+
+#: ../data/ui/pref.glade.h:48
+msgid "_Home Folder"
+msgstr "_Hemkatalog"
+
+#: ../data/ui/pref.glade.h:49
+msgid "Des_ktop"
+msgstr "S_krivbord"
+
+#: ../data/ui/pref.glade.h:50 ../src/main-win-ui.c:238
+msgid "_Trash Can"
+msgstr "_Papperskorg"
+
+#: ../data/ui/pref.glade.h:51
+msgid "_Filesystem Root"
+msgstr "_Filsystemsrot"
+
+# Inte översätta mime-typer
+#: ../data/ui/pref.glade.h:52
+msgid "App_lications"
+msgstr "_Program"
+
+#: ../data/ui/pref.glade.h:53 ../src/main-win-ui.c:241
+msgid "Dev_ices"
+msgstr "_Enheter"
+
+#: ../data/ui/pref.glade.h:54
+msgid "_Network"
+msgstr "_Nätverk"
+
+#: ../data/ui/pref.glade.h:55
+msgid "_Layout"
+msgstr "_Layout"
+
+#: ../data/ui/pref.glade.h:56
+msgid "<b>Auto-mount</b>"
+msgstr "<b>Automontering</b>"
+
+#: ../data/ui/pref.glade.h:57
+msgid "_Mount mountable volumes automatically on program startup"
+msgstr "_Montera tillgängliga enheter automatiskt vid programmets uppstart"
+
+#: ../data/ui/pref.glade.h:58
+msgid "Mo_unt removable media automatically when they are inserted"
+msgstr "M_ontera flyttbara enheter automatiskt när de ansluts"
+
+#: ../data/ui/pref.glade.h:59
+msgid "_Show available options for removable media when they are inserted"
+msgstr "Vi_sa tillgängliga alternativ från flyttbara media när de ansluts"
+
+#: ../data/ui/pref.glade.h:60
+msgid "Do_n't show available options for those media types:"
+msgstr "Vi_sa inte tillgängliga alternativ för följande mediatyper:"
+
+#: ../data/ui/pref.glade.h:61
+msgid "_Remove selected"
+msgstr "_Radera valda"
+
+#: ../data/ui/pref.glade.h:62
+msgid "_Open mounted removable media in new tab instead of new window"
+msgstr "_Öppna monterad flyttbart media i ny flik istället för i nytt fönster"
+
+#: ../data/ui/pref.glade.h:63
+msgid "When removable medium unmounted:"
+msgstr "När flyttbart media avmonteras:"
+
+#: ../data/ui/pref.glade.h:64
+msgid "Clos_e tab containing removable medium"
+msgstr "St_äng flik med flyttbart media"
+
+#: ../data/ui/pref.glade.h:65
+msgid "Change folder in the tab to _Home Folder"
+msgstr "Byt katalog till _Hemkatalogen"
+
+#: ../data/ui/pref.glade.h:66
+msgid "_Volume Management"
+msgstr "_Volymhantering"
+
+#: ../data/ui/pref.glade.h:67
+msgid "<b>Programs</b>"
+msgstr "<b>Program</b>"
+
+#: ../data/ui/pref.glade.h:68
+msgid "<i>Commands below may include extra options if necessary.</i>"
+msgstr "<i>Kommandon nedan kan innehålla extra flaggor om så behövs.</i>"
+
+#: ../data/ui/pref.glade.h:69
+msgid "_Terminal emulator:"
+msgstr "_Terminalprogram:"
+
+#: ../data/ui/pref.glade.h:70
+msgid "_Switch user command:"
+msgstr "_Kommando för att byta användare:"
+
+#. Application command to format some drive
+#: ../data/ui/pref.glade.h:72
+msgid "_Format command:"
+msgstr "Kommando för _formatering:"
+
+#: ../data/ui/pref.glade.h:73
+msgid "A_rchiver integration:"
+msgstr "Integrering med a_rkivhantering:"
+
+#: ../data/ui/pref.glade.h:74
+msgid "<b>Templates</b>"
+msgstr "<b>Mallar</b>"
+
+#: ../data/ui/pref.glade.h:75
+msgid "S_how only user defined templates in menu"
+msgstr "Vi_sa endast användardefinierade mallar i menyn"
+
+#: ../data/ui/pref.glade.h:76
+msgid "Show _only one template for each MIME type"
+msgstr "Visa endast _en mall för varje MIME-typ"
+
+#: ../data/ui/pref.glade.h:77
+msgid "Ru_n default application after creation from template"
+msgstr "K_ör standardapplikation efter skapande från mall"
+
+#: ../data/ui/pref.glade.h:78
+msgid "<b>Other Options</b>"
+msgstr "<b>Andra alternativ</b>"
+
+#: ../data/ui/pref.glade.h:79
+msgid "Use Application Startup Notify _by default"
+msgstr "_Använd notifiering vid programstart som standard"
+
+#: ../data/ui/pref.glade.h:80
+msgid ""
+"If checked then use Startup Notify for application if another not stated "
+"explicitly.\n"
+"If unchecked then use Startup Notify only if that is defined for application."
+msgstr ""
+"Om detta väljs kommer notifiering vid programstart att användas om inget "
+"annat har angivits explicit.\n"
+"Om detta inte väljs kommer notifiering vid programstart endast att användas "
+"om det är angivet för programmet."
+
+#: ../data/ui/pref.glade.h:82
+msgid "D_efer test for content type on folder loading"
+msgstr "S_enarelägg test av innehållstyp vid inläsning av katalog"
+
+#: ../data/ui/pref.glade.h:83
+msgid "Use path for \"Home Folder\" button:"
+msgstr "Använd följande sökväg för knappen för \"Hemkatalog\":"
+
+#: ../data/ui/pref.glade.h:86
+msgid "_Use current"
+msgstr "Använd _nuvarande"
+
+#: ../data/ui/pref.glade.h:87
+msgid "_Advanced"
+msgstr "A_vancerat"
+
+#: ../data/ui/pref.glade.h:88
+msgid "<b>_Do not load modules matching:</b>"
+msgstr "<b>Läs inte in _moduler motsvarande:</b>"
+
+#: ../data/ui/pref.glade.h:89
+msgid "<b>_Load these modules anyway:</b>"
+msgstr "<b>Läs in _följande moduler ändå:</b>"
+
+#: ../data/ui/pref.glade.h:90
+msgid "Modules"
+msgstr "Moduler"
+
+#: ../data/ui/pref.glade.h:91
+msgid "Auto (move if on the same FS, copy otherwise)"
+msgstr "Automatiskt (flytta inom samma filsystem, annars kopiera)"
+
+#: ../data/ui/pref.glade.h:92
+msgid "Copy"
+msgstr "Kopiera"
+
+#: ../data/ui/pref.glade.h:93
+msgid "Move"
+msgstr "Flytta"
+
+#: ../data/ui/pref.glade.h:94
+msgid "Ask"
+msgstr "Fråga"
+
+#: ../data/ui/pref.glade.h:95
+msgid "Icon view"
+msgstr "Ikonvy"
+
+#: ../data/ui/pref.glade.h:96
+msgid "Compact view"
+msgstr "Kompakt vy"
+
+#: ../data/ui/pref.glade.h:97
+msgid "Thumbnail view"
+msgstr "Tumnagelvy"
+
+#: ../data/ui/pref.glade.h:98
+msgid "Detailed list view"
+msgstr "Detaljerad listvy"
+
+#: ../data/ui/autorun.glade.h:1
+msgid "Removable medium is inserted"
+msgstr "Flyttbart media anslutet"
+
+#: ../data/ui/autorun.glade.h:2
+msgid "<b>Removable medium is inserted</b>"
+msgstr "<b>Flyttbart media anslutet</b>"
+
+#: ../data/ui/autorun.glade.h:3
+msgid "Type of medium:"
+msgstr "Medietyp:"
+
+#: ../data/ui/autorun.glade.h:4
+msgid "Detecting..."
+msgstr "Letar..."
+
+#: ../data/ui/autorun.glade.h:5
+msgid "Please select the action you want to perform:"
+msgstr "Ange åtgärd som du vill utföra:"
+
+#: ../data/ui/autorun.glade.h:6
+msgid "_Always perform this action on this media type"
+msgstr "_Utför alltid denna åtgärd för den här mediatypen"
+
+#: ../data/ui/connect.glade.h:1
+msgid "Connect to remote server"
+msgstr "Anslut till fjärrserver"
+
+#: ../data/ui/connect.glade.h:2
+msgid "<b>Specify remote folder to connect</b>"
+msgstr "<b>Ange fjärrkatalog att ansluta till</b>"
+
+#: ../data/ui/connect.glade.h:3
+msgid "_Type:"
+msgstr "_Typ:"
+
+#: ../data/ui/connect.glade.h:4
+msgid "_Host:"
+msgstr "_Värd:"
+
+#: ../data/ui/connect.glade.h:5
+msgid "_Port:"
+msgstr "_Port:"
+
+#: ../data/ui/connect.glade.h:6
+msgid "Pa_th:"
+msgstr "Sö_kväg:"
+
+#: ../data/ui/connect.glade.h:7
+msgid "_Anonymous login"
+msgstr "_Anonym inloggning"
+
+#: ../data/ui/connect.glade.h:8
+msgid "_Login as:"
+msgstr "_Logga in som:"
+
+#: ../data/ui/connect.glade.h:9
+msgid "SSH"
+msgstr "SSH"
+
+#: ../data/ui/connect.glade.h:10
+msgid "FTP"
+msgstr "FTP"
+
+#: ../data/ui/connect.glade.h:11
+msgid "WebDAV"
+msgstr "WebDAV"
+
+#: ../src/volume-manager.c:237
+msgid "mixed content"
+msgstr "blandat innehåll"
+
+#: ../src/volume-manager.c:246
+msgid "removable disk"
+msgstr "flyttbar enhet"
+
+#: ../src/volume-manager.c:302
+msgid "Open in File Manager"
+msgstr "Öppna i filhanterare"
+
+#: ../src/desktop-ui.c:51
+msgid "Open in New Ta_b"
+msgstr "Öppn_a i ny flik"
+
+#: ../src/desktop-ui.c:52 ../src/tab-page.c:57
+msgid "Open in New Win_dow"
+msgstr "Öpp_na i nytt fönster"
+
+#: ../src/desktop-ui.c:54 ../src/tab-page.c:59
+msgid "Open in Termina_l"
+msgstr "Öppna i _terminal"
+
+#: ../src/desktop-ui.c:68
+msgid "_Remove from Desktop"
+msgstr "_Radera från skrivbordet"
+
+#: ../src/desktop-ui.c:85
+msgid "Stic_k to Current Position"
+msgstr "Håll _kvar vid nuvarande position"
+
+#: ../src/desktop-ui.c:90
+msgid "Snap to _Grid"
+msgstr "Justera till _rutnät"
+
+#: ../src/desktop.c:974
+msgid "Activate file"
+msgstr "Aktivera fil"
+
+#: ../src/desktop.c:976
+msgid "Show file menu"
+msgstr "Visa filmeny"
+
+#: ../src/desktop.c:1394
+msgid "Show desktop menu"
+msgstr "Visa skrivbordsmeny"
+
+#. FIXME: set name by monitor
+#: ../src/desktop.c:1466
+msgid "Desktop"
+msgstr "Skrivbord"
+
+#: ../src/main-win-ui.c:189
+msgid "_File"
+msgstr "_Arkiv"
+
+#: ../src/main-win-ui.c:190
+msgid "_New Window"
+msgstr "_Nytt fönster"
+
+#: ../src/main-win-ui.c:190
+#, fuzzy
+msgid "Open new file manager window"
+msgstr "Öppna i filhanterare"
+
+#: ../src/main-win-ui.c:191
+msgid "New T_ab"
+msgstr "Ny _flik"
+
+#: ../src/main-win-ui.c:191
+msgid "Create new tab for this folder"
+msgstr "Skapa ny flik för denna katalog"
+
+#: ../src/main-win-ui.c:192
+msgid "C_reate New..."
+msgstr "_Skapa ny..."
+
+#: ../src/main-win-ui.c:193
+msgid "Folder"
+msgstr "Mapp"
+
+#: ../src/main-win-ui.c:194
+msgid "Empty File"
+msgstr "Tom fil"
+
+#: ../src/main-win-ui.c:195
+msgid "Folder Propertie_s"
+msgstr "_Katalogegenskaper"
+
+#: ../src/main-win-ui.c:196
+msgid "_Close Tab"
+msgstr "Stäng fli_k"
+
+#: ../src/main-win-ui.c:197
+msgid "Close _Window"
+msgstr "Stäng _fönster"
+
+#: ../src/main-win-ui.c:198
+msgid "_Edit"
+msgstr "_Redigera"
+
+#: ../src/main-win-ui.c:200
+msgid "C_ut"
+msgstr "Klipp _ut"
+
+#: ../src/main-win-ui.c:203
+msgid "Move to _Trash"
+msgstr "Flytta till _papperskorgen"
+
+#: ../src/main-win-ui.c:205
+msgid "Copy Pat_h(s)"
+msgstr "Kopiera _sökväg(ar)"
+
+#: ../src/main-win-ui.c:206
+msgid "R_ename..."
+msgstr "_Byt namn..."
+
+#: ../src/main-win-ui.c:207
+msgid "D_uplicate..."
+msgstr "D_uplicera..."
+
+#: ../src/main-win-ui.c:208
+msgid "Create Lin_k..."
+msgstr "Skapa län_k..."
+
+#: ../src/main-win-ui.c:209
+msgid "_Move to..."
+msgstr "_Flytta till..."
+
+#: ../src/main-win-ui.c:210
+msgid "Copy to_..."
+msgstr "K_opiera till..."
+
+#: ../src/main-win-ui.c:211
+msgid "Propertie_s"
+msgstr "Egen_skaper"
+
+#: ../src/main-win-ui.c:213
+msgid "_Invert Selection"
+msgstr "_Invertera markering"
+
+#: ../src/main-win-ui.c:214
+msgid "Prefere_nces"
+msgstr "I_nställningar"
+
+#: ../src/main-win-ui.c:215
+msgid "_View"
+msgstr "_Visa"
+
+#: ../src/main-win-ui.c:216
+msgid "_Reload Folder"
+msgstr "_Läs om mapp"
+
+#: ../src/main-win-ui.c:216
+msgid "Reload current folder"
+msgstr "Läs om aktuell mapp"
+
+#: ../src/main-win-ui.c:217
+msgid "Tool_bar"
+msgstr "_Verktygsrad"
+
+#: ../src/main-win-ui.c:218
+msgid "Pat_h Bar"
+msgstr "Verktygsfält för sökväg"
+
+#: ../src/main-win-ui.c:219
+msgid "Side _Pane"
+msgstr "Sido_panel"
+
+#. other see below: 'ShowHidden' 'ShowStatus' 'Fullscreen' 'IconView'...
+#: ../src/main-win-ui.c:221
+msgid "Fo_lder View Mode"
+msgstr "Vytyp för katalog"
+
+#: ../src/main-win-ui.c:222
+msgid "S_ort Files"
+msgstr "S_ortera filer"
+
+#: ../src/main-win-ui.c:224
+msgid "Zoom O_ut"
+msgstr "Zooma _ut"
+
+#: ../src/main-win-ui.c:227
+msgid "Fil_ter..."
+msgstr "Fil_ter..."
+
+#: ../src/main-win-ui.c:229
+msgid "_Help"
+msgstr "_Hjälp"
+
+#: ../src/main-win-ui.c:231
+msgid "_Keyboard Navigation"
+msgstr "_Tangentbordsnavigering"
+
+#: ../src/main-win-ui.c:232
+msgid "_Go"
+msgstr "_Gå"
+
+#: ../src/main-win-ui.c:233
+msgid "_Previous Folder"
+msgstr "Föregående map_p"
+
+#: ../src/main-win-ui.c:233
+msgid "Return to previous folder in history"
+msgstr "Återgå till föregående mapp i historiken"
+
+#: ../src/main-win-ui.c:234
+msgid "_Next Folder"
+msgstr "_Nästa mapp"
+
+#: ../src/main-win-ui.c:234
+msgid "Go forward to next folder in history"
+msgstr "Gå vidare till nästa mapp i historiken"
+
+#: ../src/main-win-ui.c:235
+msgid "Pa_rent Folder"
+msgstr "Fö_räldramapp"
+
+#: ../src/main-win-ui.c:235
+msgid "Go to parent Folder"
+msgstr "Gå till föräldramapp"
+
+#: ../src/main-win-ui.c:236
+msgid "H_ome Folder"
+msgstr "Hemkatal_og"
+
+#: ../src/main-win-ui.c:236
+msgid "Go to home folder"
+msgstr "Gå till hemmappen"
+
+#: ../src/main-win-ui.c:237
+msgid "_Desktop"
+msgstr "_Skrivbord"
+
+#: ../src/main-win-ui.c:237
+msgid "Go to desktop folder"
+msgstr "Gå till skrivbordsmappen"
+
+#: ../src/main-win-ui.c:238
+msgid "Open trash can"
+msgstr "Öppna papperskorgen"
+
+#: ../src/main-win-ui.c:239
+msgid "Filesyste_m Root"
+msgstr "_Filsystemsrot"
+
+#: ../src/main-win-ui.c:239
+msgid "Go fo filesystem root"
+msgstr "Gå till filsystemsroten"
+
+# Inte översätta mime-typer
+#: ../src/main-win-ui.c:240
+msgid "_Applications"
+msgstr "Progr_am"
+
+#: ../src/main-win-ui.c:240
+msgid "Go to root of applications menu folder"
+msgstr "Gå till toppen på applikationsmappen"
+
+#: ../src/main-win-ui.c:241
+msgid "Go to list of devices connected to the computer"
+msgstr "Gå till listan för enheter anslutna till datorn"
+
+#: ../src/main-win-ui.c:242
+msgid "Net_work"
+msgstr "Nät_verk"
+
+#: ../src/main-win-ui.c:242
+msgid "Go to list of places on the network"
+msgstr "Gå till listan för platser på nätverket"
+
+#: ../src/main-win-ui.c:243
+msgid "_Go to Location..."
+msgstr "_Gå till sökväg..."
+
+#: ../src/main-win-ui.c:244
+msgid "_Connect to Server..."
+msgstr "An_slut till server..."
+
+#: ../src/main-win-ui.c:244
+msgid "Open a window to choose remote folder location"
+msgstr "Öppna ett fönster för att välja fjärrplats"
+
+#: ../src/main-win-ui.c:245
+msgid "Go to the path in the location bar"
+msgstr "Ladda sökvägen i platsfältet"
+
+#: ../src/main-win-ui.c:246
+msgid "_Bookmarks"
+msgstr "_Bokmärken"
+
+#: ../src/main-win-ui.c:247
+msgid "_Add to Bookmarks..."
+msgstr "_Lägg till i bokmärken..."
+
+#: ../src/main-win-ui.c:247
+msgid "Add current folder to bookmarks list"
+msgstr "Lägg till aktuell mapp till bokmärkeslistan"
+
+#: ../src/main-win-ui.c:248
+msgid "Too_ls"
+msgstr "_Verktyg"
+
+#: ../src/main-win-ui.c:249
+msgid "Open Current Folder in _Terminal"
+msgstr "Öppna aktuell mapp i _terminal"
+
+#: ../src/main-win-ui.c:251
+msgid "Fin_d Files..."
+msgstr "_Sök efter filer"
+
+#: ../src/main-win-ui.c:251
+msgid "Open search dialog"
+msgstr "Öppna sökdialog"
+
+#: ../src/main-win-ui.c:254
+msgid "_Run a Command in Current Folder..."
+msgstr "_Kör kommando i aktuell katalog..."
+
+#. Note to translators: "Mingle..." means "Do not put folders before files" but make the translation as short as possible, please!
+#: ../src/main-win-ui.c:271
+msgid "Mingle _Files and Folders"
+msgstr "Låt _filer och kataloger blandas"
+
+#: ../src/main-win-ui.c:274
+msgid "_Ignore Name Case"
+msgstr "_Ignorera skiftlägesskillnad"
+
+#: ../src/main-win-ui.c:276
+msgid "Sho_w Hidden"
+msgstr "Visa _dolda"
+
+#. Note to translators: this save is meant for folder's settings such as sort
+#: ../src/main-win-ui.c:278
+msgid "Preserve This Folder's Settings"
+msgstr "Bevara katalogens inställningar"
+
+#: ../src/main-win-ui.c:279
+msgid ""
+"Check to remember view and sort as folder setting rather than global one"
+msgstr "Kryssa i för att spara visning och sortering för katalogen"
+
+#: ../src/main-win-ui.c:281
+msgid "_Show Toolbar"
+msgstr "Visa verk_tygsrad"
+
+#: ../src/main-win-ui.c:282
+msgid "Show 'New _Window' Button"
+msgstr "Visa knapp för \"nytt _fönster\""
+
+#: ../src/main-win-ui.c:283
+msgid "Show 'New _Tab' Button"
+msgstr "Visa knapp för \"n_y flik\""
+
+#: ../src/main-win-ui.c:284
+msgid "Show _Navigation Buttons"
+msgstr "Visa _navigationsknappar"
+
+#: ../src/main-win-ui.c:285
+msgid "Show '_Home' Button"
+msgstr "Visa _hem-knapp"
+
+#: ../src/main-win-ui.c:286
+msgid "Sho_w Side Pane"
+msgstr "_Visa sidopanel"
+
+#: ../src/main-win-ui.c:287
+msgid "Show Status B_ar"
+msgstr "Visa status_fält"
+
+#: ../src/main-win-ui.c:288
+msgid "_Dual Pane Mode"
+msgstr "Dubbelvy"
+
+#: ../src/main-win-ui.c:288
+msgid "Show two panels with folder views"
+msgstr "Visar två paneler med kataloger"
+
+#: ../src/main-win-ui.c:289
+msgid "Fullscreen _Mode"
+msgstr "_Fullskärmsläge"
+
+#: ../src/main-win-ui.c:295
+msgid "_Icon View"
+msgstr "_Ikonvy"
+
+#: ../src/main-win-ui.c:296
+msgid "_Compact View"
+msgstr "_Kompakt vy"
+
+#: ../src/main-win-ui.c:297
+msgid "_Thumbnail View"
+msgstr "_Tumnagelvy"
+
+#: ../src/main-win-ui.c:298
+msgid "Detailed _List View"
+msgstr "Detaljerad _listvy"
+
+#: ../src/main-win-ui.c:311 ../src/main-win-ui.c:319
+msgid "By _Name"
+msgstr "Efter _namn"
+
+#: ../src/main-win-ui.c:312 ../src/main-win-ui.c:320
+msgid "By _Modification Time"
+msgstr "Efter ändringsdatu_m"
+
+#: ../src/main-win-ui.c:313 ../src/main-win-ui.c:321
+msgid "By _Size"
+msgstr "Efter _storlek"
+
+#: ../src/main-win-ui.c:314 ../src/main-win-ui.c:322
+msgid "By File _Type"
+msgstr "Efter _filtyp"
+
+#: ../src/main-win-ui.c:316
+msgid "By _Extension"
+msgstr "_Efter filändelse"
+
+#: ../src/main-win-ui.c:329
+msgid "Places"
+msgstr "Platser"
+
+#: ../src/main-win-ui.c:330
+msgid "Directory Tree"
+msgstr "Katalogträd"
+
+#: ../src/main-win-ui.c:331
+msgid "Remote"
+msgstr "Fjärr"
+
+#: ../src/main-win-ui.c:337
+msgid "_Location"
+msgstr "_Plats"
+
+#: ../src/main-win-ui.c:338
+msgid "_Buttons"
+msgstr "_Knappar"
+
+#: ../src/main-win.c:938 ../src/main-win.c:942
+msgid "Show history of visited folders"
+msgstr "Visa historik över besökta mappar"
+
+#: ../src/main-win.c:947
+msgid "History"
+msgstr "Historik"
+
+#: ../src/main-win.c:961
+msgid "You are in super user mode"
+msgstr "Du är i administratörsläge"
+
+#: ../src/main-win.c:1146
+msgid "Lightweight file manager\n"
+msgstr "Resurssnål filhanterare\n"
+
+#: ../src/main-win.c:1156
+#, c-format
+msgid "using LibFM ver. %s\n"
+msgstr "använder LibFM ver. %s\n"
+
+#: ../src/main-win.c:1158
+msgid ""
+"\n"
+"Developed by Hon Jen Yee (PCMan)"
+msgstr ""
+"\n"
+"Utvecklad av Hon Jen Yee (PCMan)"
+
+#: ../src/main-win.c:1183 ../src/main-win.c:1191
+msgid "Keyboard Navigation"
+msgstr "Tangentbordsnavigering"
+
+#: ../src/main-win.c:1185
+msgid ""
+"Tab: cycle focus Folder View -> Side Pane -> Tools Bar\n"
+"Shift+Tab: cycle focus Tools Bar -> Side Pane -> Folder View\n"
+"F6: change focus Side pane <-> Folder view\n"
+"F8: focus divider between Side pane and Folder view\n"
+"F10: activate main menu\n"
+"Ctrl+L or Alt+D: jump focus to Path Bar"
+msgstr ""
+"Tab: växla fokus Katalogvy -> Sidopanel -> Verktygsfält\n"
+"Skift+Tab: växla fokus Verktygsfält -> Sidopanel -> Katalogvy\n"
+"F6: växla fokus Sidopanel <-> Katalogvy\n"
+"F8: Sätt fokus på avdelaren mellan Sidopanel och Katalogvy\n"
+"F10: aktivera huvudmenyn\n"
+"Ctrl+L eller Alt+D: Sätt fokus på adressfältet"
+
+#: ../src/main-win.c:1227
+msgid "Run a command"
+msgstr "Kör ett kommando"
+
+#: ../src/main-win.c:1228
+msgid "Enter a command to run:"
+msgstr "Ange ett kommando att köra:"
+
+#: ../src/main-win.c:1235
+msgid "Current folder is inaccessible"
+msgstr "Aktuell katalog kan inte kommas åt"
+
+#: ../src/main-win.c:1837
+#, c-format
+msgid ""
+"Add following folder to bookmarks:\n"
+"'%s'\n"
+"Enter a name for the new bookmark item:"
+msgstr ""
+"Lägg till katalog till bokmärken:\n"
+"\"%s\"\n"
+"Ange namn för bokmärke:"
+
+#: ../src/main-win.c:1841
+msgid "Add to Bookmarks"
+msgstr "Lägg till i bokmärken"
+
+#: ../src/main-win.c:2587
+msgid "Select filter"
+msgstr "Välj filter"
+
+#: ../src/main-win.c:2588
+msgid "Choose a new shell pattern to show files:"
+msgstr "Ange nytt skalmönster för att visa filer:"
+
+#. options only acceptable by first pcmanfm instance. These options are not passed through IPC
+#: ../src/pcmanfm.c:78
+msgid "Name of configuration profile"
+msgstr "Namn för inställningsprofil"
+
+#: ../src/pcmanfm.c:78
+msgid "PROFILE"
+msgstr "PROFIL"
+
+#: ../src/pcmanfm.c:79
+msgid "Run PCManFM as a daemon"
+msgstr "Kör PCManFM som en bakgrundsprocess"
+
+#: ../src/pcmanfm.c:80
+msgid "No function. Just to be compatible with nautilus"
+msgstr "Har ingen funktion. Endast för att vara kompatibel med Nautilus"
+
+#. options that are acceptable for every instance of pcmanfm and will be passed through IPC.
+#: ../src/pcmanfm.c:83
+msgid "Launch desktop manager"
+msgstr "Starta skrivbordshanterare"
+
+#: ../src/pcmanfm.c:84
+msgid "Turn off desktop manager if it's running"
+msgstr "Stäng av skrivbordshanteraren om den körs"
+
+#: ../src/pcmanfm.c:85
+msgid "Open desktop preference dialog"
+msgstr "Öppna inställningar för skrivbordet"
+
+#: ../src/pcmanfm.c:86
+msgid "Use --desktop option only for one screen"
+msgstr "Använd flaggan --desktop endast för en skärm"
+
+#: ../src/pcmanfm.c:87
+msgid "Set desktop wallpaper from image FILE"
+msgstr "Ange skrivbordsbakgrund från bild i FIL"
+
+#: ../src/pcmanfm.c:87
+msgid "FILE"
+msgstr "FIL"
+
+# kreativ förklaring av vad varje grejj gör? (color|stretch|fit|center|tile)
+#. don't translate list of modes in description, please
+#: ../src/pcmanfm.c:89
+msgid ""
+"Set mode of desktop wallpaper. MODE=(color|stretch|fit|crop|center|tile|"
+"screen)"
+msgstr ""
+"Ange visningsläge för skrivbordsbakgrund. LÄGE=(color|stretch|fit|center|"
+"tile|screen)"
+
+#: ../src/pcmanfm.c:89
+msgid "MODE"
+msgstr "LÄGE"
+
+#: ../src/pcmanfm.c:90
+msgid "Open Preferences dialog on the page N"
+msgstr "Öppna inställningssida N för skrivbordet"
+
+#: ../src/pcmanfm.c:90
+msgid "N"
+msgstr "N"
+
+#: ../src/pcmanfm.c:91
+msgid "Open new window"
+msgstr "Öppna nytt fönster"
+
+#: ../src/pcmanfm.c:93
+msgid "Open a Find Files window"
+msgstr "Öppnar fönster för filsökning"
+
+#: ../src/pcmanfm.c:95
+msgid "Window role for usage by window manager"
+msgstr "Fönstrets roll för fönsterhanteraren"
+
+#: ../src/pcmanfm.c:95
+msgid "ROLE"
+msgstr "ROLL"
+
+#: ../src/pcmanfm.c:96
+msgid "[FILE1, FILE2,...]"
+msgstr "[FIL1, FIL2,...]"
+
+#. FIXME: add "on this X screen/monitor" into diagnostics
+#: ../src/pcmanfm.c:376
+msgid "Desktop manager is not active."
+msgstr "Skrivbordshanteringen är inte aktiv."
+
+#: ../src/pcmanfm.c:627
+msgid "Terminal emulator is not set."
+msgstr "Terminalprogram har inte angivits."
+
+#: ../src/tab-page.c:56
+msgid "Open in New T_ab"
+msgstr "Öppna i ny _flik"
+
+#: ../src/tab-page.c:411
+#, c-format
+msgid "%d item selected"
+msgid_plural "%d items selected"
+msgstr[0] "%d objekt markerat"
+msgstr[1] "%d objekt markerade"
+
+#: ../src/tab-page.c:741
+#, c-format
+msgid "Free space: %s (Total: %s)"
+msgstr "Ledigt utrymme: %s (Totalt: %s )"
+
+#: ../src/tab-page.c:761
+#, c-format
+msgid "%d item"
+msgid_plural "%d items"
+msgstr[0] "%d objekt"
+msgstr[1] "%d objekt"
+
+#: ../src/tab-page.c:762
+#, c-format
+msgid " (%d hidden)"
+msgid_plural " (%d hidden)"
+msgstr[0] " (%d dold)"
+msgstr[1] " (%d dolda)"
+
+#: ../src/pref.c:515
+msgid "Add to Modules Blacklist"
+msgstr "Lägg till modul i spärrlista"
+
+#: ../src/pref.c:516
+msgid "Enter a blacklisted module mask:"
+msgstr "Ange mönster för modul i spärrlista:"
+
+#: ../src/pref.c:607
+msgid "Add to Modules Whitelist"
+msgstr "Lägg till modul i undantag"
+
+#: ../src/pref.c:608
+msgid "Enter a whitelisted module mask:"
+msgstr "Ange mönster för modul i undantag:"
+
+#: ../data/pcmanfm.desktop.in.h:1
+msgid "File Manager PCManFM"
+msgstr "Filhanteraren PCManFM"
+
+#: ../data/pcmanfm.desktop.in.h:2
+msgid "File Manager"
+msgstr "Filhanterare"
+
+#: ../data/pcmanfm.desktop.in.h:3
+msgid "Browse the file system and manage the files"
+msgstr "Utforska filsystemet och hantera filerna"
+
+#: ../data/pcmanfm-desktop-pref.desktop.in.h:2
+msgid "Change desktop wallpapers and behavior of desktop manager"
+msgstr "Ändra bakgrundsbild och hur skrivbordshanteraren beter sig"
+
+#~ msgid "Center on the screen"
+#~ msgstr "Centrera på skärmen"
+
+#~ msgid "Opened in New Tab"
+#~ msgstr "Öppnad i ny flik"
+
+#~ msgid "_Rename"
+#~ msgstr "_Byt namn"
+
+#~ msgid "Create Symlin_k"
+#~ msgstr "Skapa s_ymlänk"
+
+#~ msgid "_Zoom In"
+#~ msgstr "_Zooma in"
+
+#~ msgid "_Normal Size"
+#~ msgstr "_Normal storlek"
+
+#~ msgid "Devi_ces"
+#~ msgstr "_Enheter"
+
+#~ msgid "Tool_s"
+#~ msgstr "Ver_ktyg"
+
+#~ msgid "Fin_d Files"
+#~ msgstr "_Sök efter filer"
+
+#~ msgid "Show Hidde_n"
+#~ msgstr "Visa _dolda"
+
+#~ msgid "T_win Pane Mode"
+#~ msgstr "Läge med d_ubbla paneler"
+
+#~ msgid "Switch user command is not set."
+#~ msgstr "Kommando för att byta användare är inte angivet."
+
+#~ msgid "Show \"_My Computer\" icon on desktop"
+#~ msgstr "_Visa ikonen \"Den här datorn\" på skrivbordet"
+
+#~ msgid "\"C_omputer\" special folder"
+#~ msgstr "Specialkatalogen \"_Den här datorn\""
+
+#~ msgid "Des_ktop Folder"
+#~ msgstr "S_krivbordsmapp"
+
+#~ msgid "_Home Directory"
+#~ msgstr "_Hemkatalog"
+
+#~ msgid "_Trash can"
+#~ msgstr "_Papperskorg"
+
+#~ msgid "_Computer Drives"
+#~ msgstr "_Enhet i dator"
+
+#~ msgid "Open folder entered in location entry"
+#~ msgstr "Öppna en mapp som anges i platsfältet"
+
+#~ msgid "_Add To Bookmarks"
+#~ msgstr "_Lägg till bokmärke"
+
+#~ msgid "Open Current Folder as _Root"
+#~ msgstr "Öppna aktuell mapp som _root"
+
+#~ msgid "Hide _folder content border"
+#~ msgstr "Dölj kant _för kataloginnehåll"
+
+#~ msgid "Hide _side pane buttons"
+#~ msgstr "Dölj knappar för _sidopanel"
+
+#~ msgid "_Trash bin"
+#~ msgstr "_Papperskorg"
+
+#~ msgid ""
+#~ "Examples: \"xterm -e %s\" for terminal or \"gksu %s\" for switching "
+#~ "user.\n"
+#~ "%s = the command line you want to execute with terminal or su."
+#~ msgstr ""
+#~ "Exempel: \"xterm -e %s\" för terminal eller \"gksu %s\" för att byta "
+#~ "användare.\n"
+#~ "%s = kommandoraden som du vill köra med terminal eller su."
+
+#~ msgid "Previous Folder"
+#~ msgstr "Föregående mapp"
+
+#~ msgid "Next Folder"
+#~ msgstr "Nästa mapp"
+
+#~ msgid "_My Computer"
+#~ msgstr "_Den här datorn"
+
+#~ msgid "Installed Applications"
+#~ msgstr "Installerade program"
+
+#~ msgid "Open entered folder"
+#~ msgstr "Öppna aktuell mapp"
+
+#~ msgid "Blank File"
+#~ msgstr "Tom fil"
+
+#~ msgid "General"
+#~ msgstr "Allmänt"
+
+#~ msgid "Shortcut"
+#~ msgstr "Genväg"
+
+#~ msgid "Invert Selection"
+#~ msgstr "Invertera markering"
+
+#~ msgid "<mode>"
+#~ msgstr "<läge>"
+
+#~ msgid ""
+#~ "Open preference dialog. 'n' is number of the page you want to show (1, 2, "
+#~ "3...)."
+#~ msgstr ""
+#~ "Öppna inställningshanteraren. \"n\" är det sidnummer som ska visas "
+#~ "(1,2,3,...)."
+
+#~ msgid "Enter a name for the newly created folder:"
+#~ msgstr "Ange ett namn för den nya katalogen:"
+
+#~ msgid "Enter a name for the newly created file:"
+#~ msgstr "Ange ett namn för den nya filen:"
+
+#~ msgid "New"
+#~ msgstr "Ny"
+
+#~ msgid "Error, lxshortcut not installed"
+#~ msgstr "Fel, lxshortcut inte installerat"
+
+#~ msgid "Failed to start lxshortcut"
+#~ msgstr "Kunde inte starta lxshortcut"
+
+#~ msgid "_New"
+#~ msgstr "_Ny"
+
+#~ msgid ""
+#~ "Open folders in new tabs of the last used window instead of creating new "
+#~ "windows"
+#~ msgstr ""
+#~ "Öppna mappar i nya flikar i det senast använda fönstret istället för att "
+#~ "skapa nya fönster"
+
+#~ msgid "Display image files with supported format as thumbnails"
+#~ msgstr "Visa miniatyrbilder av bildfiler som stöds"
+
+#~ msgid "Max size of files displayed as thumbnails:"
+#~ msgstr "Maximal storlek på filer som visas som miniatyrbilder:"
+
+#~ msgid ""
+#~ "The icon was taken from \"nuoveXT 2\" icon theme\n"
+#~ "created by Alexandre Moore (saki).\n"
+#~ "http://www.gnome-look.org/content/show.php/nuoveXT+2?content=56625"
+#~ msgstr ""
+#~ "Ikonerna togs från ikontemat \"nuoveXT 2\"\n"
+#~ "skapat av Alexander Moore (saki).\n"
+#~ "http://www.gnome-look.org/content/show.php/nuoveXT+2?content=56625"
+
+#~ msgid ""
+#~ "洪任諭 Hong Jen Yee <pcman.tw@gmail.com>\n"
+#~ "\n"
+#~ "Source code taken from other projects:\n"
+#~ " * libmd5-rfc: Aladdin Enterprises\n"
+#~ " * Working area detection: Gary Kramlich\n"
+#~ " * ExoIconView: os-cillation e.K, Anders Carlsson, & Benedikt Meurer\n"
+#~ " * Text and icon renderer uses code from Jonathan Blandford\n"
+#~ " * Desktop icons use code from Brian Tarricone\n"
+#~ " * Volume management uses code from following projects/authors:\n"
+#~ "     * gnome-vfs: David Zeuthen\n"
+#~ "     * thunar-vfs and libexo: Benedikt Meurer\n"
+#~ "     * gnome-mount: David Zeuthen"
+#~ msgstr ""
+#~ "洪任諭 Hong Jen Yee <pcman.tw@gmail.com>\n"
+#~ "\n"
+#~ "Källkod hämtad från andra projekt:\n"
+#~ " * libmd5-rfc: Aladdin Enterprises\n"
+#~ " * Working area detection: Gary Kramlich\n"
+#~ " * ExoIconView: os-cillation e.K, Anders Carlsson och Benedikt Meurer\n"
+#~ " * Text- och ikonutritarna använder kod från Jonathan Blandford\n"
+#~ " * Skrivbordsikoner använder kod från Brian Tarricone\n"
+#~ " * Volymhantering använder kod från följande projekt/upphovsmän:\n"
+#~ "     * gnome-vfs: David Zeuthen\n"
+#~ "     * thunar-vfs och libexo: Benedikt Meurer\n"
+#~ "     * gnome-mount: David Zeuthen"
+
+#~ msgid "Choose an Application"
+#~ msgstr "Välj ett program"
+
+#~ msgid "File Type To be Opened:"
+#~ msgstr "Filtyp som ska öppnas:"
+
+#~ msgid "Opened in Terminal"
+#~ msgstr "Öppnas i terminal"
+
+#~ msgid ""
+#~ "Please choose an application from following lists or enter the command "
+#~ "line by hand:"
+#~ msgstr ""
+#~ "Välj ett program från följande listor eller ange manuellt ett kommando:"
+
+#~ msgid "Set selected application to default action"
+#~ msgstr "Ange valt program som standardåtgärd"
+
+#~ msgid "_Browse"
+#~ msgstr "_Bläddra"
+
+#~ msgid "_Command Line:"
+#~ msgstr "_Kommandorad:"
+
+#~ msgid "_Recommended Applications"
+#~ msgstr "_Rekommenderade program"
+
+#~ msgid "Actions Showed in Popup Menus"
+#~ msgstr "Åtgärder som visas i popupmenyer"
+
+#~ msgid "Add _Application"
+#~ msgstr "Lägg till _program"
+
+#~ msgid "Add _Custom Action"
+#~ msgstr "Lägg till a_npassat kommando"
+
+#~ msgid "File Associations"
+#~ msgstr "Filassocieringar"
+
+#~ msgid "Move _Down"
+#~ msgstr "Flytta _nedåt"
+
+#~ msgid "Move _Up"
+#~ msgstr "Flytta _uppåt"
+
+#~ msgid "<b>Processing:</b>"
+#~ msgstr "<b>Bearbetar:</b>"
+
+#~ msgid "Preparing..."
+#~ msgstr "Förbereder..."
+
+#~ msgid "<b>File Type:</b>"
+#~ msgstr "<b>Filtyp:</b>"
+
+#~ msgid "<b>File _Name:</b>"
+#~ msgstr "<b>Fil_namn:</b>"
+
+#~ msgid "<b>Group:</b>"
+#~ msgstr "<b>Grupp:</b>"
+
+#~ msgid "<b>Last Access:</b>"
+#~ msgstr "<b>Senast använd:</b>"
+
+#~ msgid "<b>Last Modification:</b>"
+#~ msgstr "<b>Senast ändrad:</b>"
+
+#~ msgid "<b>Open _with:</b>"
+#~ msgstr "<b>Öppna _med:</b>"
+
+#~ msgid "<b>Owner:</b>"
+#~ msgstr "<b>Ägare:</b>"
+
+#~ msgid "<b>Size on Disk:</b>"
+#~ msgstr "<b>Storlek på disk:</b>"
+
+#~ msgid "<b>Total Size of Files:</b>"
+#~ msgstr "<b>Total filstorlek:</b>"
+
+#~ msgid "<b>_Group:</b>"
+#~ msgstr "<b>_Grupp:</b>"
+
+#~ msgid "<b>_Owner:</b>"
+#~ msgstr "<b>_Ägare:</b>"
+
+#~ msgid "Execute"
+#~ msgstr "Kör"
+
+#~ msgid "Read"
+#~ msgstr "Läs"
+
+#~ msgid "Set GID"
+#~ msgstr "Ange GID"
+
+#~ msgid "Set UID"
+#~ msgstr "Ange UID"
