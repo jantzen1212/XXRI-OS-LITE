@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=XXRI File
+GenericName=File Manager
+Comment=Browse and organise your files
+Exec=/usr/local/bin/xxri-file %U
+Icon=xxri-file
+X-FullPathIcon=/usr/local/share/pixmaps/xxri-file.png
+Terminal=false
+Categories=System;FileTools;FileManager;
+MimeType=inode/directory;
+StartupNotify=false

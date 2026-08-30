@@ -1,0 +1,444 @@
+Changes on 1.3.2 since 1.3.1:
+
+* Fixed case when some keyboard shortcuts stopped working: Alt+Home, Alt+Up.
+
+* Fixed sytem reboot delayed for 90 seconds in some cases.
+
+
+Changes on 1.3.1 since 1.3.0:
+
+* Allowed bigger sizes of icons and thumbnails as 256*256 appears to be small
+    on hi-res displays.
+
+
+Changes on 1.3.0 since 1.2.5:
+
+* Fixed potential access violation, use runtime user dir instead of tmp dir
+    for single instance socket.
+
+* Fixed an issue with losing icons on desktop, when file name has a '[' char.
+
+* Added a missing tooltip for 'New Window' toolbar button.
+
+* Fixed an issue when single instance socket' directory did not exist (see
+    https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=874753).
+
+
+Changes on 1.2.5 since 1.2.4:
+
+* Removed options to Cut, Remove and Rename from context menu on mounted
+    drive on the desktop, user might accidentally recursively remove its
+    contents.
+
+* Removed 'Open in terminal' from context menu on folder on the desktop
+    that cannot be opened in terminal.
+
+* Fixed invalid unref on CSS provider (GTK+ 3.0).
+
+* Fixed unwanted unselection of items when right-clicked the desktop.
+
+* Fixed endless loop in desktop items placement in some corner cases.
+
+* Fixed spelling error in the manual page.
+
+
+Changes on 1.2.4 since 1.2.3:
+
+* Workarounded a bug in gtk_file_chooser_set_file() function (patch from
+    Simon Long).
+
+* Fixed single instance options cleanup that might affect next call.
+
+* Fixed wrong update of status text after folder update when there are
+    selected files in the folder.
+
+* Disabled using desktop background from the GTK+ style since there is
+    own color setting and changing the style may repaint the desktop.
+
+* Enforced desktop font update on the desktop resize with GTK+ 3.0.
+
+* Fixed items layout order to never be tried before desktop is realized.
+
+* Fixed item borders calculations when matching to pointer position.
+
+* Fixed forwarding events to root window, it could get unpaired events.
+
+* Fixed crash on too fast folder change with focus_previous=1.
+
+* Fixed stuck tooltip after click on the item.
+
+* Improved option to open folder in terminal, it should work with gvfs
+    paths that have resolvable local path as well.
+
+* Fixed incorrect file names rendering position on the desktop.
+
+* Fixed not working Connect to Server... dialog when non-anonymous user
+    is selected.
+
+* Fixed possible memory corruption in the Connect to Server... dialog.
+
+* Support explicit mention of scheme in the Server line of the Connect to
+    Server... dialog, not duplicate it if it's present. That includes the
+    https:// to fix support for secure WebDAV access as well.
+
+
+Changes on 1.2.3 since 1.2.2:
+
+* Disabled unrequested config save on changing dir if show_hidden changes.
+
+* Replaced deprecated atk_component_get_position() calls.
+
+* Fixed invalid callback get_image_position() on ATK icon, it could loop
+    and therefore hang the application.
+
+* Increased delay on restoring scroller position from 20 to 50 ms.
+
+
+Changes on 1.2.2 since 1.2.1:
+
+* Fixed Ctrl+- and Ctrl+= key combinations for zooming.
+
+* Fixed compilation with libfm 1.1.x.
+
+* Disabled showing items on desktop that are being dragged, they should
+    be at the mouse cursor, visually dragged instead.
+
+* Fixed setting of custom settings on wrong folders which were set on
+    directory change where show hidden flag was different.
+
+
+Changes on 1.2.1 since 1.2.0:
+
+* Fixed update desktop config from old settings.
+
+* Fixed 'Edit'->'Rename' menu item, it should be inactive if rename isn't
+    supported.
+
+* Fixed install and uninstall for modules directory.
+
+* Port number shouldn't be added in Connect to Server dialog if port is
+    default one.
+
+* Got rid of possible memory exhausting after changing wallpaper.
+
+* Fixed icons positioning when upper reserved area is not 0.
+
+* Fixed resetting cursor in location bar to beginning after navigation.
+
+* Corrected folder popup update on folder loading so context menu is now
+    correct for the folder shown.
+
+* Fixed dragging and dropping icons behavior on desktop.
+
+* Correctly use screen number to display all the windows.
+
+* Added "System;FileTools;" into Categories for pcmanfm.desktop, those
+    are recommended categories for the FileManager one.
+
+* Reordered 'View' menu items a bit to conform with HIG.
+
+* Implemented drawing icons of dragged items as cursor to see where they
+    will end up dropped.
+
+
+Changes on 1.2.0 since 1.1.0:
+
+* Implemented accessibility for the desktop managed by pcmanfm.
+
+* Added missing accessibility relations between main window parts.
+
+* Added tooltips for desktop items. Tooltips contain full file names,
+    while desktop text shows them truncated in case of long names.
+
+* For LibFM version 1.2.0 (and newer) show version of LibFM in the About
+    window as well, not just PCManFM version.
+
+* Added support for configuration options of LibFM 1.1.0 and 1.2.0 into
+    Preferences dialog.
+
+* Adopted new LibFM APIs and disabled all the deprecated calls.
+
+* Implemented separated desktop configuration for each monitor. The
+    Desktop Preferences dialog will be applied only to current monitor.
+    If no setup was ever done for secondary monitor then setup will be
+    copied from primary one. Configuration will be converted into new
+    style from old one on the first start of PCManFM desktop manager.
+    The new configuration will be not known to old version of PCManFM so
+    if you start old one again, it will gain default configuration for
+    the desktop instead.
+
+* Changed representing of sort mode in config file: instead of numerics
+    'sort_type' and 'sort_by' it's saved as 'sort=<list>' text setting.
+    Thus it is possible to save extended modes such as 'case' or 'mingle'
+    and save sort by extended columns (see LibFM new APIs).
+
+* Implemented saving of columns (works for Detailed List View mode). The
+    list of columns is represented as <name>[:<width]. This feature will
+    work with LibFM 1.0.2 or newer. The LibFM 1.1.x will get some benefit
+    only, the PCManFM can load that list from config. The possibility to
+    catch columns change is available since LibFM 1.2.0 so this feature
+    will work in full only with LibFM 1.2.0 or newer.
+
+* Changed strings to follow common Human Interface Guidelines for strings
+    capitalization.
+
+* New tab with Search Results now opened in Detailed List View mode with
+    columns: Name, Description, Location, Size, Modified. Since Search
+    Results is a special folder, its layout should be other than default.
+
+* The 'Tools'->'Open Current Folder as Root' menu item is removed along
+    with 'su_cmd' configuration option. That mode is too much dangerous
+    and appropriate functionality can be achieved using DES-EMA extension
+    for context menu, no need to hardcode it into PCManFM.
+
+* Added support for extended sort modes into main menu.
+
+* If used with LibFM 1.2.0 or newer then list of view modes in the main
+    menu will be not hardcoded but list of supported view modes retrieved
+    from FmStandardView widget.
+
+* Added support for per-folder configurations: sort mode, show_hidden,
+    and view mode. The settings will be loaded from the file .directory
+    if it exists, the file ~/.config/pcmanfm/<profile>/dir-settings.conf
+    will be used otherwise (and if linked with LibFM 1.2.0 or newer then
+    the file ~/.config/libfm/dir-settings.conf will be used instead by
+    the LibFM). Those settings will be saved not for each of the visited
+    folders but only if 'View'->'Save for This Folder' checkbox in the
+    main menu is checked, and will be forgotten after it's unchecked.
+
+* Changed representing of view mode in config file: instead of numeric
+    'view_mode' it is saved in portable way as string defined by widget
+    FmStandardView.
+
+* Changed representing of side pane mode in config file: instead of
+    numeric 'side_pane_mode' it is saved now in portable way as string
+    defined by widget FmSidePane.
+
+* Implemented Dual Pane mode which can be toggled on anytime. If there is
+    some tab next to current then it will be used for inactive pane, and
+    if there is only one tab present in the window then new tab will be
+    created (for the same directory as current view). When tab that is
+    shown in inactive pane is closed then Dual Pane mode is terminated
+    and may be toggled on again by user if needed. The Dual Pane mode can
+    be toggled either via the main menu or by pressing a key 'F3'.
+
+* Added icon size manipulations (increase, decrease, normalize size) into
+    View menu. New size will be remembered in config for the appropriate
+    type of icons.
+
+* Added configuration for toolbar: it can be now hidden, and elements on
+    it (New Tab, navigations, Home) can be hidden individually as well.
+
+* Added menu option 'Go'->'Connect to Server...". If selected it opens a
+    dialog window to select type of remote folder and few parameters
+    (host, port, path, login) for the connection. If not cancelled then
+    selected remote folder will be opened in new tab.
+
+* Implemented new config option 'media_in_new_tab', defaulted to false.
+    If set then automounted folder will be opened in new tab instead of
+    new window.
+
+* Implemented new config option 'desktop_folder_new_win', defaulted to
+    false. If set then folder from desktop will be opened in new window
+    instead of new tab.
+
+* Context menu options to open folder in new window / tab / terminal now
+    available also for side pane items' context menu if used with LibFM
+    1.2.0 or newer.
+
+* If used with libfm 1.2.0 or newer then option 'mingle' will be included
+    into default sort modes for the Desktop. This is expected by most of
+    users - we add something to Desktop, then we see it after all already
+    added items, not after other folders.
+
+* Implemented handling for extra items on the desktop:
+    - Trash Can
+    - "Documents" folder
+    - external media
+    Those items have not be in the Desktop folder, they will be added to
+    the view by desktop manager internally. Corresponding config options
+    are 'show_trash', 'show_documents', 'show_mounts' - those are set in
+    the desktop config for each monitor. Default is true for 'show_trash'
+    and false for other items. Note that all those items are not links of
+    any kind but folders itself so weird operations with them may lead to
+    weird results.
+    This feature will work only if linked against libfm 1.2.0 or newer.
+
+* Folder view modes moved to separate submenu to make View menu shorter.
+
+* Reordered View, Bookmarks, and Go menus placement in menu bar to follow
+    common order used by other applications and file managers.
+
+* The menu items 'Go'->'Applications' and 'Tools'->'Find Files...' should
+    become insensitive now if appropriate modules were not loaded.
+
+* Added new section 'autorun' into config where last choices made by user
+    for some kind of inserted media is remembered. Added a checkbutton
+    'Always perform this action on this media type' into the dialog where
+    user selects an action so user can remember the choice and never ask
+    again for that kind of media. The button is not available for unknown
+    or mixed media types. The 'do nothing' kind of choice is allowed to
+    remember as well if user selects not ask again and press the 'Cancel'
+    button in the dialog. The choice 'not ask' is saved in config file as
+    asterisk (*) prepended to application ID. The choice of view in the
+    PCManFM itself is saved as pseudo-ID "pcmanfm".
+
+* The menu option 'Edit'->'Delete' is split to two: 'Move to Trash' and
+    'Delete' because some users with disabilities may not be able to use
+    keybinding Shift+Del therefore should be a possibility to do exact
+    action by mouse only.
+
+* Added new menu option 'File'->'Folder Properties' which duplicates the
+    folder context menu option for those who cannot use the context menu.
+
+* Added new menu option 'Edit'->'Properties' from the selection context
+    menu for those who cannot use the context menu.
+
+* Added new menu option 'Edit'->'Open' to launch selection for those who
+    can use neither keyboard nor selection context menu.
+
+* Added new config option 'show_statusbar' with default to true which
+    defines should status bar be shown or hidden. It's controllable via
+    menu 'View'->'Show Status Bar'.
+
+* Added new menu option 'File'->'Create Link...' to create link(s) on the
+    selected file(s) into some directory.
+
+* Implemented a runtime option to open Find Files dialog window. It will
+    not replace any other options, i.e. if used alone and no other window
+    nor desktop manager is active, it will open new default window. It
+    will not open any additional window if used when an other window or
+    desktop manager is active though.
+
+* When wallpaper mode is color-only, the file chooser for wallpaper image
+    is not clickable anymore because it has no reasons to be clickable.
+
+* Implemented the interactive search for desktop contents. It is similar
+    to that in GtkTreeView and ExoIconView, activated by just typing or
+    pressing Ctrl+F. This small search entry window is opened at the top
+    right corner of workspace. It supports the same shortcuts as those
+    GtkTreeView - Ctrl+G for "find next" or "Shift+Ctrl+G for backward,
+    scroll gestures also possible.
+
+* Added new menu option 'View'->'Filter...' which allows to apply shell
+    pattern to files currently shown in the view. The pattern is case
+    insensitive.
+
+* After creation of new tab using keyboard Ctrl+T (or main menu option)
+    the Location Bar of new created tab will be focused to allow easy
+    change path. Any other created new tabs will have the focus as usual.
+
+* Added new config option 'change_tab_on_drop', defaulted to true to keep
+    old behavior: when you drag file(s) on tab label then tab will be
+    unfolded so you can drop files into folder view. If set to false (new
+    behavior) then the tab will be not unfolded but you can drop files
+    directly on tab label using any wanted gestures and files will end up
+    in the folder that tab label points to.
+
+* Added new menu option 'Edit'->'Copy Path(s)' to copy text paths for the
+    selection into clipboard.
+
+* Added new config option 'home_path' (unset by default) which defines
+    the file path or URI string to open when 'Home Folder' is activated
+    in side pane, toolbar, or menu. Available only with LibFM 1.2.0 or
+    newer.
+
+* Added new config option 'focus_previous' defaulted to false (preserving
+    old behavior) which allows select and focus the folder where we came
+    from when we go into parent directory. It's available only with LibFM
+    1.2.0 or newer.
+
+* Added new config option 'close_on_unmount' defaulted to true. If set to
+    true then tab containing a folder that is vanished (that happens if
+    the folder either was deleted or was renamed or was unmounted) will
+    be closed. If set to false then such tab will go to the 'Home Folder'
+    instead (with respect to 'home_path' config option).
+
+* Implemented possibility to set custom folder to display on desktop. It
+    is saved in monitor config option 'folder'. If that config option is
+    unset that implies default desktop folder. If that config option is
+    set to empty string then desktop icons support and drag&drop support
+    will be disabled for that monitor. Otherwise mentioned path will be
+    used to display on the desktop instead of Desktop Folder.
+
+* Changed saving option 'wallpaper_mode' into desktop config, it will be
+    saved as text instead of number to allow further improvements.
+
+* Added new wallpaper mode 'crop' that will scale image proportionally to
+    match the monitor size fut in difference to the 'fit' mode the scaled
+    image will fill whole monitor area and will be cropped if it's bigger
+    than the monitor.
+
+* Added new wallpaper mode 'screen' that will scale image to fill the
+    entire screen size and display appropriate part on the monitor it is
+    configured for. This mode is useful when people have an appropriate
+    wallpaper and want their screen composed of two monitors to show the
+    whole image - a part on first monitor and other part on second.
+
+* Added alternative to Location Bar - implemented FmPathBar support with
+    switching via menu 'View'->'Path Bar'->... radio buttons. The path
+    bar mode is applied to windows opened after change, the same way as
+    the side bar change is applied.
+
+* Added optional 'New Window' button to the toolbar left to 'New Tab' one
+    to those who don't like tabbed view.
+
+* The statusbar can show total size of selected files if some conditions
+    are met. Conditions are:
+    - number of selected files should be less than 1000;
+    - selection should contain no directories.
+    Those limitations are due to lightweight nature of the file manager
+    and otherwise counting will take too much resources.
+
+* Added API to create third-party plugins that may append own text to the
+    statusbar text for selected files. The plugins should be installed
+    into $(libdir)/pcmanfm folder and use "#include <pcmanfm-modules.h>"
+    directive in the code.
+
+* Added new menu option 'Tools'->'Run a Command in Current Folder' to run
+    an arbitrary command line from the folder opened in current tab. This
+    option works only with LibFM 1.2.0 or newer.
+
+* A whole lot of bugfixes.
+
+
+Changes on 1.1.0 since 1.0.1:
+
+* Corrected underscores (mnemonics) on every menu and dialog.
+
+* Migrated to new libfm APIs for simplification.
+
+* Fixed GTK+ 3.0 compatibility problems. Added switch --with-gtk=N to
+    configure script where N is GTK+ version: 2 or 3. Default is 2.
+
+* Added option 'Treat backup files as hidden' into 'Display' tab of the
+    preferences dialog and 'Use Application Startup Notify by default'
+    into 'Advanced' tab. Both have effect with libfm 1.0.2 or newer.
+
+* Added rintime option '--new-win' to open new window instead of new tab
+    when started with some directory name.
+
+* Added runtime option '--role' to set WM_WINDOW_ROLE property which can
+    be used by window manager to do arrangement of window. Works only if
+    option '--new-win' is also used.
+
+* Added search engine support. Works if compiled with libfm-gtk >= 1.0.2.
+
+* The items which cannot act (such as "Copy" when no items selected) now
+    are disabled in menu and toolbar.
+
+* Experimental implementation of option --one-screen to apply --desktop
+    option only for one (current) X-Screen.
+
+* Implemented side pane hiding, bound to 'F9' key press.
+
+
+Changes on 1.0.1 since 1.0.0:
+
+* Implemented basic multi-monitor support.
+
+* Implemented toggling fullscreen mode via 'F11' key press.
+
+* Added tab 'Layout' into Preferences dialog.
+
+* Few lesser bugfixes.

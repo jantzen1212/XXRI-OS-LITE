@@ -724,14 +724,18 @@ cmd_integrate() { # file [--quiet] [--as <id>]
 	fi
 	[ -z "$icon_src" ] && icon_src="$(ls "$mp"/*.png 2>/dev/null | head -1)"
 
-	# keep the user's folders tidy: Downloads -> ~/Applications
+	# Keep the user's folders tidy.  Installed AppImages live in the XDG data
+	# directory, NOT in a visible ~/Applications folder: XXRI File shows the
+	# user's own folders, and an app store's payload directory is not one of
+	# them.  The launcher, dock entry and menu entry are unaffected.
 	HOMEDIR="$(user_home)"
+	APPDIR="$HOMEDIR/.local/share/xxri-apps"
 	dest="$f"
 	case "$f" in
 		"$HOMEDIR"/Downloads/*)
-			mkdir -p "$HOMEDIR/Applications"
-			dest="$HOMEDIR/Applications/${f##*/}"
-			[ -e "$dest" ] && dest="$HOMEDIR/Applications/$(date +%s)-${f##*/}"
+			mkdir -p "$APPDIR"
+			dest="$APPDIR/${f##*/}"
+			[ -e "$dest" ] && dest="$APPDIR/$(date +%s)-${f##*/}"
 			if mv "$f" "$dest" 2>>"$LOG"; then f="$dest"; else dest="$f"; fi
 		;;
 	esac
@@ -771,7 +775,7 @@ EOF
 	do_umount "$mp"
 
 	# an update replaced the package file: delete the previous version so old
-	# AppImages don't pile up in ~/Applications.
+	# AppImages don't pile up in the user's folders.
 	if [ -n "$old_file" ] && [ "$old_file" != "$f" ] && [ -e "$old_file" ]; then
 		rm -f "$old_file" 2>/dev/null || sudo rm -f "$old_file" 2>/dev/null
 		log "removed superseded package $old_file"
@@ -829,7 +833,7 @@ cmd_open() { # file : the double-click / detection entry point
 	fi
 	if [ -z "$id" ]; then
 		if dlg ask "Integrate this application?" \
-			"Do you want to integrate \"$base\" into XXRI OS Lite? It will appear in the dock and the application menu, and it will be moved to your Applications folder." \
+			"Do you want to integrate \"$base\" into XXRI OS Lite? It will appear in the dock and the application menu, and it will be kept with your installed apps." \
 			"Integrate" "Just run it"; then
 			id="$(cmd_integrate "$f" | tail -1)"
 			[ -n "$id" ] || return 1
@@ -920,12 +924,12 @@ cmd_watch() {
 	HOMEDIR="$(user_home)"
 	SEEN_DIR="$HOMEDIR/.cache/xxri-app"
 	SEEN="$SEEN_DIR/seen"
-	mkdir -p "$SEEN_DIR" "$HOMEDIR/Applications" "$HOMEDIR/Downloads" 2>/dev/null
+	mkdir -p "$SEEN_DIR" "$HOMEDIR/.local/share/xxri-apps" "$HOMEDIR/Downloads" 2>/dev/null
 	touch "$SEEN"
 	# pre-seed: everything present at session start is "known", except
 	# files that are not in the registry yet get one chance to be offered
 	while :; do
-		for d in "$HOMEDIR/Downloads" "$HOMEDIR/Applications" $APP_DIRS_SYS; do
+		for d in "$HOMEDIR/Downloads" "$HOMEDIR/.local/share/xxri-apps" $APP_DIRS_SYS; do
 			[ -d "$d" ] || continue
 			for f in "$d"/*.AppImage "$d"/*.appimage; do
 				[ -f "$f" ] || continue

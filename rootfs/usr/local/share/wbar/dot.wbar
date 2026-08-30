@@ -23,6 +23,9 @@ c: exec /usr/local/bin/xxri-dock-launch xxri-store-gui /usr/local/bin/xxri-store
 i: /usr/local/share/pixmaps/xxri-settings.png
 t: Settings
 c: exec /usr/local/bin/xxri-dock-launch xxri-settings /usr/local/bin/xxri-settings
+i: /usr/local/share/pixmaps/xxri-file.png
+t: Files
+c: exec /usr/local/bin/xxri-dock-launch xxri-file /usr/local/bin/xxri-file
 i: /usr/local/share/pixmaps/mnttool.png
 t: Disks
 c: exec /usr/local/bin/xxri-dock-launch xxri-settings /usr/local/bin/xxri-settings storage

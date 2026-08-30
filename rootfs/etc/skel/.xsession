@@ -117,8 +117,24 @@ fi
 # XDG_RUNTIME_DIR and a shared-memory segment, and D-Bus refuses to start at
 # all when there is no machine ID, which costs Qt apps their entire interface.
 [ -x /usr/local/bin/xxri-session-runtime ] && . /usr/local/bin/xxri-session-runtime
-# TEMPORARY: trace the Store when it is launched from the dock (no terminal).
-export XXRI_STORE_DEBUG=1
+# Standard user folders.  XXRI File shows Documents, Downloads, Pictures,
+# Music and Videos in its rail (there is no desktop-icon layer, so no Desktop), and deliberately hides an entry whose
+# directory does not exist rather than silently pointing it at $HOME.  Creating
+# them here (idempotent, like xdg-user-dirs-update on a desktop distribution)
+# means the rail is complete on a fresh account and on one that predates this.
+for d in Documents Downloads Pictures Music Videos; do
+	[ -d "$HOME/$d" ] || mkdir -p "$HOME/$d" 2>/dev/null
+done
+if [ ! -f "$HOME/.config/user-dirs.dirs" ]; then
+	mkdir -p "$HOME/.config" 2>/dev/null
+	{
+		echo 'XDG_DOCUMENTS_DIR="$HOME/Documents"'
+		echo 'XDG_DOWNLOAD_DIR="$HOME/Downloads"'
+		echo 'XDG_MUSIC_DIR="$HOME/Music"'
+		echo 'XDG_PICTURES_DIR="$HOME/Pictures"'
+		echo 'XDG_VIDEOS_DIR="$HOME/Videos"'
+	} > "$HOME/.config/user-dirs.dirs" 2>/dev/null
+fi
 [ -x $HOME/.setbackground ] && $HOME/.setbackground
 [ -x $HOME/.mouse_config ] && $HOME/.mouse_config &
 [ $(which "$ICONS".sh) ] && ${ICONS}.sh &

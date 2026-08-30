@@ -1,3 +1,3 @@
 # xxri OS Lite: AppImage folder watcher (detects new AppImages in
-# ~/Downloads, ~/Applications and /opt/appimages and offers integration).
+# ~/Downloads and /opt/appimages and offers integration).
 command -v xxri-app >/dev/null 2>&1 && xxri-app watch >/dev/null 2>&1 &

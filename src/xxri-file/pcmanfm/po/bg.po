@@ -1,0 +1,1399 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+msgid ""
+msgstr ""
+"Project-Id-Version: pcmanfm\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-04-21 22:24+0300\n"
+"PO-Revision-Date: 2014-08-12 01:41+0000\n"
+"Last-Translator: Радослав Иванов <reckku@gmail.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: bg\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Pootle 2.7\n"
+"X-POOTLE-MTIME: 1407807715.000000\n"
+
+#: ../data/ui/about.glade.in.h:1
+msgid "Copyright (C) 2009 - 2021"
+msgstr "Авторски права © 2009 - 2021"
+
+#. Please replace this line with your own names, one name per line.
+#: ../data/ui/about.glade.in.h:3
+msgid "translator-credits"
+msgstr "Радослав Иванов"
+
+#: ../data/ui/desktop-pref.glade.h:1 ../src/desktop-ui.c:34
+#: ../data/pcmanfm-desktop-pref.desktop.in.h:1
+msgid "Desktop Preferences"
+msgstr "Предпочитания"
+
+#: ../data/ui/desktop-pref.glade.h:2
+msgid "<b>Background</b>"
+msgstr "<b>Среда</b>"
+
+#: ../data/ui/desktop-pref.glade.h:3
+msgid "Wallpaper _mode:"
+msgstr "_Режим на тапета:"
+
+#: ../data/ui/desktop-pref.glade.h:4
+msgid "_Wallpaper:"
+msgstr "_Тапет:"
+
+#: ../data/ui/desktop-pref.glade.h:5
+msgid "Please select an image file"
+msgstr "Моля, изберете Образ"
+
+#: ../data/ui/desktop-pref.glade.h:6
+msgid "_Use the same wallpaper on all desktops"
+msgstr "_Използване на тапета за всички работни плотове"
+
+#: ../data/ui/desktop-pref.glade.h:7
+msgid "_Background color:"
+msgstr "_Цвят на средата:"
+
+#: ../data/ui/desktop-pref.glade.h:8
+msgid "<b>Text</b>"
+msgstr "<b>Текст</b>"
+
+#: ../data/ui/desktop-pref.glade.h:9
+msgid "_Font of label text:"
+msgstr "_Шрифт на етикета:"
+
+#: ../data/ui/desktop-pref.glade.h:10
+msgid "C_olor of label text:"
+msgstr "Ц_вят на етикета:"
+
+#: ../data/ui/desktop-pref.glade.h:11
+msgid "Color of _shadow:"
+msgstr "Цв_ят на сянката:"
+
+#: ../data/ui/desktop-pref.glade.h:12
+msgid "_Appearance"
+msgstr "Въ_ншен вид"
+
+#: ../data/ui/desktop-pref.glade.h:13
+msgid "<b>Show desktop icons</b>"
+msgstr "<b>Покажи иконите на работния плот</b>"
+
+#: ../data/ui/desktop-pref.glade.h:14
+msgid "_Show \"Documents\" folder on the desktop"
+msgstr "По_казвай „Моите документи“ на работния плот"
+
+#: ../data/ui/desktop-pref.glade.h:15
+msgid "Sho_w \"Devices\" folder on the desktop"
+msgstr "Пок_азвай „Устройства“ на работния плот"
+
+#: ../data/ui/desktop-pref.glade.h:16
+msgid "Show \"_Trash Can\" folder on the desktop"
+msgstr "Показ_вай „Кош“ на работния плот"
+
+#: ../data/ui/desktop-pref.glade.h:17
+msgid "S_how connected volumes on the desktop"
+msgstr "П_оказвай монтираните дялове на работния плот"
+
+#: ../data/ui/desktop-pref.glade.h:18
+msgid "_Desktop Icons"
+msgstr "_Икони на работния плот"
+
+#: ../data/ui/desktop-pref.glade.h:19
+msgid "_Show menus provided by window managers when desktop is clicked"
+msgstr "Показва_й изскачащи менюта, когато е активен работният плот"
+
+#: ../data/ui/desktop-pref.glade.h:20
+msgid "_Use desktop as a folder (show icons on it) by path:"
+msgstr ""
+"Из_ползвай работния плот като посочена папка (показват се иконите в нея):"
+
+#: ../data/ui/desktop-pref.glade.h:21 ../data/ui/pref.glade.h:84
+msgctxt "Use path for some folder: ..."
+msgid "Default"
+msgstr "По подразбиране"
+
+#: ../data/ui/desktop-pref.glade.h:22 ../data/ui/pref.glade.h:85
+msgctxt "Use path for some folder: ..."
+msgid "Custom:"
+msgstr "По избор:"
+
+#: ../data/ui/desktop-pref.glade.h:23
+msgid "Select a Desktop Folder"
+msgstr "Изберете папка на Работния плот"
+
+#: ../data/ui/desktop-pref.glade.h:24
+msgid "_Open folders from desktop in new window"
+msgstr "_Отвори папките от Работния плот в нов прозорец"
+
+#: ../data/ui/desktop-pref.glade.h:25
+msgid "Ad_vanced"
+msgstr "Раз_ширени"
+
+#: ../data/ui/desktop-pref.glade.h:26
+msgid "Fill with background color only"
+msgstr "Изпълни само с цвета на средата"
+
+#: ../data/ui/desktop-pref.glade.h:27
+msgid "Stretch to fill the entire monitor area"
+msgstr "Разтягане до изпълване на видимата част"
+
+#: ../data/ui/desktop-pref.glade.h:28
+msgid "Stretch to fit the monitor area"
+msgstr "Разтягане до ръба на екрана"
+
+#: ../data/ui/desktop-pref.glade.h:29
+msgid "Center unscaled image on the monitor"
+msgstr "Центриране на незапълващо монитора изображение"
+
+#: ../data/ui/desktop-pref.glade.h:30
+msgid "Tile the image to fill the entire monitor area"
+msgstr "Изпълване като мозайка"
+
+#: ../data/ui/desktop-pref.glade.h:31
+msgid "Stretch and crop to fill the monitor area"
+msgstr "Разтягане и изрязване до изпълване на видимата част"
+
+#: ../data/ui/desktop-pref.glade.h:32
+msgid "Stretch to fill the complete screen"
+msgstr "Разтягане до изпълване на видимата част"
+
+#: ../data/ui/pref.glade.h:1
+msgid "Open in current tab"
+msgstr "Отвори в текущия раздел"
+
+#: ../data/ui/pref.glade.h:2
+msgid "Open in new tab"
+msgstr "Отвори в нов раздел"
+
+#: ../data/ui/pref.glade.h:3
+msgid "Open in new window"
+msgstr "Отвори в нов прозорец"
+
+#: ../data/ui/pref.glade.h:4
+msgid "Preferences"
+msgstr "Предпочитания"
+
+#: ../data/ui/pref.glade.h:5
+msgid "<b>Behavior</b>"
+msgstr "<b>Режим на работа</b>"
+
+#: ../data/ui/pref.glade.h:6
+msgid "_Open files with single click"
+msgstr "_Отваряне на файлове с едно натискане"
+
+#: ../data/ui/pref.glade.h:7
+msgid "Delay of auto-selection in single click mode (0 to disable)"
+msgstr ""
+"Забавяне преди автоматично избиране при режим с едно кликване (\"0\" за "
+"деактивиране)"
+
+#: ../data/ui/pref.glade.h:8
+msgid "Co_nfirm before deleting files"
+msgstr "_Потвърждение преди изтриване на файлове"
+
+#: ../data/ui/pref.glade.h:9
+msgid "_Move deleted files to \"trash can\" instead of erasing from disk"
+msgstr "_Преместване изтритите файлове в „Кош“"
+
+#: ../data/ui/pref.glade.h:10
+msgid "_Erase files on removable media instead of \"trash can\" creation"
+msgstr "О_кончателно изтриване на файлове от външния източник"
+
+#: ../data/ui/pref.glade.h:11
+msgid "Confi_rm before moving files into \"trash can\""
+msgstr "Потвър_ждение преди преместване на файлове в „Кош“"
+
+#: ../data/ui/pref.glade.h:12
+msgid "Don't ask options on _launch executable file"
+msgstr "Да не се искат опции на _изпълним файл за стартиране"
+
+#: ../data/ui/pref.glade.h:13
+msgid "_Bookmarks:"
+msgstr "О_тметки:"
+
+#: ../data/ui/pref.glade.h:14
+msgid "Defaul_t drop action:"
+msgstr "_Действие при пускане:"
+
+#: ../data/ui/pref.glade.h:15
+msgid "\"_Smart shortcut\" auto-action on drop to Desktop folder"
+msgstr ""
+"Автоматично действие „_Умен пряк път“ при пускане в папка на Работния плот"
+
+#: ../data/ui/pref.glade.h:16
+msgid ""
+"If enabled then \"Auto\" action on drop file onto Desktop folder will be:\n"
+"- for files directly in Home folder a symlink will be created\n"
+"- files on the same file system will be moved\n"
+"- other files (e.g. on removable media) will be copied\n"
+"- for some external URI a shortcut will be created"
+msgstr ""
+"Ако е активирано тогава „Автоматично“ действие при пускане на файл върху "
+"папка на Работния плот ще се отнася за:\n"
+"- директно създаване на символни връзки за файлове от Домашна папка\n"
+"- преместване на файлове от същата файлова система\n"
+"- копиране на други файлове (например, периферни устройства)\n"
+"- създаване на пряк път за външни Интернет адреси"
+
+#: ../data/ui/pref.glade.h:21
+msgid "_Unfold tab when files are dragged onto tab button"
+msgstr ""
+"_Разкриване на подпрозореца, когато файловете са плъзнати върху бутона му"
+
+#: ../data/ui/pref.glade.h:22
+msgid "_Focus previous folder after coming to its parent"
+msgstr "Ф_окусиране на родителската папка при връщане към нея"
+
+#: ../data/ui/pref.glade.h:23
+msgid "<b>Default View</b>"
+msgstr "<b>Изглед по подразбиране</b>"
+
+#: ../data/ui/pref.glade.h:24
+msgid "Vie_w Mode:"
+msgstr "_Изглед:"
+
+#: ../data/ui/pref.glade.h:25
+msgid "_General"
+msgstr "_Общи"
+
+#: ../data/ui/pref.glade.h:26
+msgid "<b>Icons</b>"
+msgstr "<b>Икони</b>"
+
+#: ../data/ui/pref.glade.h:27
+msgid "Size of _big icons:"
+msgstr "Размер на _големите икони:"
+
+#: ../data/ui/pref.glade.h:28
+msgid "Size of small _icons:"
+msgstr "Размер на _малките икони:"
+
+#: ../data/ui/pref.glade.h:29
+msgid "Size of _thumbnails:"
+msgstr "Размер на _миниатюрите:"
+
+#: ../data/ui/pref.glade.h:30
+msgid "Size of side _pane icons:"
+msgstr "Размер на иконите в _страничния панел:"
+
+#: ../data/ui/pref.glade.h:31
+msgid "_Show thumbnails of files"
+msgstr "Показвай м_иниатюри на файловете"
+
+#: ../data/ui/pref.glade.h:32
+msgid "_Only show thumbnails for local files"
+msgstr "Показвай ми_ниатюри само на локалните файлове"
+
+#: ../data/ui/pref.glade.h:33
+msgid "Do _not generate thumbnails for files exceeding this size:"
+msgstr "Да н_е се създават миниатюри за файлове над размер:"
+
+#: ../data/ui/pref.glade.h:34
+msgid "<b>User Interface</b>"
+msgstr "<b>Потребителски интерфейс</b>"
+
+#: ../data/ui/pref.glade.h:35
+msgid "Us_e SI decimal prefixes instead of IEC binary prefixes"
+msgstr "Използвай десетична представка (SI) вместо двоичните представки (IEC)"
+
+#: ../data/ui/pref.glade.h:36
+msgid "Treat backup files as _hidden"
+msgstr "Разполагане на резервните копия на файловете като _скрити"
+
+#: ../data/ui/pref.glade.h:37
+msgid "Al_ways show full file names"
+msgstr "_Винаги да се показва пълното име на файла"
+
+#: ../data/ui/pref.glade.h:38
+msgid "Show icons of hidden _files shadowed"
+msgstr "Показвай иконите на скритите _файлове като сенки"
+
+#: ../data/ui/pref.glade.h:39
+msgid "_Display"
+msgstr "_Показване"
+
+#: ../data/ui/pref.glade.h:40
+msgid "Hid_e 'Close tab' buttons"
+msgstr "Ск_рити бутони за затваряне на раздел"
+
+#: ../data/ui/pref.glade.h:41
+msgid "Al_ways show the tab bar"
+msgstr "_Винаги показвай поле за раздел"
+
+#: ../data/ui/pref.glade.h:42
+msgid "_Maximum width of tab label:"
+msgstr "_Максимална ширина за текста на подпрозореца:"
+
+#. Use genitive case here, context is: width is XXX characters
+#: ../data/ui/pref.glade.h:44
+msgid "characters"
+msgstr "знаци"
+
+#: ../data/ui/pref.glade.h:45
+msgid "<b>Directories Tree</b>"
+msgstr "<b>Дърво от директории</b>"
+
+#: ../data/ui/pref.glade.h:46
+msgid "Hide e_xpander on empty or locked folder"
+msgstr "Скрит _разширител за скрита или заключена папка"
+
+#: ../data/ui/pref.glade.h:47
+msgid "<b>Show in Places:</b>"
+msgstr "<b>Покажи в Места:</b>"
+
+#: ../data/ui/pref.glade.h:48
+msgid "_Home Folder"
+msgstr "_Домашна папка"
+
+#: ../data/ui/pref.glade.h:49
+msgid "Des_ktop"
+msgstr "Ра_ботен плот"
+
+#: ../data/ui/pref.glade.h:50 ../src/main-win-ui.c:238
+msgid "_Trash Can"
+msgstr "_Кош"
+
+#: ../data/ui/pref.glade.h:51
+msgid "_Filesystem Root"
+msgstr "_Корен на файлова система"
+
+#: ../data/ui/pref.glade.h:52
+msgid "App_lications"
+msgstr "П_риложения"
+
+#: ../data/ui/pref.glade.h:53 ../src/main-win-ui.c:241
+msgid "Dev_ices"
+msgstr "Устро_йства"
+
+#: ../data/ui/pref.glade.h:54
+msgid "_Network"
+msgstr "_Места в мрежата"
+
+#: ../data/ui/pref.glade.h:55
+msgid "_Layout"
+msgstr "_Подредба"
+
+#: ../data/ui/pref.glade.h:56
+msgid "<b>Auto-mount</b>"
+msgstr "<b>Автоматично монтиране</b>"
+
+#: ../data/ui/pref.glade.h:57
+msgid "_Mount mountable volumes automatically on program startup"
+msgstr "Автоматично _монтиране на дялове със стартиране на програма"
+
+#: ../data/ui/pref.glade.h:58
+msgid "Mo_unt removable media automatically when they are inserted"
+msgstr ""
+"Автоматично м_онтиране, когато е свързано устройство за преносима памет"
+
+#: ../data/ui/pref.glade.h:59
+msgid "_Show available options for removable media when they are inserted"
+msgstr ""
+"_Показване на наличните опции на устройство за преносима памет, когато е "
+"свързано"
+
+#: ../data/ui/pref.glade.h:60
+msgid "Do_n't show available options for those media types:"
+msgstr "Да _не се показват наличните опции за следните видове файлове:"
+
+#: ../data/ui/pref.glade.h:61
+msgid "_Remove selected"
+msgstr "П_ремахни избраното"
+
+#: ../data/ui/pref.glade.h:62
+msgid "_Open mounted removable media in new tab instead of new window"
+msgstr "_Отваряне на монтираното устройство за преносима памет в нов раздел"
+
+#: ../data/ui/pref.glade.h:63
+msgid "When removable medium unmounted:"
+msgstr "При размонтиране на преносим носител:"
+
+#: ../data/ui/pref.glade.h:64
+msgid "Clos_e tab containing removable medium"
+msgstr "_Затваряне на раздела със съдържанието на преносимата памет"
+
+#: ../data/ui/pref.glade.h:65
+msgid "Change folder in the tab to _Home Folder"
+msgstr "Смяна на папката в подопрозореца като _Домашна папка"
+
+#: ../data/ui/pref.glade.h:66
+msgid "_Volume Management"
+msgstr "_Управление на звука"
+
+#: ../data/ui/pref.glade.h:67
+msgid "<b>Programs</b>"
+msgstr "<b>Програми</b>"
+
+#: ../data/ui/pref.glade.h:68
+msgid "<i>Commands below may include extra options if necessary.</i>"
+msgstr ""
+"<i>Ако е необходимо, следните команди могат да включват допълнителни опции.</"
+"i>"
+
+#: ../data/ui/pref.glade.h:69
+msgid "_Terminal emulator:"
+msgstr "_Терминален емулатор:"
+
+#: ../data/ui/pref.glade.h:70
+msgid "_Switch user command:"
+msgstr "_Команда за смяна на потребител:"
+
+#. Application command to format some drive
+#: ../data/ui/pref.glade.h:72
+msgid "_Format command:"
+msgstr "Команда за _формат:"
+
+#: ../data/ui/pref.glade.h:73
+msgid "A_rchiver integration:"
+msgstr "Интеграция с _архиватор:"
+
+#: ../data/ui/pref.glade.h:74
+msgid "<b>Templates</b>"
+msgstr "<b>Шаблони</b>"
+
+#: ../data/ui/pref.glade.h:75
+msgid "S_how only user defined templates in menu"
+msgstr "_Само потребителски шаблони в менюто"
+
+#: ../data/ui/pref.glade.h:76
+msgid "Show _only one template for each MIME type"
+msgstr "Са_мо един шаблон за всеки вид MIME"
+
+#: ../data/ui/pref.glade.h:77
+msgid "Ru_n default application after creation from template"
+msgstr "Из_пълнение на приложението по подразбиране след създаване на шаблон "
+
+#: ../data/ui/pref.glade.h:78
+msgid "<b>Other Options</b>"
+msgstr "<b>Други опции</b>"
+
+#: ../data/ui/pref.glade.h:79
+msgid "Use Application Startup Notify _by default"
+msgstr "Стандартно _известяване при стартиране на приложение"
+
+#: ../data/ui/pref.glade.h:80
+msgid ""
+"If checked then use Startup Notify for application if another not stated "
+"explicitly.\n"
+"If unchecked then use Startup Notify only if that is defined for application."
+msgstr ""
+"Ако е избрано, ще се използва Известяване при стартиране на приложение, "
+"независимо дали е указано.\n"
+"Ако не е избрано, ще се използва Известяване при стартиране само ако е "
+"указано за приложението."
+
+#: ../data/ui/pref.glade.h:82
+msgid "D_efer test for content type on folder loading"
+msgstr "От_лагане на тест за вид на съдържанието при зареждане на папка"
+
+#: ../data/ui/pref.glade.h:83
+msgid "Use path for \"Home Folder\" button:"
+msgstr "Използване на път за бутона „Домашна папка“:"
+
+#: ../data/ui/pref.glade.h:86
+msgid "_Use current"
+msgstr "И_зползване на настоящите"
+
+#: ../data/ui/pref.glade.h:87
+msgid "_Advanced"
+msgstr "_Разширени"
+
+#: ../data/ui/pref.glade.h:88
+msgid "<b>_Do not load modules matching:</b>"
+msgstr "<b>_Да не се зареждат модули включващи:</b>"
+
+#: ../data/ui/pref.glade.h:89
+msgid "<b>_Load these modules anyway:</b>"
+msgstr "<b>Все пак да се _заредят следните модули:</b>"
+
+#: ../data/ui/pref.glade.h:90
+msgid "Modules"
+msgstr "Модули"
+
+#: ../data/ui/pref.glade.h:91
+msgid "Auto (move if on the same FS, copy otherwise)"
+msgstr ""
+"Автоматично (преместване, ако е на същата файлова система, в противен случай "
+"- копиране)"
+
+#: ../data/ui/pref.glade.h:92
+msgid "Copy"
+msgstr "Копирай"
+
+#: ../data/ui/pref.glade.h:93
+msgid "Move"
+msgstr "Премести"
+
+#: ../data/ui/pref.glade.h:94
+msgid "Ask"
+msgstr "Попитай"
+
+#: ../data/ui/pref.glade.h:95
+msgid "Icon view"
+msgstr "Изглед като икони"
+
+#: ../data/ui/pref.glade.h:96
+msgid "Compact view"
+msgstr "Стегнат изглед"
+
+#: ../data/ui/pref.glade.h:97
+msgid "Thumbnail view"
+msgstr "Изглед като миниатюри"
+
+#: ../data/ui/pref.glade.h:98
+msgid "Detailed list view"
+msgstr "Подробен изглед"
+
+#: ../data/ui/autorun.glade.h:1
+msgid "Removable medium is inserted"
+msgstr "Добавена е сменяема среда"
+
+#: ../data/ui/autorun.glade.h:2
+msgid "<b>Removable medium is inserted</b>"
+msgstr "<b>Добавена е сменяема среда</b>"
+
+#: ../data/ui/autorun.glade.h:3
+msgid "Type of medium:"
+msgstr "Вид на средата:"
+
+#: ../data/ui/autorun.glade.h:4
+msgid "Detecting..."
+msgstr "Разпознаване..."
+
+#: ../data/ui/autorun.glade.h:5
+msgid "Please select the action you want to perform:"
+msgstr "Моля зададете действието, което искате да изпълните:"
+
+#: ../data/ui/autorun.glade.h:6
+msgid "_Always perform this action on this media type"
+msgstr "_Винаги да се прилага това действие за този тип файл"
+
+#: ../data/ui/connect.glade.h:1
+msgid "Connect to remote server"
+msgstr "Свързване към отдалечен сървър"
+
+#: ../data/ui/connect.glade.h:2
+msgid "<b>Specify remote folder to connect</b>"
+msgstr "<b>Задайте отделечена папка, към която да се свържете</b>"
+
+#: ../data/ui/connect.glade.h:3
+msgid "_Type:"
+msgstr "Ви_д:"
+
+#: ../data/ui/connect.glade.h:4
+msgid "_Host:"
+msgstr "Д_омакин:"
+
+#: ../data/ui/connect.glade.h:5
+msgid "_Port:"
+msgstr "_Порт:"
+
+#: ../data/ui/connect.glade.h:6
+msgid "Pa_th:"
+msgstr "Пъте_ка:"
+
+#: ../data/ui/connect.glade.h:7
+msgid "_Anonymous login"
+msgstr "_Анонимно вписване"
+
+#: ../data/ui/connect.glade.h:8
+msgid "_Login as:"
+msgstr "_Вписване като:"
+
+#: ../data/ui/connect.glade.h:9
+msgid "SSH"
+msgstr "SSH"
+
+#: ../data/ui/connect.glade.h:10
+msgid "FTP"
+msgstr "FTP"
+
+#: ../data/ui/connect.glade.h:11
+msgid "WebDAV"
+msgstr "WebDAV"
+
+#: ../src/volume-manager.c:237
+msgid "mixed content"
+msgstr "смесено съдържание"
+
+#: ../src/volume-manager.c:246
+msgid "removable disk"
+msgstr "сменяем диск"
+
+#: ../src/volume-manager.c:302
+msgid "Open in File Manager"
+msgstr "Отваряне чрез файловия мениджър"
+
+#: ../src/desktop-ui.c:51
+msgid "Open in New Ta_b"
+msgstr "Отвори в нов _раздел"
+
+#: ../src/desktop-ui.c:52 ../src/tab-page.c:57
+msgid "Open in New Win_dow"
+msgstr "Отвори в нов _прозорец"
+
+#: ../src/desktop-ui.c:54 ../src/tab-page.c:59
+msgid "Open in Termina_l"
+msgstr "Отвори в _Терминал"
+
+#: ../src/desktop-ui.c:68
+msgid "_Remove from Desktop"
+msgstr "_Премахни от Работния плот"
+
+#: ../src/desktop-ui.c:85
+msgid "Stic_k to Current Position"
+msgstr "_Залепване до Текущата позиция"
+
+#: ../src/desktop-ui.c:90
+msgid "Snap to _Grid"
+msgstr "_Прикрепяне в Мрежа"
+
+#: ../src/desktop.c:974
+msgid "Activate file"
+msgstr "Активен файл"
+
+#: ../src/desktop.c:976
+msgid "Show file menu"
+msgstr "Показване на файлово меню"
+
+#: ../src/desktop.c:1394
+msgid "Show desktop menu"
+msgstr "Показване на меню на работния плот"
+
+#. FIXME: set name by monitor
+#: ../src/desktop.c:1466
+msgid "Desktop"
+msgstr "Работен плот"
+
+#: ../src/main-win-ui.c:189
+msgid "_File"
+msgstr "_Файл"
+
+#: ../src/main-win-ui.c:190
+msgid "_New Window"
+msgstr "_Нов прозорец"
+
+#: ../src/main-win-ui.c:190
+#, fuzzy
+msgid "Open new file manager window"
+msgstr "Отваряне чрез файловия мениджър"
+
+#: ../src/main-win-ui.c:191
+msgid "New T_ab"
+msgstr "Нов _Раздел"
+
+#: ../src/main-win-ui.c:191
+msgid "Create new tab for this folder"
+msgstr "Създай нов подпрозорец на тази папка"
+
+#: ../src/main-win-ui.c:192
+msgid "C_reate New..."
+msgstr "_Създаване на..."
+
+#: ../src/main-win-ui.c:193
+msgid "Folder"
+msgstr "Папка"
+
+#: ../src/main-win-ui.c:194
+msgid "Empty File"
+msgstr "Празен файл"
+
+#: ../src/main-win-ui.c:195
+msgid "Folder Propertie_s"
+msgstr "_Свойства на папката"
+
+#: ../src/main-win-ui.c:196
+msgid "_Close Tab"
+msgstr "_Затвори раздела"
+
+#: ../src/main-win-ui.c:197
+msgid "Close _Window"
+msgstr "З_атвори прозореца"
+
+#: ../src/main-win-ui.c:198
+msgid "_Edit"
+msgstr "_Редактиране"
+
+#: ../src/main-win-ui.c:200
+msgid "C_ut"
+msgstr "И_зрязване"
+
+#: ../src/main-win-ui.c:203
+msgid "Move to _Trash"
+msgstr "П_ремести в Коша"
+
+#: ../src/main-win-ui.c:205
+msgid "Copy Pat_h(s)"
+msgstr "Копирай п_ътя"
+
+#: ../src/main-win-ui.c:206
+msgid "R_ename..."
+msgstr "_Преименувай..."
+
+#: ../src/main-win-ui.c:207
+msgid "D_uplicate..."
+msgstr "К_лонирай..."
+
+#: ../src/main-win-ui.c:208
+msgid "Create Lin_k..."
+msgstr "Създай връ_зка..."
+
+#: ../src/main-win-ui.c:209
+msgid "_Move to..."
+msgstr "Пр_емести в..."
+
+#: ../src/main-win-ui.c:210
+msgid "Copy to_..."
+msgstr "_Копирай в..."
+
+#: ../src/main-win-ui.c:211
+msgid "Propertie_s"
+msgstr "Свой_ства"
+
+#: ../src/main-win-ui.c:213
+msgid "_Invert Selection"
+msgstr "_Размяна на маркираното"
+
+#: ../src/main-win-ui.c:214
+msgid "Prefere_nces"
+msgstr "_Предпочитания"
+
+#: ../src/main-win-ui.c:215
+msgid "_View"
+msgstr "_Изглед"
+
+#: ../src/main-win-ui.c:216
+msgid "_Reload Folder"
+msgstr "_Обновяване на папката"
+
+#: ../src/main-win-ui.c:216
+msgid "Reload current folder"
+msgstr "Обновяване на текущата папка"
+
+#: ../src/main-win-ui.c:217
+msgid "Tool_bar"
+msgstr "Лента с _инструменти"
+
+#: ../src/main-win-ui.c:218
+msgid "Pat_h Bar"
+msgstr "Лента с път_я"
+
+#: ../src/main-win-ui.c:219
+msgid "Side _Pane"
+msgstr "_Страничен панел"
+
+#. other see below: 'ShowHidden' 'ShowStatus' 'Fullscreen' 'IconView'...
+#: ../src/main-win-ui.c:221
+msgid "Fo_lder View Mode"
+msgstr "Режим на _изглед като папка"
+
+#: ../src/main-win-ui.c:222
+msgid "S_ort Files"
+msgstr "_Пренареждане на файлове"
+
+#: ../src/main-win-ui.c:224
+msgid "Zoom O_ut"
+msgstr "Нама_ляване"
+
+#: ../src/main-win-ui.c:227
+msgid "Fil_ter..."
+msgstr "Филтри_ране..."
+
+#: ../src/main-win-ui.c:229
+msgid "_Help"
+msgstr "_Помощ"
+
+#: ../src/main-win-ui.c:231
+msgid "_Keyboard Navigation"
+msgstr "_Управление от клавиатурата"
+
+#: ../src/main-win-ui.c:232
+msgid "_Go"
+msgstr "_Отиди до..."
+
+#: ../src/main-win-ui.c:233
+msgid "_Previous Folder"
+msgstr "_Предишна папка"
+
+#: ../src/main-win-ui.c:233
+msgid "Return to previous folder in history"
+msgstr "Връщане към предишната папка в историята"
+
+#: ../src/main-win-ui.c:234
+msgid "_Next Folder"
+msgstr "_Следваща папка"
+
+#: ../src/main-win-ui.c:234
+msgid "Go forward to next folder in history"
+msgstr "Отиване към следващата папка в историята"
+
+#: ../src/main-win-ui.c:235
+msgid "Pa_rent Folder"
+msgstr "Р_одителска папка"
+
+#: ../src/main-win-ui.c:235
+msgid "Go to parent Folder"
+msgstr "Връщане в родителската папка"
+
+#: ../src/main-win-ui.c:236
+msgid "H_ome Folder"
+msgstr "_Домашна папка"
+
+#: ../src/main-win-ui.c:236
+msgid "Go to home folder"
+msgstr "Отиване към домашната папка"
+
+#: ../src/main-win-ui.c:237
+msgid "_Desktop"
+msgstr "Работен _плот"
+
+#: ../src/main-win-ui.c:237
+msgid "Go to desktop folder"
+msgstr "Отиване към папката на работния плот"
+
+#: ../src/main-win-ui.c:238
+msgid "Open trash can"
+msgstr "Отвори Коша"
+
+#: ../src/main-win-ui.c:239
+msgid "Filesyste_m Root"
+msgstr "_Корен на файлова система"
+
+#: ../src/main-win-ui.c:239
+msgid "Go fo filesystem root"
+msgstr "Отиване в корена на файловата система"
+
+#: ../src/main-win-ui.c:240
+msgid "_Applications"
+msgstr "_Приложения"
+
+#: ../src/main-win-ui.c:240
+msgid "Go to root of applications menu folder"
+msgstr "Отиване към папка в менюто корен на приложенията"
+
+#: ../src/main-win-ui.c:241
+msgid "Go to list of devices connected to the computer"
+msgstr "Отиване към списъка с устройства свързани към компютъра"
+
+#: ../src/main-win-ui.c:242
+msgid "Net_work"
+msgstr "М_режа"
+
+#: ../src/main-win-ui.c:242
+msgid "Go to list of places on the network"
+msgstr "Отиване към списъка с места в мрежата"
+
+#: ../src/main-win-ui.c:243
+msgid "_Go to Location..."
+msgstr "_Отиване до местоположение..."
+
+#: ../src/main-win-ui.c:244
+msgid "_Connect to Server..."
+msgstr "_Свързване към сървър..."
+
+#: ../src/main-win-ui.c:244
+msgid "Open a window to choose remote folder location"
+msgstr "Отваряне на прозорец за избор на местоположение на отдалечена папка"
+
+#: ../src/main-win-ui.c:245
+msgid "Go to the path in the location bar"
+msgstr "Отиване до пътя в лентата с местоположение"
+
+#: ../src/main-win-ui.c:246
+msgid "_Bookmarks"
+msgstr "_Отметки"
+
+#: ../src/main-win-ui.c:247
+msgid "_Add to Bookmarks..."
+msgstr "_Добави в Отметки"
+
+#: ../src/main-win-ui.c:247
+msgid "Add current folder to bookmarks list"
+msgstr "Добавяне на настоящата папка към списъка с отметки"
+
+#: ../src/main-win-ui.c:248
+msgid "Too_ls"
+msgstr "Инст_рументи"
+
+#: ../src/main-win-ui.c:249
+msgid "Open Current Folder in _Terminal"
+msgstr "Отвори текущата папка в _Терминал"
+
+#: ../src/main-win-ui.c:251
+msgid "Fin_d Files..."
+msgstr "_Намиране на файлове..."
+
+#: ../src/main-win-ui.c:251
+msgid "Open search dialog"
+msgstr "Отвори прозорец за търсене"
+
+#: ../src/main-win-ui.c:254
+msgid "_Run a Command in Current Folder..."
+msgstr "Из_пълняване на команда в текущата папка..."
+
+#. Note to translators: "Mingle..." means "Do not put folders before files" but make the translation as short as possible, please!
+#: ../src/main-win-ui.c:271
+msgid "Mingle _Files and Folders"
+msgstr "Смесване на _файлове и папки"
+
+#: ../src/main-win-ui.c:274
+msgid "_Ignore Name Case"
+msgstr "Пр_енебрегване на главни и малки букви"
+
+#: ../src/main-win-ui.c:276
+msgid "Sho_w Hidden"
+msgstr "Показване на с_критите"
+
+#. Note to translators: this save is meant for folder's settings such as sort
+#: ../src/main-win-ui.c:278
+msgid "Preserve This Folder's Settings"
+msgstr "Запази настройките за тази папка"
+
+#: ../src/main-win-ui.c:279
+msgid ""
+"Check to remember view and sort as folder setting rather than global one"
+msgstr ""
+"Изберете, за да се запомни изгледа и сортирането за всяка папка индивидуално"
+
+#: ../src/main-win-ui.c:281
+msgid "_Show Toolbar"
+msgstr "По_кажи лента с инструменти"
+
+#: ../src/main-win-ui.c:282
+msgid "Show 'New _Window' Button"
+msgstr "Показвай бутон за „_Нов прозорец“"
+
+#: ../src/main-win-ui.c:283
+msgid "Show 'New _Tab' Button"
+msgstr "Показвай бутон за „Нов _раздел“"
+
+#: ../src/main-win-ui.c:284
+msgid "Show _Navigation Buttons"
+msgstr "Показвай бутони за на_вигация"
+
+#: ../src/main-win-ui.c:285
+msgid "Show '_Home' Button"
+msgstr "Показвай бутон за „_Домашна папка“"
+
+#: ../src/main-win-ui.c:286
+msgid "Sho_w Side Pane"
+msgstr "Показване на с_траничен панел"
+
+#: ../src/main-win-ui.c:287
+msgid "Show Status B_ar"
+msgstr "Показване на полето за с_ъстоянието"
+
+#: ../src/main-win-ui.c:288
+msgid "_Dual Pane Mode"
+msgstr "Режим на двоен _панел"
+
+#: ../src/main-win-ui.c:288
+msgid "Show two panels with folder views"
+msgstr "Показване на два панела с изглед като папки"
+
+#: ../src/main-win-ui.c:289
+msgid "Fullscreen _Mode"
+msgstr "Режим на цял _екран"
+
+#: ../src/main-win-ui.c:295
+msgid "_Icon View"
+msgstr "_Иконен преглед"
+
+#: ../src/main-win-ui.c:296
+msgid "_Compact View"
+msgstr "_Компактен преглед"
+
+#: ../src/main-win-ui.c:297
+msgid "_Thumbnail View"
+msgstr "Преглед с _миниатюри"
+
+#: ../src/main-win-ui.c:298
+msgid "Detailed _List View"
+msgstr "_Подробен списък"
+
+#: ../src/main-win-ui.c:311 ../src/main-win-ui.c:319
+msgid "By _Name"
+msgstr "По _Име"
+
+#: ../src/main-win-ui.c:312 ../src/main-win-ui.c:320
+msgid "By _Modification Time"
+msgstr "По _Последна редакция"
+
+#: ../src/main-win-ui.c:313 ../src/main-win-ui.c:321
+msgid "By _Size"
+msgstr "По _Размер"
+
+#: ../src/main-win-ui.c:314 ../src/main-win-ui.c:322
+msgid "By File _Type"
+msgstr "По _Тип"
+
+#: ../src/main-win-ui.c:316
+msgid "By _Extension"
+msgstr "По _разширение"
+
+#: ../src/main-win-ui.c:329
+msgid "Places"
+msgstr "Места"
+
+#: ../src/main-win-ui.c:330
+msgid "Directory Tree"
+msgstr "Дърво от директории"
+
+#: ../src/main-win-ui.c:331
+msgid "Remote"
+msgstr "Отдалеченост"
+
+#: ../src/main-win-ui.c:337
+msgid "_Location"
+msgstr "М_естоположение:"
+
+#: ../src/main-win-ui.c:338
+msgid "_Buttons"
+msgstr "_Бутони"
+
+#: ../src/main-win.c:938 ../src/main-win.c:942
+msgid "Show history of visited folders"
+msgstr "Показване на история с посещаваните папки"
+
+#: ../src/main-win.c:947
+msgid "History"
+msgstr "История"
+
+#: ../src/main-win.c:961
+msgid "You are in super user mode"
+msgstr "Вие сте в режим Супер Потребител"
+
+#: ../src/main-win.c:1146
+msgid "Lightweight file manager\n"
+msgstr "Лек файлов мениждър\n"
+
+#: ../src/main-win.c:1156
+#, c-format
+msgid "using LibFM ver. %s\n"
+msgstr "използва се LibFM вер. %s\n"
+
+#: ../src/main-win.c:1158
+msgid ""
+"\n"
+"Developed by Hon Jen Yee (PCMan)"
+msgstr ""
+"\n"
+"Разбработен от Hon Jen Yee (PCMan)"
+
+#: ../src/main-win.c:1183 ../src/main-win.c:1191
+msgid "Keyboard Navigation"
+msgstr "Управление от клавиатурата"
+
+#: ../src/main-win.c:1185
+msgid ""
+"Tab: cycle focus Folder View -> Side Pane -> Tools Bar\n"
+"Shift+Tab: cycle focus Tools Bar -> Side Pane -> Folder View\n"
+"F6: change focus Side pane <-> Folder view\n"
+"F8: focus divider between Side pane and Folder view\n"
+"F10: activate main menu\n"
+"Ctrl+L or Alt+D: jump focus to Path Bar"
+msgstr ""
+"Tab: превърта в последователност - Изглед -> Страничен панел -> Лента с "
+"инструменти\n"
+"Shift+Tab: превърта в последователност - Лента с инструменти -> Страничен "
+"панел -> Изглед\n"
+"F6: променя фокуса Страничен панел <-> Изглед\n"
+"F8: променя фокуса между Страничен панел и Изглед\n"
+"F10: активира основното меню\n"
+"Ctrl+L или Alt+D: фокусира в адресната лента "
+
+#: ../src/main-win.c:1227
+msgid "Run a command"
+msgstr "Изпълняване на команда"
+
+#: ../src/main-win.c:1228
+msgid "Enter a command to run:"
+msgstr "Въведете команда за изпълнение:"
+
+#: ../src/main-win.c:1235
+msgid "Current folder is inaccessible"
+msgstr "Текущата папка е недостъпна"
+
+#: ../src/main-win.c:1837
+#, c-format
+msgid ""
+"Add following folder to bookmarks:\n"
+"'%s'\n"
+"Enter a name for the new bookmark item:"
+msgstr ""
+"Добави папката в Отметки:\n"
+"%s'\n"
+"Име на новата Отметка:"
+
+#: ../src/main-win.c:1841
+msgid "Add to Bookmarks"
+msgstr "Добави в Отметки"
+
+#: ../src/main-win.c:2587
+msgid "Select filter"
+msgstr "Изберете папка"
+
+#: ../src/main-win.c:2588
+msgid "Choose a new shell pattern to show files:"
+msgstr "Изберете нов критерий на обвивката за показване на файловете:"
+
+#. options only acceptable by first pcmanfm instance. These options are not passed through IPC
+#: ../src/pcmanfm.c:78
+msgid "Name of configuration profile"
+msgstr "Име на профила за конфигуриране"
+
+#: ../src/pcmanfm.c:78
+msgid "PROFILE"
+msgstr "ПРОФИЛ"
+
+#: ../src/pcmanfm.c:79
+msgid "Run PCManFM as a daemon"
+msgstr "Стартирай PCManFM като демон"
+
+#: ../src/pcmanfm.c:80
+msgid "No function. Just to be compatible with nautilus"
+msgstr "Няма функции. Използва се за съвместимост с nautilus"
+
+#. options that are acceptable for every instance of pcmanfm and will be passed through IPC.
+#: ../src/pcmanfm.c:83
+msgid "Launch desktop manager"
+msgstr "Стартирай Мениджър на Работния плот"
+
+#: ../src/pcmanfm.c:84
+msgid "Turn off desktop manager if it's running"
+msgstr "Спри Мениджъра на Работния плот, ако е активен"
+
+#: ../src/pcmanfm.c:85
+msgid "Open desktop preference dialog"
+msgstr "Отвори прозорец с настройки за Работния плот"
+
+#: ../src/pcmanfm.c:86
+msgid "Use --desktop option only for one screen"
+msgstr "Използвайте опцията --desktop само за един екран"
+
+#: ../src/pcmanfm.c:87
+msgid "Set desktop wallpaper from image FILE"
+msgstr "Задай тапет на Работния плот от ФАЙЛ"
+
+#: ../src/pcmanfm.c:87
+msgid "FILE"
+msgstr "ФАЙЛ"
+
+#. don't translate list of modes in description, please
+#: ../src/pcmanfm.c:89
+msgid ""
+"Set mode of desktop wallpaper. MODE=(color|stretch|fit|crop|center|tile|"
+"screen)"
+msgstr "Задай режим на тапета.MODE=(color|strech|fit|center|title)"
+
+#: ../src/pcmanfm.c:89
+msgid "MODE"
+msgstr "РЕЖИМ"
+
+#: ../src/pcmanfm.c:90
+msgid "Open Preferences dialog on the page N"
+msgstr "Отвори прозореца с предпочитанията на страница №"
+
+#: ../src/pcmanfm.c:90
+msgid "N"
+msgstr "№"
+
+#: ../src/pcmanfm.c:91
+msgid "Open new window"
+msgstr "Отвори нов прозорец"
+
+#: ../src/pcmanfm.c:93
+msgid "Open a Find Files window"
+msgstr "Отвори прозореца за търсене на файлове"
+
+#: ../src/pcmanfm.c:95
+msgid "Window role for usage by window manager"
+msgstr "Правило, прилагано от мениджъра на прозорци"
+
+#: ../src/pcmanfm.c:95
+msgid "ROLE"
+msgstr "ПРАВИЛО"
+
+#: ../src/pcmanfm.c:96
+msgid "[FILE1, FILE2,...]"
+msgstr "[ФАЙЛ1, ФАЙЛ2,...]"
+
+#. FIXME: add "on this X screen/monitor" into diagnostics
+#: ../src/pcmanfm.c:376
+msgid "Desktop manager is not active."
+msgstr "Мениджърът на работния плот е неактивен."
+
+#: ../src/pcmanfm.c:627
+msgid "Terminal emulator is not set."
+msgstr "Не е зададен Терминален емулатор."
+
+#: ../src/tab-page.c:56
+msgid "Open in New T_ab"
+msgstr "Отвори в нов _раздел"
+
+#: ../src/tab-page.c:411
+#, c-format
+msgid "%d item selected"
+msgid_plural "%d items selected"
+msgstr[0] "%d маркиран елемент"
+msgstr[1] "%d маркирани елемента"
+
+#: ../src/tab-page.c:741
+#, c-format
+msgid "Free space: %s (Total: %s)"
+msgstr "Свободно място: %s (Всичко: %s)"
+
+#: ../src/tab-page.c:761
+#, c-format
+msgid "%d item"
+msgid_plural "%d items"
+msgstr[0] "%d елемент"
+msgstr[1] "%d елемента"
+
+#: ../src/tab-page.c:762
+#, c-format
+msgid " (%d hidden)"
+msgid_plural " (%d hidden)"
+msgstr[0] "(%d скрит)"
+msgstr[1] "(%d скрити)"
+
+#: ../src/pref.c:515
+msgid "Add to Modules Blacklist"
+msgstr "Добави в черния списък с модули"
+
+#: ../src/pref.c:516
+msgid "Enter a blacklisted module mask:"
+msgstr "Въведете маска за модулите в черния списък:"
+
+#: ../src/pref.c:607
+msgid "Add to Modules Whitelist"
+msgstr "Добави в белия списък с модули"
+
+#: ../src/pref.c:608
+msgid "Enter a whitelisted module mask:"
+msgstr "Въведете маска за модулите в белия списък:"
+
+#: ../data/pcmanfm.desktop.in.h:1
+msgid "File Manager PCManFM"
+msgstr "Файлов мениджър PCManFM"
+
+#: ../data/pcmanfm.desktop.in.h:2
+msgid "File Manager"
+msgstr "Файлов мениджър"
+
+#: ../data/pcmanfm.desktop.in.h:3
+msgid "Browse the file system and manage the files"
+msgstr "Разглеждане на файловата система и управляване на файловете"
+
+#: ../data/pcmanfm-desktop-pref.desktop.in.h:2
+msgid "Change desktop wallpapers and behavior of desktop manager"
+msgstr "Промяна на тапетите и поведението на мениджъра на работния плот"
+
+#~ msgid "Center on the screen"
+#~ msgstr "В центъра на екрана"
+
+#~ msgid "Opened in New Tab"
+#~ msgstr "Отворени в Нов Раздел"
+
+#~ msgid "Create Symlin_k"
+#~ msgstr "_Създаване на Символен линк"
+
+#~ msgid "Switch user command is not set."
+#~ msgstr "Не е зададена команда запревключване на потребител."
+
+#~ msgid "Show \"_My Computer\" icon on desktop"
+#~ msgstr "Пока_звай \"Моят компютър\" на работния плот"
+
+#~ msgid "\"C_omputer\" special folder"
+#~ msgstr "Специална папка „К_омпютър“"
+
+#~ msgid "Des_ktop Folder"
+#~ msgstr "_Папка на работния плот"
+
+#~ msgid "_Home Directory"
+#~ msgstr "_Домашна директория"
+
+#~ msgid "_Trash can"
+#~ msgstr "_Кош"
+
+#~ msgid "_Computer Drives"
+#~ msgstr "Комп_ютърни устройства"
+
+#~ msgid "Open folder entered in location entry"
+#~ msgstr "Отвори папка, въведена в записа за местоположение"
+
+#~ msgid "_Add To Bookmarks"
+#~ msgstr "_Добави в Отметки"
+
+#~ msgid "Open Current Folder as _Root"
+#~ msgstr "Отвори текущата папка като _Администратор"
+
+#~ msgid "Hide _folder content border"
+#~ msgstr "_Скрита рамка за съдържанието на папката"
+
+#~ msgid "Hide _side pane buttons"
+#~ msgstr "С_крити бутони от страничния панел"
+
+#~ msgid "_Trash bin"
+#~ msgstr "_Кош"
+
+#~ msgid ""
+#~ "Examples: \"xterm -e %s\" for terminal or \"gksu %s\" for switching "
+#~ "user.\n"
+#~ "%s = the command line you want to execute with terminal or su."
+#~ msgstr ""
+#~ "Примери: \"xterm -e %s\" за терминала или \"gksu %s\" за смяна на "
+#~ "потребител.\n"
+#~ "%s = командата, която искате да изпълните с терминал или su."
+
+#~ msgid "Previous Folder"
+#~ msgstr "Предишна папка"
+
+#~ msgid "Next Folder"
+#~ msgstr "Следваща папка"
+
+#~ msgid "_My Computer"
+#~ msgstr "_Моят компютър"
+
+#~ msgid "Installed Applications"
+#~ msgstr "Инсталирани приложения"
+
+#~ msgid "Open entered folder"
+#~ msgstr "Отвори въведената папка"
+
+#~ msgid "Blank File"
+#~ msgstr "Празен файл"
+
+#~ msgid "Invert Selection"
+#~ msgstr "Обръщане на селекцията"
+
+#~ msgid "<mode>"
+#~ msgstr "<mode>"
+
+#~ msgid ""
+#~ "Open preference dialog. 'n' is number of the page you want to show (1, 2, "
+#~ "3...)."
+#~ msgstr ""
+#~ "Отваря прозорец с настройките. 'n' е номера на страницата,\n"
+#~ "която искате да видите. (1, 2, 3...)."
+
+#~ msgid "Enter a name for the newly created folder:"
+#~ msgstr "Име на новосъздадената папка:"
+
+#~ msgid "Enter a name for the newly created file:"
+#~ msgstr "Име на новосъздадения файл:"
+
+#~ msgid "New"
+#~ msgstr "Нов"
+
+#~ msgid "_New"
+#~ msgstr "_Ново"
+
+#~ msgid ""
+#~ "Open folders in new tabs of the last used window instead of creating new "
+#~ "windows"
+#~ msgstr ""
+#~ "Отвори папките в нови раздели на последно използвания прозорец,\n"
+#~ "а не в нови прозорци"

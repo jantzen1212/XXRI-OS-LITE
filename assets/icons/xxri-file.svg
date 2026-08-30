@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- XXRI File application icon.
+       Traced from the dock in assets/mockup/mockup3.jpg: an amber folder with
+       a cream tab and a muted handle, on the warm gradient squircle every
+       XXRI dock icon uses. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"    stop-color="#F3C64B"/>
+      <stop offset="0.55" stop-color="#EFBE72"/>
+      <stop offset="1"    stop-color="#E6B3A6"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0.6" y2="1">
+      <stop offset="0" stop-color="#FFC61A"/>
+      <stop offset="1" stop-color="#E8A20B"/>
+    </linearGradient>
+    <linearGradient id="tab" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFFBEF"/>
+      <stop offset="1" stop-color="#FBEFD2"/>
+    </linearGradient>
+    <linearGradient id="grip" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8E86AE"/>
+      <stop offset="1" stop-color="#B9A6A0"/>
+    </linearGradient>
+  </defs>
+  <!-- squircle plate -->
+  <path fill="url(#bg)" d="M32 2c22 0 30 8 30 30s-8 30-30 30S2 54 2 32 10 2 32 2z"/>
+  <!-- folder back + tab -->
+  <path fill="url(#tab)" d="M15 21a4 4 0 0 1 4-4h11l4 5h11a4 4 0 0 1 4 4v3H15z"/>
+  <!-- folder front -->
+  <path fill="url(#body)" d="M15 26h34a0 0 0 0 1 0 0v16a4 4 0 0 1-4 4H19a4 4 0 0 1-4-4V26z"/>
+  <!-- handle -->
+  <rect x="26" y="38" width="12" height="8" rx="2.6" fill="url(#grip)"/>
+</svg>
