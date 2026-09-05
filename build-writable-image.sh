@@ -152,6 +152,23 @@ if [ -d "\$CADIR" ]; then
 	find "\$CADIR" -name '*.crt' -exec cat {} + > "\$STAGE/usr/local/etc/ssl/certs/ca-certificates.crt" 2>/dev/null
 	ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt "\$STAGE/usr/local/etc/ssl/cacert.pem"
 	ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt "\$STAGE/usr/local/etc/ssl/ca-bundle.crt"
+	# OpenSSL's own default verify paths are cert.pem (a file) and hashed
+	# links in certs/ - a bundle *named* ca-certificates.crt inside certs/ is
+	# found by neither, so anything using SSL_CTX_set_default_verify_paths
+	# (Qt's network stack, curl built against OpenSSL, python-ssl) had no
+	# trust store at all while wget, which is told the path explicitly,
+	# worked.  cert.pem is the name OpenSSL looks for.
+	ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt "\$STAGE/usr/local/etc/ssl/cert.pem"
+	# Qt's network stack does not look under /usr/local at all: it scans
+	# /etc/ssl/certs/, /etc/ssl/, /usr/lib/ssl/certs/ and
+	# /etc/pki/tls/certs/ca-bundle.crt, and nothing else.  With none of
+	# those present every Qt HTTPS request failed to verify while wget - to
+	# which the bundle path is given explicitly - worked, which made the
+	# problem look like a network fault rather than a missing trust store.
+	mkdir -p "\$STAGE/etc/ssl/certs"
+	cp -f "\$STAGE/usr/local/etc/ssl/certs/ca-certificates.crt" \
+	      "\$STAGE/etc/ssl/certs/ca-certificates.crt"
+	ln -sf /etc/ssl/certs/ca-certificates.crt "\$STAGE/etc/ssl/cert.pem"
 	echo "   CA bundle: \$(grep -c 'BEGIN CERTIFICATE' "\$STAGE/usr/local/etc/ssl/certs/ca-certificates.crt" 2>/dev/null) certificates"
 fi
 

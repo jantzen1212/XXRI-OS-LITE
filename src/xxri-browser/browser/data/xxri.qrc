@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/xxri">
+        <file alias="logo.png">xxri/logo.png</file>
+        <file alias="appicon.png">xxri/appicon.png</file>
+        <file alias="browser.svg">xxri/browser.svg</file>
+    </qresource>
+</RCC>

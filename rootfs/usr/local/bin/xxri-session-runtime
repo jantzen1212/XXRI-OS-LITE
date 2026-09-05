@@ -67,3 +67,25 @@ export LIBGL_ALWAYS_SOFTWARE=1
 export GALLIUM_DRIVER=llvmpipe
 # no icon theme is installed on this device - stop toolkits hunting for one
 export GTK_OVERLAY_SCROLLING=0
+
+# Qt / XXRI Browser.
+#
+# The browser is the only Qt application in XXRI and it ships as its own
+# extension, so nothing else has established these paths.  Qt WebEngine will
+# not start at all without them: it looks for its .pak resources, its locale
+# catalogue and its own render-process helper by absolute path, and reports
+# only "Could not find QtWebEngineProcess" when any of them is wrong.
+export QT_QPA_PLATFORM=xcb
+export QT_PLUGIN_PATH=/usr/local/lib/qt5/plugins
+export QT_QPA_PLATFORM_PLUGIN_PATH=/usr/local/lib/qt5/plugins/platforms
+export QTWEBENGINEPROCESS_PATH=/usr/local/libexec/QtWebEngineProcess
+export QTWEBENGINE_RESOURCES_PATH=/usr/local/share/qt5/resources
+export QTWEBENGINE_LOCALES_PATH=/usr/local/share/qt5/qtwebengine_locales
+# This machine has no GPU and no sandbox namespaces of its own: Chromium's
+# zygote sandbox needs user namespaces the Tiny Core kernel does not grant to
+# an unprivileged process, and there is no GL driver behind llvmpipe worth the
+# extra process.  Both are the same choices the desktop already makes for GTK.
+export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --disable-gpu --disable-dev-shm-usage"
+# Qt's own colours, so the browser's dialogs match the rest of the desktop.
+export QT_QPA_PLATFORMTHEME=gtk3
+export QT_STYLE_OVERRIDE=Fusion

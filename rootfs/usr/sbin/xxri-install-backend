@@ -202,6 +202,40 @@ configure_system() {
 	else
 		echo "127.0.0.1    $H localhost" >> "$MNT/etc/hosts"
 	fi
+	# The live medium's own bookkeeping must not travel to the installed
+	# disk: /etc/sysconfig/cde still points at /mnt/sr0/cde/optional, which
+	# is the CD that will not be there after the install.  The installed
+	# system loads its extensions from /tce.
+	rm -f "$MNT/etc/sysconfig/cde"
+	echo "/tce" > "$MNT/etc/sysconfig/tcedir"
+
+	# TLS trust store.  ca-certificates.tcz normally assembles this in its
+	# tce.installed script, which never runs in this flow, so an installed
+	# system had no CA bundle anywhere and every HTTPS client that consults
+	# the system trust store failed - wget, the Store's downloads, and Qt's
+	# network stack (which is why site icons stayed blank in the browser).
+	# Written to all four locations that matter: OpenSSL's default verify
+	# paths are cert.pem and certs/, and Qt looks only under /etc/ssl.
+	say 85 "Installing the TLS trust store"
+	CADIR="$MNT/usr/local/share/ca-certificates"
+	if [ -d "$CADIR" ]; then
+		mkdir -p "$MNT/usr/local/etc/ssl/certs" "$MNT/etc/ssl/certs"
+		find "$CADIR" -name '*.crt' -exec cat {} + \
+			> "$MNT/usr/local/etc/ssl/certs/ca-certificates.crt" 2>/dev/null
+		cp -f "$MNT/usr/local/etc/ssl/certs/ca-certificates.crt" \
+		      "$MNT/etc/ssl/certs/ca-certificates.crt" 2>/dev/null
+		ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt \
+		       "$MNT/usr/local/etc/ssl/cert.pem"
+		ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt \
+		       "$MNT/usr/local/etc/ssl/cacert.pem"
+		ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt \
+		       "$MNT/usr/local/etc/ssl/ca-bundle.crt"
+		ln -sf /etc/ssl/certs/ca-certificates.crt "$MNT/etc/ssl/cert.pem"
+		log "CA bundle: $(grep -c 'BEGIN CERTIFICATE' \
+			"$MNT/usr/local/etc/ssl/certs/ca-certificates.crt" 2>/dev/null) certificates"
+	else
+		log "no ca-certificates source on the target - HTTPS clients will not verify"
+	fi
 	[ -n "$TZSTR" ]    && echo "TZ=$TZSTR" > "$MNT/etc/sysconfig/timezone"
 	[ -n "$LANGUAGE" ] && echo "LANG=$LANGUAGE" > "$MNT/etc/sysconfig/language"
 	[ -n "$KEYMAP" ]   && echo "KEYMAP=$KEYMAP" > "$MNT/etc/sysconfig/keymap"
@@ -235,6 +269,20 @@ install_bootloader() { # $1 partition, $2 disk, $3 partnum
 	cp -f /usr/local/share/syslinux/menu.c32 \
 	      /usr/local/share/syslinux/libutil.c32 \
 	      /usr/local/share/syslinux/libcom32.c32 "$MNT/boot/extlinux/"
+	# The installed system must boot with the same codes the ISO uses, not a
+	# bare loglevel.  Each one does something the desktop depends on:
+	#   vga=791                     the vesafb console the boot splash draws
+	#                               into - without it xxri-bootsplash starts,
+	#                               finds no framebuffer and shows nothing, so
+	#                               a freshly installed machine boots to raw
+	#                               kernel text where the live ISO shows the
+	#                               animation
+	#   quiet                       keeps driver chatter off that splash
+	#   vt.global_cursor_default=0  no blinking cursor over it
+	#   consoleblank=0              the console must not blank mid-boot
+	# `cde` is deliberately NOT carried over: it belongs to the live medium,
+	# and an installed system loads its extensions from /tce.
+	XXRI_APPEND="quiet loglevel=3 vga=791 vt.global_cursor_default=0 consoleblank=0"
 	cat > "$MNT/boot/extlinux/extlinux.conf" <<EOF
 DEFAULT xxri
 UI menu.c32
@@ -257,7 +305,7 @@ LABEL xxri
 MENU LABEL xxri OS Lite
 KERNEL /boot/vmlinuz
 INITRD /boot/core.gz
-APPEND loglevel=3
+APPEND $XXRI_APPEND
 
 LABEL xxri-verbose
 MENU LABEL xxri OS Lite (verbose boot)

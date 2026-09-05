@@ -4,7 +4,7 @@
 
 #### ⚡ Key Features:
 
-* Super lightweight ISO (263MB)
+* Lightweight ISO (239MB, including a full web browser)
 * Fast boot and low memory footprint
 * Clean, minimal user interface
 * Pre-installed basic tools: file manager, text editor, terminal, and more
@@ -14,7 +14,7 @@
 
 * **CPU:** Intel Pentium II / AMD K6-2 or newer (32-bit)
 * **RAM:** 256 MB minimum
-* **Storage:** 400 MB free disk space 
+* **Storage:** 700 MB free disk space
 
 #### 📁 XXRI File
 
@@ -25,6 +25,18 @@ pill, and system directories (`/proc`, `/sys`, `/dev`) kept out of ordinary
 listings.
 
 Source, build instructions and the full list of changes: [`src/xxri-file/`](src/xxri-file/).
+
+#### 🌐 XXRI Browser
+
+The bundled web browser is **XXRI Browser** — a source-level fork of Qt
+WebEngine's Simple Browser, running on Qt WebEngine 5.15.10 / Chromium 87 built
+for i686. It replaces the stock menu bar, tool bar and title bar with the XXRI
+shell: a translucent sidebar carrying the shared `◀ ■ ●` window chrome, the XXRI
+wordmark, shortcut tiles, bookmarks and history, and a slim tool bar with a
+centred address pill. HTTPS certificate validation, JavaScript, HTML5 video and
+audio all work.
+
+Source, build instructions and the measured layout: [`src/xxri-browser/`](src/xxri-browser/).
 
 **Website:** xxri.flows.best
 **Maintained by:** xxri OS Team
