@@ -155,7 +155,16 @@ cmd_init() {
 	if [ -f "$STATE" ]; then
 		cmd_restore >/dev/null
 	else
-		amixer -q -c "$want" set "$(CARD=$want mixer_ctl)" "70%" unmute 2>/dev/null
+		# Open EVERY control on the playback path, not just the first one
+		# mixer_ctl() happens to find.  On AC97/ICH - which is what a VM and
+		# most pre-2010 machines expose - 'Master' and 'PCM' are in series,
+		# and the card powers up with PCM muted at 0%.  Setting only 'Master'
+		# leaves a mixer that reads 70% and unmuted while the card plays
+		# nothing at all.
+		for m in Master PCM Speaker Headphone Front Wave "Master Mono"; do
+			amixer -c "$want" get "$m" >/dev/null 2>&1 || continue
+			amixer -q -c "$want" set "$m" "70%" unmute 2>/dev/null
+		done
 		cmd_save >/dev/null
 	fi
 	echo "audio initialised (default card ${want:-none})"

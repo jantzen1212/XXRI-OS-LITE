@@ -132,10 +132,18 @@ fi
 
 # Start Udev to populate /dev and handle hotplug events
 echo -n "${BLUE}Starting udev daemon for hotplug support...${NORMAL}"
-#/sbin/udevd --daemon 2>/dev/null >/dev/null
-/sbin/udevd --daemon 2>&1 >/dev/null
-#/sbin/udevadm trigger --action=add 2>/dev/null >/dev/null &
-/sbin/udevadm trigger --action=add 2>&1 >/dev/null &
+# NOTE on the redirection: `2>&1 >/dev/null` points stderr at the *console*
+# (it duplicates the current stdout, and only then is stdout silenced), so
+# every udev complaint was printed over the boot screen.  udev's first trigger
+# necessarily runs before the extensions are loop-mounted, so rules that call
+# helpers those extensions provide - /lib/udev/libinput-device-group, and the
+# libwacom rule that wants a `hwdb` builtin this udev has no support for -
+# cannot succeed yet and say so, once per input device.  They are re-run
+# correctly further down (`udevadm control --reload-rules` and a second
+# trigger) once the extensions are in place, so this is transient noise, not a
+# failure: it is silenced here rather than left to scroll over a fresh install.
+/sbin/udevd --daemon >/dev/null 2>&1
+/sbin/udevadm trigger --action=add >/dev/null 2>&1 &
 rotdash $!
 echo "${GREEN} Done.${NORMAL}"
 

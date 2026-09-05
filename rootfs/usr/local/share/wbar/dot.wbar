@@ -32,6 +32,9 @@ c: exec /usr/local/bin/xxri-dock-launch xxri-settings /usr/local/bin/xxri-settin
 i: /usr/local/share/pixmaps/aterm.png
 t: Terminal
 c: exec /usr/local/bin/xxri-dock-launch +aterm /usr/local/bin/aterm
+i: /usr/local/share/pixmaps/xxri-browser.png
+t: Browser
+c: exec /usr/local/bin/xxri-dock-launch xxri-browser /usr/local/bin/xxri-browser
 # The editor is Tiny Core's FLTK one and calls itself WM_CLASS "FLTK" rather
 # than "editor", so that is what its indicator is keyed on.  It is prefixed
 # with + (always open a new window) because "FLTK" is a class other FLTK
