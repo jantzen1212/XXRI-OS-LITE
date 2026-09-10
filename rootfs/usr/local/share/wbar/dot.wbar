@@ -1,12 +1,19 @@
-# xxri OS Lite dock - authoritative launcher list (Phase 10.2).
-# NOTE: comments here must never contain the dock-parser tokens, because
-# wbar.sh feeds this file through a string replacement that would otherwise
-# turn a comment into a real entry and shift every launcher by one slot.
+# xxri OS Lite dock - wbar's own configuration triple ONLY (Phase 10.2,
+# repointed for the pin/unpin dock).
 #
-# Every launcher goes through xxri-dock-launch KEY REALCOMMAND, so clicking an
-# icon whose application is already running focuses that window (restoring it
-# if it was minimised) instead of starting a second copy.  KEY is also what the
-# running indicator under each icon is keyed on.
+# The PINNED launchers themselves are no longer listed here.  They live in
+# /usr/local/share/xxri-launcher/pinned.list (one .desktop id per line, dock
+# order, max 8) and are turned into the actual triples below by
+# `xxri-dock-pin boot|regen`, which looks up each id's icon/name/command
+# straight from its .desktop file - the same file the All Apps drawer reads,
+# so the dock and the drawer can never show two different icons for the same
+# app.  This file supplies only the very first i:/t:/c: triple (wbar's own
+# options line, not a launcher) - xxri-dock-pin's write_dock() pulls exactly
+# that first triple out of this file and appends the generated ones after it.
+#
+# NOTE: comments here must never contain the dock-parser tokens ("i: ", "t: ",
+# "c: " at the start of a line), because write_dock()'s own extraction is a
+# plain line-pattern match too.
 #
 # The icon zoom is deliberately tiny (-zoomf 1.06).  At the old 1.25 every icon
 # slid sideways as the pointer approached, which moved the click target out
@@ -17,32 +24,3 @@
 i: /usr/local/share/xxri-theme/wbar-bg.png
 t: /usr/local/lib/X11/fonts/TTF/luxisr/9
 c: wbar -bpress -nofont -pos bottom -offset 15 -isize 40 -idist 7 -zoomf 1.06 -nanim 3 -jumpf 0.0
-i: /usr/local/share/pixmaps/xxri-store.png
-t: Store
-c: exec /usr/local/bin/xxri-dock-launch xxri-store-gui /usr/local/bin/xxri-store-gui
-i: /usr/local/share/pixmaps/xxri-settings.png
-t: Settings
-c: exec /usr/local/bin/xxri-dock-launch xxri-settings /usr/local/bin/xxri-settings
-i: /usr/local/share/pixmaps/xxri-file.png
-t: Files
-c: exec /usr/local/bin/xxri-dock-launch xxri-file /usr/local/bin/xxri-file
-i: /usr/local/share/pixmaps/mnttool.png
-t: Disks
-c: exec /usr/local/bin/xxri-dock-launch xxri-settings /usr/local/bin/xxri-settings storage
-i: /usr/local/share/pixmaps/aterm.png
-t: Terminal
-c: exec /usr/local/bin/xxri-dock-launch +aterm /usr/local/bin/aterm
-i: /usr/local/share/pixmaps/xxri-browser.png
-t: Browser
-c: exec /usr/local/bin/xxri-dock-launch xxri-browser /usr/local/bin/xxri-browser
-# The editor is Tiny Core's FLTK one and calls itself WM_CLASS "FLTK" rather
-# than "editor", so that is what its indicator is keyed on.  It is prefixed
-# with + (always open a new window) because "FLTK" is a class other FLTK
-# surfaces share, and focusing one of those instead of opening the editor
-# would be worse than opening a second editor.
-i: /usr/local/share/pixmaps/editor.png
-t: Editor
-c: exec /usr/local/bin/xxri-dock-launch +FLTK /usr/local/bin/editor
-i: /usr/local/share/pixmaps/exittc.png
-t: Power
-c: exec /usr/local/bin/xxri-dock-launch - /usr/local/bin/xxri-power-menu

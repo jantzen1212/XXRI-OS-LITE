@@ -14,7 +14,13 @@
 # fragile string surgery.
 . /etc/init.d/tc-functions
 [ -n "$ICONS" ] || ICONS=$(cat /etc/sysconfig/icons 2>/dev/null)
-if [ "$ICONS" = "wbar" ]; then
+# The readiness loop below only makes sense once an X server is up.  At boot
+# setupdesktop calls this script BEFORE .xsession starts X, so wbar could not
+# connect, died immediately, and the loop waited out all 100 iterations (~2.4s)
+# for a process that would never appear.  .xsession starts the real dock after
+# X is running, and every runtime caller (xxri-dock-pin, xxri-desktop, xxri-app,
+# xxri-pkg-remove, the installer) already has a display -- they keep the wait.
+if [ "$ICONS" = "wbar" ] && [ -e /tmp/.X11-unix/X0 ]; then
 	pidof wbar >/dev/null && killall wbar 2>/dev/null
 	nohup wbar >/dev/null 2>&1 &
 	# wbar must be fully started or the parent dying would kill it.

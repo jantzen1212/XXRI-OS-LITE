@@ -1,0 +1,163 @@
+/* xxri-media.css - XXRI Media's GTK surfaces.
+ *
+ * The only stock GTK widgetry this application shows is its pop-up menus and
+ * its file dialogs, and a file dialog in XXRI should look like XXRI File -
+ * same surface, same rail, same row selection, same type.  libfm exposes an
+ * application chooser but no file chooser, so there is no component to reuse;
+ * what is reused instead is xxri-file.css's own palette and treatment, rule
+ * for rule, so the two read as the same picker.
+ */
+
+@define-color xxri_surface #EFEDF8;
+@define-color xxri_card    #FAF9FE;
+@define-color xxri_field   #FFFFFF;
+@define-color xxri_ink     #1C1B24;
+@define-color xxri_muted   #6B6880;
+@define-color xxri_purple  #8371F7;
+@define-color xxri_border  alpha(#1C1B24, 0.10);
+
+/* ---- pop-up menus ---- */
+menu, .menu, popover.background {
+  background-color: #FDF8FF;
+  border: 1px solid alpha(#785A82, 0.28);
+  border-radius: 10px;
+  padding: 4px;
+}
+menu menuitem {
+  padding: 5px 18px; border-radius: 7px; color: @xxri_ink; font-size: 13px;
+}
+menu menuitem:hover    { background-color: alpha(#8B5CF6, 0.22); }
+menu menuitem:disabled { color: alpha(@xxri_ink, 0.38); }
+
+/* ---- the file dialog: XXRI File's surfaces ---- */
+dialog, filechooser, filechooser .background {
+  background-color: @xxri_surface;
+  color: @xxri_ink;
+  font-family: "Avenir Next";
+}
+filechooser box.dialog-vbox { padding: 0; }
+
+/* the places list is XXRI File's rail */
+placessidebar, placessidebar list, placessidebar .view {
+  background-color: alpha(#E9E4F6, 0.80);
+  color: @xxri_ink;
+}
+placessidebar row            { padding: 2px 6px; border-radius: 9px; min-height: 28px; }
+placessidebar row:hover      { background-color: alpha(#FFFFFF, 0.42); }
+placessidebar row:selected,
+placessidebar row:selected label,
+placessidebar row:selected image {
+  background-color: alpha(#8B5CF6, 0.16); color: @xxri_ink;
+}
+placessidebar row label { font-size: 13px; }
+placessidebar separator { background-color: @xxri_border; }
+
+/* the file list, styled as .xxri-file-view is */
+filechooser treeview.view, filechooser .view {
+  background-color: transparent; background-image: none;
+  color: @xxri_ink; font-size: 13px;
+}
+filechooser treeview.view:selected,
+filechooser .view:selected {
+  background-color: alpha(#8B5CF6, 0.16); color: @xxri_ink;
+}
+filechooser treeview.view header button {
+  background-image: none; background-color: transparent;
+  border: none; border-bottom: 1px solid @xxri_border;
+  color: @xxri_muted; font-size: 12px; padding: 4px 8px;
+}
+filechooser scrolledwindow, filechooser stack, filechooser paned {
+  background-color: transparent;
+}
+
+/* the path bar reads as XXRI File's location chips */
+filechooser pathbar button, filechooser .path-bar button {
+  background-image: none; background-color: transparent;
+  border: none; border-radius: 9px;
+  color: @xxri_ink; font-size: 13px; padding: 3px 10px;
+}
+filechooser pathbar button:hover { background-color: alpha(@xxri_ink, 0.06); }
+filechooser pathbar button:checked {
+  background-image: linear-gradient(to right, #ED6CE0, #8371F7);
+  color: #FFFFFF;
+}
+
+/* ---- the dialog's own controls ---- */
+dialog button, filechooser button {
+  background-image: linear-gradient(to bottom, #FFFFFF, #F3F0FA);
+  border: 1px solid @xxri_border; border-radius: 10px;
+  color: @xxri_ink; padding: 5px 16px; font-size: 13px;
+}
+dialog button:hover, filechooser button:hover { background-image: none; background-color: #FFFFFF; }
+dialog button.suggested-action, filechooser button.suggested-action {
+  background-image: linear-gradient(to right, #ED6CE0, #8371F7);
+  border: none; color: #FFFFFF;
+}
+dialog headerbar, filechooser headerbar {
+  background-image: linear-gradient(to bottom, #FAF9FE, #F1EEF9);
+  border-bottom: 1px solid @xxri_border;
+  border-radius: 12px 12px 0 0;
+}
+filechooser entry, dialog entry {
+  background-color: @xxri_field; border: 1px solid @xxri_border;
+  border-radius: 10px; padding: 4px 10px; color: @xxri_ink;
+}
+scrollbar { background-color: transparent; border: none; }
+scrollbar slider {
+  background-color: alpha(@xxri_muted, 0.34);
+  border-radius: 8px; min-width: 7px; min-height: 28px;
+}
+scrollbar slider:hover { background-color: alpha(@xxri_muted, 0.58); }
+
+/* ---------------------------------------------------------------------------
+ * Drawn dialog chrome.
+ *
+ * The window manager's title bar is switched off in xxri_chooser(), because no
+ * other XXRI window wears one, so the title is a label at the top of the
+ * content area and the frame below stands in for the border flwm no longer
+ * draws.
+ * ------------------------------------------------------------------------ */
+#xxri-dlg-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: @xxri_ink;
+  padding: 13px 18px 7px 18px;
+}
+
+.xxri-chooser {
+  background-color: @xxri_surface;
+  border: 1px solid alpha(#8371F7, 0.30);
+}
+
+/* The chooser's own action row: XXRI File Manager keeps its buttons on the
+ * card colour, not on a darker strip. */
+.xxri-chooser .dialog-action-box,
+.xxri-chooser .dialog-action-area {
+  background-color: transparent;
+  border-top: 1px solid alpha(#8371F7, 0.16);
+  padding: 9px 14px;
+}
+
+.xxri-chooser button {
+  border-radius: 9px;
+  padding: 5px 17px;
+  background-image: none;
+  background-color: @xxri_card;
+  border: 1px solid alpha(#8371F7, 0.28);
+  color: @xxri_ink;
+}
+.xxri-chooser button:hover { background-color: #FFFFFF; }
+
+.xxri-chooser button.suggested-action,
+.xxri-chooser button.suggested-action:hover {
+  background-image: linear-gradient(120deg, #ED6CE0 0%, #8371F7 100%);
+  border: none;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* Message dialogs use the same frame; their text should sit on it, not on a
+ * white card of its own. */
+.xxri-chooser .message-area,
+.xxri-chooser .horizontal.dialog-vbox { background-color: transparent; }
+.xxri-chooser label { color: @xxri_ink; }

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=All Apps
+GenericName=Application Launcher
+Comment=Browse and search every installed application
+Exec=/usr/local/bin/xxri-launcher
+Icon=xxri-launcher
+X-FullPathIcon=/usr/local/share/pixmaps/xxri-launcher.png
+Terminal=false
+Categories=System;
+StartupNotify=false
