@@ -4,5 +4,6 @@ Name=Power
 Comment=Shut down, restart, sleep or log out
 Exec=xxri-power-menu
 Icon=exittc
+X-XXRI-DockKey=-
 Terminal=false
 Categories=System;

@@ -1,0 +1,47 @@
+# Which application opens what, system-wide.
+#
+# libfm asks GIO for the default application for a file's MIME type; without an
+# entry here it finds only whatever order mimeinfo.cache happens to list and,
+# with no default set, opens nothing.  XXRI Media is the default for every
+# media type it declares support for.
+[Default Applications]
+video/mp4=xxri-media.desktop
+video/x-matroska=xxri-media.desktop
+video/webm=xxri-media.desktop
+video/x-msvideo=xxri-media.desktop
+video/quicktime=xxri-media.desktop
+video/mpeg=xxri-media.desktop
+video/ogg=xxri-media.desktop
+video/x-flv=xxri-media.desktop
+video/3gpp=xxri-media.desktop
+video/x-ms-wmv=xxri-media.desktop
+video/x-theora+ogg=xxri-media.desktop
+audio/mpeg=xxri-media.desktop
+audio/mp4=xxri-media.desktop
+audio/x-wav=xxri-media.desktop
+audio/wav=xxri-media.desktop
+audio/ogg=xxri-media.desktop
+audio/x-vorbis+ogg=xxri-media.desktop
+audio/flac=xxri-media.desktop
+audio/x-flac=xxri-media.desktop
+audio/aac=xxri-media.desktop
+audio/x-ms-wma=xxri-media.desktop
+audio/opus=xxri-media.desktop
+audio/x-opus+ogg=xxri-media.desktop
+image/png=xxri-media.desktop
+image/jpeg=xxri-media.desktop
+image/gif=xxri-media.desktop
+image/bmp=xxri-media.desktop
+image/x-bmp=xxri-media.desktop
+image/vnd.microsoft.icon=xxri-media.desktop
+image/x-icon=xxri-media.desktop
+image/x-icns=xxri-media.desktop
+image/svg+xml=xxri-media.desktop
+image/svg+xml-compressed=xxri-media.desktop
+image/x-portable-anymap=xxri-media.desktop
+image/x-portable-bitmap=xxri-media.desktop
+image/x-portable-graymap=xxri-media.desktop
+image/x-portable-pixmap=xxri-media.desktop
+image/x-tga=xxri-media.desktop
+image/x-xpixmap=xxri-media.desktop
+image/x-xbitmap=xxri-media.desktop

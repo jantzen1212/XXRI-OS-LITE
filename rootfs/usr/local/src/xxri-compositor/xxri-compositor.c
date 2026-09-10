@@ -569,7 +569,22 @@ int main(void) {
         do {
             switch (e.type) {
             case CreateNotify:
-                add_win(e.xcreatewindow.window, TOP_OF_STACK);
+                /*
+                 * Only root's own children are top-levels.
+                 *
+                 * SubstructureNotify is selected on every window tracked here -
+                 * that is how a frame learns about its client - so this event
+                 * also arrives for windows created deeper in the tree, such as
+                 * the video window an embedded media player creates inside an
+                 * application's own window.  Those are already drawn into their
+                 * parent's pixmap; compositing one separately paints it a second
+                 * time, and at its parent-relative position taken for a root
+                 * one, which put a band of video on the desktop above the XXRI
+                 * Media window.  ReparentNotify below has always made this
+                 * check; this one did not.
+                 */
+                if (e.xcreatewindow.parent == root)
+                    add_win(e.xcreatewindow.window, TOP_OF_STACK);
                 break;
             case DestroyNotify: {
                 Win* f = find_by_client(e.xdestroywindow.window);

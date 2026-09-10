@@ -4,5 +4,6 @@ Name=Text Editor
 Comment=Plain text editor
 Exec=editor
 Icon=editor
+X-XXRI-DockKey=+FLTK
 Terminal=false
 Categories=Utility;

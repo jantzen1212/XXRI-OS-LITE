@@ -142,23 +142,20 @@ install_icon() { # id src -> canonical path on stdout
 }
 
 DOCK=/usr/local/tce.icons
+# Where xxri-dock-pin caches each pinned icon after drawing it inside XXRI's
+# own squircle container - what the dock actually loads.
+FRAMED_DIR=/usr/local/share/xxri-launcher/framed
 menu_name() { echo "$1" | tr -d ' '; }        # flwm names the file without spaces
-dock_has()  { [ -f "$DOCK" ] && grep -q "^c: exec xxri-app launch $1\$" "$DOCK" 2>/dev/null; }
-dock_add() { # id name icon
-	[ -f "$DOCK" ] || return 0
-	dock_has "$1" && return 0
-	printf 'i: %s\nt: %s\nc: exec xxri-app launch %s\n' "$3" "$2" "$1" | sudo tee -a "$DOCK" >/dev/null
-}
-dock_del() { # id
-	[ -f "$DOCK" ] || return 0
-	awk -v id="$1" '
-		{ L[NR]=$0 }
-		END {
-			for (i=1;i<=NR;i++)
-				if (L[i]=="c: exec xxri-app launch " id) { d[i]=1; d[i-1]=1; d[i-2]=1 }
-			for (i=1;i<=NR;i++) if (!d[i]) print L[i]
-		}' "$DOCK" > /tmp/.xxri-dock.$$ 2>/dev/null && sudo cp /tmp/.xxri-dock.$$ "$DOCK"
-	rm -f /tmp/.xxri-dock.$$
+# Newly installed apps do NOT go on the dock any more - they appear in the
+# All Apps drawer (which reads .desktop files directly) and reach the dock
+# only if the user right-clicks one there and picks "Pin to Dock".  The only
+# dock-side duty left here is the reverse of that: if an app the user HAD
+# pinned is being removed, take it off the dock too, so uninstalling it does
+# not leave a broken icon behind.  xxri-dock-pin owns pinned.list and
+# tce.icons entirely; this is a no-op (exit 1, ignored) if it was never pinned.
+dock_unpin_if_pinned() { # id
+	[ -x /usr/local/bin/xxri-dock-pin ] && /usr/local/bin/xxri-dock-pin unpin "$1" >/dev/null 2>&1
+	return 0
 }
 menu_add() { # id  -> build the flwm Applications menu item from the .desktop
 	[ -x /usr/local/bin/desktop.sh ] && desktop.sh "xxri-app-$1" >/dev/null 2>&1
@@ -501,9 +498,9 @@ EOF
 	atrace desktop-entry "$desktop_path"
 	menu_add "$id"
 	atrace menu-entry "$([ -f "$(user_home)/.wmx/Applications/$(menu_name "$name")" ] && echo ok || echo MISSING)"
-	dock_add "$id" "$name" "$icon_path"
-	atrace dock-entry "$(grep -c "launch $id\$" "$DOCK" 2>/dev/null) triplet(s) in $DOCK"
-	[ -n "$DISPLAY" ] && wbar.sh >/dev/null 2>&1
+	# Deliberately no dock entry here: it shows up in All Apps (it just wrote
+	# the .desktop above) and reaches the dock only if the user pins it there.
+	atrace dock-entry "not added - All Apps only until pinned"
 	atrace registry "$REG_DIR/$id.reg"
 	log "installed archive $id ($name) -> $exe"
 	echo "$id"
@@ -665,9 +662,9 @@ EOF
 	atrace desktop-entry "$desktop_path"
 	menu_add "$id"
 	atrace menu-entry "$([ -f "$(user_home)/.wmx/Applications/$(menu_name "$name")" ] && echo ok || echo MISSING)"
-	dock_add "$id" "$name" "$icon_path"
-	atrace dock-entry "$(grep -c "launch $id\$" "$DOCK" 2>/dev/null) triplet(s) in $DOCK"
-	[ -n "$DISPLAY" ] && wbar.sh >/dev/null 2>&1
+	# Deliberately no dock entry here: it shows up in All Apps (it just wrote
+	# the .desktop above) and reaches the dock only if the user pins it there.
+	atrace dock-entry "not added - All Apps only until pinned"
 	atrace registry "$REG_DIR/$id.reg"
 	log "installed extension $id ($name) -> $exe"
 	echo "$id"
@@ -781,11 +778,10 @@ EOF
 		log "removed superseded package $old_file"
 	fi
 
-	# register with the desktop: flwm Applications menu + the dock, then reload
-	# the running dock so the new app appears immediately (no reboot).
+	# register with the desktop: flwm Applications menu only.  It appears in
+	# All Apps immediately (the .desktop is already written above) and
+	# reaches the dock only if the user pins it there themselves.
 	menu_add "$id"
-	dock_add "$id" "$name" "$icon_path"
-	[ -n "$DISPLAY" ] && wbar.sh >/dev/null 2>&1
 	log "integrated $id ($name $version) -> $desktop_path"
 	echo "$id"
 	return 0
@@ -863,8 +859,9 @@ cmd_remove() { # id [--purge]
 	loc="$(reg_get "$id" LOCATION)"
 	tcz="$(reg_get "$id" TCZ)"
 	HOMEDIR="$(user_home)"
-	# dock icon: drop this app's triplet from the live dock list
-	dock_del "$id"
+	# dock icon: if the user had pinned this app, take it off the dock too -
+	# a no-op if it was never pinned.
+	dock_unpin_if_pinned "$id"
 	# flwm menu entry: remove ONLY this app's item (writeFLWMitem names the
 	# file after the app Name with spaces stripped), never the whole menu.
 	[ -n "$name" ] && menu_del "$name"
@@ -963,14 +960,39 @@ cmd_verify_icons() {
 		id="$(basename "$r" .reg)"
 		_ri="$(reg_get "$id" ICON)"
 		_di="$(sed -n 's/^X-FullPathIcon=//p' "/usr/local/share/applications/xxri-app-$id.desktop" 2>/dev/null | head -1)"
-		_ki="$(awk -v id="$id" '/^i: /{p=$2} /^c: exec xxri-app launch /{if ($5==id) print p}' "$DOCK" 2>/dev/null | head -1)"
+		# The dock only ever holds a pinned app's triple now, wrapped in
+		# xxri-dock-launch with a generated KEY in between - match on the
+		# "launch <id>" tail, not a fixed prefix, and on "i: <icon>" being the
+		# line right before it (write_dock() always emits the triple in
+		# i:/t:/c: order).
+		_ki="$(awk -v id="$id" '/^i: /{p=$2} /^c: exec /{if ($0 ~ ("launch " id "$")) print p}' "$DOCK" 2>/dev/null | head -1)"
 		_si="$(user_home)/.cache/xxri-store/icons/$id.png"
 		a="$(md5sum "$_ri" 2>/dev/null | cut -c1-8)"; [ -n "$a" ] || a="-"
 		b="$(md5sum "$_di" 2>/dev/null | cut -c1-8)"; [ -n "$b" ] || b="-"
-		c="$(md5sum "$_ki" 2>/dev/null | cut -c1-8)"; [ -n "$c" ] || c="-"
+		# The dock no longer loads the application's own PNG: it loads XXRI's
+		# framed copy of it (every dock icon gets the same squircle container),
+		# so its bytes deliberately differ from the source.  What is checked
+		# here is that the dock points at the framed copy belonging to THIS
+		# app and that the copy actually rendered.
+		case "$_ki" in
+			"$FRAMED_DIR"/*)
+				if [ "$_ki" = "$FRAMED_DIR/xxri-app-$id.png" ] && [ -s "$_ki" ]; then
+					c="framed"
+				else
+					c="BADFRAME"
+				fi ;;
+			*) c="$(md5sum "$_ki" 2>/dev/null | cut -c1-8)"; [ -n "$c" ] || c="-" ;;
+		esac
 		d="$(md5sum "$_si" 2>/dev/null | cut -c1-8)"; [ -n "$d" ] || d="-"
-		if [ "$a" != "-" ] && [ "$a" = "$b" ] && [ "$a" = "$c" ] && [ "$a" = "$d" ]; then v=OK
-		else v=MISMATCH; _rc=1; fi
+		# Not being on the dock at all ("-") is now a normal, common state -
+		# an app only gets a DOCK icon once the user pins it - so it is only
+		# compared when one actually exists; REGISTRY/DESKTOP/STORE must
+		# still agree either way.
+		if [ "$c" = "-" ] || [ "$c" = "framed" ]; then
+			if [ "$a" != "-" ] && [ "$a" = "$b" ] && [ "$a" = "$d" ]; then v=OK; else v=MISMATCH; _rc=1; fi
+		else
+			if [ "$a" != "-" ] && [ "$a" = "$b" ] && [ "$a" = "$c" ] && [ "$a" = "$d" ]; then v=OK; else v=MISMATCH; _rc=1; fi
+		fi
 		[ "$a" = "$_g" ] && v="$v/placeholder"
 		printf '%-16s %-9s %-9s %-9s %-9s %s\n' "$id" "$a" "$b" "$c" "$d" "$v"
 	done

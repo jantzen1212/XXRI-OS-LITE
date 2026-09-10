@@ -101,8 +101,21 @@ Categories=Network;WebBrowser;
 MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
 StartupNotify=false
 DESK
-magick "$ROOT/assets/icons/xxri-icons/xxri-browser.svg" -background none \
-       -resize 64x64 -gravity center -extent 64x64 \
+# -density MUST come before the SVG is read, and it is what makes the
+# difference here.  xxri-browser.svg has width="100%" height="100%" on its
+# root, so rsvg-convert - the delegate ImageMagick would normally shell out
+# to - cannot derive a pixel size and ImageMagick silently falls back to its
+# own MSVG parser.  MSVG rasterises onto an OPAQUE WHITE canvas and hands
+# back binary (1-bit) alpha, which is exactly the white square that showed up
+# behind the dock icon: 709 opaque near-white pixels and zero antialiasing.
+# A high density gives the delegate a size to work from, so the real renderer
+# runs and the rounded corners keep their 8-bit alpha.  Every other icon in
+# this tree (src/xxri-file/stage-icons.sh) already renders this way.
+# -strip drops the date chunks ImageMagick stamps into every PNG, so an
+# unchanged icon repacks to identical bytes instead of making each rebuild
+# look like a real change.
+magick -background none -density 1500 "$ROOT/assets/icons/xxri-icons/xxri-browser.svg" \
+       -resize 64x64 -gravity center -extent 64x64 -strip \
        "$STAGE/usr/local/share/pixmaps/xxri-browser.png"
 
 echo ">> 7 strip"

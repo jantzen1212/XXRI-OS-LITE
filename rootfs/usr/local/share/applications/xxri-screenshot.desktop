@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Screenshot
-Comment=Capture the screen to a PNG file
-Exec=screenshot.sh
-Icon=screenshot
-Terminal=false
-Categories=Utility;

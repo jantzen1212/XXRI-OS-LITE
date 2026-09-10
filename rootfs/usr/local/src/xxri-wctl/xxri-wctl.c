@@ -6,7 +6,8 @@
  *   list             every managed window + state
  *   running KEY      exit 0 if KEY has a managed window
  *   activate KEY     deiconify + raise + focus KEY's window
- *   indicators       daemon: draw running dots under the dock icons
+ *   indicators       daemon: running dots under the dock icons, AND the
+ *                    right-click "Unpin from Dock" menu (see cmd_indicators)
  *
  * KEY matches WM_CLASS's instance name (the executable namaname), so the
  * dock's command line identifies a slot - no extra registry.  The WM is flwm
@@ -28,13 +29,14 @@
 
 static Display *dpy;
 static Window   root;
-static Atom     A_WM_STATE, A_WM_CHANGE_STATE, A_DOCK_SLOTS;
+static Atom     A_WM_STATE, A_WM_CHANGE_STATE, A_DOCK_SLOTS, A_NET_WM_PID;
 
 typedef struct {
     Window client;      /* the application's own window            */
     Window frame;       /* the WM frame: root's direct child       */
     int    iconic;      /* WM_STATE == IconicState                 */
     char   inst[128];   /* WM_CLASS instance name                  */
+    long   pid;         /* _NET_WM_PID, or 0                       */
 } Client;
 
 static int x_err(Display *d, XErrorEvent *e) { (void)d; (void)e; return 0; }
@@ -78,6 +80,25 @@ static void instance_name(Window w, char *out, size_t len)
     }
 }
 
+/* _NET_WM_PID is the ONE piece of identity a window carries that cannot be
+ * guessed wrong: it says which process owns it, and /proc then says exactly
+ * which program that is.  WM_CLASS is a name the application picked for
+ * itself and often has nothing to do with how the desktop launches it -
+ * Code-OSS is started as `xxri-app launch code-oss` and calls itself "code" -
+ * so the pid is what lets the dock resolve a window back to its .desktop
+ * entry instead of pattern-matching names. */
+static long window_pid(Window w)
+{
+    Atom type; int fmt; unsigned long n, after; unsigned char *p = NULL;
+    long pid = 0;
+    if (XGetWindowProperty(dpy, w, A_NET_WM_PID, 0, 1, False, XA_CARDINAL,
+                           &type, &fmt, &n, &after, &p) == Success && p) {
+        if (type == XA_CARDINAL && n >= 1) pid = (long)((unsigned long *)p)[0];
+        XFree(p);
+    }
+    return pid;
+}
+
 static int collect(Client *cl, int max)
 {
     Window r, parent, *kids = NULL; unsigned int nk = 0, i;
@@ -91,6 +112,7 @@ static int collect(Client *cl, int max)
         cl[n].frame  = kids[i];
         cl[n].iconic = (st == IconicState);
         instance_name(c, cl[n].inst, sizeof cl[n].inst);
+        cl[n].pid = window_pid(c);
         n++;
     }
     if (kids) XFree(kids);
@@ -127,10 +149,12 @@ static int cmd_list(void)
     for (int i = 0; i < n; i++) {
         char *nm = NULL;
         XFetchName(dpy, cl[i].client, &nm);
-        printf("0x%lx %s%s %s %s\n", cl[i].client,
+        /* pid goes BEFORE the title: the title is the only field that may
+         * contain spaces, so it has to stay last for any reader. */
+        printf("0x%lx %s%s %s %ld %s\n", cl[i].client,
                cl[i].iconic ? "iconic" : "normal",
                cl[i].client == f ? ",focused" : "",
-               cl[i].inst[0] ? cl[i].inst : "-", nm ? nm : "-");
+               cl[i].inst[0] ? cl[i].inst : "-", cl[i].pid, nm ? nm : "-");
         if (nm) XFree(nm);
     }
     return 0;
@@ -272,6 +296,74 @@ static Window make_indicator(void)
                          CWOverrideRedirect | CWBackPixel | CWSaveUnder, &wa);
 }
 
+/* --------------------------------------------------- dock right-click menu
+ *
+ * wbar is a third-party binary with no context menu of its own, and it is not
+ * ours to add one to.  Instead, button 3 is grabbed on wbar's OWN window - a
+ * passive grab any client can place on a window it does not own, exactly how
+ * a window manager grabs button 1 on client windows for click-to-focus - so
+ * every right-click physically on the dock is delivered here instead of to
+ * wbar (which never did anything with it anyway).  GrabModeAsync everywhere:
+ * there is no reason to let wbar also see the event, so there is nothing to
+ * freeze/replay for, unlike a click-to-focus WM would need.
+ *
+ * The grab is scoped to wbar's window ONLY, never the root window - a right-
+ * click anywhere else on the desktop (another app, empty wallpaper) is
+ * completely unaffected, and re-grabbing on every detected wbar restart (a
+ * pin/unpin, or a crash) is what keeps it that way across the dock's whole
+ * lifetime rather than just the copy of wbar that happened to be running
+ * when this daemon started.
+ */
+#define PINNED_LIST "/usr/local/share/xxri-launcher/pinned.list"
+#define APPDIR      "/usr/local/share/applications"
+
+/* pinned.list, in order, skipping any id whose .desktop has since vanished -
+ * write_dock() (xxri-dock-pin) drops those from the live dock too, so this
+ * stays index-aligned with the slots read_slots() finds in tce.icons. */
+static int read_pinned_ids(char ids[][128], int max)
+{
+    FILE *f = fopen(PINNED_LIST, "r");
+    if (!f) return 0;
+    char line[256]; int n = 0;
+    while (fgets(line, sizeof line, f) && n < max) {
+        char *p = line;
+        while (*p == ' ' || *p == '\t') p++;
+        if (*p == '#' || *p == '\n' || *p == '\0') continue;
+        p[strcspn(p, "\r\n")] = 0;
+        if (!*p) continue;
+        char path[300];
+        snprintf(path, sizeof path, "%s/%s.desktop", APPDIR, p);
+        if (access(path, F_OK) != 0) continue;
+        snprintf(ids[n], 128, "%.127s", p);
+        n++;
+    }
+    fclose(f);
+    return n;
+}
+
+/* event.x is relative to wbar's own window (owner_events=False in the grab
+ * below), which is exactly the coordinate space the pad/isize/idist math
+ * everywhere else in this file already uses once dx is subtracted out - so
+ * this mirrors cmd_indicators()'s own slot-position formula, not a new one. */
+static void handle_dock_right_click(XButtonEvent *e, int nslots,
+                                    char ids[][128], int nids,
+                                    int isize, int idist)
+{
+    int dx, dy, dw, dh;
+    if (!dock_geometry(&dx, &dy, &dw, &dh) || nslots <= 0) return;
+    int span = nslots * isize + (nslots - 1) * idist;
+    int pad  = (dw - span) / 2;
+    int idx  = (e->x - pad) / (isize + idist);
+    if (idx < 0) idx = 0;
+    if (idx >= nslots) idx = nslots - 1;
+    if (idx >= nids) return;      /* pinned.list/tce.icons briefly out of step */
+    char cmd[512];
+    snprintf(cmd, sizeof cmd,
+             "/usr/local/bin/xxri-launcher --dockmenu '%s' %d %d >/dev/null 2>&1 &",
+             ids[idx], e->x_root, e->y_root);
+    system(cmd);
+}
+
 static int cmd_indicators(int debug)
 {
     Slot slots[MAX_SLOTS];
@@ -284,8 +376,61 @@ static int cmd_indicators(int debug)
         if (slots[i].key[0]) slots[i].win = make_indicator();
     if (debug) fprintf(stderr, "xxri-wctl: %d dock slots\n", nslots);
 
+    static char pinned_ids[MAX_SLOTS][128];
+    int npinned = read_pinned_ids(pinned_ids, MAX_SLOTS);
+    int grabbed = 0;
+
     Client cl[MAX_CLIENTS];
     for (;;) {
+        /* wbar gets a new window id every restart (a pin/unpin, or a crash),
+         * so the button-3 grab is re-placed whenever a different window is
+         * found - this indicators process itself is also restarted on every
+         * pin/unpin (xxri-dock-pin's regen()), so pinned_ids is re-read fresh
+         * from a brand-new process rather than needing to watch the file. */
+        /* Button 3 is grabbed on the ROOT window, not on wbar's own: a
+         * passive grab placed on another client's override-redirect window
+         * never delivered anything here (the grab is accepted, the events
+         * simply do not arrive), whereas a root grab is the mechanism every
+         * "global gesture" tool uses and is reliable.  The cost is that it
+         * sees EVERY right-click on the desktop, so it must give back the
+         * ones that are not on the dock - that is what GrabModeSync plus
+         * XAllowEvents(ReplayPointer) is for: the click is re-delivered as
+         * though this grab never existed, so right-clicking inside any other
+         * application still behaves exactly as it always did.
+         *
+         * XAllowEvents is called IMMEDIATELY on receiving the event, before
+         * anything else can fail: a sync grab freezes pointer processing for
+         * the whole server until it is called, so nothing slow or fallible
+         * may come first. */
+        if (!grabbed) {
+            unsigned int mods[] = { 0, LockMask, Mod2Mask, LockMask | Mod2Mask };
+            for (unsigned m = 0; m < sizeof mods / sizeof mods[0]; m++)
+                XGrabButton(dpy, Button3, mods[m], root, False, ButtonPressMask,
+                            GrabModeSync, GrabModeAsync, None, None);
+            XSync(dpy, False);
+            grabbed = 1;
+            if (debug) fprintf(stderr, "xxri-wctl: grabbed button3 on root\n");
+        }
+        while (XPending(dpy)) {
+            XEvent ev;
+            XNextEvent(dpy, &ev);
+            if (ev.type != ButtonPress || ev.xbutton.button != Button3) continue;
+            int dx0, dy0, dw0, dh0;
+            int on_dock = dock_geometry(&dx0, &dy0, &dw0, &dh0)
+                       && ev.xbutton.x_root >= dx0 && ev.xbutton.x_root < dx0 + dw0
+                       && ev.xbutton.y_root >= dy0 && ev.xbutton.y_root < dy0 + dh0;
+            /* unfreeze the pointer first, whatever happens next */
+            XAllowEvents(dpy, on_dock ? AsyncPointer : ReplayPointer, ev.xbutton.time);
+            XSync(dpy, False);
+            if (debug) fprintf(stderr, "xxri-wctl: button3 at %d,%d on_dock=%d nids=%d\n",
+                               ev.xbutton.x_root, ev.xbutton.y_root, on_dock, npinned);
+            if (on_dock) {
+                XButtonEvent be = ev.xbutton;
+                be.x = be.x_root - dx0;      /* make it dock-relative */
+                handle_dock_right_click(&be, nslots, pinned_ids, npinned, isize, idist);
+            }
+        }
+
         int dx = 0, dy = 0, dw = 0, dh = 0;
         if (dock_geometry(&dx, &dy, &dw, &dh)) {
             int span = nslots * isize + (nslots - 1) * idist;
@@ -362,6 +507,7 @@ int main(int argc, char **argv)
     A_WM_STATE        = XInternAtom(dpy, "WM_STATE", False);
     A_WM_CHANGE_STATE = XInternAtom(dpy, "WM_CHANGE_STATE", False);
     A_DOCK_SLOTS      = XInternAtom(dpy, "_XXRI_DOCK_SLOTS", False);
+    A_NET_WM_PID      = XInternAtom(dpy, "_NET_WM_PID", False);
 
     int rc = 0;
     if      (!strcmp(cmd, "list"))       rc = cmd_list();

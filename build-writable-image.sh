@@ -60,6 +60,10 @@ if command -v unsquashfs >/dev/null 2>&1 && [ -f "\$CDE/onboot.lst" ]; then
 		[ -f "\$tcz" ] && unsquashfs -n -f -d "\$STAGE" "\$tcz" >/dev/null 2>&1 || true
 	done < "\$CDE/onboot.lst"
 fi
+# The extension set carries the legacy Disks desktop entry.  It is consumed
+# by Tiny Core's wbar_update.sh at login, so remove the source entry here,
+# after extension baking, rather than filtering the rendered dock later.
+rm -f "\$STAGE/usr/local/share/applications/xxri-disks.desktop"
 
 echo ">> 2b runtime overrides (these must WIN over the extensions)"
 # Step 1 copies rootfs/, then step 2 unsquashes every extension over it with
@@ -134,7 +138,13 @@ rm -f "\$STAGE/usr/local/share/applications/xxri-installer.desktop" \
       "\$STAGE/usr/local/share/pixmaps/xxri-installer.png" \
       "\$STAGE/usr/local/bin/xxri-installer" \
       "\$STAGE/etc/skel/.X.d/xxri-installer-live" 2>/dev/null
-for px in aterm editor apps flrun mnttool exittc gear core; do
+# xxri-browser is here because the browser ships its icon inside
+# xxri-browser.tcz, and step 2 unsquashes that OVER the rootfs copy.  On the
+# live ISO the rootfs icon wins by itself (the extension loader never
+# overwrites an existing file), so the dock looked right there and wrong only
+# once installed - the same icon, two different files.  Re-copying it here
+# makes the installed image agree with the ISO.
+for px in aterm editor apps flrun mnttool exittc gear core xxri-browser; do
 	[ -f "\$ROOTFS/usr/local/share/pixmaps/\$px.png" ] && \
 		cp -f "\$ROOTFS/usr/local/share/pixmaps/\$px.png" "\$STAGE/usr/local/share/pixmaps/\$px.png"
 done
@@ -170,6 +180,31 @@ if [ -d "\$CADIR" ]; then
 	      "\$STAGE/etc/ssl/certs/ca-certificates.crt"
 	ln -sf /etc/ssl/certs/ca-certificates.crt "\$STAGE/etc/ssl/cert.pem"
 	echo "   CA bundle: \$(grep -c 'BEGIN CERTIFICATE' "\$STAGE/usr/local/etc/ssl/certs/ca-certificates.crt" 2>/dev/null) certificates"
+fi
+
+echo ">> 2f compile the MIME database and the application map"
+# shared-mime-info ships only its source XML: without update-mime-database ever
+# being run there is no mime.cache, so GIO cannot tell an .mp4 from any other
+# byte stream and libfm's "open" finds nothing to open it with.  That is why
+# double-clicking a video in XXRI File did nothing at all.  Both caches are
+# plain data files, architecture independent, so they are generated here rather
+# than shipped or built on first boot.
+if command -v update-mime-database >/dev/null 2>&1 \
+   && [ -d "\$STAGE/usr/local/share/mime" ]; then
+	update-mime-database "\$STAGE/usr/local/share/mime" 2>/dev/null || true
+	if [ -f "\$STAGE/usr/local/share/mime/mime.cache" ]; then
+		echo "   mime.cache: \$(du -h "\$STAGE/usr/local/share/mime/mime.cache" | cut -f1)"
+	else
+		echo "   !! mime.cache was not produced - file associations will not work" >&2
+	fi
+else
+	echo "   !! update-mime-database missing on the build host - skipping" >&2
+fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+	update-desktop-database "\$STAGE/usr/local/share/applications" 2>/dev/null || true
+	[ -f "\$STAGE/usr/local/share/applications/mimeinfo.cache" ] \
+		&& echo "   mimeinfo.cache: \$(grep -c '=' "\$STAGE/usr/local/share/applications/mimeinfo.cache") types" \
+		|| echo "   !! mimeinfo.cache was not produced" >&2
 fi
 
 echo ">> 3 re-apply base setuid bits (chown cleared them)"

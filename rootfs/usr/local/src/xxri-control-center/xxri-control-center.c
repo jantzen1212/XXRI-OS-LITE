@@ -1152,9 +1152,23 @@ static gboolean tick(gpointer d) {          /* clock + cheap state refresh */
  * the desktop menu and QA scripts drive it. */
 volatile sig_atomic_t g_signalled = 0;
 static void sig_cmd(int s) { (void)s; g_signalled++; }
+/* Both single-instance files must be BOOT-LOCAL.  They used to live in
+ * ~/.cache, which is on the persistent root: the pid file outlived every
+ * reboot (it is only unlink()ed after a clean gtk_main() return, which a
+ * power-off never reaches), so the next boot read a pid from the previous
+ * one.  If any unrelated process happened to occupy that pid, the kill(pid,0)
+ * guard below matched it, the panel signalled a stranger and exited before
+ * gtk_init_check() - no window, no chip, on ~1 boot in 4.  XDG_RUNTIME_DIR is
+ * /tmp/runtime-$USER (tmpfs, 0700) and is set up by xxri-session-runtime
+ * before .xsession starts this, so it is per-user and cannot survive a reboot;
+ * /tmp is the fallback and is tmpfs too. */
+static char* cc_runtime_path(const char* leaf) {
+    const char* rt = g_getenv("XDG_RUNTIME_DIR");
+    if (rt && *rt) return g_strdup_printf("%s/xxri-cc.%s", rt, leaf);
+    return g_strdup_printf("/tmp/xxri-cc-%u.%s", (unsigned)getuid(), leaf);
+}
 static char* cmd_path(void) {
-    return g_strdup_printf("%s/.cache/xxri-cc.cmd",
-                           g_get_home_dir() ? g_get_home_dir() : "/tmp");
+    return cc_runtime_path("cmd");
 }
 static gboolean check_cmd(gpointer d) {
     (void)d;
@@ -1180,12 +1194,23 @@ static void load_css(void) {
         GTK_STYLE_PROVIDER(p), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
     g_object_unref(p);
 }
+/* First real state read, once the chip is already on screen (see main). */
+static gboolean first_state_read(gpointer d) {
+    (void)d;
+    state_read();
+    g_free(g_state_sig);
+    g_state_sig = state_sig();
+    rebuild();
+    return G_SOURCE_REMOVE;
+}
+
 int main(int argc, char** argv) {
     /* single instance: a second launch toggles the running one instead of
        stacking a duplicate panel on the desktop */
     char pidpath[256];
-    snprintf(pidpath, sizeof pidpath, "%s/.cache/xxri-cc.pid",
-             g_get_home_dir() ? g_get_home_dir() : "/tmp");
+    { char* rp = cc_runtime_path("pid");          /* boot-local: see cc_runtime_path */
+      snprintf(pidpath, sizeof pidpath, "%s", rp);
+      g_free(rp); }
     const char* want = "toggle";
     if (argc > 1) {
         if      (!strcmp(argv[1], "--open"))                       want = "open";
@@ -1239,11 +1264,23 @@ int main(int argc, char** argv) {
     g_signal_connect(g_win, "draw", G_CALLBACK(on_win_draw), NULL);
     g_signal_connect(g_win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
-    state_read();
+    /* Draw and map the chip BEFORE consulting the backends.
+     *
+     * state_read() shells out to xxri-network, xxri-audio and xxri-power
+     * through popen(), and the window used to be created only after all of
+     * them had returned.  At boot those backends are slow and occasionally do
+     * not return at all, so the chip arrived 3-10s after the rest of the
+     * desktop and on ~1 boot in 3 never appeared for the whole session - the
+     * window was never created, so there was nothing for the compositor to
+     * miss.  Show it first from the zeroed state, then fill it in from an idle
+     * callback: the chip is on screen with the desktop, and the live values
+     * land as soon as the backends answer.
+     */
     g_state_sig = state_sig();
     rebuild();
     gtk_widget_show_all(g_win);
     place_window();
+    g_idle_add(first_state_read, NULL);
     g_timeout_add(150, hotspot_poll, NULL);
     g_timeout_add_seconds(30, tick, NULL);
     g_timeout_add(250, check_cmd, NULL);

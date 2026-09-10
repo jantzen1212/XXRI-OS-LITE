@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Disks
-Comment=Drives, free space, mount and eject
-Exec=xxri-settings storage
-Icon=mnttool
-Terminal=false
-Categories=System;
