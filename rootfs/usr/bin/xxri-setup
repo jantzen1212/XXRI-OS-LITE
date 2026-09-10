@@ -188,8 +188,12 @@ if [ "$CDE" ]; then
 	fi
 fi
 
-# If nothing loaded then also check for pseudo CD, e.g., isohybrid
-if [ "$CDE" -a -z "$CDELIST" ]; then
+# If nothing loaded then also check for pseudo CD, e.g., isohybrid.
+# An installed (disk-root) system never sets CDELIST -- its extensions are
+# baked onto the root filesystem and process_diskroot_tcedir does not touch
+# it -- so this fallback fired on EVERY installed boot and spent its 5s
+# settling a CD it will not use.  Live/installer media still take it.
+if [ "$CDE" -a -z "$CDELIST" ] && ! isDiskRoot; then
 	sleep 5
 	DEV="$(tc_autoscan 'cde' 'd')"
 	process_CD

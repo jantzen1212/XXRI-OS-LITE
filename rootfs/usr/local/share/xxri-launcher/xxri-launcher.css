@@ -1,0 +1,66 @@
+/* xxri-launcher.css - the XXRI "All Apps" drawer.
+   Palette is XXRI's own, shared with xxri-cc.css: ink #1C1B24, muted #56536B,
+   and the pink -> violet -> blue accent used across the system.  The panel
+   itself is painted in cairo (rounded, translucent, with its shadow), so this
+   sheet only styles what lives inside it. */
+
+.xxri-launcher { background: transparent; }
+
+/* the grid and its cells */
+.xxri-grid { background: transparent; }
+
+.xxri-cell {
+    border-radius: 16px;
+    padding: 10px 4px 8px 4px;
+    transition: background 120ms ease-out;
+}
+.xxri-cell:hover      { background: rgba(131,113,247,0.13); }
+.xxri-cell:active     { background: rgba(131,113,247,0.22); }
+/* keyboard focus has to be visible without the mouse, and the dotted default
+   outline looks wrong on a glass panel */
+.xxri-cell:focus      { background: rgba(131,113,247,0.18); outline: none; }
+
+.xxri-tile { background: transparent; }
+
+.xxri-tile-label {
+    font-family: "Avenir Next", "Helvetica", sans-serif;
+    font-size: 10.5px;
+    color: #1C1B24;
+    margin-top: 2px;
+}
+
+.xxri-scroll,
+.xxri-scroll viewport { background: transparent; }
+/* the scrollbar is an overlay so it never steals width from the last column */
+.xxri-scroll scrollbar {
+    background: transparent;
+    border: none;
+}
+.xxri-scroll scrollbar slider {
+    background: rgba(28,27,36,0.22);
+    border: none;
+    border-radius: 6px;
+    min-width: 6px;
+}
+.xxri-scroll scrollbar slider:hover { background: rgba(28,27,36,0.34); }
+
+/* the search field along the bottom */
+.xxri-search {
+    font-family: "Avenir Next", "Helvetica", sans-serif;
+    font-size: 12px;
+    color: #1C1B24;
+    background: rgba(28,27,36,0.055);
+    border: 1px solid rgba(28,27,36,0.07);
+    border-radius: 19px;
+    padding: 8px 14px;
+    min-height: 22px;
+    box-shadow: none;
+}
+.xxri-search:focus {
+    background: #FFFFFF;
+    border: 1px solid rgba(131,113,247,0.55);
+}
+.xxri-search image      { color: #8A87A0; }
+.xxri-search placeholder,
+.xxri-search text selection:backdrop { color: #8A87A0; }
+.xxri-search selection  { background: #8371F7; color: #FFFFFF; }

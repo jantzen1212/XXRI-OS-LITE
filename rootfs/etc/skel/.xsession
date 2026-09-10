@@ -79,15 +79,16 @@ XSERVER=xorg
 start_xorg || { XSERVER=xvesa; start_xvesa || ! echo failed in waitforX || exit; }
 export XSERVER
 [ "$XSERVER" = xorg ] && apply_xres
-# The XXRI face is published to the X server as the "xxri" foundry.  Xvesa
-# gets it through -fp above; X.Org needs it added to the running server, and
-# without it every FLTK surface (window titles, dialogs, the desktop menu)
-# silently falls back to a stock bitmap font.
-[ "$XSERVER" = xorg ] && command -v xset >/dev/null 2>&1 && {
-	xset +fp /usr/local/share/fonts/xxri/ >/tmp/xset.log 2>&1
-	xset fp rehash >>/tmp/xset.log 2>&1
-	xset q >>/tmp/xset.log 2>&1
-}
+# The XXRI face ("xxri" foundry) reaches the server through -fp on the Xorg
+# command line above, and Xvesa gets it through its own -fp.  There used to be
+# an `xset +fp` + `fp rehash` + `q` block here as well; it was measured to cost
+# 0.62s of the boot and to change nothing.  With and without it the server
+# reports an identical font path, an identical 32 xxri fonts out of 308 total,
+# and the exact patterns FLTK asks for (-xxri-helvetica-bold-r-normal--*)
+# resolve the same.  fonts.dir/fonts.scale are baked into the image and nothing
+# regenerates them at boot, so `rehash` had nothing to pick up.  Verified
+# pixel-identical across flwm titlebars (aterm, Code-OSS), All Apps, Control
+# Center, Files, Media and Browser.  Do not re-add it without re-measuring.
 # A maximized window stops above the dock instead of vanishing behind it.
 # 44px icons + 2x2 padding + the 26px the dock is lifted off the bottom edge.
 export XXRI_DOCK_RESERVE=78
@@ -107,8 +108,12 @@ export WM_PID=$!
 # costs translucency, not the session.  Boot with `nocomposite` to skip it.
 if ! grep -qw nocomposite /proc/cmdline 2>/dev/null; then
 	if [ -x /usr/local/bin/xxri-compositor ]; then
-		pkill -f "/usr/local/bin/xxri-compositor" || true
-		sleep 0.2
+		# Only a restart has a compositor to replace; on a cold boot the
+		# pkill matches nothing and the settle guards nothing, so pay the
+		# 0.2s only when something was actually killed.
+		if pkill -f "/usr/local/bin/xxri-compositor" 2>/dev/null; then
+			sleep 0.2
+		fi
 		/usr/local/bin/xxri-compositor 2>/var/tmp/xxri-compositor.nohup.log &
 	fi
 fi
@@ -142,10 +147,39 @@ fi
 # application has a window open.  It is a separate process on purpose - the
 # dock itself is a launcher with no idea what is running, and keeping the
 # indicator out of it means a crash here can never take the dock down.
+# Let the compositor take over redirection before the always-on surfaces below
+# paint for the first time.  A window that paints BEFORE
+# XCompositeRedirectSubwindows loses that content to the freshly allocated
+# offscreen pixmap, and an override-redirect surface is never asked to repaint,
+# so it stays blank for the whole session.  The dock's own launcher survived
+# this only by accident (it waits for wbar's window first); the Control Center
+# paints immediately and went invisible as soon as boot got fast enough to lose
+# the race -- it was previously masked by ~7s of unrelated boot delay upstream.
+# This is a barrier, not a fix: the durable fix is for the compositor to signal
+# readiness (or for the surfaces to repaint on expose).
+if [ -x /usr/local/bin/xxri-compositor ] && ! grep -qw nocomposite /proc/cmdline 2>/dev/null; then
+	for _i in 1 2 3 4 5 6 7 8 9 10; do
+		pidof xxri-compositor >/dev/null 2>&1 && break
+		sleep 0.05
+	done
+	sleep 0.5
+fi
 [ -x /usr/local/bin/xxri-wctl ] && /usr/local/bin/xxri-wctl indicators &
 # XXRI Control Center: the always-available quick-settings chip in the
 # bottom-right corner (click it to open the panel).  It is a single-instance
 # override-redirect window, so it never joins the task list or takes focus.
 [ -x /usr/local/bin/xxri-control-center ] && /usr/local/bin/xxri-control-center &
+# All Apps: the floating launcher key that sits just left of the dock, with a
+# gap.  It is deliberately NOT a wbar slot - the reference layout has it as a
+# surface of its own - so like the Control Center it is an override-redirect
+# window that never joins the task list or takes focus.  It finds the dock by
+# wbar's own window, so it does not matter that wbar may still be starting.
+[ -x /usr/local/bin/xxri-launcher ] && /usr/local/bin/xxri-launcher --button &
+# The dock's running-app section.  It is NOT a surface of its own: applications
+# that are running but not pinned are written into wbar's own config, after a
+# separator, so they appear inside the single dock pill and the dock simply
+# grows.  This watcher is what keeps that section in step with the windows that
+# are actually open.
+[ -x /usr/local/bin/xxri-dock-pin ] && /usr/local/bin/xxri-dock-pin watch &
 [ -d "/usr/local/etc/X.d" ] && find "/usr/local/etc/X.d" -type f -o -type l | sort | while read F; do . "$F"; done
 [ -d "$HOME/.X.d" ] && find "$HOME/.X.d" -type f -o -type l | sort | while read F; do . "$F"; done

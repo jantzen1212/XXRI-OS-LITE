@@ -1,12 +1,17 @@
 #!/bin/sh
-# wbar_setup.sh - xxri OS Lite dock setup.
+# wbar_setup.sh - xxri OS Lite dock setup, run at boot before wbar itself
+# starts (see desktop.sh / setupdesktop / .xsession).
 #
-# The dock is defined ENTIRELY by /usr/local/share/wbar/dot.wbar (the xxri
-# canonical dock).  Unlike stock Tiny Core, this script does NOT append the
-# per-extension `wbar_update.sh` icons or the on-demand launchers, because
-# that pipeline produced duplicate Settings icons and pulled in the old
-# Tiny Core control-panel launcher.  Copying dot.wbar verbatim guarantees
-# every icon appears exactly once.
+# The dock's PINNED area is defined by /usr/local/share/xxri-launcher/
+# pinned.list (one .desktop id per line, max 8), turned into the live
+# /usr/local/tce.icons file by xxri-dock-pin - the same tool the All Apps
+# drawer calls live when the user pins or unpins an app.  This script only
+# has to set up the symlink dance wbar itself expects and hand off to that
+# tool, so cold boot and a live pin/unpin build the dock exactly the same way.
+#
+# Newly installed/downloaded applications are NOT added here or anywhere
+# else automatically - they show up in the All Apps drawer (which reads
+# .desktop files directly) and reach the dock only if the user pins them.
 . /etc/init.d/tc-functions
 
 TCEDIR=/etc/sysconfig/tcedir
@@ -14,32 +19,29 @@ TCEDIR=/etc/sysconfig/tcedir
 
 TCEWBAR="/usr/local/tce.icons"
 
+# startx calls this script and then calls setupdesktop, which calls it a second
+# time with nothing changed in between, rebuilding an identical dock.  Both of
+# those callers are shipped inside desktop .tcz files, so the redundant run is
+# short-circuited here.  /tmp is tmpfs, so the stamp lasts exactly one boot and
+# a later pin/unpin (xxri-dock-pin) is unaffected -- it does not come through
+# this script.
+XXRI_WBAR_STAMP=/tmp/.xxri-wbar-setup-done
+[ -f "$XXRI_WBAR_STAMP" ] && [ -s "$TCEWBAR" ] && exit 0
+
 read USER < /etc/sysconfig/tcuser
 WBARICONS=/home/"$USER"/.wbar
 [ -L "$WBARICONS" ] || ln -s "$TCEWBAR" "$WBARICONS"
 
-# Authoritative base dock: the six xxri launchers from dot.wbar, nothing from
-# the fragile per-extension pipeline.
-[ -e "$TCEWBAR" ] && sudo rm -rf "$TCEWBAR"
-sudo cp /usr/local/share/wbar/dot.wbar "$TCEWBAR"
-
-# re-append every Store-installed app so the dock persists across
-# reboots.  Each integrated app has a registry file with its Name and icon;
-# xxri-app added the same triplet live at install time, and this rebuilds them
-# on boot.  The base dock stays first, apps follow - each appears exactly once.
-REG_DIR=/usr/local/share/xxri-apps
-if [ -d "$REG_DIR" ]; then
-	for r in "$REG_DIR"/*.reg; do
-		[ -f "$r" ] || continue
-		id=$(basename "$r" .reg)
-		grep -q '^INTEGRATED=1' "$r" || continue
-		nm=$(sed -n 's/^NAME=//p' "$r" | head -1)
-		ic=$(sed -n 's/^ICON=//p' "$r" | head -1)
-		[ -n "$nm" ] || nm="$id"
-		[ -s "$ic" ] || ic=/usr/local/share/pixmaps/xxri-app-generic.png
-		printf 'i: %s\nt: %s\nc: exec xxri-app launch %s\n' "$ic" "$nm" "$id" | sudo tee -a "$TCEWBAR" >/dev/null
-	done
+if [ -x /usr/local/bin/xxri-dock-pin ]; then
+	/usr/local/bin/xxri-dock-pin boot
+else
+	# Fallback so a broken/missing xxri-dock-pin still boots to a dock
+	# instead of none at all: wbar's own header triple, no pinned apps.
+	sed -n '1,/^c: wbar /p' /usr/local/share/wbar/dot.wbar | grep -v '^#' | sudo tee "$TCEWBAR" >/dev/null
 fi
 
 sudo chown root:staff "$TCEWBAR"
 sudo chmod g+w "$TCEWBAR"
+
+# Mark this boot's dock as built (see the stamp check above).
+touch "$XXRI_WBAR_STAMP" 2>/dev/null || true

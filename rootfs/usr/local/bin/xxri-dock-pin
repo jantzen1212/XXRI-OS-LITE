@@ -1,0 +1,510 @@
+#!/bin/sh
+# xxri-dock-pin - pin/unpin applications on the XXRI dock's PINNED area.
+#
+# /usr/local/share/xxri-launcher/pinned.list is the single source of truth
+# for the pinned area: one .desktop id per line (the filename without
+# ".desktop"), in dock order, at most 8.  This script is the only thing that
+# is supposed to write it, and the only thing that turns it into the live
+# dock (/usr/local/tce.icons, the file wbar actually reads) - both at boot
+# (wbar_setup.sh calls `regen`) and live, right after a pin/unpin.
+#
+# A pinned app's icon/name/command are NOT copied into pinned.list - they are
+# looked up fresh from its .desktop file every time the dock is regenerated,
+# the same file the All Apps drawer (xxri-launcher) reads, so the two never
+# show different icons or names for the same app.
+#
+#   xxri-dock-pin pin ID       add ID (no-op if already pinned or dock is full)
+#   xxri-dock-pin unpin ID     remove ID (no-op if not pinned)
+#   xxri-dock-pin list         print pinned ids, one per line, in dock order
+#   xxri-dock-pin count        print how many are pinned
+#   xxri-dock-pin regen        rebuild tce.icons AND restart the live dock
+#   xxri-dock-pin boot         rebuild tce.icons only, for wbar_setup.sh - the
+#                              session starts wbar itself right afterwards, so
+#                              restarting it here would just be a redundant,
+#                              flickery extra launch-and-kill before the first
+#                              real one.
+#   xxri-dock-pin watch        follow the open windows and keep the dock's
+#                              running section in step (started by .xsession)
+#
+# The dock is ONE pill.  After the pinned entries, an application that is
+# running but not pinned gets its own entry in this same file, behind a thin
+# separator slot - wbar draws them all as the single dock it always drew, just
+# wider.  Nothing is added while no unpinned application is running, so the
+# resting dock is exactly the eight pinned icons.
+set -u
+APPDIR="${XXRI_APPDIR:-/usr/local/share/applications}"
+PINNED="${XXRI_PINNED:-/usr/local/share/xxri-launcher/pinned.list}"
+DOTWBAR="${XXRI_DOTWBAR:-/usr/local/share/wbar/dot.wbar}"
+TCEWBAR="${XXRI_TCEWBAR:-/usr/local/tce.icons}"
+SUDO="${XXRI_DOCK_PIN_SUDO-sudo}"
+REG_DIR="${XXRI_REGDIR:-/usr/local/share/xxri-apps}"
+WCTL="${XXRI_WCTL:-/usr/local/bin/xxri-wctl}"
+MAXPIN=8
+# Index/queue lines are '|'-separated, NOT tab-separated: a tab is IFS
+# whitespace, so `read` collapses an empty field away and shifts every field
+# after it - and "this window matched no .desktop" is exactly an empty leading
+# field.  '|' is not whitespace, so empty fields survive it.
+SEP='|'
+
+log() { echo "[$(date '+%H:%M:%S')] xxri-dock-pin: $*" >> /tmp/xxri-dock-pin.log; }
+
+ensure_pinned_file() {
+	[ -f "$PINNED" ] || $SUDO sh -c ": > '$PINNED'"
+	# Mode is set EXPLICITLY here and after every write below, never left to
+	# cp.  This is BusyBox, not coreutils: its cp gives the destination the
+	# SOURCE file's mode, and every temp file here comes from mktemp (0600).
+	# A 0600 pinned.list is still perfectly readable by root - so the boot
+	# path keeps working - and unreadable by the desktop user, which is who
+	# actually runs a pin/unpin.  pinned_ids() then silently returns nothing
+	# (its grep failure goes to /dev/null) and the very next regen writes a
+	# dock with no applications on it at all.
+	$SUDO chmod 644 "$PINNED" 2>/dev/null
+}
+
+# Replace pinned.list wholesale, mode included.
+put_pinned() { # srcfile
+	$SUDO cp "$1" "$PINNED"
+	$SUDO chmod 644 "$PINNED"
+}
+
+# All real (non-comment, non-blank) lines of pinned.list, in order.
+pinned_ids() { grep -v '^[[:space:]]*#' "$PINNED" 2>/dev/null | grep -v '^[[:space:]]*$'; }
+
+is_pinned() { # id -> 0 if pinned
+	pinned_ids | grep -qx "$1"
+}
+
+# Field extraction from a .desktop file's [Desktop Entry] group only, so a
+# per-action Name=/Exec= (an Actions= sub-group) is never mistaken for the
+# app's own - the same rule xxri-launcher's scanner applies.
+desktop_field() { # file key
+	awk -v k="$1" '
+		/^\[Desktop Entry\]/ { ing=1; next }
+		/^\[/ { ing=0 }
+		ing && $0 ~ "^" k "=" { sub("^" k "=", ""); print; exit }
+	' "$2" 2>/dev/null
+}
+
+# Exec= carries field codes (%U %f ...) meaningful only when documents are
+# passed in; the dock never does, and a literal "%U" would reach the app.
+strip_field_codes() {
+	echo "$1" | sed -E 's/%[UfFiIcCkKdDnNvm]//g; s/%%/%/g; s/[[:space:]]+$//; s/^[[:space:]]+//'
+}
+
+# The focus key xxri-dock-launch matches against WM_CLASS.  X-XXRI-DockKey
+# overrides this verbatim (including any +/- prefix) for the handful of apps
+# whose WM_CLASS does not match their own binary name (the editor) or that
+# are not really "applications" for indicator/focus purposes (Power) - see
+# xxri-editor.desktop / xxri-power.desktop.  Everything else derives the key
+# from Exec's own first token, exactly like xxri-launcher's focus_key_for().
+dock_key_for() { # exec override
+	if [ -n "$2" ]; then echo "$2"; return; fi
+	base=$(basename "$(echo "$1" | awk '{print $1}')")
+	case "$base" in
+		aterm|xterm|xxri-app) echo "+$base" ;;
+		*)                    echo "$base" ;;
+	esac
+}
+
+# Same resolution order as xxri-launcher's resolve_icon(), minus the themed-
+# icon-theme lookup tier: that is the slow path on this hardware and every
+# shipped .desktop already carries an X-FullPathIcon or a plain pixmaps name.
+resolve_icon() { # full icon
+	if [ -n "$1" ] && [ -f "$1" ]; then echo "$1"; return; fi
+	if [ -n "$2" ]; then
+		case "$2" in
+			/*) [ -f "$2" ] && { echo "$2"; return; } ;;
+		esac
+		for ext in png svg xpm; do
+			[ -f "/usr/local/share/pixmaps/$2.$ext" ] && { echo "/usr/local/share/pixmaps/$2.$ext"; return; }
+		done
+	fi
+	echo "/usr/local/share/pixmaps/xxri-app-generic.png"
+}
+
+# ---------------------------------------------------------------- matching --
+#
+# A running window has to be traced back to the .desktop entry it came from,
+# and WM_CLASS alone cannot do that: it is a name the application picked for
+# itself, with no obligation to resemble the way the desktop launches it.
+# Code-OSS is the plain example - started as `xxri-app launch code-oss`, it
+# calls its windows "code" - and every Store application has that same shape,
+# so this is resolved generally rather than per-application:
+#
+#   1. by PROCESS.  xxri-wctl reports each window's _NET_WM_PID, and /proc
+#      then says exactly which program owns it - matched against the registry
+#      entry's own FILE, or against its LOCATION, which also covers the very
+#      common case of a launcher script sitting beside the real binary
+#      (code-oss registers .../bin/code and runs .../code).  An application
+#      still inside its AppImage is running from a temporary mount instead, so
+#      there the image it came from is read back out of $APPIMAGE.  Nothing
+#      here is guessed.
+#   2. by NAME, only when the window carries no usable pid: the instance is
+#      compared against every name the entry is known by - StartupWMClass (the
+#      freedesktop field that exists for exactly this problem), X-XXRI-DockKey,
+#      the entry id, the registry id, and the program's own basename.
+#
+# One fixed path per process, not a mktemp: the index is rebuilt from scratch
+# every time and is read back inside command substitutions, which are
+# subshells - a name generated there would be a new file this shell never
+# learns about and so never cleans up.  $$ stays the original shell's pid in
+# every subshell, so one process reuses one file and two processes cannot
+# collide.
+IDX="${TMPDIR:-/tmp}/.xxri-dock-index.$$"
+
+reg_field() { # id key
+	[ -n "$1" ] || return 0
+	[ -f "$REG_DIR/$1.reg" ] && sed -n "s/^$2=//p" "$REG_DIR/$1.reg" | head -1
+}
+
+# One line per installed .desktop: id, the names it answers to, the executables
+# that ARE it, and the directories it lives in.  Built in one awk pass over the
+# whole directory rather than a field-at-a-time walk, because this runs on
+# every dock rebuild.
+build_index() {
+	awk '
+		function emit() { if (id != "") printf "%s|%s|%s|%s\n", id, ex, swc, ovr }
+		FNR==1 { emit(); id=FILENAME; sub(/.*\//,"",id); sub(/\.desktop$/,"",id)
+		         ex=""; swc=""; ovr=""; ing=0 }
+		/^\[Desktop Entry\]/ { ing=1; next }
+		/^\[/                 { ing=0 }
+		ing && /^Exec=/           && ex==""  { sub(/^Exec=/,"");           ex=$0 }
+		ing && /^StartupWMClass=/ && swc=="" { sub(/^StartupWMClass=/,""); swc=$0 }
+		ing && /^X-XXRI-DockKey=/ && ovr=="" { sub(/^X-XXRI-DockKey=/,""); ovr=$0 }
+		END { emit() }
+	' "$APPDIR"/*.desktop 2>/dev/null | while IFS="$SEP" read -r id ex swc ovr; do
+		[ -n "$id" ] || continue
+		ex=$(strip_field_codes "$ex")
+		first=${ex%% *}; base=${first##*/}
+		toks="$id"
+		case "$id" in xxri-app-*) toks="$toks ${id#xxri-app-}" ;; esac
+		[ -n "$swc" ] && toks="$toks $swc"
+		[ -n "$ovr" ] && toks="$toks ${ovr#[-+]}"
+		exes=""; dirs=""
+		if [ "$base" = xxri-app ]; then
+			# `xxri-app launch ID`: the wrapper's own name identifies
+			# nothing (every Store app shares it) - the registry entry
+			# it launches is the identity, so only that is recorded.
+			rid=$(echo "$ex" | awk '{print $3}')
+			[ -n "$rid" ] && toks="$toks $rid"
+			exes=$(reg_field "$rid" FILE)
+			dirs=$(reg_field "$rid" LOCATION)
+		else
+			toks="$toks $base"
+			case "$first" in
+				/*) exes="$first" ;;
+				*)  exes=$(command -v "$first" 2>/dev/null) ;;
+			esac
+		fi
+		printf '%s|%s|%s|%s\n' "$id" "$(echo "$toks" | tr 'A-Z' 'a-z')" "$exes" "$dirs"
+	done > "$IDX"
+}
+
+resolve_window() { # instance pid -> .desktop id, or nothing
+	_inst=$(echo "$1" | tr 'A-Z' 'a-z'); _pid="$2"
+	[ "$_inst" = "-" ] && _inst=""
+	if [ -n "$_pid" ] && [ "$_pid" != 0 ] && [ -d "/proc/$_pid" ]; then
+		_exe=$(readlink "/proc/$_pid/exe" 2>/dev/null)
+		_img=$(tr '\0' '\n' < "/proc/$_pid/environ" 2>/dev/null | sed -n 's/^APPIMAGE=//p' | head -1)
+		# read from a FILE, never a pipe: a `while read` fed by a pipe runs
+		# in a subshell, where `return` would leave the loop but not the
+		# function, and the answer found here would be thrown away.
+		while IFS="$SEP" read -r _id _toks _exes _dirs; do
+			for _e in $_exes; do
+				[ -n "$_exe" ] && [ "$_exe" = "$_e" ] && { echo "$_id"; return 0; }
+				[ -n "$_img" ] && [ "$_img" = "$_e" ] && { echo "$_id"; return 0; }
+			done
+			[ -n "$_exe" ] || continue
+			for _d in $_dirs; do
+				case "$_exe" in "$_d"/*) echo "$_id"; return 0 ;; esac
+			done
+		done < "$IDX"
+	fi
+	[ -n "$_inst" ] || return 1
+	# An exact name wins over any near-miss, so every entry is offered the
+	# exact match before the prefix rule below gets a say.
+	while IFS="$SEP" read -r _id _toks _exes _dirs; do
+		for _t in $_toks; do
+			[ "$_inst" = "$_t" ] && { echo "$_id"; return 0; }
+		done
+	done < "$IDX"
+	# "code" for "code-oss": the instance is the whole first component of a
+	# longer name.  Only on a real separator, so "code" can never claim
+	# "codeblocks".
+	while IFS="$SEP" read -r _id _toks _exes _dirs; do
+		for _t in $_toks; do
+			case "$_t" in "$_inst"-*|"$_inst"_*|"$_inst".*) echo "$_id"; return 0 ;; esac
+		done
+	done < "$IDX"
+	return 1
+}
+
+# Every application that is running but NOT pinned, one line each, as
+# "id|instance" (the id is empty when the window matched no .desktop at all).
+# Window order is kept: a newly opened application lands at the end.
+running_entries() {
+	[ -n "${DISPLAY:-}" ] || return 0
+	[ -x "$WCTL" ] || return 0
+	build_index
+	_pins=" $(pinned_ids | tr '\n' ' ') "
+	"$WCTL" list 2>/dev/null | {
+		_seen=" "
+		while read -r _win _state _inst _pid _rest; do
+			[ -n "$_inst" ] && [ "$_inst" != "-" ] || continue
+			_id=$(resolve_window "$_inst" "$_pid")
+			# a pinned application already has its icon in the dock
+			case "$_id" in "") ;; *) case "$_pins" in *" $_id "*) continue ;; esac ;; esac
+			_mark=${_id:-@$_inst}
+			case "$_seen" in *" $_mark "*) continue ;; esac
+			_seen="$_seen$_mark "
+			printf '%s|%s\n' "$_id" "$_inst"
+		done
+	}
+}
+
+# The XXRI icon container.  wbar can only draw a PNG straight from a path, so
+# it cannot apply a shape itself: the framing has to happen here, once per
+# regen, into a cache that tce.icons then points at.  The rendering itself is
+# `xxri-launcher --frame-icon`, the SAME routine the running-app strip draws
+# with, so a pinned icon and a running icon can never end up with different
+# silhouettes.  64px because that is the size the shipped pixmaps already are
+# and what wbar has always been scaling down from (-isize 40, zoom 1.06).
+FRAMED="${XXRI_FRAMED:-/usr/local/share/xxri-launcher/framed}"
+FRAMER="${XXRI_FRAMER:-/usr/local/bin/xxri-launcher}"
+FRAME_PX=64
+
+frame_icon() { # id srcpath -> path to use in tce.icons (framed, or src on failure)
+	[ -x "$FRAMER" ] || { echo "$2"; return; }
+	$SUDO mkdir -p "$FRAMED" 2>/dev/null
+	$SUDO chmod 755 "$FRAMED" 2>/dev/null
+	out="$FRAMED/$1.png"
+	# Re-rendering all of these on every rebuild would put a visible pause
+	# between an application opening and its icon appearing, and the drawing
+	# is a pure function of the source file - so a cached copy that is newer
+	# than its source is already the right answer.  (`-nt` is a BusyBox test
+	# extension; where it is missing the test simply fails and the icon is
+	# drawn again, which is only slower, never wrong.)
+	if [ -s "$out" ] && [ "$out" -nt "$2" ] 2>/dev/null; then echo "$out"; return; fi
+	if $SUDO "$FRAMER" --frame-icon "$2" "$out" "$FRAME_PX" 2>>/tmp/xxri-dock-pin.log; then
+		# Same BusyBox-cp/mktemp mode trap as tce.icons and pinned.list: wbar
+		# runs as the desktop user and a 0600 icon would simply not draw.
+		$SUDO chmod 644 "$out" 2>/dev/null
+		echo "$out"
+	else
+		log "frame_icon $1: --frame-icon failed on $2 - using the raw icon"
+		echo "$2"
+	fi
+}
+
+# The separator between the pinned icons and the running ones is drawn INTO
+# the dock's background image rather than being an entry of its own.
+#
+# wbar normalises every entry it draws to one -isize square, so a separator
+# entry was laid out at a full icon's width (47px pitch) however narrow its
+# image was - which is what pushed the running section away from the pinned
+# icons.  The background, on the other hand, wbar stretches across the whole
+# bar, so a rule drawn at the right fraction of it lands in the gap after the
+# last pinned icon and every icon keeps the same uniform spacing.  The
+# arithmetic lives in `xxri-launcher --dock-bg`, next to the dock geometry it
+# depends on; this only has to say where the pinned section ends and how wide
+# the dock is going to be.
+dock_bg() { # pinned_count total_slots -> background to use, or nothing
+	[ -x "$FRAMER" ] || return 1
+	base=$(awk '/^i: / { sub(/^i: /,""); print; exit }' "$DOTWBAR")
+	[ -n "$base" ] && [ -f "$base" ] || return 1
+	$SUDO mkdir -p "$FRAMED" 2>/dev/null
+	$SUDO chmod 755 "$FRAMED" 2>/dev/null
+	out="$FRAMED/dockbg.png"
+	$SUDO "$FRAMER" --dock-bg "$base" "$out" "$1" "$2" 2>>/tmp/xxri-dock-pin.log || return 1
+	$SUDO chmod 644 "$out" 2>/dev/null
+	echo "$out"
+}
+
+# Rebuild tce.icons from scratch: wbar's own header triple (never a launcher -
+# skipped by everything that reads slot order), then one triple per pinned id,
+# in pinned.list's order.  Written to a temp file and moved into place so wbar
+# (or a reader mid-poll) never sees a half-written file.
+write_dock() {
+	ensure_pinned_file
+	# Both counts are needed BEFORE the header goes out: the separator is part
+	# of the background image now, so which background the header names depends
+	# on where the pinned section ends and how wide the whole dock will be.
+	runlist=$(running_entries)
+	r=$(printf '%s\n' "$runlist" | grep -c "$SEP")
+	pn=0
+	for _id in $(pinned_ids); do
+		[ "$pn" -lt "$MAXPIN" ] || break
+		[ -f "$APPDIR/$_id.desktop" ] || continue
+		pn=$((pn + 1))
+	done
+
+	tmp=$(mktemp)
+	awk '
+		/^i: / && !seen { print; getline t; print t; getline c; print c; seen=1 }
+	' "$DOTWBAR" > "$tmp"
+	if [ ! -s "$tmp" ]; then
+		log "!! could not read wbar header from $DOTWBAR - dock would be empty, aborting"
+		rm -f "$tmp"
+		return 1
+	fi
+	# Nothing running unpinned means no separator, which means the stock
+	# background and a dock that is byte for byte the one that was always here.
+	if [ "$r" -gt 0 ]; then
+		bg=$(dock_bg "$pn" "$((pn + r))") &&
+			sed -i "1s|^i: .*|i: $bg|" "$tmp"
+	fi
+	n=0
+	while IFS= read -r id; do
+		[ -n "$id" ] || continue
+		n=$((n + 1))
+		[ "$n" -le "$MAXPIN" ] || { log "pinned.list has more than $MAXPIN entries - ignoring '$id'"; continue; }
+		dsk="$APPDIR/$id.desktop"
+		if [ ! -f "$dsk" ]; then
+			log "pinned id '$id' has no $dsk any more - dropping it from the dock"
+			continue
+		fi
+		name=$(desktop_field Name "$dsk"); [ -n "$name" ] || name="$id"
+		exec_raw=$(desktop_field Exec "$dsk")
+		exec_clean=$(strip_field_codes "$exec_raw")
+		override=$(desktop_field X-XXRI-DockKey "$dsk")
+		key=$(dock_key_for "$exec_clean" "$override")
+		icon=$(resolve_icon "$(desktop_field X-FullPathIcon "$dsk")" "$(desktop_field Icon "$dsk")")
+		icon=$(frame_icon "$id" "$icon")
+		printf 'i: %s\nt: %s\nc: exec /usr/local/bin/xxri-dock-launch %s %s\n' \
+			"$icon" "$name" "$key" "$exec_clean" >> "$tmp"
+	done <<EOF_LIST
+$(pinned_ids)
+EOF_LIST
+	# ---- the running section, in this same dock --------------------------
+	# Not a second window and not a second pill: these are ordinary wbar
+	# entries appended to the very same file, at the very same spacing as the
+	# pinned ones - the rule that divides them lives in the background image,
+	# not in a slot of its own.
+	while IFS="$SEP" read -r rid rinst; do
+		[ -n "$rinst" ] || continue
+		rdsk="$APPDIR/$rid.desktop"
+		if [ -n "$rid" ] && [ -f "$rdsk" ]; then
+			rname=$(desktop_field Name "$rdsk"); [ -n "$rname" ] || rname="$rid"
+			rexec=$(strip_field_codes "$(desktop_field Exec "$rdsk")")
+			ricon=$(resolve_icon "$(desktop_field X-FullPathIcon "$rdsk")" "$(desktop_field Icon "$rdsk")")
+			ricon=$(frame_icon "$rid" "$ricon")
+		else
+			# No .desktop owns this window.  It still gets an icon and a
+			# place in the dock; clicking it can only raise it again.
+			rname="$rinst"
+			rexec="true"
+			ricon=$(frame_icon "run-$rinst" "/usr/local/share/pixmaps/xxri-app-generic.png")
+		fi
+		# The key is the window's OWN WM_CLASS, so the click focuses the
+		# window that is already there instead of starting a second copy.
+		printf 'i: %s\nt: %s\nc: exec /usr/local/bin/xxri-dock-launch %s %s\n' \
+			"$ricon" "$rname" "$rinst" "$rexec" >> "$tmp"
+	done <<EOF_RUN
+$runlist
+EOF_RUN
+	$SUDO cp "$tmp" "$TCEWBAR"
+	rm -f "$tmp"
+	$SUDO chown root:staff "$TCEWBAR"
+	# An explicit absolute mode, not "chmod g+w": $tmp came from mktemp (0600),
+	# and cp copies a file's mode as-is (never adding bits, whatever the
+	# umask), so "g+w" on top of that gives 0620 - group WRITE but no group
+	# READ, and wbar/xxri-wctl (running as the desktop user, in group staff,
+	# never as root) then cannot even open the file.  That is a silent,
+	# invisible-dock failure, not a permissions warning anywhere.
+	$SUDO chmod 664 "$TCEWBAR"
+	log "write_dock: $n pinned + $r running app(s) written to $TCEWBAR"
+	return 0
+}
+
+# Live update: rebuild, then restart the dock and its running-indicator
+# daemon so both pick up the new content immediately - read_slots()/
+# indicators only reads tce.icons once at startup, so without this a
+# pin/unpin would need a logout to show.
+regen() {
+	write_dock || return 1
+	if [ -n "${DISPLAY:-}" ]; then
+		wbar.sh >/dev/null 2>&1
+		# The old indicator daemon must be fully GONE before its replacement
+		# starts.  It holds a passive Button3 grab on the root window, and X
+		# gives that to one client at a time: start the new one while the old
+		# is still exiting and the new grab is refused (BadAccess, silently),
+		# leaving the dock with no right-click menu until the next rebuild.
+		# That was a rare race while this only ran on a pin/unpin; it is not
+		# rare now that every application opening or closing rebuilds the dock.
+		# The bracket keeps the pattern from matching pkill's own command line.
+		pkill -f 'xxri-wctl[ ]indicators' 2>/dev/null
+		_i=0
+		while pgrep -f 'xxri-wctl[ ]indicators' >/dev/null 2>&1 && [ "$_i" -lt 30 ]; do
+			sleep 0.1
+			_i=$((_i + 1))
+		done
+		( /usr/local/bin/xxri-wctl indicators & ) >/dev/null 2>&1
+	fi
+	return 0
+}
+
+cmd_pin() {
+	id="${1:?usage: xxri-dock-pin pin ID}"
+	ensure_pinned_file
+	[ -f "$APPDIR/$id.desktop" ] || { log "pin $id: no such .desktop"; echo "no such application: $id" >&2; return 1; }
+	if is_pinned "$id"; then log "pin $id: already pinned"; return 0; fi
+	count=$(pinned_ids | wc -l)
+	if [ "$count" -ge "$MAXPIN" ]; then log "pin $id: dock is full ($count/$MAXPIN)"; return 2; fi
+	$SUDO sh -c "printf '%s\n' '$id' >> '$PINNED'"
+	$SUDO chmod 644 "$PINNED"
+	regen
+}
+
+cmd_unpin() {
+	id="${1:?usage: xxri-dock-pin unpin ID}"
+	ensure_pinned_file
+	is_pinned "$id" || { log "unpin $id: not pinned"; return 1; }
+	tmp=$(mktemp)
+	grep -vx "$id" "$PINNED" > "$tmp"
+	put_pinned "$tmp"
+	rm -f "$tmp"
+	regen
+}
+
+# The running section has to follow the windows that are actually open, so
+# something must notice them appearing and disappearing.  This is that
+# something, started once per session by .xsession.
+#
+# Two stages on purpose.  The cheap one runs every second: just the set of
+# WM_CLASS names in the window list, the same enumeration the indicator dots
+# already make - a window merely being raised, renamed or minimised does not
+# change it.  Only when that set really moves is the (much more expensive)
+# window-to-application resolution run, and only when THAT changes is the dock
+# rewritten - so opening a PINNED application, which adds nothing to the dock,
+# never restarts wbar for a dock that would come out identical.
+cmd_watch() {
+	wins=""; section=""
+	while :; do
+		now=$([ -n "${DISPLAY:-}" ] && [ -x "$WCTL" ] &&
+		      "$WCTL" list 2>/dev/null | awk '{print $3}' | sort -u | tr '\n' ' ')
+		if [ "$now" != "$wins" ]; then
+			wins="$now"
+			sect=$(running_entries)
+			if [ "$sect" != "$section" ]; then
+				section="$sect"
+				log "watch: running section changed -> [$(echo "$sect" | tr '\n' ';')]"
+				regen
+			fi
+		fi
+		sleep "${XXRI_DOCK_WATCH_INTERVAL:-1}"
+	done
+}
+
+trap 'rm -f "$IDX"' EXIT INT TERM HUP
+
+case "${1:-}" in
+	pin)   cmd_pin "${2:-}" ;;
+	unpin) cmd_unpin "${2:-}" ;;
+	list)  ensure_pinned_file; pinned_ids ;;
+	count) ensure_pinned_file; pinned_ids | wc -l ;;
+	running) running_entries ;;
+	regen) regen ;;
+	boot)  write_dock ;;
+	watch) cmd_watch ;;
+	*) echo "usage: xxri-dock-pin pin|unpin ID | list | count | running | regen | boot | watch" >&2; exit 2 ;;
+esac

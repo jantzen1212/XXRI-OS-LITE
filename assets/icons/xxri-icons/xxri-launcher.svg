@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- xxri-launcher.svg - the "All Apps" button that sits at the head of the dock.
+     Unlike the application icons this one is a light glass tile rather than a
+     saturated gradient: the reference marks the launcher as a system control,
+     not another app, and a light tile also keeps it legible against the dock's
+     own translucent background.  Width/height are explicit (never "100%") so
+     rsvg-convert can size it and ImageMagick never falls back to its MSVG
+     renderer, which would paint an opaque white square behind it. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"
+     viewBox="0 0 64 64" version="1.1">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0"   stop-color="#FFFFFF"/>
+      <stop offset="1"   stop-color="#E8EAFB"/>
+    </linearGradient>
+    <linearGradient id="dot" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0"   stop-color="#8371F7"/>
+      <stop offset="0.55" stop-color="#6E63E8"/>
+      <stop offset="1"   stop-color="#2E7CF6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- the tile: the same 30% corner radius the XXRI app icons use -->
+  <rect x="2" y="2" width="60" height="60" rx="18" ry="18" fill="url(#tile)"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="17.5" ry="17.5"
+        fill="none" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="1"/>
+
+  <!-- 3x3 dots -->
+  <g fill="url(#dot)">
+    <circle cx="20" cy="20" r="4.3"/>
+    <circle cx="32" cy="20" r="4.3"/>
+    <circle cx="44" cy="20" r="4.3"/>
+    <circle cx="20" cy="32" r="4.3"/>
+    <circle cx="32" cy="32" r="4.3"/>
+    <circle cx="44" cy="32" r="4.3"/>
+    <circle cx="20" cy="44" r="4.3"/>
+    <circle cx="32" cy="44" r="4.3"/>
+    <circle cx="44" cy="44" r="4.3"/>
+  </g>
+</svg>

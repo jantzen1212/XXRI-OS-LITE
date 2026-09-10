@@ -241,6 +241,144 @@ configure_system() {
 	[ -n "$KEYMAP" ]   && echo "KEYMAP=$KEYMAP" > "$MNT/etc/sysconfig/keymap"
 }
 
+# ---------------------------------------------------------------- baking --
+#
+# The installed system must be COMPLETE when the installer says "All done".
+#
+# install2disk copies the live root, which on this medium is a copy2fs system,
+# so most extension content already lands on the target as real files.  What it
+# also copies is /tce: 190 .tcz plus an onboot.lst, and xxri-setup then re-loads
+# every one of them through the tcloop pipeline on EVERY boot.  That is what
+# made a real install ~3x slower than the pre-baked reference image and left
+# 164 loop mounts on a running desktop.
+#
+# So: fill in anything the copy missed straight from the medium's .tcz, then
+# retire the per-boot pipeline.  The reference for the finished filesystem is
+# build-writable-image.sh, whose installed image has an EMPTY /tce/optional and
+# an EMPTY onboot.lst.
+#
+# NO-CLOBBER is deliberate and load-bearing.  build-writable-image.sh unpacks
+# extensions FIRST and then re-applies rootfs-overrides and the design-system
+# files over the top.  Here the target already holds that finished, merged
+# state, so overwriting it with raw extension content would undo exactly the
+# XXRI customisations (dot.wbar, skel, the patched flwm) the copy just brought
+# across.  We only fill genuine gaps.
+bake_extensions() {
+	say 86 "Baking extensions into the installed system"
+	CDESRC=""
+	if [ -s /etc/sysconfig/cde ]; then
+		CDESRC="$(cat /etc/sysconfig/cde)"; CDESRC="${CDESRC%/}"
+	fi
+	[ -d "$CDESRC" ] || CDESRC="$(dirname "$(find_kernel_src)")/cde/optional"
+	LST="$(dirname "$CDESRC")/onboot.lst"
+	if [ ! -d "$CDESRC" ] || [ ! -s "$LST" ]; then
+		log "no extension medium found - target keeps whatever install2disk copied"
+	else
+		# The live medium is a MIX: copy2fs extensions land as real files,
+		# the rest are loop-mounted and SYMLINKED into /tmp/tcloop.
+		# install2disk copies those symlinks verbatim, so the target ends up
+		# full of links into a directory that will not exist after the reboot
+		# - xxri-browser.desktop was one of them, which is why the Browser
+		# silently vanished from the dock on a real install.
+		#
+		# Copy from the extensions the LIVE session already has mounted
+		# under /tmp/tcloop rather than loop-mounting the .tcz again: the
+		# running system is already holding ~164 loop devices, so asking for
+		# 190 more just fails, silently leaving the target incomplete (the
+		# first attempt at this lost xxri-browser.desktop that way).
+		# Everything in onboot.lst is mounted there by definition.
+		n=0
+		for d in /tmp/tcloop/*; do
+			[ -d "$d" ] || continue
+			cp -an "$d/." "$MNT/" 2>/dev/null
+			n=$((n+1))
+			[ $((n % 20)) -eq 0 ] && say $(( 86 + n / 40 )) "Baking extensions ($n)"
+		done
+		log "baked $n mounted extensions into the target root"
+		# Anything still dangling had no live mount - fill it from the medium.
+		for l in $(find "$MNT" -type l 2>/dev/null); do
+			case "$(readlink "$l" 2>/dev/null)" in
+				/tmp/tcloop/*) t="$(readlink "$l")"
+					[ -e "$t" ] && { rm -f "$l"; cp -a "$t" "$l" 2>/dev/null; } ;;
+			esac
+		done
+	fi
+
+	# Final sweep: a link still pointing into /tmp/tcloop has no source on the
+	# installed system and would only be a broken entry (this is what made the
+	# Browser vanish from the dock on a real install).
+	DEAD=0
+	for l in $(find "$MNT" -type l 2>/dev/null); do
+		case "$(readlink "$l" 2>/dev/null)" in
+			/tmp/tcloop/*) rm -f "$l"; DEAD=$((DEAD+1)) ;;
+		esac
+	done
+	[ "$DEAD" -gt 0 ] && log "dropped $DEAD unresolvable tcloop links"
+
+	# Retire the per-boot pipeline.  The directories stay (the Store and
+	# on-demand loading still use them); only the boot-time work goes.
+	say 88 "Retiring the per-boot extension pipeline"
+	mkdir -p "$MNT/tce/optional" "$MNT/tce/ondemand"
+	: > "$MNT/tce/onboot.lst"
+	rm -f "$MNT"/tce/optional/*.tcz "$MNT"/tce/optional/*.tcz.md5.txt \
+	      "$MNT"/tce/optional/*.tcz.dep "$MNT"/tce/optional/*.tcz.list 2>/dev/null
+	rm -f "$MNT/tce/copy2fs.lst" "$MNT/tce/xbase.lst" 2>/dev/null
+	chown -R 0:50 "$MNT/tce" 2>/dev/null
+
+	# The desktop identity build-writable-image.sh writes and install2disk
+	# never did.  Without /etc/sysconfig/desktop, startx skips setupdesktop
+	# entirely AND .xsession runs `"$DESKTOP" &` with an EMPTY variable, so
+	# no window manager starts at all: no titlebars, no window controls.
+	[ -x "$MNT/usr/local/bin/flwm" ] && echo flwm > "$MNT/etc/sysconfig/desktop"
+	[ -x "$MNT/usr/local/bin/wbar" ] && echo wbar > "$MNT/etc/sysconfig/icons"
+	log "desktop=$(cat "$MNT/etc/sysconfig/desktop" 2>/dev/null) icons=$(cat "$MNT/etc/sysconfig/icons" 2>/dev/null)"
+}
+
+# The dock's pinned icons are rendered through the squircle container by
+# `xxri-launcher --frame-icon` and cached under xxri-launcher/framed.  That
+# renderer returns 0 even when the source image fails to load - it just draws
+# the empty container and writes it - and xxri-dock-pin then caches the empty
+# result forever (`[ -s "$out" ] && [ "$out" -nt "$2" ]`), which is why a real
+# install came up with eight blank dock slots on every boot thereafter.
+# Render them here, inside the finished target, and accept them only if they
+# actually differ from one another; if they do not, the renderer failed and we
+# leave NO cache behind so the desktop retries instead of inheriting blanks.
+bake_dock_icons() {
+	say 89 "Preparing dock icons"
+	FRAMED="$MNT/usr/local/share/xxri-launcher/framed"
+	PINNED="$MNT/usr/local/share/xxri-launcher/pinned.list"
+	APPS="$MNT/usr/local/share/applications"
+	[ -x "$MNT/usr/local/bin/xxri-launcher" ] && [ -s "$PINNED" ] || {
+		log "no framer or pinned.list on target - dock icons left to first boot"; return; }
+	mkdir -p "$FRAMED"
+	made=""
+	grep -v '^#' "$PINNED" | grep . | while read id; do
+		dsk="$APPS/$id.desktop"
+		[ -f "$dsk" ] || continue
+		icon="$(sed -n 's/^X-FullPathIcon=//p' "$dsk" | head -1)"
+		if [ -z "$icon" ] || [ ! -f "$MNT$icon" ]; then
+			nm="$(sed -n 's/^Icon=//p' "$dsk" | head -1)"
+			for e in png svg xpm; do
+				[ -f "$MNT/usr/local/share/pixmaps/$nm.$e" ] && \
+					{ icon="/usr/local/share/pixmaps/$nm.$e"; break; }
+			done
+		fi
+		[ -n "$icon" ] && [ -f "$MNT$icon" ] || continue
+		chroot "$MNT" /usr/local/bin/xxri-launcher --frame-icon \
+			"$icon" "/usr/local/share/xxri-launcher/framed/$id.png" 64 \
+			>/dev/null 2>&1
+		chmod 644 "$FRAMED/$id.png" 2>/dev/null
+	done
+	n=$(ls "$FRAMED"/*.png 2>/dev/null | wc -l)
+	uniq_n=$(md5sum "$FRAMED"/*.png 2>/dev/null | awk '{print $1}' | sort -u | wc -l)
+	if [ "$n" -ge 2 ] && [ "$uniq_n" -lt 2 ]; then
+		rm -f "$FRAMED"/*.png
+		log "framer produced $n identical icons (source images did not load) - cache cleared for first boot"
+	else
+		log "dock icons prepared: $n rendered, $uniq_n distinct"
+	fi
+}
+
 find_kernel_src() {
 	# live ISO: the boot medium is mounted and /etc/sysconfig/cde points
 	# into it; installed system: /boot on the root fs.
@@ -357,6 +495,8 @@ run_install() {
 	mount_target "$PART"
 	configure_user
 	configure_system
+	bake_extensions
+	bake_dock_icons
 	install_bootloader "$PART" "$DISKDEV" "$PARTNUM"
 
 	say 97 "Finalizing"
