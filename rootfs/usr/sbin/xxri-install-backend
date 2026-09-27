@@ -42,9 +42,8 @@ disk_model() {
 	echo "${v:+$v }${m:-Disk}"
 }
 
-disk_mib() {
-	s=$(cat /sys/block/$1/size 2>/dev/null || echo 0)
-	echo $(( s / 2048 ))
+disk_mib() { # awk, not $(( )): ash arithmetic is 32-bit and a 1 TiB disk has 2^31 sectors
+	awk '{ printf "%d\n", $1 / 2048 }' /sys/block/$1/size 2>/dev/null || echo 0
 }
 
 fs_summary() { # whole-disk fs summary from its partitions
@@ -91,21 +90,76 @@ part_of_disk() { # first partition node name for a disk
 	esac
 }
 
-auto_partition() { # $1 = /dev/sdX  -> creates single bootable primary
-	say 6 "Creating partition table on $1"
-	# o=new DOS table; n p 1 <first> <last> = whole disk; a 1 = bootable
-	# (busybox fdisk always prompts for the partition number); w=write
-	printf 'o\nn\np\n1\n\n\na\n1\nw\n' | fdisk "$1" >/dev/null 2>&1
-	sync
-	AUTOPART="$(part_of_disk ${1##*/})"
-	AUTOPART="/dev/$AUTOPART"
+part_dev() { # $1 /dev/disk, $2 number -> /dev/disk partition node
+	case "$1" in
+		*nvme*|*mmcblk*|*loop*) echo "${1}p$2" ;;
+		*) echo "$1$2" ;;
+	esac
+}
+
+wait_node() { # $1 block device node that partitioning just created
 	i=0
-	while [ ! -b "$AUTOPART" ] && [ $i -lt 40 ]; do
+	while [ ! -b "$1" ] && [ $i -lt 40 ]; do
 		mdev -s 2>/dev/null
 		sleep 0.25
 		i=$((i+1))
 	done
-	[ -b "$AUTOPART" ] || fail "partition $AUTOPART did not appear after partitioning"
+	[ -b "$1" ] || fail "partition $1 did not appear after partitioning"
+}
+
+# How this machine started XXRI decides how the installed system must start:
+#   bios   legacy BIOS or UEFI-CSM   -> GRUB i386-pc in the MBR / BIOS boot partition
+#   efi32  32-bit (IA32) UEFI        -> GRUB i386-efi on an EFI system partition
+#   efi64  64-bit UEFI               -> not bootable with the i686 kernel (see docs)
+firmware() {
+	if [ -d /sys/firmware/efi ]; then
+		[ "$(cat /sys/firmware/efi/fw_platform_size 2>/dev/null)" = 64 ] && echo efi64 || echo efi32
+	else
+		echo bios
+	fi
+}
+
+is_gpt() { # $1 disk: the primary GPT header sits in LBA 1
+	[ "$(dd if="$1" bs=512 skip=1 count=1 2>/dev/null | head -c 8)" = "EFI PART" ]
+}
+
+auto_partition() { # $1 = /dev/sdX -> AUTOPART (root), AUTOESP, AUTONUM
+	say 6 "Creating partition table on $1"
+	SECTORS=$(cat /sys/block/${1##*/}/size 2>/dev/null || echo 0)
+	MIB=$(disk_mib ${1##*/})
+	# Clear old signatures at both ends (a stale backup GPT at the end of the
+	# disk would otherwise make firmware and tools see a GPT on an MBR disk).
+	dd if=/dev/zero of="$1" bs=1M count=1 conv=notrunc 2>/dev/null
+	[ "$MIB" -gt 2 ] && dd if=/dev/zero of="$1" bs=1M seek=$((MIB - 1)) count=1 conv=notrunc 2>/dev/null
+	AUTOESP=""
+	if [ "$FW" = bios ] && [ "$SECTORS" -le 4294967295 ]; then
+		# MBR, one active partition starting at 1 MiB: GRUB's core image goes
+		# in the gap before it.  (busybox fdisk's own default start is sector
+		# 63, which leaves only 31 KiB for it.)
+		printf 'o\nn\np\n1\n2048\n\na\n1\nw\n' | fdisk "$1" >/dev/null 2>&1
+		AUTONUM=1
+	else
+		# GPT: BIOS boot partition (GRUB i386-pc core image, so this disk
+		# also starts on legacy firmware), EFI system partition, XXRI root.
+		sgdisk -Z "$1" >/dev/null 2>&1
+		sgdisk -n 1:2048:+1M -t 1:EF02 -c 1:"BIOS boot" \
+		       -n 2:0:+260M  -t 2:EF00 -c 2:"EFI system" \
+		       -n 3:0:0      -t 3:8300 -c 3:"XXRI OS Lite" "$1" >/tmp/xxri-sgdisk.log 2>&1 \
+			|| fail "could not create the GPT partition table on $1"
+		AUTONUM=3
+		AUTOESP="$(part_dev "$1" 2)"
+	fi
+	sync
+	AUTOPART="$(part_dev "$1" $AUTONUM)"
+	wait_node "$AUTOPART"
+	if [ -n "$AUTOESP" ]; then
+		wait_node "$AUTOESP"
+		# 260 MiB and one sector per cluster: FAT32 needs at least 65525
+		# clusters or UEFI's FAT driver reads the volume as FAT16 and cannot
+		# mount it - 260 MiB is the size that still clears that on 4 KiB-
+		# sector (4Kn) disks, which is why Microsoft recommends it.
+		mkdosfs -F 32 -s 1 -n XXRIEFI "$AUTOESP" >/dev/null 2>&1 || fail "could not format the EFI system partition $AUTOESP"
+	fi
 }
 
 set_bootflag() { # $1 disk, $2 partnum - idempotent ('a' is a toggle)
@@ -117,9 +171,10 @@ set_bootflag() { # $1 disk, $2 partnum - idempotent ('a' is a toggle)
 }
 
 # install
-format_target() { # $1 partition - explicit features: extlinux (syslinux
-	# 6.03) cannot read metadata_csum/64bit/orphan_file filesystems, and
-	# the bootloader lives inside this filesystem.
+format_target() { # $1 partition - conservative ext4 features: the boot
+	# loader reads its config, kernel and initrd from this filesystem.  GRUB
+	# 2.14 reads the newer features too; they stay off so the disk also opens
+	# with older loaders and e2fsprogs (this was required by 2.5's EXTLINUX).
 	mkfs.ext4 -F -q -L XXRIROOT \
 		-O ^metadata_csum,^metadata_csum_seed,^64bit,^orphan_file \
 		"$1" 2>/tmp/xxri-mkfs.err || fail "mkfs.ext4 failed on $1"
@@ -397,66 +452,156 @@ find_kernel_src() {
 	echo ""
 }
 
+# ---------------------------------------------------------- boot loader --
+#
+# 2.6: GRUB 2 (upstream 2.14, the same build that boots the ISO) replaces
+# EXTLINUX 6.03.  EXTLINUX loads the initrd as high as the kernel's
+# initrd_addr_max allows - the placement that corrupted core.gz on the NEC
+# VK24MX in 2.5 - and cannot boot a GPT disk or 32-bit UEFI at all.  GRUB
+# places the initrd itself from the firmware memory map (BIOS), or lets the
+# kernel's EFI stub allocate it from the UEFI memory map (IA32 UEFI).  No mem=,
+# no address, no memory ceiling is written anywhere.
+#
+# The tools come from extensions on the live medium, loaded only for the
+# install: xxri-grub (GRUB 2.14 utilities + i386-pc/i386-efi modules),
+# gdisk (sgdisk, for GPT), dosfstools (mkdosfs, for the ESP) and
+# efibootmgr/efivar (the UEFI boot entry).
+GRUBLIB=/usr/local/lib/grub
+
+load_install_tools() {
+	CDEOPT=""
+	[ -s /etc/sysconfig/cde ] && CDEOPT="$(cat /etc/sysconfig/cde)" && CDEOPT="${CDEOPT%/}"
+	[ -d "$CDEOPT" ] || CDEOPT="$(dirname "$(find_kernel_src)")/cde/optional"
+	TCU="$(cat /etc/sysconfig/tcuser 2>/dev/null)"
+	for e in xxri-grub gdisk dosfstools efivar efibootmgr; do
+		[ -e "/usr/local/tce.installed/$e" ] && continue
+		[ -f "$CDEOPT/$e.tcz" ] || { log "extension $e.tcz not found on the medium"; continue; }
+		# tce-load refuses to run as root; the live user loads it.
+		su "${TCU:-xxri}" -c "tce-load -i '$CDEOPT/$e.tcz'" >/dev/null 2>&1 ||
+			log "tce-load $e failed"
+	done
+	[ -x /usr/local/sbin/grub-install ] && [ -d "$GRUBLIB/i386-pc" ] ||
+		fail "GRUB is not available (xxri-grub.tcz missing from the medium)"
+}
+
+mbr_type() { # $1 disk, $2 primary partition 1-4 -> its MBR type byte, e.g. "ef"
+	# Read from the table itself: busybox fdisk -l and util-linux fdisk -l
+	# print different columns, so their text is not a stable interface.
+	dd if="$1" bs=1 skip=$((446 + 16 * ($2 - 1) + 4)) count=1 2>/dev/null | od -An -tx1 | tr -d ' \n'
+}
+
+esp_of() { # $1 disk -> first EFI system partition on it (GPT EF00 / MBR 0xEF)
+	n=""
+	if is_gpt "$1"; then
+		n=$(sgdisk -p "$1" 2>/dev/null | awk '$6 == "EF00" { print $1; exit }')
+	else
+		for i in 1 2 3 4; do [ "$(mbr_type "$1" $i)" = ef ] && { n=$i; break; }; done
+	fi
+	[ -n "$n" ] && part_dev "$1" "$n"
+}
+
+has_bios_boot() { # $1 disk: GPT with a BIOS boot partition (EF02) for GRUB's core image
+	is_gpt "$1" && sgdisk -p "$1" 2>/dev/null | awk '$6 == "EF02" { f = 1 } END { exit !f }'
+}
+
+write_grub_cfg() { # $1 root filesystem UUID
+	mkdir -p "$MNT/boot/grub"
+	# Boot codes as on the live ISO minus `cde` (the live medium's; an
+	# installed system loads its extensions from /tce).  The video mode for
+	# the boot splash comes from gfxpayload, which replaces 2.5's vga=791 and
+	# also works on UEFI, where vga= does not exist.
+	cat > "$MNT/boot/grub/grub.cfg" <<EOF
+# XXRI OS Lite - installed system.  Written by xxri-install-backend.
+set default=0
+set timeout=3
+set menu_color_normal=light-gray/black
+set menu_color_highlight=white/magenta
+insmod part_msdos
+insmod part_gpt
+insmod ext2
+search --no-floppy --fs-uuid --set=root $1
+if [ "\$grub_platform" = "efi" ]; then
+	insmod efi_gop
+	insmod efi_uga
+	set gfxpayload=keep
+else
+	insmod vbe
+	insmod vga
+	set gfxpayload=1024x768x32,1024x768x16,1024x768,auto
+fi
+
+menuentry "XXRI OS Lite" --id xxri {
+	linux /boot/vmlinuz quiet loglevel=3 vt.global_cursor_default=0 consoleblank=0
+	initrd /boot/core.gz
+}
+menuentry "XXRI OS Lite (verbose boot)" --id xxri-verbose {
+	linux /boot/vmlinuz loglevel=7
+	initrd /boot/core.gz
+}
+if [ "\$grub_platform" = "efi" ]; then
+	menuentry "UEFI firmware settings" --id uefi-firmware {
+		fwsetup
+	}
+fi
+EOF
+}
+
 install_bootloader() { # $1 partition, $2 disk, $3 partnum
-	say 88 "Installing bootloader (extlinux)"
+	say 90 "Installing boot loader (GRUB)"
 	KSRC="$(find_kernel_src)"
 	[ -n "$KSRC" ] || fail "cannot locate vmlinuz/core.gz to install"
-	mkdir -p "$MNT/boot/extlinux"
+	mkdir -p "$MNT/boot"
 	cp -f "$KSRC/vmlinuz" "$MNT/boot/vmlinuz" || fail "kernel copy failed"
 	cp -f "$KSRC/core.gz" "$MNT/boot/core.gz" || fail "initrd copy failed"
-	cp -f /usr/local/share/syslinux/menu.c32 \
-	      /usr/local/share/syslinux/libutil.c32 \
-	      /usr/local/share/syslinux/libcom32.c32 "$MNT/boot/extlinux/"
-	# The installed system must boot with the same codes the ISO uses, not a
-	# bare loglevel.  Each one does something the desktop depends on:
-	#   vga=791                     the vesafb console the boot splash draws
-	#                               into - without it xxri-bootsplash starts,
-	#                               finds no framebuffer and shows nothing, so
-	#                               a freshly installed machine boots to raw
-	#                               kernel text where the live ISO shows the
-	#                               animation
-	#   quiet                       keeps driver chatter off that splash
-	#   vt.global_cursor_default=0  no blinking cursor over it
-	#   consoleblank=0              the console must not blank mid-boot
-	# `cde` is deliberately NOT carried over: it belongs to the live medium,
-	# and an installed system loads its extensions from /tce.
-	XXRI_APPEND="quiet loglevel=3 vga=791 vt.global_cursor_default=0 consoleblank=0"
-	cat > "$MNT/boot/extlinux/extlinux.conf" <<EOF
-DEFAULT xxri
-UI menu.c32
-PROMPT 0
-TIMEOUT 30
+	RUUID="$(blkid "$1" 2>/dev/null | sed -n 's/.* UUID="\([^"]*\)".*/\1/p')"
+	[ -n "$RUUID" ] || fail "cannot read the filesystem UUID of $1"
+	write_grub_cfg "$RUUID"
+	GI="grub-install --boot-directory=$MNT/boot --fonts= --locales= --themes="
 
-MENU TITLE xxri OS Lite
-MENU COLOR screen       37;40   #80EFEDF8 #00000000 std
-MENU COLOR border       35;40   #FFED6CE0 #00000000 std
-MENU COLOR title        35;1;40 #FFED6CE0 #00000000 std
-MENU COLOR unsel        37;40   #FFF2EFFC #00000000 std
-MENU COLOR sel          37;45;1 #FFFFFFFF #FF8371F7 all
-MENU COLOR hotkey       35;1;40 #FFED6CE0 #00000000 std
-MENU COLOR hotsel       37;45;1 #FFFFC0F2 #FF8371F7 all
-MENU COLOR tabmsg       34;40   #FF9C8EF9 #00000000 std
-MENU COLOR timeout_msg  34;40   #FF9C8EF9 #00000000 std
-MENU COLOR timeout      35;1;40 #FFED6CE0 #00000000 std
+	# BIOS: on a BIOS/CSM machine, and on a GPT disk that carries a BIOS boot
+	# partition (the automatic UEFI layout does), so that disk starts on
+	# either kind of firmware.
+	if [ "$FW" = bios ] || has_bios_boot "$2"; then
+		if is_gpt "$2" && ! has_bios_boot "$2"; then
+			fail "$2 uses GPT but has no BIOS boot partition (type EF02) for GRUB - use automatic partitioning or add a 1 MiB EF02 partition"
+		fi
+		say 92 "Writing BIOS boot code"
+		$GI --target=i386-pc --directory=$GRUBLIB/i386-pc "$2" >/tmp/xxri-grub-pc.log 2>&1 || {
+			log "$(tail -2 /tmp/xxri-grub-pc.log | tr '\n' ' ')"
+			fail "GRUB could not be installed for BIOS on $2 (the gap before the first partition may be too small)"
+		}
+		is_gpt "$2" || set_bootflag "$2" "$3"
+	fi
 
-LABEL xxri
-MENU LABEL xxri OS Lite
-KERNEL /boot/vmlinuz
-INITRD /boot/core.gz
-APPEND $XXRI_APPEND
-
-LABEL xxri-verbose
-MENU LABEL xxri OS Lite (verbose boot)
-KERNEL /boot/vmlinuz
-INITRD /boot/core.gz
-APPEND loglevel=6
-EOF
-	/usr/local/sbin/extlinux --install "$MNT/boot/extlinux" >/dev/null 2>&1 \
-		|| fail "extlinux installation failed"
-	say 94 "Writing MBR boot code"
-	dd if=/usr/local/share/syslinux/mbr.bin of="$2" bs=440 count=1 conv=notrunc 2>/dev/null \
-		|| fail "MBR write failed on $2"
-	set_bootflag "$2" "$3"
+	if [ "$FW" = efi32 ]; then
+		ESPDEV="${AUTOESP:-$(esp_of "$2")}"
+		[ -b "$ESPDEV" ] || fail "no EFI system partition on $2 - use automatic partitioning or create one (FAT32, type EF00)"
+		say 94 "Writing UEFI boot loader"
+		ESPMNT="/mnt/xxri-esp.$$"
+		mkdir -p "$ESPMNT"
+		mount -t vfat "$ESPDEV" "$ESPMNT" || fail "cannot mount the EFI system partition $ESPDEV"
+		# A boot entry in firmware NVRAM when efivarfs is writable ...
+		NV=--no-nvram
+		grep -q efivarfs /proc/filesystems && ! grep -q ' /sys/firmware/efi/efivars ' /proc/mounts &&
+			mount -t efivarfs efivarfs /sys/firmware/efi/efivars 2>/dev/null
+		command -v efibootmgr >/dev/null && [ -w /sys/firmware/efi/efivars ] && NV=""
+		$GI --target=i386-efi --directory=$GRUBLIB/i386-efi --efi-directory="$ESPMNT" \
+			--bootloader-id=XXRI $NV >/tmp/xxri-grub-efi.log 2>&1 || {
+			log "$(tail -2 /tmp/xxri-grub-efi.log | tr '\n' ' ')"
+			umount "$ESPMNT"; fail "GRUB could not be installed for UEFI on $ESPDEV"
+		}
+		[ -n "$NV" ] && log "no writable EFI variables - relying on the removable-media path"
+		# ... and always the removable-media path EFI/BOOT/BOOTIA32.EFI, which
+		# firmware finds without any NVRAM entry.  Never replace another OS's.
+		mkdir -p "$ESPMNT/EFI/BOOT"
+		if [ -n "$AUTOESP" ] || [ ! -e "$ESPMNT/EFI/BOOT/BOOTIA32.EFI" ]; then
+			cp -f "$ESPMNT/EFI/XXRI/grubia32.efi" "$ESPMNT/EFI/BOOT/BOOTIA32.EFI"
+		else
+			log "kept the existing EFI/BOOT/BOOTIA32.EFI; XXRI is EFI/XXRI/grubia32.efi"
+		fi
+		sync; umount "$ESPMNT"; rmdir "$ESPMNT"
+	fi
+	log "boot loader: GRUB $(grub-install --version | awk '{print $NF}') firmware=$FW disk=$2 root=UUID=$RUUID"
 }
 
 # run
@@ -464,6 +609,13 @@ run_install() {
 	[ -r "$1" ] || fail "config file missing"
 	. "$1"
 	[ "$(id -u)" = 0 ] || fail "backend must run as root"
+	PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+	FW=$(firmware)
+	log "firmware: $FW"
+	[ "$FW" = efi64 ] && fail "this machine started XXRI through 64-bit UEFI; the 32-bit (i686) XXRI 2.6 can only be installed to start from BIOS/CSM (legacy) or 32-bit UEFI firmware"
+	load_install_tools
+	sgdisk --version >/dev/null 2>&1 || fail "sgdisk does not run (gdisk.tcz needs popt.tcz)"
 
 	if [ "$MODE" = "auto" ]; then
 		[ -b "$DISK" ] || fail "target disk $DISK not found"
@@ -476,7 +628,7 @@ run_install() {
 		say 3 "Preparing $DISK"
 		auto_partition "$DISK"
 		PART="$AUTOPART"
-		DISKDEV="$DISK"; PARTNUM=1
+		DISKDEV="$DISK"; PARTNUM=$AUTONUM
 	else
 		[ -b "$PART" ] || fail "target partition $PART not found"
 		case "$PART" in

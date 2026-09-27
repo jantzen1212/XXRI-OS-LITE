@@ -14,14 +14,35 @@ start_xorg() {
 	# input driver is present (the server ships only inputtest_drv.so, a stub).
 	[ -e /usr/local/lib/xorg/modules/input/libinput_drv.so ] ||
 	[ -e /usr/local/lib/xorg/modules/input/evdev_drv.so ] || return 1
-	# hw-init modprobes the KMS driver, but the device node is created
-	# asynchronously and X.Org exits immediately with "open /dev/dri/card0: No
-	# such file or directory" if it starts first.  Wait briefly for it.
-	for i in $(seq 1 24); do
-		[ -e /dev/dri/card0 ] && break
+	# hw-init modprobes the KMS driver, but the device is set up asynchronously
+	# and X.Org exits immediately if it starts too early.  Waiting for
+	# /dev/dri/card0 to EXIST is not enough: drm_minor_register() calls
+	# device_add() first - that is what makes udev create the node - and only
+	# publishes the minor for lookup afterwards, so an open() inside that window
+	# fails with ENODEV.  X.Org then logs
+	#     open /dev/dri/card0: No such device
+	#     open /dev/fb0: No such device        (the vesafb->i915 fb0 handover
+	#                                           has the same window)
+	#     no screens found
+	# and dies, on a machine whose i915 came up perfectly - seen on an NEC
+	# VersaPro VK24MX (Skylake, HD 520).  drm_dev_register() registers the
+	# connectors only after both minors are published, so a card0-<output>
+	# directory in sysfs means the node is genuinely openable.  Test that
+	# rather than the node, and do not test by opening it ourselves: X.Org is
+	# setuid root and may open a node this session's user cannot.
+	# Any card number, not just card0: the first DRM minor is card1 on a
+	# machine that registered another DRM device first.
+	kms_ready() {
+		for c in /sys/class/drm/card*-*/status; do
+			[ -e "$c" ] && return 0
+		done
+		return 1
+	}
+	for i in $(seq 1 60); do
+		kms_ready && break
 		sleep 0.25
 	done
-	[ -e /dev/dri/card0 ] || return 1
+	kms_ready || return 1
 	# -dpi 75 matches what Xvesa reported (it advertised 347mm x 260mm for every
 	# mode, i.e. exactly 75dpi at 1024x768).  X.Org otherwise defaults to 96dpi,
 	# which scales every font and widget up ~28% and changes the whole desktop
@@ -76,7 +97,12 @@ start_xvesa() {
 	waitforX
 }
 XSERVER=xorg
-start_xorg || { XSERVER=xvesa; start_xvesa || ! echo failed in waitforX || exit; }
+# Xvesa is the right fallback only on a machine with no KMS device at all.
+# Where a DRM device is live, Xvesa drives the card through the VESA BIOS while
+# i915 owns the display and the panel just stays blank - a worse outcome than
+# X.Org failing.  So on a KMS machine, give X.Org a second attempt first.
+start_xorg || { { [ -e /dev/dri/card0 ] || [ -e /dev/dri/card1 ]; } && sleep 2 && start_xorg; } ||
+	{ XSERVER=xvesa; start_xvesa || ! echo failed in waitforX || exit; }
 export XSERVER
 [ "$XSERVER" = xorg ] && apply_xres
 # The XXRI face ("xxri" foundry) reaches the server through -fp on the Xorg

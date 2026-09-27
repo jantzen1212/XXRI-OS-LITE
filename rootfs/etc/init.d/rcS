@@ -24,5 +24,10 @@ fi
 
 clear
 
-/etc/init.d/xxri-config >/dev/null 2>&1
+# Call the upstream Tiny Core entry point, a symlink to xxri-config.  Boot
+# tools patch tc-config by that name - Ventoy's Tiny Core hook seds in the
+# code that maps the ISO file as a disk (without it, cde is never found and
+# the desktop never starts) - and sed -i replaces the symlink with the
+# patched copy, so calling xxri-config directly would bypass their patch.
+/etc/init.d/tc-config >/dev/null 2>&1
 
