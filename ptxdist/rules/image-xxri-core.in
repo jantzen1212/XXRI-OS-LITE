@@ -1,0 +1,5 @@
+## SECTION=image
+
+config IMAGE_XXRI_CORE
+	tristate
+	prompt "Generate core.gz (Tiny Core 16.0 base + XXRI)"

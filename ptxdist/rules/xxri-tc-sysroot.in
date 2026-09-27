@@ -1,0 +1,12 @@
+## SECTION=project_specific
+
+config XXRI_TC_SYSROOT
+	bool
+	select HOST_SQUASHFS_TOOLS
+	select XXRI_TC_BASE
+	prompt "xxri-tc-sysroot: Tiny Core libraries + headers to build against"
+	help
+	  Unpacks the pinned Tiny Core 16.x -dev closure (config/
+	  tc-sysroot.manifest) into the target sysroot, so XXRI's programs link
+	  against the same FLTK/GTK3/X11 the system ships.  Nothing from it is
+	  installed into the image: the runtime copies come with the extensions.

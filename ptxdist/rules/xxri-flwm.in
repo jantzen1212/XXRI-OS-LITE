@@ -1,0 +1,11 @@
+## SECTION=project_specific
+
+config XXRI_FLWM
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-flwm: the XXRI window manager"
+	help
+	  flwm from Tiny Core's tree (github.com/tinycorelinux/flwm, the
+	  source of flwm.tcz) with the XXRI decoration patch, built with
+	  -DTOPSIDE -DXXRI against Tiny Core's FLTK 1.3, plus flwm-stock:
+	  the same source without the patch, for recovery.

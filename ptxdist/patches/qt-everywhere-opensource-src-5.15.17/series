@@ -1,0 +1,19 @@
+# PTXdist 2026.09.0's qt5 patches for the modules XXRI builds (qtconnectivity,
+# qt3d, qtwayland and qtmultimedia ones left out); XXRI's own start at 0700
+0001-HTTP2-Delay-any-communication-until-encrypted-can-be.patch
+0003-qtbase-XML-QDom-speedup-encodeText.patch
+0004-qtbase-QFileSystemEngine-Win-Use-GetTempPath2-when-a.patch
+0005-qtbase-qDecodeDataUrl-fix-precondition-violation-in-.patch
+0006-Remove-unused-python-import.patch
+0007-Fixes-for-python-3.12.patch
+0008-Fix-build-with-python-3.12-3.13.patch
+0101-qtdeclarative-qv4compiler-fix-building-with-gcc-15.patch
+0200-remove-dependencies-on-third_party-catapult.patch
+0302-qtbase-fix-building-with-mesa-22.3.0.patch
+0400-ptxdist-qtwebengine-allow-building-with-ptxdist.patch
+0401-ptxdist-qtwebengine-let-ninja-use-the-jobserver.patch
+0402-HACK-qtwebengine-workaround-for-too-long-file-names.patch
+0500-eglfs_kms-device-ordering-robustness.patch
+0600-undefine-_TIME_BITS.patch
+0700-qtwebengine-add-missing-cstdint-includes-GCC-13.patch
+0701-qtwebengine-ffmpeg-x86-text-relocations-with-GNU-ld.patch

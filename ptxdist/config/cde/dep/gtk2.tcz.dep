@@ -1,0 +1,8 @@
+at-spi2-core.tcz
+gdk-pixbuf2.tcz
+pango.tcz
+libXinerama.tcz
+libXrandr.tcz
+libXcursor.tcz
+libXcomposite.tcz
+libXdamage.tcz

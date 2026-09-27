@@ -1,0 +1,1065 @@
+From: XXRI OS Team
+Subject: [PATCH] XXRI window decorations
+
+The XXRI OS Lite window manager: titlebar on top (-DTOPSIDE) with XXRI
+geometry, palette, controls and title font (-DXXRI), plus the window
+manager fixes made for the XXRI shell (dock-aware maximise via
+XXRI_DOCK_RESERVE, launching without zombies).  Generated from the fork
+formerly kept outside version control in work/flwm-xxri.
+---
+diff -urN a/config.h b/config.h
+--- a/config.h
++++ b/config.h
+@@ -199,6 +199,7 @@
+ 
+ // size of the little pictures in the menu:
+ #define MENU_ICON_W 18
++#define XXRI_MENU_ROW_H 22
+ #define MENU_ICON_H 15
+ 
+ // font to use in menus (if not set helvetica is used):
+@@ -206,6 +207,83 @@
+ #define MENU_FONT_SIZE 14
+ 
+ ////////////////////////////////////////////////////////////////
++// XXRI OS Lite appearance (-DXXRI, always together with -DTOPSIDE).
++//
++// The numbers below are measured off assets/mockup/mockup1.jpg normalised to
++// the desktop's own 1024x768: a slim light titlebar carrying the three XXRI
++// controls - triangle, square, circle - at its left, then the window title.
++#ifdef XXRI
++
++// Title bar: 26px tall, 13px title text.  Borders stay thick enough to grab
++// for a resize (flwm resizes by dragging the frame edge, so a 1px border
++// would make resizing practically impossible).
++#undef  TITLE_FONT_SIZE
++#define TITLE_FONT_SIZE 13
++// The desktop's own face.  AvenirNext is published to the X server as the
++// "xxri" foundry (usr/local/share/fonts/xxri/fonts.dir), which is how every
++// other FLTK surface in XXRI picks it up.
++#ifdef TITLE_FONT
++#undef TITLE_FONT
++#endif
++#define TITLE_FONT "-xxri-helvetica-bold-r-normal--*"
++#define XXRI_TITLE_H    26
++#undef  LEFT
++#define LEFT   3
++#undef  RIGHT
++#define RIGHT  3
++#undef  TOP
++#define TOP    0
++#undef  BOTTOM
++#define BOTTOM 4
++
++// The control cluster: hit area per control, inset before the first one, and
++// the gap between the cluster and the window title.
++#define XXRI_BTN_W      15
++#define XXRI_BTN_PAD    10
++#define XXRI_LABEL_GAP   9
++#define XXRI_GLYPH_R     5   // half-size of the drawn triangle/square/circle
++
++// Palette (Phase 4 design system + the control hues sampled from the mockup).
++// The active bar is a shallow top-to-bottom ramp: BAR_TOP at the top edge down
++// to BAR_ACTIVE at the hairline.
++#define XXRI_BAR_TOP       0xFFFFFF
++#define XXRI_BAR_ACTIVE    0xF6F4FC
++#define XXRI_BAR_INACTIVE  0xE9E6F3
++#define XXRI_HAIRLINE      0xE3DFF2
++#define XXRI_BORDER        0xD9D4EC
++#define XXRI_INK           0x1C1B24
++#define XXRI_INK_MUTED     0x8A87A0
++#define XXRI_C_MIN         0xE624CE
++#define XXRI_C_MAX         0x7B22F0
++#define XXRI_C_CLOSE       0x2A22EE
++#define XXRI_C_OFF         0xC7C3D8
++
++// The desktop menu: XXRI face, no "New xterm" (the dock owns the terminal).
++#ifdef MENU_FONT
++#undef MENU_FONT
++#endif
++#define MENU_FONT "-xxri-helvetica-medium-r-normal--*"
++#undef  MENU_FONT_SIZE
++#define MENU_FONT_SIZE 13
++#undef  XTERM_MENU_ITEM
++#define XTERM_MENU_ITEM 0
++#define XXRI_MENU_BG    0xFFFFFF
++#define XXRI_MENU_BORDER 0xE3DFF2
++#define XXRI_MENU_SEL   0x8371F7
++
++// Corner radius for the window shape mask.  The mask is one-bit, so this is a
++// compromise: large enough to read as a rounded corner, small enough that the
++// unavoidable stepping is not obvious.
++#define XXRI_CORNER_R 9
++
++// A maximized window stops above the dock instead of hiding behind it.
++// Overridable at runtime with XXRI_DOCK_RESERVE so the session can pass the
++// dock's real height.
++#define XXRI_DOCK_RESERVE_DEFAULT 78
++
++#endif
++
++////////////////////////////////////////////////////////////////
+ // You probably don't want to change any of these:
+ 
+ #ifdef TITLE_FONT
+@@ -222,3 +300,4 @@
+ 
+ #define CURSOR_BG_SLOT Fl_Color(30)
+ #define CURSOR_FG_SLOT Fl_Color(31)
++
+diff -urN a/Frame.C b/Frame.C
+--- a/Frame.C
++++ b/Frame.C
+@@ -12,10 +12,20 @@
+ 
+ #include "config.h"
+ #include "Frame.H"
++#ifdef XXRI
++#include <X11/extensions/shape.h>
++// defined with the rest of the XXRI decoration code, used by set_size() above it
++static void xxri_round_frame(XWindow win, int width, int height);
++static int  xxri_anim_on();
++static int  xxri_dock_rect(XWindow client, int* rx, int* ry, int* rw, int* rh);
++static void xxri_fly(XWindow win, int x0, int y0, int w0, int h0,
++                     int x1, int y1, int w1, int h1);
++#endif
+ #include "Desktop.H"
+ #include <string.h>
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <unistd.h>
+ #include <FL/fl_draw.H>
+ #if FL_API_VERSION >= 10400
+ #  if FLTK_USE_CAIRO
+@@ -23,10 +33,17 @@
+ #  endif
+ #endif
+ 
+-#ifndef HAVE_XFT
++#if !defined(HAVE_XFT) && !defined(TOPSIDE)
++// Rotated text is only needed by the left-side titlebar build.  XXRI is
++// TOPSIDE, so the (missing upstream) Rotated.H is not required.
+ #include "Rotated.H" // text rotation code; not supported by non-Xft FLTK 1.3.x
+ #endif
+ 
++#ifdef XXRI
++// defined with the rest of the XXRI decoration code, used by placement too
++static int xxri_dock_reserve();
++#endif
++
+ // From Hotkeys.C
+ extern void ToggleWinMax(void);
+ void ToggleVertMax(void);
+@@ -102,9 +119,21 @@
+   close_button(left,top,ButtonSz,ButtonSz,"X"),
+   max_w_button(left,top+ButtonSz,ButtonSz,ButtonSz,"w"),
+   min_w_button(left,top+2*ButtonSz,ButtonSz,ButtonSz,"W"),
++#ifdef XXRI
++  // 'M' is XXRI's single maximize control: it toggles BOTH axes at once, so
++  // it is a different action from stock flwm's per-axis 'h' button.
++  max_h_button(left,top+3*ButtonSz,ButtonSz,ButtonSz,"M"),
++#else
+   max_h_button(left,top+3*ButtonSz,ButtonSz,ButtonSz,"h"),
++#endif
+   iconize_button(left,top+4*ButtonSz,ButtonSz,ButtonSz,"i")
+ {
++#ifdef XXRI
++  shaped_w = shaped_h = -1;
++#endif
++#ifdef XXRI
++  xxri_maxed = 0; xxri_rx = xxri_ry = xxri_rw = xxri_rh = 0;
++#endif
+   close_button.callback(button_cb_static);
+   iconize_button.callback(button_cb_static);
+   max_h_button.type(FL_TOGGLE_BUTTON);
+@@ -272,6 +301,33 @@
+   updateBorder();
+   show_hide_buttons();
+ 
++#if defined(TOPSIDE) && defined(XXRI)
++  // An application that wants to open "maximized" has no way to ASK for it
++  // here: flwm implements no EWMH, so Chromium/Electron (Code-OSS is an
++  // Electron app) never sends _NET_WM_STATE_MAXIMIZED and falls back to
++  // setting raw screen-sized bounds on its own window.  A screen-sized
++  // CLIENT plus a titlebar is taller than the screen, and force_y_onscreen()
++  // below then slides the whole frame up until the titlebar - and with it
++  // every window control - sits above the top edge.
++  //
++  // So fit an over-sized window to the area maximizing would have used,
++  // which is what the application was asking for in the first place.  Only
++  // windows that ask for MORE than the screen are touched; every other
++  // window keeps the size it requested.
++  if (!existing && !flag(NO_BORDER)) {
++    int maxw = Root->w();
++    int maxh = Root->h() - xxri_dock_reserve();   // the dock stays visible
++    int nw = w() > maxw ? maxw : w();
++    int nh = h() > maxh ? maxh : h();
++    if (nw - dwidth  < min_w) nw = min_w + dwidth;
++    if (nh - dheight < min_h) nh = min_h + dheight;
++    if (nw != w() || nh != h()) {
++      w(nw); h(nh);
++      XResizeWindow(fl_display, window_, nw - dwidth, nh - dheight);
++    }
++  }
++#endif
++
+   if (autoplace && !existing && !(transient_for() && (x() || y()))) {
+     place_window();
+   }
+@@ -379,6 +435,13 @@
+   int _h = h();
+   int max_x = Root->x() + Root->w();
+   int max_y = Root->y() + Root->h();
++#ifdef XXRI
++  // The dock owns the bottom strip.  Placing a new window under it looks like
++  // the window opened broken, so autoplacement treats the dock band as
++  // off-limits - the same reserve the maximize control respects.
++  max_y -= xxri_dock_reserve();
++  if (max_y < Root->y() + 200) max_y = Root->y() + Root->h();
++#endif
+ 
+   Frame *f1 = Frame::first;
+   for(int i=0;; i++) {
+@@ -474,6 +537,16 @@
+   Y = max(Y, Root->y()-1);
+   // force contents to be on-screen:
+   Y = min(Y, Root->y()+Root->h()-H+dheight-top);
++#if defined(TOPSIDE) && defined(XXRI)
++  // Stock flwm draws the titlebar down the LEFT side, which is why only
++  // force_x_onscreen() above ever needed the "window bigger than the screen
++  // keeps its titlebar reachable" escape.  XXRI's titlebar is on TOP, so the
++  // same case has to be handled here too, or the line above pushes the whole
++  // bar - and every window control on it - off the top edge.
++  if (H-dheight > Root->h() || w()-dwidth > Root->w())
++    Y = max(Y, Root->y());
++  else
++#endif
+   Y = max(Y, Root->y()-top);
+   return Y;
+ }
+@@ -549,6 +622,15 @@
+     label_h = 0;
+     label_w = 0;
+   }
++#if defined(TOPSIDE) && defined(XXRI)
++  // The stock clear box is only as tall as the FONT.  XXRI's titlebar is
++  // TitleSz tall with the text centred in it, so that box leaves the bottom
++  // half of the previous title on screen whenever an application renames its
++  // window - which Electron (Code-OSS) does on every tab change, and which
++  // reads as one title overdrawn on another.  Clear the whole bar instead.
++  clr_h = TitleSz;
++  clr_w = w() - LftSz - RgtSz;
++#endif
+   if (shown()) { // && label_h > 3 && left > 3)
+     XClearArea(fl_display, fl_xid(this), LftSz, TopSz, clr_w, clr_h, 1);
+   }
+@@ -931,17 +1013,55 @@
+     //XUnmapWindow(fl_display, window_);
+     XRemoveFromSaveSet(fl_display, window_);
+     break;
+-  case NORMAL:
++  case NORMAL: {
+     if (oldstate == UNMAPPED) XAddToSaveSet(fl_display, window_);
+     if (w() > dwidth) XMapWindow(fl_display, window_);
++#ifdef XXRI
++    // Coming back (or arriving for the first time): start at the dock icon and
++    // grow outwards, so the window is seen to come FROM somewhere.  If the dock
++    // has not published its slots yet - during session start-up, say - there is
++    // no origin to fly from and the window simply appears, which is correct.
++    int dx, dy, dw, dh;
++    // Undecorated windows fly too.  XXRI's own applications draw their chrome
++    // themselves and are therefore NO_BORDER, so excluding those here silently
++    // took the dock flight away from exactly the windows it matters most for.
++    // Matching a dock slot is the real filter: a window with no icon in the
++    // dock has nowhere to fly from.
++    int fly_in = xxri_anim_on() &&
++                 (oldstate == ICONIC || oldstate == UNMAPPED) &&
++                 xxri_dock_rect(window_, &dx, &dy, &dw, &dh);
++    if (fly_in)
++      XMoveResizeWindow(fl_display, fl_xid(this), dx, dy, dw, dh);
+     XMapWindow(fl_display, fl_xid(this));
++    if (fly_in) {
++      xxri_fly(fl_xid(this), dx, dy, dw, dh, x(), y(), w(), h());
++      XMoveResizeWindow(fl_display, fl_xid(this), x(), y(), w(), h());
++      xxri_round_frame(fl_xid(this), w(), h());
++    }
++#else
++    XMapWindow(fl_display, fl_xid(this));
++#endif
+     clear_state_flag(IGNORE_UNMAP);
+-    break;
++    break; }
+   default:
+     if (oldstate == UNMAPPED) {
+       XAddToSaveSet(fl_display, window_);
+     } else if (oldstate == NORMAL) {
+       throw_focus();
++#ifdef XXRI
++      // Minimising sends the window to its dock icon rather than making it
++      // vanish, which is what tells the user where it went.
++      int dx, dy, dw, dh;
++      if (xxri_anim_on() &&
++          xxri_dock_rect(window_, &dx, &dy, &dw, &dh)) {
++        xxri_fly(fl_xid(this), x(), y(), w(), h(), dx, dy, dw, dh);
++        XUnmapWindow(fl_display, fl_xid(this));
++        // put the frame back where the model thinks it is, so the next map is
++        // not surprised by a dock-sized window
++        XMoveResizeWindow(fl_display, fl_xid(this), x(), y(), w(), h());
++        xxri_round_frame(fl_xid(this), w(), h());
++      } else
++#endif
+       XUnmapWindow(fl_display, fl_xid(this));
+       //set_state_flag(IGNORE_UNMAP);
+       //XUnmapWindow(fl_display, window_);
+@@ -1138,6 +1258,10 @@
+   if (nh < 8) nh = 8;
+ 
+   XMoveResizeWindow(fl_display, fl_xid(this), nx, ny, nw, nh);
++#ifdef XXRI
++  xxri_round_frame(fl_xid(this), nw, nh);
++  shaped_w = nw; shaped_h = nh;
++#endif
+ #if FL_API_VERSION >= 10400
+ #  if FLTK_USE_CAIRO
+   make_current();
+@@ -1240,7 +1364,56 @@
+ 
+ // position and show the buttons according to current border, size,
+ // and other state information:
+-#ifdef TOPSIDE
++#if defined(TOPSIDE) && defined(XXRI)
++// XXRI: exactly three controls, grouped at the left of the bar, with the
++// window title following them.  The stock per-axis maximize and the window
++// shade are not part of the design language and stay hidden.
++void Frame::show_hide_buttons() {
++  if (flag(THIN_BORDER|NO_BORDER)) {
++    iconize_button.hide(); max_w_button.hide(); min_w_button.hide();
++    max_h_button.hide();   close_button.hide();
++    return;
++  }
++  max_w_button.hide();
++  min_w_button.hide();
++
++  const int bw = XXRI_BTN_W;
++  int bx = LftSz + XXRI_BTN_PAD;
++
++  // A dialog gets no minimize and no maximize - only a way out.
++  if (transient_for()) {
++    iconize_button.hide();
++  } else {
++    iconize_button.resize(bx, TopSz, bw, TitleSz);
++    iconize_button.show();
++    bx += bw;
++  }
++  if (transient_for() || flag(KEEP_ASPECT|NO_RESIZE)) {
++    max_h_button.hide();
++  } else {
++    max_h_button.resize(bx, TopSz, bw, TitleSz);
++    max_h_button.show();
++    bx += bw;
++  }
++#if CLOSE_BOX
++  if (flag(NO_CLOSE)) {
++    close_button.hide();
++  } else {
++    close_button.resize(bx, TopSz, bw, TitleSz);
++    close_button.show();
++    bx += bw;
++  }
++#else
++  close_button.hide();
++#endif
++
++  int nx = bx + XXRI_LABEL_GAP;
++  if (label_x != nx && shown())
++    XClearArea(fl_display, fl_xid(this), LftSz, TopSz, w()-LftSz, TitleSz, 1);
++  label_x = nx;
++}
++
++#elif defined(TOPSIDE)
+  // FIRST, the TOPSIDE VERSION of the function
+ void Frame::show_hide_buttons() {
+   if (flag(THIN_BORDER|NO_BORDER)) {
+@@ -1432,7 +1605,211 @@
+ ////////////////////////////////////////////////////////////////
+ // Drawing code:
+ 
+-#ifdef TOPSIDE
++#ifdef XXRI
++// ---------------------------------------------------------------- XXRI ----
++// The XXRI window decoration.  Everything here is drawn flat: no FLTK bevels,
++// no gray ramp - a light bar, a hairline under it, and the three brand
++// controls (triangle / square / circle) at the left, exactly as the mockups
++// show them.
++static inline Fl_Color xxri_rgb(unsigned v) {
++  return fl_rgb_color((v>>16)&0xff, (v>>8)&0xff, v&0xff);
++}
++// A maximized window stops above the dock rather than disappearing behind it.
++static int xxri_dock_reserve() {
++  static int r = -1;
++  if (r < 0) {
++    const char* e = getenv("XXRI_DOCK_RESERVE");
++    r = e ? atoi(e) : XXRI_DOCK_RESERVE_DEFAULT;
++    if (r < 0 || r > Root->h()/3) r = XXRI_DOCK_RESERVE_DEFAULT;
++  }
++  return r;
++}
++// Rounded-rectangle fill (used for the maximize control's squircle).
++static void xxri_round_rectf(int X, int Y, int W, int H, int r) {
++  if (r*2 > W) r = W/2;
++  if (r*2 > H) r = H/2;
++  fl_rectf(X+r, Y, W-2*r, H);
++  fl_rectf(X, Y+r, r, H-2*r);
++  fl_rectf(X+W-r, Y+r, r, H-2*r);
++  fl_pie(X,         Y,         2*r, 2*r,  90, 180);
++  fl_pie(X+W-2*r,   Y,         2*r, 2*r,   0,  90);
++  fl_pie(X,         Y+H-2*r,   2*r, 2*r, 180, 270);
++  fl_pie(X+W-2*r,   Y+H-2*r,   2*r, 2*r, 270, 360);
++}
++
++/* Rounded window corners.
++ *
++ * The mockups draw every window with softly rounded corners, and there is no
++ * compositor here to provide them, so the frame window is clipped with the X
++ * Shape extension instead.  The mask is one-bit - no anti-aliasing is possible
++ * without a compositor - so the radius is kept small enough that the stepping
++ * reads as a curve rather than as a staircase.
++ *
++ * Clipping the FRAME also clips the client inside it, so the application's own
++ * square corners disappear with it.  Set XXRI_SQUARE_CORNERS=1 to turn this off.
++ */
++static void xxri_round_frame(XWindow win, int width, int height) {
++    static int enabled = -1;
++    if (enabled < 0) {
++        int ev, err;
++        const char* off = getenv("XXRI_SQUARE_CORNERS");
++        enabled = (off && *off == '1') ? 0
++                : (XShapeQueryExtension(fl_display, &ev, &err) ? 1 : 0);
++    }
++    if (!enabled || width < 4*XXRI_CORNER_R || height < 4*XXRI_CORNER_R) return;
++    const int r = XXRI_CORNER_R, d = 2*r;
++    Pixmap mask = XCreatePixmap(fl_display, win, width, height, 1);
++    GC gc = XCreateGC(fl_display, mask, 0, NULL);
++    XSetForeground(fl_display, gc, 0);
++    XFillRectangle(fl_display, mask, gc, 0, 0, width, height);
++    XSetForeground(fl_display, gc, 1);
++    XFillRectangle(fl_display, mask, gc, r, 0, width - d, height);
++    XFillRectangle(fl_display, mask, gc, 0, r, width, height - d);
++    XFillArc(fl_display, mask, gc, 0,         0,          d, d, 0, 360*64);
++    XFillArc(fl_display, mask, gc, width - d, 0,          d, d, 0, 360*64);
++    XFillArc(fl_display, mask, gc, 0,         height - d, d, d, 0, 360*64);
++    XFillArc(fl_display, mask, gc, width - d, height - d, d, d, 0, 360*64);
++    XShapeCombineMask(fl_display, win, ShapeBounding, 0, 0, mask, ShapeSet);
++    XFreeGC(fl_display, gc);
++    XFreePixmap(fl_display, mask);
++}
++
++/* ---------------------------------------------------- spatial motion ----
++ * One UI's motion guidance is that a transition should express where a thing
++ * came FROM and where it is going TO, in 100-500ms, decelerating as it lands.
++ * Samsung DeX applies exactly that to a desktop: minimising does not make a
++ * window vanish, it sends the window to its taskbar icon.
++ *
++ * XXRI does the same, and it does it without a compositor.  Only the FRAME is
++ * moved and resized; the client inside is left completely alone, so it is
++ * simply clipped as the frame travels and no application is ever asked to
++ * re-lay-out mid-flight.  That is what keeps this cheap enough to do on a
++ * machine with no graphics acceleration.
++ *
++ * The dock publishes each icon's rectangle on the root window as
++ * _XXRI_DOCK_SLOTS ("key x y w h" per line); xxri-wctl is the only thing that
++ * knows the dock's geometry and this is how it tells us.
++ */
++static int xxri_anim_on() {
++  static int on = -1;
++  if (on < 0) { const char* e = getenv("XXRI_NO_ANIM"); on = (e && *e == '1') ? 0 : 1; }
++  return on;
++}
++
++// Where is this client's dock icon?  0 if it has none (nothing to fly to).
++static int xxri_dock_rect(XWindow client, int* rx, int* ry, int* rw, int* rh) {
++  static Atom slots_atom = None;
++  if (!slots_atom) slots_atom = XInternAtom(fl_display, "_XXRI_DOCK_SLOTS", False);
++  XClassHint ch; ch.res_name = ch.res_class = 0;
++  if (!XGetClassHint(fl_display, client, &ch) || !ch.res_name) {
++    if (ch.res_class) XFree(ch.res_class);
++    return 0;
++  }
++  char inst[128];
++  snprintf(inst, sizeof inst, "%s", ch.res_name);
++  XFree(ch.res_name);
++  if (ch.res_class) XFree(ch.res_class);
++
++  Atom type; int fmt; unsigned long n = 0, after = 0; unsigned char* p = 0;
++  if (XGetWindowProperty(fl_display, RootWindow(fl_display, fl_screen), slots_atom,
++                         0, 4096, False, XA_STRING, &type, &fmt, &n, &after, &p)
++      != Success || !p) return 0;
++  int found = 0;
++  char key[128]; int x, y, w, h;
++  const char* line = (const char*)p;
++  while (*line && !found) {
++    if (sscanf(line, "%127s %d %d %d %d", key, &x, &y, &w, &h) == 5 &&
++        strcasecmp(key, inst) == 0) {
++      *rx = x; *ry = y; *rw = w; *rh = h; found = 1;
++    }
++    const char* nl = strchr(line, '\n');
++    if (!nl) break;
++    line = nl + 1;
++  }
++  XFree(p);
++  return found;
++}
++
++// Decelerating ease, the shape One UI uses for something arriving.
++static double xxri_ease(double t) { double u = 1.0 - t; return 1.0 - u * u * u; }
++
++static void xxri_fly(XWindow win,
++                     int x0, int y0, int w0, int h0,
++                     int x1, int y1, int w1, int h1) {
++  const int steps = 9;                 // ~170ms end to end
++  for (int i = 1; i <= steps; i++) {
++    double e = xxri_ease((double)i / steps);
++    int x = (int)(x0 + (x1 - x0) * e);
++    int y = (int)(y0 + (y1 - y0) * e);
++    int w = (int)(w0 + (w1 - w0) * e);
++    int h = (int)(h0 + (h1 - h0) * e);
++    if (w < 1) w = 1;
++    if (h < 1) h = 1;
++    XMoveResizeWindow(fl_display, win, x, y, w, h);
++    XFlush(fl_display);
++    usleep(19 * 1000);
++  }
++}
++
++int FrameButton::handle(int e) {
++  // Stock flwm never repaints a titlebar button on hover; XXRI's controls do.
++  if (e == FL_ENTER || e == FL_LEAVE) { redraw(); }
++  return Fl_Button::handle(e);
++}
++#endif
++
++#if defined(TOPSIDE) && defined(XXRI)
++void Frame::draw() {
++  if (flag(NO_BORDER)) return;
++  const int W = w(), H = h();
++  /* a frame is mapped before it is ever resized, so the first paint is where
++     the corner mask has to be established */
++  if (W != shaped_w || H != shaped_h) {
++    xxri_round_frame(fl_xid(this), W, H);
++    shaped_w = W; shaped_h = H;
++  }
++  const int bar = top;                       // TopSz + TitleSz
++  const int act = active();
++  labelcolor(xxri_rgb(act ? XXRI_INK : XXRI_INK_MUTED));
++
++  if (damage() != FL_DAMAGE_CHILD) {
++    // Title bar.  A flat fill reads as paper; a very shallow vertical gradient
++    // reads as a surface catching light, which is what the mockups show.  The
++    // range is deliberately tiny - two or three levels - so it never looks like
++    // a nineties gradient titlebar.
++    {
++      Fl_Color top = xxri_rgb(act ? XXRI_BAR_TOP : XXRI_BAR_INACTIVE);
++      Fl_Color bot = xxri_rgb(act ? XXRI_BAR_ACTIVE : XXRI_BAR_INACTIVE);
++      for (int y = 0; y < bar; y++) {
++        double t = bar > 1 ? (double)y / (bar - 1) : 0.0;
++        fl_color(fl_color_average(bot, top, 1.0 - t));
++        fl_xyline(0, y, W - 1);
++      }
++    }
++    // the rest of the frame (the strip the client does not cover)
++    Fl_Color edge = xxri_rgb(act ? XXRI_BAR_ACTIVE : XXRI_BAR_INACTIVE);
++    fl_rectf(0, bar, LftSz, H-bar, edge);
++    fl_rectf(W-RgtSz, bar, RgtSz, H-bar, edge);
++    fl_rectf(0, H-BtmSz, W, BtmSz, edge);
++    // hairline separating the bar from the client area
++    fl_color(xxri_rgb(XXRI_HAIRLINE));
++    fl_xyline(LftSz, bar-1, W-RgtSz-1);
++    // one crisp outline instead of FLTK's four-tone bevel
++    fl_color(xxri_rgb(XXRI_BORDER));
++    fl_rect(0, 0, W, H);
++
++    if (!flag(THIN_BORDER) && label() && *label()) {
++      fl_color(labelcolor());
++      fl_font(TITLE_FONT_SLOT, TitleFontSz);
++      int avail = W - label_x - RgtSz;
++      if (avail > 0)
++        fl_draw(label(), label_x, TopSz, avail, TitleSz,
++                Fl_Align(FL_ALIGN_LEFT|FL_ALIGN_INSIDE|FL_ALIGN_CLIP), 0, 0);
++    }
++  }
++  if (!flag(THIN_BORDER)) Fl_Window::draw();
++}
++#elif defined(TOPSIDE)
+ void Frame::draw() {
+   if (flag(NO_BORDER)) return;
+   //ML--------------------- Paint opaque titlebar background
+@@ -1552,6 +1929,76 @@
+ }
+ #endif
+ 
++#ifdef XXRI
++void FrameButton::draw() {
++  const int cx = x() + w()/2, cy = y() + h()/2;
++  const int r  = XXRI_GLYPH_R;
++  const int hot = (Fl::belowmouse() == this) && active_r();
++  const int on  = value() && active_r();
++  unsigned base;
++  switch (label()[0]) {
++    case 'i': base = XXRI_C_MIN;   break;   // iconify
++    case 'M': base = XXRI_C_MAX;   break;   // maximize / restore
++    case 'X': base = XXRI_C_CLOSE; break;   // close
++    default:  base = XXRI_C_OFF;   break;
++  }
++  Frame* pf = (Frame*)parent();
++  const int focused = pf && pf->active();
++  Fl_Color c = xxri_rgb(base);
++  if (!active_r())      c = xxri_rgb(XXRI_C_OFF);   // disabled
++  else if (on)          c = fl_darker(c);           // pressed
++  else if (hot)         c = fl_lighter(c);          // hover
++  else if (!focused)
++    // An unfocused window recedes.  Its controls kept full saturation before,
++    // which made two stacked windows look equally live and left focus to be
++    // inferred from a two-shade difference in the bar - not obvious enough to
++    // read at a glance.  Hue is kept so the triangle/square/cross language
++    // still reads, and hovering restores full colour so the control still
++    // invites the click.
++    c = fl_color_average(c, xxri_rgb(XXRI_BAR_INACTIVE), 0.45);
++
++  // Hover / pressed halo.  Without anti-aliasing a round halo shows its
++  // polygon edges, so it is a rounded square just a shade off the bar - felt
++  // rather than seen.
++  if (hot || on) {
++    Frame* f = (Frame*)parent();
++    Fl_Color barc = xxri_rgb(f && f->active() ? XXRI_BAR_ACTIVE : XXRI_BAR_INACTIVE);
++    fl_color(fl_color_average(barc, xxri_rgb(XXRI_INK), on ? 0.90 : 0.955));
++    xxri_round_rectf(cx-8, cy-8, 16, 16, 5);
++  }
++
++  fl_color(c);
++  switch (label()[0]) {
++    case 'i':   // minimize: the XXRI left-pointing triangle
++      fl_begin_polygon();
++      fl_vertex(cx-r-1, cy);
++      fl_vertex(cx+r,   cy-r-1);
++      fl_vertex(cx+r,   cy+r+1);
++      fl_end_polygon();
++      break;
++    case 'M':   // maximize / restore: the rounded square
++      xxri_round_rectf(cx-r, cy-r, 2*r, 2*r, 2);
++      break;
++    case 'X': {  // close: the circle with an X knocked out of it, ALWAYS
++      // The mockup draws this control as a plain circle, but a close button
++      // has to read as "close" without being hovered first, so the X is part
++      // of the resting state and only its weight changes with the pointer.
++      // fl_pie at this radius is a visible octagon; a filled polygon built
++      // from fl_circle keeps the edge round.
++      fl_begin_polygon(); fl_circle(cx, cy, r+0.5); fl_end_polygon();
++      Frame* f = (Frame*)parent();
++      // Knocked out in the bar colour so the glyph is the gap, not an overlay.
++      fl_color(xxri_rgb(f && f->active() ? XXRI_BAR_ACTIVE : XXRI_BAR_INACTIVE));
++      const int a = r - 2;                  // arm length from the centre
++      fl_line_style(FL_SOLID, (hot || on) ? 2 : 1);
++      fl_line(cx-a, cy-a, cx+a, cy+a);
++      fl_line(cx-a, cy+a, cx+a, cy-a);
++      fl_line_style(FL_SOLID, 1);
++      break;
++    }
++  }
++}
++#else
+ void FrameButton::draw() {
+   const int x = this->x();
+   const int y = this->y();
+@@ -1595,6 +2042,7 @@
+   }
+   fl_line_style(FL_SOLID, 1);
+ }
++#endif  // XXRI
+ 
+ ////////////////////////////////////////////////////////////////
+ // User interface code:
+@@ -1643,6 +2091,22 @@
+     }
+     show_hide_buttons();
+     break;
++#ifdef XXRI
++  case 'M': {	// XXRI maximize / restore - both axes, one control
++    if (!xxri_maxed) {
++      xxri_rx = x(); xxri_ry = y(); xxri_rw = w(); xxri_rh = h();
++      // Stop above the dock: a maximized window that hides the dock reads as
++      // a bug, and the mockup always shows the dock over the wallpaper.
++      set_size(0, 0, Root->w(), Root->h() - xxri_dock_reserve(), 1);
++      xxri_maxed = 1;
++    } else {
++      set_size(xxri_rx, xxri_ry, xxri_rw, xxri_rh, 1);
++      xxri_maxed = 0;
++    }
++    max_h_button.value(xxri_maxed);
++    show_hide_buttons();
++    break; }
++#endif
+   case 'w':	// max-width button
+     ToggleHorzMax();
+     show_hide_buttons();
+diff -urN a/Frame.H b/Frame.H
+--- a/Frame.H
++++ b/Frame.H
+@@ -57,6 +57,11 @@
+ public:
+   FrameButton(int X, int Y, int W, int H, const char* L=0)
+     : Fl_Button(X,Y,W,H,L) {}
++#ifdef XXRI
++  // The XXRI controls light up under the pointer, so unlike stock flwm they
++  // have to repaint when the pointer enters or leaves them.
++  int handle(int e);
++#endif
+ };
+ 
+ class Desktop;
+@@ -76,6 +81,16 @@
+ 
+   int restore_x, restore_w; // saved size when min/max width is set
+   int restore_y, restore_h; // saved size when max height is set
++#ifdef XXRI
++  // Size the corner mask was last built for, so it is rebuilt only on a real
++  // geometry change rather than on every expose.
++  int shaped_w, shaped_h;
++#endif
++#ifdef XXRI
++  // XXRI has ONE maximize control covering both axes, so it keeps its own
++  // restore rectangle instead of the per-axis ones the stock buttons use.
++  int xxri_maxed, xxri_rx, xxri_ry, xxri_rw, xxri_rh;
++#endif
+   int min_w, max_w, inc_w; // size range and increment
+   int min_h, max_h, inc_h; // size range and increment
+   int app_border_width;	// value of border_width application tried to set
+diff -urN a/Hotkeys.C b/Hotkeys.C
+--- a/Hotkeys.C
++++ b/Hotkeys.C
+@@ -269,6 +269,24 @@
+ 
+ ////////////////////////////////////////////////////////////////
+ 
++#ifdef XXRI
++#include <unistd.h>
++#include <sys/wait.h>
++// Ctrl+Alt+C toggles the XXRI Control Center.  Double-forked like flwm's own
++// spawn so the window manager never collects a zombie.
++static void ToggleControlCenter(void) {
++  if (fork() == 0) {
++    if (fork() == 0) {
++      execl("/usr/local/bin/xxri-control-center",
++            "xxri-control-center", "--toggle", (void*)0);
++      _exit(1);
++    }
++    _exit(0);
++  }
++  wait(0);
++}
++#endif
++
+ static struct {int key; void (*func)();} keybindings[] = {
+ #if STANDARD_HOTKEYS || MINIMUM_HOTKEYS
+   // these are very common and tend not to conflict, due to Windoze:
+@@ -363,6 +381,9 @@
+   {FL_CTRL+FL_ALT+'h',	ToggleHorzMax},
+   {FL_CTRL+FL_ALT+'m',	ToggleWinMax},
+ #endif
++#ifdef XXRI
++  {FL_CTRL+FL_ALT+'c',	ToggleControlCenter},
++#endif
+ #ifdef EXTENDED_MOVEMENT_KEYS
+   {FL_CTRL+FL_ALT+FL_SHIFT+FL_Left,		MoveMaxLeft},
+   {FL_CTRL+FL_ALT+FL_SHIFT+FL_Up,		MoveMaxUp},
+diff -urN a/main.C b/main.C
+--- a/main.C
++++ b/main.C
+@@ -27,6 +27,7 @@
+ 
+ //ML
+ #include <FL/fl_ask.H>
++#include <FL/fl_draw.H>
+ #include <signal.h>
+ int TitleFontSz = TITLE_FONT_SIZE;
+ int TitleSz  = TITLE_FONT_SIZE + 4;
+@@ -98,7 +99,20 @@
+ // fltk calls this for any events it does not understand:
+ static int flwm_event_handler(int e) {
+ 
+-  if (Fl::event_key()==FL_Escape) {
++  // Ignore a bare Escape, but ONLY when this really is a keyboard event.
++  //
++  // Fl::event_key() is sticky: it keeps reporting the last key seen, for every
++  // event that follows.  Testing it unconditionally therefore meant that once
++  // the user pressed Escape - dismissing the desktop menu, say - this handler
++  // answered "handled" to EVERYTHING afterwards, including the raw X events it
++  // exists to process: ButtonPress and, worst of all, MapRequest.  With
++  // MapRequest swallowed, an application launched from the dock started but
++  // its window was never mapped, so the dock appeared to do nothing at all,
++  // at random, for the rest of the session.  ALT+Escape stays live because it
++  // is a documented hotkey (Hotkeys.C binds it to the desktop menu).
++  if ((e == FL_KEYBOARD || e == FL_SHORTCUT || e == FL_KEYUP)
++      && Fl::event_key() == FL_Escape
++      && !(Fl::event_state() & FL_ALT)) {
+     return 1;
+   }
+ 
+@@ -407,6 +421,20 @@
+   Fl::set_color(slot, value);
+ }
+ 
++#ifdef XXRI
++// A flat popup frame: fill plus a single hairline border.
++static void xxri_menu_frame(int x, int y, int w, int h, Fl_Color) {
++  fl_color(fl_rgb_color((XXRI_MENU_BORDER>>16)&0xff,
++                        (XXRI_MENU_BORDER>>8)&0xff, XXRI_MENU_BORDER&0xff));
++  fl_rect(x, y, w, h);
++}
++static void xxri_menu_box(int x, int y, int w, int h, Fl_Color c) {
++  fl_color(c);
++  fl_rectf(x+1, y+1, w-2, h-2);
++  xxri_menu_frame(x, y, w, h, c);
++}
++#endif
++
+ int main(int argc, char** argv) {
+   program_name = fl_filename_name(argv[0]);
+   int i; if (Fl::args(argc, argv, i, arg) < argc) Fl::error(
+@@ -433,21 +461,52 @@
+ #endif
+ 
+   fl_open_display();
++#if FL_MAJOR_VERSION > 1 || (FL_MAJOR_VERSION == 1 && FL_MINOR_VERSION >= 4)
+   sf = Fl::screen_scale(0);
++#else
++  // FLTK 1.3 (what the target ships) has no per-screen scaling API; the
++  // desktop runs at a fixed 75dpi, so the scale factor is simply 1.
++  sf = 1.0f;
++#endif
+   TitleFontSz = (int) ((float)TITLE_FONT_SIZE * sf);
++#ifdef XXRI
++  // XXRI's bar height is a design constant, not a function of the font size.
++  TitleSz     = (int) ((float)XXRI_TITLE_H * sf);
++  ButtonSz    = TitleSz;
++#else
+   TitleSz     = (int) ((float)(TITLE_FONT_SIZE + 4) * sf);
+   if ((TitleSz % 2) == 0)  TitleSz++; // make odd!
+   ButtonSz    = TitleSz;
++#endif
+   LftSz = (int) ((float)LEFT   * sf);
+   RgtSz = (int) ((float)RIGHT  * sf);
+   TopSz = (int) ((float)TOP    * sf);
+   BtmSz = (int) ((float)BOTTOM * sf);
+ 
++#if FL_MAJOR_VERSION > 1 || (FL_MAJOR_VERSION == 1 && FL_MINOR_VERSION >= 4)
+   for (int i = 0; i < Fl::screen_count(); i++) Fl::screen_scale(i, 1.0);
++#endif
+ 
+   color_setup(CURSOR_FG_SLOT, cfg, CURSOR_FG_COLOR<<8);
+   color_setup(CURSOR_BG_SLOT, cbg, CURSOR_BG_COLOR<<8);
+   Fl::set_color(FL_SELECTION_COLOR,0,0,128);
++#ifdef XXRI
++  // The desktop menu is the one piece of stock FLTK the user still sees, so
++  // it gets the XXRI palette rather than the default gray bevels.
++  // Fl::set_color(FL_BACKGROUND_COLOR) alone is not enough: FLTK boxes draw
++  // from the gray RAMP, and only Fl::background() recomputes it.  Without
++  // this the desktop menu keeps its stock gray bevels.
++  Fl::scheme("gtk+");
++  // The popup's frame: one flat hairline in the XXRI border colour instead of
++  // FLTK's four-tone bevel, so the menu belongs to the same desktop as the
++  // dock and the Control Center rather than to 1995.
++  Fl::set_boxtype(FL_UP_BOX, xxri_menu_box, 1, 1, 2, 2);
++  Fl::set_boxtype(FL_UP_FRAME, xxri_menu_frame, 1, 1, 2, 2);
++  Fl::background((XXRI_MENU_BG>>16)&0xff, (XXRI_MENU_BG>>8)&0xff, XXRI_MENU_BG&0xff);
++  Fl::background2((XXRI_BAR_ACTIVE>>16)&0xff, (XXRI_BAR_ACTIVE>>8)&0xff, XXRI_BAR_ACTIVE&0xff);
++  Fl::foreground((XXRI_INK>>16)&0xff, (XXRI_INK>>8)&0xff, XXRI_INK&0xff);
++  Fl::set_color(FL_SELECTION_COLOR,   (XXRI_MENU_SEL>>16)&0xff, (XXRI_MENU_SEL>>8)&0xff, XXRI_MENU_SEL&0xff);
++#endif
+   Fl_Root root;
+   Root = &root;
+   Root->show(argc,argv); // fools fltk into using -geometry to set the size
+diff -urN a/Menu.C b/Menu.C
+--- a/Menu.C
++++ b/Menu.C
+@@ -66,6 +66,29 @@
+ {
+   Frame* f = (Frame*)(o->value);
+   if (window_deleted(f)) return;
++#ifdef XXRI
++  // Stock flwm draws a little map of the screen here with a black rectangle per
++  // window.  At this size that reads as grubby black boxes rather than as
++  // information, so XXRI draws one small state glyph instead: a filled rounded
++  // square for a window that is on screen, an outlined one for a window the
++  // user has minimised.  Same information, and it belongs to the palette.
++  {
++    const int g = 9;
++    const int gx = X + (MENU_ICON_W - g)/2, gy = Y + (MENU_ICON_H - g)/2;
++    const int iconic = (f->state() == ICONIC);
++    Fl_Color accent = fl_rgb_color(0x83, 0x71, 0xF7);
++    fl_color(accent);
++    if (iconic) {
++      fl_rect(gx, gy, g, g);
++      fl_color(fl_color_average(accent, FL_WHITE, 0.25));
++      fl_rectf(gx+2, gy+2, g-4, g-4);
++    } else {
++      fl_rectf(gx, gy, g, g);
++      fl_color(fl_color_average(accent, FL_WHITE, 0.55));
++      fl_xyline(gx+1, gy+1, gx+g-2);        // a title strip, so it reads as a window
++    }
++  }
++#else
+   fl_draw_box(FL_THIN_DOWN_BOX, X, Y, MENU_ICON_W, MENU_ICON_H, FL_GRAY);
+   for (Frame* c = Frame::first; c; c = c->next) {
+     if (c->state() != UNMAPPED && (c==f || c->is_transient_for(f))) {
+@@ -88,6 +111,7 @@
+ 	fl_rectf(X+x+SCREEN_DX, Y+y+SCREEN_DX, w, h);
+     }
+   }
++#endif
+   fl_font(o->font, TitleFontSz); // o->size);
+   fl_color((Fl_Color)o->color);
+   const char* l = f->label(); if (!l) l = "unnamed";
+@@ -115,7 +139,11 @@
+   fl_measure(l, W, H);
+   W += MENU_ICON_W+3;
+   if (W > MAX_MENU_WIDTH) W = MAX_MENU_WIDTH;
++#ifdef XXRI
++  if (H < XXRI_MENU_ROW_H) H = XXRI_MENU_ROW_H;
++#else
+   if (H < MENU_ICON_H) H = MENU_ICON_H;
++#endif
+ }
+ 
+ // This labeltype is used for non-frame items so the text can line
+@@ -136,7 +164,11 @@
+   fl_measure(o->value, W, H);
+   W += MENU_ICON_W+3;
+   if (W > MAX_MENU_WIDTH) W = MAX_MENU_WIDTH;
++#ifdef XXRI
++  if (H < XXRI_MENU_ROW_H) H = XXRI_MENU_ROW_H;
++#else
+   if (H < MENU_ICON_H) H = MENU_ICON_H;
++#endif
+ }
+ 
+ #define FRAME_LABEL FL_FREE_LABELTYPE
+@@ -229,10 +261,25 @@
+ static void
+ logout_cb(Fl_Widget*, void*)
+ {
+-  int pid=0;
+-  if (( pid=fork()) == 0) {
+-    execlp("exittc","exittc", NULL);
++#ifdef XXRI
++  // XXRI owns the session-end experience: exittc is Tiny Core's own dialog and
++  // must never surface on this desktop.
++  const char* prog = "xxri-power-menu";
++#else
++  const char* prog = "exittc";
++#endif
++  // Double-fork like spawn_cb, so no zombie is left behind, and _exit() on a
++  // failed exec - without it the child carried on running the window manager's
++  // event loop as a second copy of flwm.
++  if (fork() == 0) {
++    if (fork() == 0) {
++      close(ConnectionNumber(fl_display));
++      execlp(prog, prog, (void*)0);
++      _exit(1);
++    }
++    _exit(0);
+   }
++  wait((int *) 0);
+ }
+ 
+ ////////////////////////////////////////////////////////////////
+@@ -270,10 +317,16 @@
+ #if XTERM_MENU_ITEM
+   {"New xterm", 0, spawn_cb, (void*)xtermname, 0, 0, 0, MENU_FONT_SIZE},
+ #endif
+-#if DESKTOPS
++#if DESKTOPS && !defined(XXRI)
++  // XXRI has no multiple-desktop concept in its design language, so the item
++  // that creates one does not belong on its desktop menu.
+   {"New desktop", 0, new_desktop_cb, 0, 0, 0, 0, MENU_FONT_SIZE},
+ #endif
++#ifdef XXRI
++  {"Power", 0, logout_cb, 0, 0, 0, 0, MENU_FONT_SIZE},
++#else
+   {"Exit", 0, logout_cb, 0, 0, 0, 0, MENU_FONT_SIZE},
++#endif
+   {0}};
+ #define num_other_items (sizeof(other_menu_items)/sizeof(Fl_Menu_Item))
+ 
+@@ -451,7 +504,17 @@
+ #if WMX_MENU_ITEMS
+   load_wmx();
+   if (num_wmx) {
++#if XTERM_MENU_ITEM
++    // The built-in "New xterm" item is dropped when there are wmx items, so
++    // the count drops with it.  This MUST stay tied to XTERM_MENU_ITEM: the
++    // matching memcpy at the bottom of this function is compiled out when the
++    // item does not exist, so subtracting unconditionally sized the array one
++    // Fl_Menu_Item too small and the terminator was written off the end of the
++    // heap block.  XXRI turns XTERM_MENU_ITEM off (the dock owns the
++    // terminal), which made the desktop menu corrupt the heap and abort the
++    // window manager the first time it was opened with a populated ~/.wmx.
+     n -= 1; // delete "new xterm"
++#endif
+     // add wmx items
+     int	level = 0;
+     for (int i=0; i<num_wmx; i++) {
+@@ -503,11 +566,20 @@
+   }
+ #endif
+ 
+-  if (n > arraysize) {
++  // Belt and braces: the count above and the fill below are two separate
++  // walks over the same data, and a mismatch between them is a heap overwrite
++  // that kills the whole desktop rather than a cosmetic glitch.  Carry a few
++  // spare slots so a future miscount costs a couple of hundred wasted bytes
++  // instead of the window manager, and remember the real capacity so the fill
++  // can be clamped to it.
++  const int slack = 8;
++  if (n + slack > arraysize) {
+     delete[] menu;
+-    menu = new Fl_Menu_Item[arraysize = n];
+-    memset(menu, 0, n * sizeof(Fl_Menu_Item));
++    arraysize = n + slack;
++    menu = new Fl_Menu_Item[arraysize];
+   }
++  memset(menu, 0, arraysize * sizeof(Fl_Menu_Item));
++  const int menu_cap = arraysize;
+ 
+   // build the menu:
+   n = 0;
+@@ -615,15 +687,22 @@
+       n++;
+     }
+   }
++#endif // WMX_MENU_ITEMS
+ 
+-  // put the fixed menu items at the bottom:
+-#if XTERM_MENU_ITEM
+-  if (num_wmx) // if wmx commands, delete the built-in xterm item:
+-    memcpy(menu+n, other_menu_items+1, sizeof(other_menu_items)-sizeof(Fl_Menu_Item));
+-  else
+-#endif
+-#endif
+-    memcpy(menu+n, other_menu_items, sizeof(other_menu_items));
++  // Put the fixed menu items at the bottom.  One copy, one place, so the
++  // number of items appended can never disagree with the number counted.
++  const Fl_Menu_Item* tail = other_menu_items;
++  int tailn = (int)num_other_items;
++#if WMX_MENU_ITEMS && XTERM_MENU_ITEM
++  if (num_wmx) { tail++; tailn--; } // wmx items replace the built-in xterm one
++#endif
++  if (n + tailn > menu_cap) {   // never write past the end of the block
++    fprintf(stderr, "flwm: menu needs %d slots, has %d - truncating\n",
++            n + tailn, menu_cap);
++    n = menu_cap - tailn;
++    if (n < 0) n = 0;
++  }
++  memcpy(menu+n, tail, tailn * sizeof(Fl_Menu_Item));
+ #if DESKTOPS
+   if (one_desktop)
+ #endif

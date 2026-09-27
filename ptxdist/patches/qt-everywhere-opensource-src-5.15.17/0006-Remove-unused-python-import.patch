@@ -1,0 +1,41 @@
+From: Bruno Pitrus <brunopitrus@hotmail.com>
+Date: Tue, 25 Jul 2023 18:34:09 +0000
+Subject: [PATCH] Remove unused python import
+
+The `imp` module has been removed in Python 3.12 causing these scripts to error out.
+
+Change-Id: Ic7c038d21b86052bdda13015f80934db52a2143e
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/4714859
+Auto-Submit: Bruno Pitrus <brunopitrus@hotmail.com>
+Reviewed-by: Ken Rockot <rockot@google.com>
+Commit-Queue: Ken Rockot <rockot@google.com>
+Cr-Commit-Position: refs/heads/main@{#1174966}
+---
+ .../src/3rdparty/chromium/mojo/public/tools/mojom/mojom/fileutil.py      | 1 -
+ .../src/3rdparty/chromium/mojo/public/tools/mojom/mojom/parse/lexer.py   | 1 -
+ 2 files changed, 2 deletions(-)
+
+diff --git a/qtwebengine/src/3rdparty/chromium/mojo/public/tools/mojom/mojom/fileutil.py b/qtwebengine/src/3rdparty/chromium/mojo/public/tools/mojom/mojom/fileutil.py
+index bf626f54798c..e1c823daa3cf 100644
+--- a/qtwebengine/src/3rdparty/chromium/mojo/public/tools/mojom/mojom/fileutil.py
++++ b/qtwebengine/src/3rdparty/chromium/mojo/public/tools/mojom/mojom/fileutil.py
+@@ -3,7 +3,6 @@
+ # found in the LICENSE file.
+ 
+ import errno
+-import imp
+ import os.path
+ import sys
+ 
+diff --git a/qtwebengine/src/3rdparty/chromium/mojo/public/tools/mojom/mojom/parse/lexer.py b/qtwebengine/src/3rdparty/chromium/mojo/public/tools/mojom/mojom/parse/lexer.py
+index 3e084bbf22b7..1e8b49f245f7 100644
+--- a/qtwebengine/src/3rdparty/chromium/mojo/public/tools/mojom/mojom/parse/lexer.py
++++ b/qtwebengine/src/3rdparty/chromium/mojo/public/tools/mojom/mojom/parse/lexer.py
+@@ -2,7 +2,6 @@
+ # Use of this source code is governed by a BSD-style license that can be
+ # found in the LICENSE file.
+ 
+-import imp
+ import os.path
+ import sys
+ 

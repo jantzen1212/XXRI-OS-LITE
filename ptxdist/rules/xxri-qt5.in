@@ -1,0 +1,26 @@
+## SECTION=project_specific
+
+config XXRI_QT5
+	tristate
+	select XXRI_TC_SYSROOT
+	select HOST_PYTHON3
+	select HOST_NINJA
+	select HOST_NODEJS
+	select HOST_GPERF
+	select HOST_FLEX
+	select HOST_LIBPNG
+	select HOST_NSS
+	select HOST_NSPR
+	prompt "xxri-qt5: Qt 5.15 + Qt WebEngine for the XXRI Browser"
+	help
+	  Qt 5.15.17 (qtbase, qtdeclarative, qtwebchannel, qtlocation,
+	  qtsvg, qtx11extras, qtwebengine) cross-compiled against the
+	  Tiny Core 16 system libraries, installed under the browser's
+	  private prefix /usr/local/lib/xxri-browser.  Built for SSE2:
+	  the V8 JavaScript engine inside Qt WebEngine cannot run
+	  without it (docs/cpu-baseline.md).
+
+	  The engine keeps every feature the 2.6 browser had: WebRTC,
+	  PDF viewer and printing, spellchecker, Pepper plugins,
+	  extensions, proprietary codecs, geolocation, WebChannel,
+	  ALSA and PulseAudio.

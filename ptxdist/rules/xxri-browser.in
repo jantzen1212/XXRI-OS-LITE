@@ -1,0 +1,10 @@
+## SECTION=project_specific
+
+config XXRI_BROWSER
+	bool
+	select XXRI_QT5
+	prompt "xxri-browser: XXRI Browser"
+	help
+	  The XXRI Browser (src/xxri-browser/browser, a fork of Qt's
+	  simplebrowser) built against xxri-qt5, and its launcher, which
+	  checks for SSE2 before starting the engine.

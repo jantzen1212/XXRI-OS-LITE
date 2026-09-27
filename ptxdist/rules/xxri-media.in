@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_MEDIA
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-media: media player"
+	help
+	  The GTK 3 media player (plays through mplayer).

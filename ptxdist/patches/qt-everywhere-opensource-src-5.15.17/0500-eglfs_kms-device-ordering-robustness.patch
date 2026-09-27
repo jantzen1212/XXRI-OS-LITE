@@ -1,0 +1,58 @@
+From: Lucas Stach <l.stach@pengutronix.de>
+Date: Mon, 29 Jan 2018 14:02:03 +0100
+Subject: [PATCH] eglfs_kms: device ordering robustness
+
+Check the DRM device for available mode resources before deciding to
+use it as the KMS device. This way we are robust against changes in
+DRM device ordering, where some of the devices are render only.
+
+Signed-off-by: Lucas Stach <l.stach@pengutronix.de>
+---
+ .../eglfs_kms/qeglfskmsgbmintegration.cpp            | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmintegration.cpp b/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmintegration.cpp
+index caa1187b4018..debcbd7a6d7b 100644
+--- a/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmintegration.cpp
++++ b/qtbase/src/plugins/platforms/eglfs/deviceintegration/eglfs_kms/qeglfskmsgbmintegration.cpp
+@@ -47,6 +47,7 @@
+ #include "private/qeglfscursor_p.h"
+ 
+ #include <QtCore/QLoggingCategory>
++#include <QtCore/private/qcore_unix_p.h>
+ #include <QtGui/QScreen>
+ #include <QtDeviceDiscoverySupport/private/qdevicediscovery_p.h>
+ 
+@@ -128,6 +129,20 @@ void QEglFSKmsGbmIntegration::presentBuffer(QPlatformSurface *surface)
+     screen->flip();
+ }
+ 
++static bool check_modesetting(QString devpath)
++{
++    bool moderes = false;
++    struct drm_mode_card_res res = { };
++    int fd = qt_safe_open(devpath.toLocal8Bit().constData(), O_RDWR | O_CLOEXEC);
++
++    if (!drmIoctl(fd, DRM_IOCTL_MODE_GETRESOURCES, &res))
++        moderes = true;
++
++    qt_safe_close(fd);
++
++    return moderes;
++}
++
+ QKmsDevice *QEglFSKmsGbmIntegration::createDevice()
+ {
+     QString path = screenConfig()->devicePath();
+@@ -143,6 +158,11 @@ QKmsDevice *QEglFSKmsGbmIntegration::createDevice()
+             qFatal("Could not find DRM device!");
+ 
+         path = devices.first();
++        for (int i = 0; i < devices.count(); i++) {
++            path = devices.at(i);
++            if (check_modesetting(path))
++                break;
++        }
+         qCDebug(qLcEglfsKmsDebug) << "Using" << path;
+     }
+ 

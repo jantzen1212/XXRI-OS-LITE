@@ -1,0 +1,24 @@
+From: Michael Olbrich <m.olbrich@pengutronix.de>
+Date: Tue, 14 Nov 2017 21:52:24 +0100
+Subject: [PATCH] ptxdist: qtwebengine: let ninja use the jobserver
+
+Signed-off-by: Michael Olbrich <m.olbrich@pengutronix.de>
+[m.felsch@pengutronix.de: port to 5.14.1]
+Signed-off-by: Marco Felsch <m.felsch@pengutronix.de>
+---
+ qtwebengine/src/core/gn_run.pro | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/qtwebengine/src/core/gn_run.pro b/qtwebengine/src/core/gn_run.pro
+index 9f6e64504ef1..b7e082ebd193 100644
+--- a/qtwebengine/src/core/gn_run.pro
++++ b/qtwebengine/src/core/gn_run.pro
+@@ -75,7 +75,7 @@ build_pass|!debug_and_release {
+         !system($$gn_run) {
+             error("GN run error!")
+         }
+-        runninja.commands = $$NINJA $$ninjaflags \$\(NINJAJOBS\) -C $$gn_build_root QtWebEngineCore
++        runninja.commands = +$$NINJA $$ninjaflags \$\(NINJAJOBS\) -C $$gn_build_root QtWebEngineCore
+     }
+ }
+ 

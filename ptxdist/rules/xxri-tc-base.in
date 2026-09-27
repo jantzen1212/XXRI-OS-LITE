@@ -1,0 +1,11 @@
+## SECTION=project_specific
+
+config XXRI_TC_BASE
+	bool
+	prompt "xxri-tc-base: Tiny Core 16.0 core.gz (base layer)"
+	help
+	  The Tiny Core 16.0 initramfs exactly as released, sha256-pinned.
+	  It is the base layer of XXRI's core.gz: image-xxri-core lays the
+	  XXRI packages over it (see scripts/xxri-mkinitramfs.py).  Tiny
+	  Core's base (busybox, glibc 2.40, udev, its scripts) is used as
+	  released, not rebuilt, so every Tiny Core extension keeps working.

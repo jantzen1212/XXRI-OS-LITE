@@ -1,0 +1,5 @@
+## SECTION=image
+
+config IMAGE_XXRI_GRUB_TCZ
+	tristate
+	prompt "Generate xxri-grub.tcz"

@@ -1,0 +1,5 @@
+## SECTION=image
+
+config IMAGE_XXRI_ISO
+	tristate
+	prompt "Generate the XXRI OS Lite ISO (BIOS + IA32 UEFI)"

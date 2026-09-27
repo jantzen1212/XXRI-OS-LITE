@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_BOOTSPLASH
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-bootsplash: framebuffer boot splash"
+	help
+	  Static framebuffer splash shown from the initramfs until X starts.

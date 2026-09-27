@@ -1,0 +1,16 @@
+#!/bin/sh
+# XXRI Browser launcher.
+#
+# The engine is Qt WebEngine, i.e. Chromium; its JavaScript engine V8 has no
+# floating-point code path without SSE2 (v8/src/codegen/ia32: "SSE2 support is
+# mandatory") and Chromium itself is compiled for SSE2.  On an older processor
+# (Pentium III, Pentium II, K6-2, Athlon XP, VIA C3...) the renderer would die
+# on its first page; say why instead.  docs/cpu-baseline.md has the details.
+if ! grep -qw sse2 /proc/cpuinfo 2>/dev/null; then
+	msg="XXRI Browser needs a processor with SSE2 (Pentium 4, Pentium M, Athlon 64, VIA C7 or newer). This computer's processor does not have SSE2, so the browser cannot run on it."
+	echo "xxri-browser: $msg" >&2
+	[ -n "$DISPLAY" ] && [ -x /usr/local/bin/xxri-dialog ] &&
+		/usr/local/bin/xxri-dialog error "XXRI Browser" "$msg" >/dev/null 2>&1
+	exit 1
+fi
+exec /usr/local/lib/xxri-browser/bin/xxri-browser "$@"

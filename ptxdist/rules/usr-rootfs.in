@@ -1,0 +1,10 @@
+## SECTION=rootfs
+
+# Project override of PTXdist's rules/usr-rootfs.in: XXRI keeps Tiny Core's
+# classic layout with real /bin, /sbin and /lib directories instead of
+# PTXdist's merged-/usr symlinks (/bin -> usr/bin, ...), which would break
+# the Tiny Core base system and its extensions.
+config USR_ROOTFS
+	bool
+	default n
+	select BASE

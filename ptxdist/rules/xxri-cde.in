@@ -1,0 +1,18 @@
+## SECTION=project_specific
+
+config XXRI_CDE
+	bool
+	select HOST_XXRI_XORRISO
+	select HOST_XXRI_GRUB
+	select HOST_MTOOLS
+	select HOST_DOSFSTOOLS
+	select HOST_FAKEROOT
+	select HOST_SQUASHFS_TOOLS
+	select HOST_SQUASHFS_TOOLS_XZ_SUPPORT
+	prompt "xxri-cde: the XXRI extension set (pinned Tiny Core 16 packages)"
+	help
+	  Fetches every extension of the XXRI 2.6 set by name from the Tiny
+	  Core 16.x mirror (or the archived 16.0 release ISO) and checks each
+	  against the md5 in config/cde/manifest.  Also pulls in the host tools
+	  the image rules (core.gz, .tcz, ISO) run: platformconfig image
+	  options cannot select userland symbols.

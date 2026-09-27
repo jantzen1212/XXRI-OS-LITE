@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=XXRI Browser
+GenericName=Web Browser
+Comment=Browse the web
+Exec=/usr/local/bin/xxri-browser %U
+Icon=xxri-browser
+X-FullPathIcon=/usr/local/share/pixmaps/xxri-browser.png
+Terminal=false
+Categories=Network;WebBrowser;
+MimeType=text/html;x-scheme-handler/http;x-scheme-handler/https;
+StartupNotify=false

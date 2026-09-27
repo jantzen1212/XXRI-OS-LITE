@@ -1,0 +1,8 @@
+## SECTION=hosttools_noprompt
+
+config HOST_PERL_XML_PARSER
+	tristate
+	help
+	  Perl's XML::Parser for the build host (intltool needs it), built
+	  from CPAN against the host's expat instead of being required as a
+	  host distribution package.

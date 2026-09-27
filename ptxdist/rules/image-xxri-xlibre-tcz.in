@@ -1,0 +1,5 @@
+## SECTION=image
+
+config IMAGE_XXRI_XLIBRE_TCZ
+	tristate
+	prompt "Generate xxri-xlibre.tcz"

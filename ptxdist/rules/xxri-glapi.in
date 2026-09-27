@@ -1,0 +1,17 @@
+## SECTION=project_specific
+
+config XXRI_GLAPI
+	bool
+	select HOST_MESON
+	select HOST_SYSTEM_PYTHON3
+	select HOST_SYSTEM_PYTHON3_MAKO
+	select HOST_SYSTEM_PYTHON3_PACKAGING
+	select HOST_SYSTEM_PYTHON3_PYYAML
+	select HOST_FLEX
+	prompt "xxri-glapi: libglapi.so.0 (AppImage runtime)"
+	help
+	  Mesa's shared GL dispatch table, libglapi.so.0.  Mesa 25 (Tiny
+	  Core 16's) folded it into libgallium, but AppImages built against
+	  an older Mesa still ask for the soname.  Built from Mesa 24.3.4,
+	  the last release series with a shared glapi, with no drivers, no
+	  GLX, EGL or GBM: only the library itself is installed.

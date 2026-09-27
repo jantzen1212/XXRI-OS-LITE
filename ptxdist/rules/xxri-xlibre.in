@@ -1,0 +1,18 @@
+## SECTION=project_specific
+
+config XXRI_XLIBRE
+	bool
+	select XXRI_TC_SYSROOT
+	select HOST_MESON
+	prompt "xxri-xlibre: XLibre X server (Xorg + modesetting, Xfbdev)"
+	help
+	  XLibre 25.1 (the maintained fork of the X.Org server), built
+	  twice over from one source tree:
+	    Xorg    the full server with the built-in modesetting driver
+	            (KMS/DRM), glamor acceleration and GLX through Mesa -
+	            XXRI's preferred display path
+	    Xfbdev  the small kdrive server on the Linux framebuffer
+	            (vesafb, efifb, legacy fbdev drivers): no Mesa, no
+	            driver modules - the fallback when there is no KMS
+	            device.  It replaces Xvesa.
+	  Packed into xxri-xlibre.tcz with xxri-xlibre-input-libinput.

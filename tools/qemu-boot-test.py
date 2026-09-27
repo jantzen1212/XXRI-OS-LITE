@@ -127,6 +127,10 @@ def main():
     ap.add_argument('--shots', default='75')
     ap.add_argument('--timeout', type=int, default=120)
     ap.add_argument('--no-kvm', action='store_true')
+    ap.add_argument('--cpu', help='emulate this CPU model with TCG (e.g. pentium, pentium2, pentium3, '
+                    '"pentium3,+sse2").  TCG traps CMOV on pentium and SSE on pentium2, but NOT SSE2 on '
+                    'pentium3 and no model traps NOPL: pair it with --plugin tools/qa/isa-sentinel.so')
+    ap.add_argument('--plugin', help='QEMU TCG plugin spec, e.g. isa-sentinel.so,cpu=pentium3,out=hits.tsv')
     ap.add_argument('--fw-code', help='override the OVMF code image (e.g. an older EDK2)')
     ap.add_argument('--fw-vars', help='override the OVMF variable store template')
     a = ap.parse_args()
@@ -145,7 +149,11 @@ def main():
            '-netdev', 'user,id=n0', '-device', 'e1000,netdev=n0,romfile=',
            '-object', 'filter-dump,id=f0,netdev=n0,file=' + pcap,
            '-device', 'qemu-xhci,id=xhci', '-device', 'usb-tablet,bus=xhci.0']
-    if not a.no_kvm:
+    if a.cpu:
+        cmd += ['-accel', 'tcg', '-cpu', a.cpu]
+        if a.plugin:
+            cmd += ['-plugin', a.plugin]
+    elif not a.no_kvm:
         cmd += ['-enable-kvm', '-cpu', 'host']
     if code:
         shutil.copy(vars_, tmp + '/vars.fd')
@@ -174,7 +182,7 @@ def main():
                 # every extra disk gets a (lower-priority) bootindex too.
                 '-device', 'ide-hd,drive=d%d,bus=ide.%d,unit=%d,bootindex=%d' % (i, bus, unit, i + 1)]
 
-    res = dict(fw=a.fw, fw_code=os.path.basename(code or 'seabios'), media=a.media, mem=a.mem, img=os.path.basename(img),
+    res = dict(cpu=a.cpu or 'host', fw=a.fw, fw_code=os.path.basename(code or 'seabios'), media=a.media, mem=a.mem, img=os.path.basename(img),
                edit=a.edit_append, grub_menu=None, edited=False, userspace=None,
                ramdisk=None, shots=[], qemu_error=None)
     t0 = time.time()

@@ -1,0 +1,74 @@
+From: XXRI OS Team
+Subject: [PATCH] qtwebengine: add missing <cstdint> includes (GCC 13+)
+
+libstdc++ 13 no longer includes <cstdint> through other headers; these
+Chromium 87 files use the fixed-width types without including it.
+---
+diff -ruN a/qtwebengine/src/3rdparty/chromium/base/task/thread_pool.h b/qtwebengine/src/3rdparty/chromium/base/task/thread_pool.h
+--- a/qtwebengine/src/3rdparty/chromium/base/task/thread_pool.h
++++ b/qtwebengine/src/3rdparty/chromium/base/task/thread_pool.h
+@@ -5,6 +5,7 @@
+ #ifndef BASE_TASK_THREAD_POOL_H_
+ #define BASE_TASK_THREAD_POOL_H_
+ 
++#include <cstdint>
+ #include <memory>
+ #include <utility>
+ 
+diff -ruN a/qtwebengine/src/3rdparty/chromium/net/tools/huffman_trie/trie_entry.h b/qtwebengine/src/3rdparty/chromium/net/tools/huffman_trie/trie_entry.h
+--- a/qtwebengine/src/3rdparty/chromium/net/tools/huffman_trie/trie_entry.h
++++ b/qtwebengine/src/3rdparty/chromium/net/tools/huffman_trie/trie_entry.h
+@@ -5,6 +5,7 @@
+ #ifndef NET_TOOLS_HUFFMAN_TRIE_TRIE_ENTRY_H_
+ #define NET_TOOLS_HUFFMAN_TRIE_TRIE_ENTRY_H_
+ 
++#include <cstdint>
+ #include <memory>
+ #include <string>
+ #include <vector>
+diff -ruN a/qtwebengine/src/3rdparty/chromium/net/tools/transport_security_state_generator/transport_security_state_entry.h b/qtwebengine/src/3rdparty/chromium/net/tools/transport_security_state_generator/transport_security_state_entry.h
+--- a/qtwebengine/src/3rdparty/chromium/net/tools/transport_security_state_generator/transport_security_state_entry.h
++++ b/qtwebengine/src/3rdparty/chromium/net/tools/transport_security_state_generator/transport_security_state_entry.h
+@@ -5,6 +5,7 @@
+ #ifndef NET_TOOLS_TRANSPORT_SECURITY_STATE_GENERATOR_TRANSPORT_SECURITY_STATE_ENTRY_H_
+ #define NET_TOOLS_TRANSPORT_SECURITY_STATE_GENERATOR_TRANSPORT_SECURITY_STATE_ENTRY_H_
+ 
++#include <cstdint>
+ #include <map>
+ #include <memory>
+ #include <string>
+diff -ruN a/qtwebengine/src/3rdparty/chromium/third_party/perfetto/include/perfetto/ext/tracing/core/slice.h b/qtwebengine/src/3rdparty/chromium/third_party/perfetto/include/perfetto/ext/tracing/core/slice.h
+--- a/qtwebengine/src/3rdparty/chromium/third_party/perfetto/include/perfetto/ext/tracing/core/slice.h
++++ b/qtwebengine/src/3rdparty/chromium/third_party/perfetto/include/perfetto/ext/tracing/core/slice.h
+@@ -18,6 +18,7 @@
+ #define INCLUDE_PERFETTO_EXT_TRACING_CORE_SLICE_H_
+ 
+ #include <stddef.h>
++#include <stdint.h>
+ #include <string.h>
+ 
+ #include <memory>
+diff -ruN a/qtwebengine/src/3rdparty/chromium/third_party/perfetto/include/perfetto/tracing/tracing_backend.h b/qtwebengine/src/3rdparty/chromium/third_party/perfetto/include/perfetto/tracing/tracing_backend.h
+--- a/qtwebengine/src/3rdparty/chromium/third_party/perfetto/include/perfetto/tracing/tracing_backend.h
++++ b/qtwebengine/src/3rdparty/chromium/third_party/perfetto/include/perfetto/tracing/tracing_backend.h
+@@ -17,6 +17,8 @@
+ #ifndef INCLUDE_PERFETTO_TRACING_TRACING_BACKEND_H_
+ #define INCLUDE_PERFETTO_TRACING_TRACING_BACKEND_H_
+ 
++#include <stdint.h>
++
+ #include <memory>
+ #include <string>
+ 
+diff -ruN a/qtwebengine/src/3rdparty/chromium/third_party/perfetto/src/trace_processor/importers/gzip/gzip_utils.h b/qtwebengine/src/3rdparty/chromium/third_party/perfetto/src/trace_processor/importers/gzip/gzip_utils.h
+--- a/qtwebengine/src/3rdparty/chromium/third_party/perfetto/src/trace_processor/importers/gzip/gzip_utils.h
++++ b/qtwebengine/src/3rdparty/chromium/third_party/perfetto/src/trace_processor/importers/gzip/gzip_utils.h
+@@ -17,6 +17,8 @@
+ #ifndef SRC_TRACE_PROCESSOR_IMPORTERS_GZIP_GZIP_UTILS_H_
+ #define SRC_TRACE_PROCESSOR_IMPORTERS_GZIP_GZIP_UTILS_H_
+ 
++#include <stdint.h>
++
+ #include <memory>
+ 
+ struct z_stream_s;

@@ -1,0 +1,9 @@
+## SECTION=project_specific
+
+config XXRI_INSTALLER
+	bool
+	select XXRI_TC_SYSROOT
+	select XXRI_DIALOG
+	prompt "xxri-installer: the disk installer"
+	help
+	  The FLTK installer front end and xxri-install-backend (GRUB 2.14 on BIOS/UEFI disks).

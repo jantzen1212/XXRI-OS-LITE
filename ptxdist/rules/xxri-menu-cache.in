@@ -1,0 +1,9 @@
+## SECTION=project_specific
+
+config XXRI_MENU_CACHE
+	bool
+	select XXRI_LIBFM_EXTRA
+	prompt "xxri-menu-cache: application menu cache for XXRI File"
+	help
+	  menu-cache 1.1.0 (the version Tiny Core 16 packages), built from
+	  source into /usr/local; libfm's menu:// support needs it.

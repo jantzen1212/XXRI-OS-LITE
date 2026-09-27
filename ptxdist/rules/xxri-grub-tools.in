@@ -1,0 +1,15 @@
+## SECTION=project_specific
+
+config XXRI_GRUB_TOOLS
+	bool
+	select HOST_SYSTEM_PYTHON3
+	select HOST_XXRI_GRUB
+	select HOST_SQUASHFS_TOOLS
+	select HOST_SQUASHFS_TOOLS_XZ_SUPPORT
+	prompt "xxri-grub-tools: GRUB 2.14 utilities for the installer"
+	help
+	  grub-install, grub-mkimage, grub-bios-setup, grub-probe and
+	  grub-editenv, cross-compiled for the target from the same upstream
+	  2.14 tarball.  They go into xxri-grub.tcz (loaded on demand by the
+	  installer, image-xxri-grub-tcz) together with the i386-pc and
+	  i386-efi module trees of the GRUB build that made the medium.

@@ -1,0 +1,11 @@
+## SECTION=project_specific
+
+config XXRI_GLVND
+	bool
+	select HOST_MESON
+	prompt "xxri-glvnd: libGLdispatch, libOpenGL, libGLESv2 (AppImage runtime)"
+	help
+	  libglvnd 1.7.0's dispatch library, libOpenGL and libGLESv2.  Tiny
+	  Core 16 has none of these sonames and AppImages from the Store
+	  link against them.  GLX, EGL and GLES 1 are not built: Tiny Core's
+	  Mesa provides libGL and libEGL.

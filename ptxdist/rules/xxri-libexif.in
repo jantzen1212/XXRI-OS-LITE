@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_LIBEXIF
+	bool
+	prompt "xxri-libexif: EXIF library for XXRI File"
+	help
+	  libexif 0.6.21 (the version Tiny Core 16 packages), built from
+	  source into /usr/local; XXRI File uses it for photo metadata.

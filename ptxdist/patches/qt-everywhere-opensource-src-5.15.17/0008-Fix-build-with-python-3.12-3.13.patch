@@ -1,0 +1,48 @@
+From: Michal Klocek <michal.klocek@qt.io>
+Date: Tue, 4 Mar 2025 17:47:59 +0100
+Subject: [PATCH] Fix build with python 3.12/3.13
+
+'pipes' are not longer in 3.13, use shlex which
+is imported anyway.
+
+Change-Id: Ifc61941c49ec5f9bfc06dd16fd7529f5805ff4b1
+Reviewed-on: https://codereview.qt-project.org/c/qt/qtwebengine-chromium/+/629338
+Reviewed-by: Allan Sandfeld Jensen <allan.jensen@qt.io>
+---
+ .../src/3rdparty/chromium/build/android/gyp/util/build_utils.py        | 3 +--
+ .../protobuf/python/google/protobuf/internal/python_message.py         | 1 -
+ 2 files changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/qtwebengine/src/3rdparty/chromium/build/android/gyp/util/build_utils.py b/qtwebengine/src/3rdparty/chromium/build/android/gyp/util/build_utils.py
+index 02298051702b..d5537bcabd7c 100644
+--- a/qtwebengine/src/3rdparty/chromium/build/android/gyp/util/build_utils.py
++++ b/qtwebengine/src/3rdparty/chromium/build/android/gyp/util/build_utils.py
+@@ -12,7 +12,6 @@ import fnmatch
+ import json
+ import logging
+ import os
+-import pipes
+ import re
+ import shutil
+ import stat
+@@ -198,7 +197,7 @@ class CalledProcessError(Exception):
+     # A user should be able to simply copy and paste the command that failed
+     # into their shell.
+     copyable_command = '( cd {}; {} )'.format(os.path.abspath(self.cwd),
+-        ' '.join(map(pipes.quote, self.args)))
++        ' '.join(map(shlex.quote, self.args)))
+     return 'Command failed: {}\n{}'.format(copyable_command, self.output)
+ 
+ 
+diff --git a/qtwebengine/src/3rdparty/chromium/third_party/protobuf/python/google/protobuf/internal/python_message.py b/qtwebengine/src/3rdparty/chromium/third_party/protobuf/python/google/protobuf/internal/python_message.py
+index 803ae8484932..d9ed9f91ffc8 100755
+--- a/qtwebengine/src/3rdparty/chromium/third_party/protobuf/python/google/protobuf/internal/python_message.py
++++ b/qtwebengine/src/3rdparty/chromium/third_party/protobuf/python/google/protobuf/internal/python_message.py
+@@ -56,7 +56,6 @@ import sys
+ import weakref
+ 
+ import six
+-from six.moves import range
+ 
+ # We use "as" to avoid name collisions with variables.
+ from google.protobuf.internal import api_implementation

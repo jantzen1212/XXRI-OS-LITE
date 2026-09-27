@@ -1,0 +1,5 @@
+## SECTION=image
+
+config IMAGE_XXRI_BROWSER_TCZ
+	tristate
+	prompt "Generate xxri-browser.tcz"

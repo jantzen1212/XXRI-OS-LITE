@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_SETTINGS
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-settings: Settings"
+	help
+	  The GTK 3 Settings application.

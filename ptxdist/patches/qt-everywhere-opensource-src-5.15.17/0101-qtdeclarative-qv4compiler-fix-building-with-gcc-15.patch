@@ -1,0 +1,22 @@
+From: Michael Olbrich <m.olbrich@pengutronix.de>
+Date: Sun, 13 Jul 2025 20:49:48 +0200
+Subject: [PATCH] qtdeclarative: qv4compiler: fix building with gcc 15
+
+Signed-off-by: Michael Olbrich <m.olbrich@pengutronix.de>
+---
+ qtdeclarative/src/qml/compiler/qv4compiler.cpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/qtdeclarative/src/qml/compiler/qv4compiler.cpp b/qtdeclarative/src/qml/compiler/qv4compiler.cpp
+index 18e19cf01cd8..3a8df1cd47df 100644
+--- a/qtdeclarative/src/qml/compiler/qv4compiler.cpp
++++ b/qtdeclarative/src/qml/compiler/qv4compiler.cpp
+@@ -37,6 +37,8 @@
+ **
+ ****************************************************************************/
+ 
++#include <cstdint>
++
+ #include <qv4compiler_p.h>
+ #include <qv4codegen_p.h>
+ #include <private/qv4compileddata_p.h>

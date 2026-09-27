@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_POWER_MENU
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-power-menu: power menu"
+	help
+	  The GTK 3 shut down / restart / log out menu.

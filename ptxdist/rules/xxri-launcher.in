@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_LAUNCHER
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-launcher: All Apps drawer"
+	help
+	  The GTK 3 All Apps drawer and dock pinning.

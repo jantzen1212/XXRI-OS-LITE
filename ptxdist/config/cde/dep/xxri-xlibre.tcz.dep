@@ -1,0 +1,16 @@
+libGL.tcz
+libXau.tcz
+libXfont2.tcz
+openssl.tcz
+libdrm.tcz
+libepoxy.tcz
+libEGL.tcz
+mesa.tcz
+libinput.tcz
+libpciaccess.tcz
+pixman.tcz
+udev-lib.tcz
+libxcvt.tcz
+libxshmfence.tcz
+xkbcomp.tcz
+xkeyboard-config.tcz

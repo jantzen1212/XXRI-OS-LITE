@@ -1,0 +1,8 @@
+# Paths of Tiny Core 16.0's core.gz that XXRI's core.gz does not contain.
+# A directory entry removes the directory and everything below it.  Every
+# other Tiny Core file is kept or, where an XXRI package installs the same
+# path, replaced (scripts/xxri-mkinitramfs.py).
+
+# Tiny Core's documentation directory; XXRI installs /usr/share/doc/tc as a
+# link to its own /usr/share/doc/xxri (bootOptions.txt with XXRI's boot codes)
+usr/share/doc/tc

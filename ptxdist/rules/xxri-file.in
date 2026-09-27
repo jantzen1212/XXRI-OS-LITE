@@ -1,0 +1,14 @@
+## SECTION=project_specific
+
+config XXRI_FILE
+	bool
+	select XXRI_LIBFM
+	select HOST_INTLTOOL
+	select HOST_AUTOTOOLS_AUTOCONF
+	select HOST_AUTOTOOLS_AUTOMAKE
+	select HOST_GETTEXT
+	select HOST_PERL_XML_PARSER
+	prompt "xxri-file: XXRI File (PCManFM fork)"
+	help
+	  The XXRI file manager, a GTK 3 fork of PCManFM 1.3.2 kept in
+	  src/xxri-file/pcmanfm, with its UI definitions and artwork.

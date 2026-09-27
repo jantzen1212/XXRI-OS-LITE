@@ -1,0 +1,10 @@
+## SECTION=project_specific
+
+config XXRI_BASE
+	bool
+	prompt "xxri-base: XXRI's configuration, scripts, theme and artwork"
+	help
+	  Everything XXRI adds to or changes in Tiny Core that is not a
+	  program: boot and session scripts (tc-config -> xxri-config, the
+	  xxri-pkg tools), /etc files, the desktop session, the XXRI GTK and
+	  cursor themes, icons, fonts and wallpaper.  Source: projectroot/.

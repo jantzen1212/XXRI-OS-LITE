@@ -1,0 +1,15 @@
+#!/bin/sh
+# xxri-xlibre.tcz install script (run by tce-load): the same bookkeeping Tiny
+# Core's xorg-server.tcz did.  /etc/sysconfig/Xserver gates startx in
+# ~/.profile and must name a server that ~/.xsession mentions.
+echo "Xorg" > /etc/sysconfig/Xserver
+
+if [ ! -d /tmp/.ICE-unix ]; then
+	mkdir -p /tmp/.ICE-unix
+	chmod 1777 /tmp/.ICE-unix
+fi
+
+if [ ! -d /tmp/.X11-unix ]; then
+	mkdir -p /tmp/.X11-unix
+	chmod 1777 /tmp/.X11-unix
+fi

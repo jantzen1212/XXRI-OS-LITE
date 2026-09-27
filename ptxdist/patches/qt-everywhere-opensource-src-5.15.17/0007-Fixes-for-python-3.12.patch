@@ -1,0 +1,80 @@
+From: Michal Klocek <michal.klocek@qt.io>
+Date: Wed, 5 Mar 2025 13:30:22 +0100
+Subject: [PATCH] Fixes for python 3.12
+
+Pick up some parts of commit and add python2 check:
+
+grit: drop python2 compatibility
+
+We use python3 only for build now.
+
+Bug: 1406153
+Reviewed-on: https://chromium-review.googlesource.com/c/chromium/src/+/4170036
+Change-Id: I8dc408596f229b64a24fa41ce8f0543794feba72
+Reviewed-on: https://codereview.qt-project.org/c/qt/qtwebengine-chromium/+/629337
+Reviewed-by: Allan Sandfeld Jensen <allan.jensen@qt.io>
+---
+ .../src/3rdparty/chromium/tools/grit/grit/util.py  | 22 ++++++++++++----------
+ 1 file changed, 12 insertions(+), 10 deletions(-)
+
+diff --git a/qtwebengine/src/3rdparty/chromium/tools/grit/grit/util.py b/qtwebengine/src/3rdparty/chromium/tools/grit/grit/util.py
+index 6e8cdb0ebfa6..3964cc83703a 100644
+--- a/qtwebengine/src/3rdparty/chromium/tools/grit/grit/util.py
++++ b/qtwebengine/src/3rdparty/chromium/tools/grit/grit/util.py
+@@ -14,11 +14,13 @@ import re
+ import shutil
+ import sys
+ import tempfile
+-from xml.sax import saxutils
+ 
+-import six
+-from six import StringIO
+-from six.moves import html_entities as entities
++if sys.version_info[0] < 3:
++   from six.moves import html_entities as entities
++else:
++   import html.entities
++
++from xml.sax import saxutils
+ 
+ from grit import lazy_re
+ 
+@@ -226,7 +228,7 @@ def WrapOutputStream(stream, encoding = 'utf-8'):
+ def ChangeStdoutEncoding(encoding = 'utf-8'):
+   '''Changes STDOUT to print characters using the specified encoding.'''
+   # If we're unittesting, don't reconfigure.
+-  if isinstance(sys.stdout, StringIO):
++  if isinstance(sys.stdout, io.StringIO):
+     return
+ 
+   if sys.version_info.major < 3:
+@@ -272,16 +274,16 @@ def UnescapeHtml(text, replace_nbsp=True):
+   def Replace(match):
+     groups = match.groupdict()
+     if groups['hex']:
+-      return six.unichr(int(groups['hex'], 16))
++      return chr(int(groups['hex'], 16))
+     elif groups['decimal']:
+-      return six.unichr(int(groups['decimal'], 10))
++      return chr(int(groups['decimal'], 10))
+     else:
+       name = groups['named']
+       if name == 'nbsp' and not replace_nbsp:
+         return match.group()  # Don't replace &nbsp;
+       assert name != None
+-      if name in entities.name2codepoint:
+-        return six.unichr(entities.name2codepoint[name])
++      if name in html.entities.name2codepoint:
++        return chr(html.entities.name2codepoint[name])
+       else:
+         return match.group()  # Unknown HTML character entity - don't replace
+ 
+@@ -349,7 +351,7 @@ def ParseGrdForUnittest(body, base_dir=None, predetermined_ids_file=None,
+     base_dir: The base_dir attribute of the <grit> tag.
+   '''
+   from grit import grd_reader
+-  if isinstance(body, six.text_type):
++  if isinstance(body, str):
+     body = body.encode('utf-8')
+   if base_dir is None:
+     base_dir = PathFromRoot('.')

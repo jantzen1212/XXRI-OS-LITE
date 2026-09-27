@@ -1,2 +1,0 @@
-#!/bin/sh
-exec setsid sh -c 'exec sh </dev/tty1 >/dev/tty1 2>&1'

@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_CONTROL_CENTER
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-control-center: quick settings panel"
+	help
+	  The GTK 3 Control Center.

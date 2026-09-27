@@ -193,10 +193,11 @@ for must in ('init', 'bin/busybox', 'sbin/init', 'etc/skel/.xsession', 'etc/init
         print("  ok    contains /%s" % must)
     else:
         print("  FAIL  /%s is MISSING - the kernel would panic with 'unable to mount root fs'" % must)
-# What git cannot store and a clean checkout used to lose (rootfs.meta).
-for d in ('proc', 'sys', 'dev/pts', 'home', 'mnt', 'run'):
+# Empty directories and device nodes of Tiny Core's base (2.5/2.6 lost them
+# on the way through git; the PTXdist build keeps Tiny Core's own entries).
+for d in ('proc', 'sys', 'dev/pts', 'home', 'mnt', 'run', 'dev/console', 'dev/null'):
     if d not in names:
-        print("  FAIL  /%s is missing (empty directory lost - was rootfs.meta applied?)" % d)
+        print("  FAIL  /%s is missing from core.gz" % d)
 for p, bit, what in (('bin/busybox.suid', stat.S_ISUID, 'setuid'), ('usr/bin/sudo', stat.S_ISUID, 'setuid'),
                      ('tmp', stat.S_ISVTX, 'sticky')):
     if p in names and not names[p][0] & bit:
@@ -215,6 +216,38 @@ big = sorted(((v[1], k) for k, v in names.items()), reverse=True)[:3]
 print("  info  largest files: " + ", ".join("%s (%.1f MiB)" % (k, s / 1048576) for s, k in big))
 EOF
 fi
+
+echo "-- binaries --"
+# Every XXRI program and library must find its libraries and symbol versions
+# in core.gz + the boot-time extensions, and XXRI's own i586 programs must not
+# contain instructions an i586 lacks unless they choose them at run time (the
+# static boot splash carries glibc's CPUID-dispatched string functions).
+mkdir -p "$W/bin" && x /boot/core.gz "$W/bin/core.gz" && x /cde "$W/bin/cde" && chmod -R u+w "$W/bin"
+XXRI_ELF="/usr/local/bin/xxri- /usr/local/sbin/xxri- /usr/local/bin/flwm /usr/local/lib/libfm
+	/usr/local/lib/libmenu-cache /usr/local/lib/libexif /usr/local/lib/libGLdispatch
+	/usr/local/lib/libOpenGL /usr/local/lib/libGLESv2 /usr/local/lib/libglapi /usr/local/lib/xxri-browser
+	/usr/local/bin/Xorg /usr/local/bin/Xfbdev /usr/local/lib/xorg/modules"
+if python3 "$HERE/tools/qa/elf-closure.py" "$W/bin/core.gz" "$W/bin/cde" --check $XXRI_ELF > "$W/closure" 2>&1; then
+	ok "$(tail -1 "$W/closure")"
+else
+	sed 's/^/  FAIL  /' "$W/closure" | head -20
+fi
+mkdir -p "$W/bin/core" && ( cd "$W/bin/core" && zcat ../core.gz | cpio -idm --quiet 2>/dev/null )
+# the X server extension is XXRI-built and i586 too: lay it into the same tree
+[ -f "$W/bin/cde/optional/xxri-xlibre.tcz" ] &&
+	unsquashfs -q -f -d "$W/bin/core" "$W/bin/cde/optional/xxri-xlibre.tcz" >/dev/null 2>&1
+grep -qx 'xxri-xlibre.tcz' "$W/bin/cde/onboot.lst" && ok "X server: xxri-xlibre.tcz (XLibre) in onboot.lst" ||
+	bad "xxri-xlibre.tcz is not in onboot.lst: no X server at boot"
+for gone in Xvesa.tcz xorg-server.tcz; do
+	grep -qx "$gone" "$W/bin/cde/onboot.lst" && bad "$gone is still in onboot.lst (replaced by xxri-xlibre.tcz)"
+done
+python3 "$HERE/tools/qa/isa-scan.py" $(cd "$W/bin/core" && for p in $XXRI_ELF; do ls -d ."$p"* 2>/dev/null; done |
+	sed "s|^\.|$W/bin/core|") 2>/dev/null | awk -F'\t' 'NR > 1 {
+		above = $3 + $4 + $5 + $6 + $7 + $8
+		if (above && !$9) { printf "  FAIL  %s: %d P6/MMX/SSE instructions without a CPUID check (i586 baseline)\n", $2, above; bad++ }
+		else if (above) printf "  info  %s: %d above-i586 instructions behind %d CPUID checks\n", $2, above, $9 }
+	END { if (!bad) print "  ok    XXRI programs (core.gz, X server): nothing above i586 outside CPUID dispatch" }' |
+	sed "s|$W/bin/core||"
 
 if [ "$BOOT" = --boot ]; then
 	echo "-- QEMU boot through the real firmware + GRUB --"

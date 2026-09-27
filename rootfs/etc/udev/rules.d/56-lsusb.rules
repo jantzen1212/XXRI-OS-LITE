@@ -1,2 +1,0 @@
-SUBSYSTEM=="usb", ACTION=="add", ENV{DEVTYPE}=="usb_device", \
-NAME="bus/usb/$env{BUSNUM}/$env{DEVNUM}"

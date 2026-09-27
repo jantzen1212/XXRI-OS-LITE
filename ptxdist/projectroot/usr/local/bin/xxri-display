@@ -1,0 +1,187 @@
+#!/bin/busybox ash
+# xxri-display - display backend (xxri Hardware Layer).
+#
+#   xxri-display list [--json]        available modes
+#   xxri-display current [--json]
+#   xxri-display set-resolution WxHxBPP [--apply]
+#   xxri-display edid [--json]
+#   xxri-display cache-modes          (boot helper, run before X starts)
+#
+# The desktop runs on the XLibre X server (~/.xsession picks it):
+#   kms    Xorg with the modesetting driver on a KMS/DRM device - modes come
+#          from the connector (DRM sysfs before X starts, RandR once it runs),
+#          and a new resolution is applied live through RandR
+#   fbdev  Xfbdev on the kernel framebuffer (vesafb/efifb/...) when there is
+#          no KMS device - one mode, set by the boot loader, not changeable
+#          from a running system
+# The CLI/JSON API is the stable contract; only these internals changed when
+# the Xvesa (VESA BIOS) backend was retired.
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+MODES_CACHE="$XXRI_RUN_DIR/display.modes"
+
+# which display path is live (or would be, before X starts)
+driver() {
+	if pidof Xfbdev >/dev/null 2>&1; then echo fbdev; return; fi
+	if pidof Xorg >/dev/null 2>&1; then echo kms; return; fi
+	for c in /sys/class/drm/card*-*/status; do
+		[ -e "$c" ] && { echo kms; return; }
+	done
+	[ -e /dev/fb0 ] && echo fbdev || echo none
+}
+
+# modes of the connected DRM connectors, as WxHx32 (KMS scanout is 32bpp)
+drm_modes() {
+	for c in /sys/class/drm/card*-*; do
+		[ "$(sf "$c/status")" = connected ] || continue
+		sed 's/$/x32/' "$c/modes" 2>/dev/null
+	done
+}
+
+# the framebuffer's current mode (vesafb/efifb offer exactly one)
+fb_mode() {
+	vs="$(sf /sys/class/graphics/fb0/virtual_size)"
+	bpp="$(sf /sys/class/graphics/fb0/bits_per_pixel)"
+	[ -n "$vs" ] && echo "${vs%,*}x${vs#*,}x${bpp:-32}"
+}
+
+# RandR's view while Xorg runs: the connected output and its modes
+xr_output() { xrandr 2>/dev/null | awk '/ connected/{print $1; exit}'; }
+xr_modes() {
+	xrandr 2>/dev/null | awk '/ connected/{on=1; next} /^[^ ]/{on=0} on && $1 ~ /^[0-9]+x[0-9]+$/ {print $1 "x32"}'
+}
+
+cmd_cache_modes() { # boot helper: X is not running yet
+	sudo_if mkdir -p "$XXRI_RUN_DIR"
+	{ drm_modes; [ -z "$(drm_modes)" ] && fb_mode; } | awk '!seen[$0]++' |
+		sort -t x -k1,1n -k2,2n -k3,3n > "$MODES_CACHE.tmp" 2>/dev/null &&
+		mv "$MODES_CACHE.tmp" "$MODES_CACHE" 2>/dev/null
+	return 0
+}
+
+modes() {
+	case "$(driver)" in
+	kms)
+		if [ -n "$DISPLAY" ] && have xrandr && pidof Xorg >/dev/null 2>&1; then
+			xr_modes | awk '!seen[$0]++' | sort -t x -k1,1n -k2,2n
+		else
+			drm_modes | awk '!seen[$0]++' | sort -t x -k1,1n -k2,2n
+		fi ;;
+	fbdev) fb_mode ;;
+	*) cat "$MODES_CACHE" 2>/dev/null ;;
+	esac
+}
+
+current_mode() {
+	if [ -n "$DISPLAY" ] && have xxri-dialog; then
+		s="$(xxri-dialog --screen-size 2>/dev/null)"
+		[ -n "$s" ] && { echo "$s"; return; }
+	fi
+	[ "$(driver)" = fbdev ] && { fb_mode; return; }
+	m="$(cfg_get display MODE)"
+	echo "${m:-1024x768x32}"
+}
+
+cmd_list() {
+	m="$(modes)"
+	cur="$(current_mode)"
+	drv="$(driver)"
+	if [ $JSON = 1 ]; then
+		a_new
+		for x in $m; do
+			j_new; j_str mode "$x"
+			j_num width  "${x%%x*}"
+			r="${x#*x}"; j_num height "${r%%x*}"
+			j_num depth "${x##*x}"
+			j_num refresh 60
+			j_bool current "$([ "$x" = "$cur" ] && echo 1 || echo 0)"
+			a_add "$(j_obj)"
+		done
+		j_new; j_raw modes "$(a_out)"; j_str driver "$drv"
+		[ "$drv" = fbdev ] && j_str note "the firmware framebuffer has one mode, chosen by the boot loader"
+		[ -z "$m" ] && j_str note "no display device found"
+		j_root display "\"list\":$(j_obj)"
+	else
+		echo "Available modes ($drv):"
+		for x in $m; do echo "  $x$([ "$x" = "$cur" ] && echo '   <- current')"; done
+		[ -z "$m" ] && echo "  (no display device found)"
+	fi
+}
+
+cmd_current() {
+	cur="$(current_mode)"
+	if [ $JSON = 1 ]; then
+		j_new; j_str mode "$cur"; j_num refresh 60; j_str driver "$(driver)"
+		j_root display "\"current\":$(j_obj)"
+	else echo "current: ${cur:-unknown} @60Hz ($(driver))"; fi
+}
+
+fail_set() {
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok 0; j_str error "$1"
+		j_root display "\"set\":$(j_obj)"
+	else echo "$1"; fi
+	return 1
+}
+
+cmd_set() { # WxHxBPP [--apply]
+	M="$1"
+	case "$M" in [0-9]*x[0-9]*x[0-9]*) ;; [0-9]*x[0-9]*) M="${M}x32";; *)
+		echo "usage: xxri-display set-resolution WxH[xBPP] [--apply]" >&2; return 1;; esac
+	[ "$(driver)" = fbdev ] &&
+		{ fail_set "the framebuffer display path has a single mode set by the boot loader"; return 1; }
+	m="$(modes)"
+	[ -n "$m" ] && ! echo "$m" | grep -qx "$M" &&
+		{ fail_set "mode $M is not offered by the display (xxri-display list)"; return 1; }
+	# ~/.xsession applies MODE at every session start (an xres= boot code wins)
+	cfg_set display MODE "$M"
+	applied=0
+	if [ "$2" = "--apply" ] || [ "$1" = "--apply" ]; then
+		o="$(xr_output)"
+		if [ -n "$DISPLAY" ] && [ -n "$o" ] && xrandr --output "$o" --mode "${M%x*}" 2>/dev/null; then
+			applied=1
+		else
+			# no live RandR: restart the session so .xsession sets the mode
+			sudo_if rm -f /var/log/autologin /tmp/.X11-unix/X0
+			sudo_if sh -c '(sleep 1; pkill -x Xorg; pkill -x Xfbdev; sleep 2; pkill -KILL -t tty1) >/dev/null 2>&1 &'
+			applied=1
+		fi
+	fi
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok 1; j_str mode "$M"
+		j_bool applied "$applied"
+		j_root display "\"set\":$(j_obj)"
+	else
+		echo "resolution set to $M$([ $applied = 1 ] || echo ' (takes effect at next session; use --apply to change it now)')"
+	fi
+}
+
+cmd_edid() {
+	found=0
+	for c in /sys/class/drm/card*-*/edid; do
+		[ -e "$c" ] || continue
+		sz=$(wc -c < "$c" 2>/dev/null)
+		[ "${sz:-0}" -gt 0 ] && found=1
+	done
+	if [ $JSON = 1 ]; then
+		j_new; j_bool available "$found"
+		[ $found = 0 ] && j_str reason "no KMS connector reported EDID (framebuffer display path, or the monitor sent none)"
+		j_root display "\"edid\":$(j_obj)"
+	else
+		[ $found = 1 ] && echo "EDID available under /sys/class/drm" \
+			|| echo "EDID not available (no KMS connector reported one)"
+	fi
+	return 0
+}
+
+case "$1" in
+	list) cmd_list ;;
+	current) cmd_current ;;
+	set-resolution) shift; cmd_set "$@" ;;
+	edid) cmd_edid ;;
+	cache-modes) cmd_cache_modes ;;
+	*) echo "usage: xxri-display list|current|set-resolution WxH[xBPP] [--apply]|edid [--json]" >&2; exit 1 ;;
+esac

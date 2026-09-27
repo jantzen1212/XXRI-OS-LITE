@@ -1,0 +1,1 @@
+GNU GRUB 2.14, unmodified upstream; source: see /boot/grub/SOURCE.txt on the XXRI medium

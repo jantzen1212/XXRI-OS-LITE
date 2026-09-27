@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_COMPOSITOR
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-compositor: translucency compositor"
+	help
+	  X11 compositing manager giving the XXRI shell real alpha (see docs).

@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_STORE
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-store: Store"
+	help
+	  The Store: GTK 3 front end (xxri-store-gui) and the AppImage engine (xxri-app).
