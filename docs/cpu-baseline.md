@@ -38,6 +38,46 @@ CPUID in installer, dialog, media, settings, store, control center,
 launcher, wctl, compositor, flwm and the Debian GL libraries. The 2.6 README's
 "Pentium II / K6-2" minimum was not true for 2.6.
 
-## PTXdist build
+## PTXdist build (ISO `75904012…`, one clean build)
 
-(results of `x-test.py cpu-*` on the PTXdist ISO — filled in below)
+Static scan: the 43 ELF files XXRI compiles for the OS (`core.gz` programs
+and libraries, `Xorg`, `Xfbdev`, all XLibre modules, GRUB utilities) contain
+no instruction above i586. The browser's Qt/Chromium is SSE2 code.
+
+Runtime, whole desktop and every XXRI program (`x-test.py cpu-*`):
+
+| Model | Desktop + 11 program runs | Executed instructions the model lacks |
+|---|---|---|
+| `pentium,-mmx` (plain P5) | yes | **none** |
+| `pentium` (P5 + MMX) | yes | 98 MMX, all in Tiny Core's `libImlib2`, chosen by its CPUID check (none once MMX is removed from CPUID) |
+| `pentium2` | yes | **none** |
+| `pentium3` | yes | **none** |
+| `pentium3,+sse2` | yes | **none** |
+
+The browser's launcher refuses cleanly on every model without SSE2 and the
+browser renders its start page and an HTTPS page on the SSE2 model.
+
+Two things had to change for the non-SSE2 results (both measured here):
+
+* Tiny Core's Mesa is i686 code (its `libEGL` executed CMOV on the Pentium
+  model) built for SSE2 (`libgallium` executed SSE2 on the Pentium III model).
+  On a processor without SSE2, `~/.xsession` now starts both X servers
+  without Mesa (`docs/x-server.md`).
+* XLibre 25.1.9's modesetting driver queried GL for the cursor format even
+  without glamor; upstream `a7454facc6` is applied.
+
+### What this does and does not show
+
+It shows instruction-set compatibility: nothing an i586 lacks is executed by
+the desktop and XXRI's programs (MMX only behind CPUID checks). It is
+**emulation**: no physical Pentium, K6-2, Pentium II or Pentium III was
+available, and speed on such a machine is not measured (the emulated P5 needed
+~4 minutes to the desktop). Tiny Core's own extensions beyond those the
+desktop loads at boot were not run.
+
+| Class | Desktop + XXRI programs | XXRI Browser |
+|---|---|---|
+| i586 (Pentium, K5, K6-2, 6x86, Geode GX, VIA C3 "Samuel/Ezra") | runs in emulation | no (needs SSE2) |
+| P6 without SSE (Pentium Pro/II, Celeron, K6-III+ ...) | runs in emulation | no |
+| SSE without SSE2 (Pentium III, Athlon XP) | runs in emulation | no |
+| SSE2 (Pentium 4, Pentium M, Athlon 64, VIA C7 and newer) | runs in emulation | runs in emulation |

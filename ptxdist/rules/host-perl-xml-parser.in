@@ -2,6 +2,12 @@
 
 config HOST_PERL_XML_PARSER
 	tristate
+	# one of the basic host tools, built before every other host package:
+	# host-system-perl's check for XML::Parser (host-intltool) needs it, and
+	# host-system-perl sits in the chain every host package depends on - as
+	# an ordinary host package this was a dependency cycle, which make broke
+	# differently for different goals (`ptxdist image X` rebuilt host tools)
+	select VIRTUAL_HOST_TOOLS
 	help
 	  Perl's XML::Parser for the build host (intltool needs it), built
 	  from CPAN against the host's expat instead of being required as a

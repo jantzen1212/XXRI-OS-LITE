@@ -22,7 +22,7 @@ ptxdist --j-intern=6 images    # -> platform-xxri/images/XXRI-Lite-2.6.iso
 | XXRI File | `../src/xxri-file/pcmanfm` (PCManFM fork) on libfm 1.3.2 (GTK 3), menu-cache 1.1.0, libexif 0.6.21 | `xxri-file`, `xxri-libfm`, `xxri-libfm-extra`, `xxri-menu-cache`, `xxri-libexif` |
 | AppImage runtime sonames Tiny Core lacks | libglvnd 1.7.0, Mesa 24.3.4's shared glapi | `xxri-glvnd`, `xxri-glapi` |
 | XXRI Browser | `../src/xxri-browser` on Qt 5.15.17 + Qt WebEngine (Chromium 87) built here | `xxri-browser`, `xxri-qt5` |
-| X server | XLibre 25.1.9 (`Xorg` + modesetting/glamor/GLX, `Xfbdev`) and XLibre's xf86-input-libinput 25.0.1, git tags, sha256-pinned; replaces Tiny Core's X.Org and Xvesa (`../docs/x-server.md`) | `xxri-xlibre`, `xxri-xlibre-input-libinput` |
+| X server | XLibre 25.1.9 (`Xorg` + modesetting/glamor/GLX, the setuid wrapper, int10/vgahw/DGA for vesa, `Xfbdev`; two upstream fixes from after the release in `patches/xlibre-xserver-25.1.9`), XLibre's xf86-input-libinput 25.0.1 and xf86-video-vesa 25.0.0 - git tags, sha256-pinned; replaces Tiny Core's X.Org and Xvesa (`../docs/x-server.md`) | `xxri-xlibre`, `xxri-xlibre-input-libinput`, `xxri-xlibre-video-vesa` |
 | GRUB 2.14 | upstream tarball, unpatched: boot images (host) and the installer's utilities (target) | `host-xxri-grub`, `xxri-grub-tools` |
 
 Images (`rules/image-*.make`):
@@ -35,6 +35,9 @@ Images (`rules/image-*.make`):
   (loaded by the installer) — squashed from their packages.
 * `XXRI-Lite-2.6.iso` — `scripts/xxri-mkiso.sh`: GRUB core images, hybrid
   MBR + appended ESP, El Torito BIOS + EFI.
+* `sources/` next to the ISO — the Corresponding Source: every source archive
+  of the packages XXRI builds and ships (GRUB with its signature), the project
+  itself as one archive, where Tiny Core publishes its sources, SHA256SUMS.
 
 ## Layout decisions
 

@@ -1,0 +1,22 @@
+XXRI OS Lite - Corresponding Source
+
+This directory is published next to the ISO (boot/grub/SOURCE.txt on the ISO
+points here).
+
+* xxri-<version>-src.tar.xz - XXRI's own programs (src/), the files XXRI adds
+  to the system (ptxdist/projectroot/), and the complete PTXdist build project
+  that produced the ISO: rules, patches, configuration, scripts.  Build with
+  `cd ptxdist && ptxdist images` (see ptxdist/README.md).
+* The other archives - the upstream sources of every package the build
+  compiles and ships, exactly as fetched and checksum-verified by the build:
+  GRUB 2.14 (with its GPG signature), Qt 5.15.17 with Qt WebEngine, XLibre
+  and its drivers, libfm, menu-cache, libexif, flwm, libglvnd, Mesa (the
+  shared glapi).  Their patches are in the project archive under
+  ptxdist/patches/.
+* SHA256SUMS - checksums of this directory.
+
+Tiny Core Linux 16.0 components (the kernel, core.gz's base system and the
+extensions in cde/optional that are not named xxri-*) are redistributed
+unmodified; their sources are published by Tiny Core at
+  http://repo.tinycorelinux.net/16.x/x86/release/src/
+  http://repo.tinycorelinux.net/16.x/x86/tcz/src/

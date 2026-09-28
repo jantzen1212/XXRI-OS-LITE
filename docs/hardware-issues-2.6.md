@@ -97,3 +97,31 @@ So the stated minimum is not met today: the browser needs a Pentium 4 /
 Athlon 64-class CPU, and the other XXRI programs a P6-class CPU. Either the
 README should say so, or the programs should be built for i586 (Build B does)
 and the browser documented as SSE2-only.
+
+**Resolved in the PTXdist build** (`docs/cpu-baseline.md`, `docs/qa-ptxdist.md`):
+every XXRI program is compiled for i586, and on emulated Pentium (with and
+without MMX), Pentium II, Pentium III and SSE2 processors the whole desktop
+and every XXRI program ran without executing an instruction the CPU lacks.
+Two runtime traps had to be removed for that: Tiny Core's Mesa (i686, SSE2)
+must not be loaded by the X servers on a processor without SSE2, and XLibre's
+modesetting driver no longer asks GL for the cursor format. The README now
+states i586 for the desktop and SSE2 for the browser, and that the result
+comes from emulation, not from physical period hardware.
+
+## 4. Display paths (found by the XLibre display matrix, QEMU)
+
+* **KMS takeover blocked by the boot splash** (present in 2.6, hidden by
+  Xvesa): drivers that request their PCI regions exclusively (cirrus,
+  vmwgfx, ...) failed with EBUSY while the splash held `/dev/fb0`, leaving no
+  display device. Fixed (`xxri-splash-handover`). Real-hardware relevance:
+  VMware guests (vmwgfx) and any GPU whose KMS driver behaves the same.
+* **A KMS driver that takes over and then fails** leaves neither KMS nor a
+  framebuffer. On BIOS machines the session now falls back to Xorg with the
+  vesa driver (video BIOS); on UEFI machines there is no such fallback and no
+  desktop. Likely real-world trigger: **no GPU firmware is shipped** (as in
+  2.6) - radeon/amdgpu need `radeon/*.bin`/`amdgpu/*.bin`; R100-R500 lose
+  only acceleration, newer AMD GPUs may fail KMS entirely. Not changed here;
+  shipping `firmware-radeon` (and amdgpu) is the candidate fix, with its size
+  cost.
+* **Radeon R100 under QEMU** (`ati-vga`) hangs the guest in radeon KMS -
+  an emulation limit; no statement about a real Radeon 7000 is possible.

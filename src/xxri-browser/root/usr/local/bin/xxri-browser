@@ -13,4 +13,15 @@ if ! grep -qw sse2 /proc/cpuinfo 2>/dev/null; then
 		/usr/local/bin/xxri-dialog error "XXRI Browser" "$msg" >/dev/null 2>&1
 	exit 1
 fi
+# The browser's Qt lives in its own prefix and knows its paths; a session
+# may still carry path settings for another Qt layout (2.6 exported its own),
+# and QT_QPA_PLATFORM_PLUGIN_PATH in particular replaces the search path.
+unset QT_PLUGIN_PATH QT_QPA_PLATFORM_PLUGIN_PATH QTWEBENGINEPROCESS_PATH \
+      QTWEBENGINE_RESOURCES_PATH QTWEBENGINE_LOCALES_PATH
+# No Chromium sandbox, as in 2.6: Chromium 87's seccomp-bpf policy predates
+# glibc's direct socket system calls on i386, and the first renderer is
+# killed in socketpair() ("seccomp-bpf failure in syscall 0360", measured on
+# this build).  Software rendering (--disable-gpu) and no /dev/shm backing
+# are 2.6's choices too.
+export QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --disable-gpu --disable-dev-shm-usage"
 exec /usr/local/lib/xxri-browser/bin/xxri-browser "$@"

@@ -50,7 +50,13 @@ SCENARIOS = {
     'gpu-rv100':   dict(fw='bios', append='', cpu=None, vga=['-vga', 'none', '-device', 'ati-vga,model=rv100'], timeout=420),
     'gpu-rage128': dict(fw='bios', append='', cpu=None, vga=['-vga', 'none', '-device', 'ati-vga,model=rage128p'], timeout=420),
     'apps-kvm':    dict(fw='bios', append='xxriqaapps=25', cpu=None, timeout=900),
-    'cpu-pentium':  dict(fw='bios', append='xxriqaapps=40', cpu='pentium', sentinel='pentium', timeout=3600),
+    # an emulated P5 is far slower than the P6 models: GTK programs need well
+    # over 40 s to map their first window there
+    'cpu-pentium':  dict(fw='bios', append='xxriqaapps=120', cpu='pentium', sentinel='pentium', timeout=5400),
+    # the plain P5 (P54C), K5, 6x86, WinChip C6 class: QEMU's `pentium` model
+    # advertises MMX, so take it away to see the CPUID-dispatched code paths
+    'cpu-pentium-nommx': dict(fw='bios', append='xxriqaapps=120', cpu='pentium,-mmx', sentinel='pentium',
+                              timeout=5400),
     'cpu-pentium2': dict(fw='bios', append='xxriqaapps=40', cpu='pentium2', sentinel='pentium2', timeout=3600),
     'cpu-pentium3': dict(fw='bios', append='xxriqaapps=40', cpu='pentium3', sentinel='pentium3', timeout=3600),
     'cpu-sse2':     dict(fw='bios', append='xxriqaapps=60', cpu='pentium3,+sse2', sentinel='sse2', timeout=3600),
@@ -200,6 +206,10 @@ def parse(rep):
     r['libinput'] = bool(re.search(r'libinput', rep)) and r['server'] == 'Xorg'
     r['errors'] = re.findall(r'^.*\(EE\).*$', rep, re.M)[:10]
     r['apps'] = {m.group(1): m.group(2) for m in re.finditer(r'^APP (\S+) (\S+)', rep, re.M)}
+    r['app_rss_kb'] = {m.group(1): int(m.group(2)) for m in re.finditer(r'^APP (\S+) \S+ rss_kb=(\d+)', rep, re.M)}
+    mem = re.search(r'^--- memory\n.*\nMem:\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)', rep, re.M)
+    r['idle_mem_kb'] = dict(zip(('total', 'used', 'free', 'shared', 'buff_cache', 'available'),
+                                map(int, mem.groups()))) if mem else None
     return r
 
 

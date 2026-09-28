@@ -16,11 +16,21 @@ say "XQA_HOOK"
 # wait for the desktop; `xxriqawait=N` (default 1200s, TCG runs are slow),
 # and report either way - a machine without a desktop needs the logs most
 W=$(sed -n 's/.*xxriqawait=\([0-9]*\).*/\1/p' /proc/cmdline); [ -n "$W" ] || W=1200
+# the desktop is up when the X socket exists and ~/.xsession has started its
+# programs (they carry its XXRI_DOCK_RESERVE export).  Not by the dock's
+# name: the live first-run screen replaces wbar moments after it starts.
+session_up() {
+	[ -e /tmp/.X11-unix/X0 ] || return 1
+	for e in /proc/[0-9]*/environ; do
+		grep -qa 'XXRI_DOCK_RESERVE=' "$e" 2>/dev/null && return 0
+	done
+	return 1
+}
 i=0
-while [ $i -lt $W ] && ! { [ -e /tmp/.X11-unix/X0 ] && pidof wbar >/dev/null 2>&1; }; do
+while [ $i -lt $W ] && ! session_up; do
 	sleep 1; i=$((i + 1))
 done
-if [ -e /tmp/.X11-unix/X0 ] && pidof wbar >/dev/null 2>&1; then DESKTOP=yes; sleep 15; else DESKTOP=no; fi
+if session_up; then DESKTOP=yes; sleep 15; else DESKTOP=no; fi
 {
 	echo "XQA desktop=$DESKTOP desktop_wait=${i}s"
 	echo "--- cpu: $(grep -m1 'model name' /proc/cpuinfo) sse2=$(grep -qw sse2 /proc/cpuinfo && echo yes || echo no)"
@@ -31,7 +41,7 @@ if [ -e /tmp/.X11-unix/X0 ] && pidof wbar >/dev/null 2>&1; then DESKTOP=yes; sle
 			echo "  $(grep -E '^(Uid|Gid):' /proc/${p%% *}/status | tr '\t\n' '  ')" &&
 			echo "  open: $(ls -l /proc/${p%% *}/fd 2>/dev/null | sed -n 's/.*-> //p' | grep -E 'input|dri|fb|tty|mice|psaux' | tr '\n' ' ')"
 	done
-	echo "--- processes: $(ps 2>/dev/null | grep -E 'X[a-z]*|xinit|startx|wbar|flwm' | grep -v grep | awk '{print $1, $2, $NF}' | tr '\n' ';')"
+	echo "--- processes"; ps -o pid,user,comm,args 2>/dev/null | grep -vE ' \[|ps -o' | cut -c1-150
 	echo "--- nodes"; ls -l /dev/input/ /dev/dri/ /dev/fb0 /dev/tty7 2>&1 | grep -v '^total'
 	echo "--- /dev/dri: $(ls /dev/dri 2>/dev/null | tr '\n' ' ') /proc/fb: $(cat /proc/fb 2>/dev/null | tr '\n' ' ')"
 	echo "--- drm modules: $(lsmod 2>/dev/null | awk '/drm|bochs|cirrus|simpledrm|radeon|vmwgfx|i915|virtio_gpu/{print $1}' | tr '\n' ' ')"
@@ -95,18 +105,53 @@ kill $XI $RAW 2>/dev/null
 if grep -qw xxriqaapps /proc/cmdline; then
 	T=$(sed -n 's/.*xxriqaapps=\([0-9]*\).*/\1/p' /proc/cmdline); [ -n "$T" ] || T=25
 	echo "--- apps (settle ${T}s)" >> $OUT
+	# resident memory of every process of an app (the browser: its engine
+	# processes too), in kB
+	rss_of() {
+		t=0
+		for p in $(pgrep -f "$1"); do
+			r=$(sed -n 's/^VmRSS:[^0-9]*\([0-9]*\).*/\1/p' /proc/$p/status 2>/dev/null)
+			t=$((t + ${r:-0}))
+		done
+		echo $t
+	}
+	# the session's own environment (what ~/.xsession exported for everything
+	# it starts - the dock launches apps with it), taken from the window
+	# manager and quoted for the shell
+	# (any process ~/.xsession started: they all carry its exports - found by
+	# one of them, XXRI_DOCK_RESERVE, not by a program name that may be
+	# restarting at this moment)
+	# ... and of those the one with the most variables: ~/.xsession only ever
+	# adds exports, so the program it started last has all of them (the first
+	# ones predate xxri-session-runtime)
+	sess=""; best=0
+	for e in /proc/[0-9]*/environ; do
+		grep -qa 'XXRI_DOCK_RESERVE=' "$e" 2>/dev/null || continue
+		n=$(tr '\0' '\n' < "$e" 2>/dev/null | grep -c '=')
+		[ "$n" -gt "$best" ] && { best=$n; sess=${e#/proc/}; sess=${sess%/environ}; }
+	done
+	tr '\0' '\n' < /proc/$sess/environ | grep -E '^[A-Za-z_][A-Za-z0-9_]*=' |
+		sed "s/'/'\\\\''/g; s/=/='/; s/\$/'/; s/^/export /" > /tmp/session.env
+	echo "--- session env: $(wc -l < /tmp/session.env) variables from pid $sess ($(cat /proc/$sess/comm 2>/dev/null)); Qt: $(grep -oE '^export QT[A-Z_]*' /tmp/session.env | sed 's/export //' | tr '\n' ' ')" >> $OUT
 	for app in xxri-settings xxri-store-gui xxri-control-center xxri-launcher xxri-media \
-		   xxri-file xxri-power-menu "xxri-dialog info QA check" xxri-installer xxri-browser; do
-		name=${app%% *}
-		su "$U" -c "DISPLAY=:0 XAUTHORITY=$XAUTHORITY $app" > /tmp/app-$name.log 2>&1 &
+		   xxri-file xxri-power-menu "xxri-dialog info QA check" xxri-installer xxri-browser \
+		   "browser-https=xxri-browser https://example.org/"; do
+		case "$app" in
+		*=*) name=${app%%=*}; cmd=${app#*=} ;;
+		*)   name=${app%% *}; cmd=$app ;;
+		esac
+		pat=${cmd%% *}; [ "$pat" = xxri-browser ] && pat='xxri-browser|QtWebEngineProcess'
+		su "$U" -c ". /tmp/session.env; $cmd" > /tmp/app-$name.log 2>&1 &
 		sleep "$T"
-		if pgrep -f "$name" >/dev/null 2>&1; then st=alive; else st=exited; fi
+		if pgrep -f "$pat" >/dev/null 2>&1; then st=alive; else st=exited; fi
+		rss=$(rss_of "$pat")
 		say "XQA_APP $name"
 		sleep 4
-		echo "APP $name $st $(tail -c 300 /tmp/app-$name.log | tr '\n' ' ')" >> $OUT
-		pkill -f "$name" 2>/dev/null
+		echo "APP $name $st rss_kb=$rss $(tail -c 300 /tmp/app-$name.log | tr '\n' ' ')" >> $OUT
+		pkill -f "$pat" 2>/dev/null
 		sleep 2
 	done
+	{ echo "--- memory after apps"; free; } >> $OUT
 fi
 [ -n "$L" ] && dd if=$OUT of=/dev/$L bs=4k conv=sync 2>/dev/null
 sync

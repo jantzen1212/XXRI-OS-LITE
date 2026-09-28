@@ -12,7 +12,14 @@
 
 #### 🖥️ Minimum System Requirements:
 
-* **CPU:** Intel Pentium II / AMD K6-2 or newer (32-bit)
+* **CPU:** 32-bit x86, i586 class or newer (Pentium, AMD K6-2 and later) for
+  the desktop and all XXRI programs — verified on emulated CPU models, not yet
+  on physical period hardware (`docs/cpu-baseline.md`).
+  **XXRI Browser** needs SSE2 (Pentium 4, Pentium M, Athlon 64, VIA C7 or
+  newer); on older processors it says why it cannot start.
+* **Graphics:** any GPU with a Linux KMS driver; otherwise the firmware
+  framebuffer (VESA/UEFI GOP) or, on BIOS machines, the video BIOS
+  (`docs/x-server.md`)
 * **RAM:** 256 MB minimum
 * **Storage:** 700 MB free disk space
 

@@ -154,5 +154,11 @@ to Xfbdev.
 
 ## Test results
 
-See the "X server" section of `docs/qa-ptxdist.md` (filled from
-`tools/qa/x-test.py`).
+`docs/qa-ptxdist.md`, "Display, input, acceleration and fallback": every
+path above reached the desktop with working pointer, buttons, wheel and
+keyboard in QEMU - Xorg + modesetting (BIOS, IA32 UEFI, Cirrus), Xfbdev
+(`nomodeset` on BIOS and UEFI, Rage 128), Xorg + vesa (no display device;
+VMware SVGA after vmwgfx gave up) - and on emulated Pentium, Pentium II,
+Pentium III and SSE2 processors. glamor itself was not exercised: QEMU offers
+only Mesa's software rasteriser, on which modesetting refuses glamor by
+design.

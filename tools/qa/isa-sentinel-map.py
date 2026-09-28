@@ -37,8 +37,11 @@ def main():
         for p, rel in elf_files(src, tmp):
             if os.path.islink(p) or not os.path.isfile(p):
                 continue
-            with open(p, 'rb') as f:
-                b = f.read()
+            try:
+                with open(p, 'rb') as f:
+                    b = f.read()
+            except OSError:          # e.g. Tiny Core's mode-4111 sudo
+                continue
             if b[:4] == b'\x7fELF':
                 blobs.append((rel, b))
     for h in sorted(hits, key=lambda r: (r['class'], r['space'], int(r['order']))):
