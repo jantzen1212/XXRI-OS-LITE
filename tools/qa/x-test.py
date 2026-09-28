@@ -11,11 +11,16 @@ from the raw log disk:
                             glamor, GLX, libinput - the preferred path
   fbdev-bios, fbdev-ia32    the same machine booted with `nomodeset`: no KMS
                             device, XLibre Xfbdev on vesafb / efifb
+  vesa-bios                 no KMS device and no framebuffer at all (nomodeset,
+                            GRUB in text mode, so no vesafb): Xorg + the vesa
+                            driver through the video BIOS - the last fallback
   gpu-cirrus, gpu-vmware    other emulated adapters: cirrus DRM, vmwgfx (QEMU's
                             vmware-svga; the driver may refuse it -> fallback)
   gpu-rv100, gpu-rage128    ati-vga as Radeon 7000 (radeon KMS, but Mesa 25 has
                             no GL driver for R100: glamor must fall back) and as
                             Rage 128 Pro (no KMS driver: Xfbdev on vesafb)
+  apps-kvm                  KMS path under KVM, every XXRI program started and
+                            screenshotted in turn (the quick app check)
   cpu-pentium, cpu-pentium2, cpu-pentium3, cpu-sse2
                             TCG with that CPU model (cpu-sse2 = pentium3 + SSE2,
                             a Pentium 4-class feature set) and isa-sentinel:
@@ -39,10 +44,12 @@ SCENARIOS = {
     'kms-ia32':   dict(fw='ia32', append='', cpu=None, timeout=420),
     'fbdev-bios': dict(fw='bios', append='nomodeset', cpu=None, timeout=420),
     'fbdev-ia32': dict(fw='ia32', append='nomodeset', cpu=None, timeout=420),
+    'vesa-bios':   dict(fw='bios', append='nomodeset', grub='; set gfxpayload=text', cpu=None, timeout=420),
     'gpu-cirrus':  dict(fw='bios', append='', cpu=None, vga=['-vga', 'cirrus'], timeout=420),
     'gpu-vmware':  dict(fw='bios', append='', cpu=None, vga=['-vga', 'vmware'], timeout=420),
     'gpu-rv100':   dict(fw='bios', append='', cpu=None, vga=['-vga', 'none', '-device', 'ati-vga,model=rv100'], timeout=420),
     'gpu-rage128': dict(fw='bios', append='', cpu=None, vga=['-vga', 'none', '-device', 'ati-vga,model=rage128p'], timeout=420),
+    'apps-kvm':    dict(fw='bios', append='xxriqaapps=25', cpu=None, timeout=900),
     'cpu-pentium':  dict(fw='bios', append='xxriqaapps=40', cpu='pentium', sentinel='pentium', timeout=3600),
     'cpu-pentium2': dict(fw='bios', append='xxriqaapps=40', cpu='pentium2', sentinel='pentium2', timeout=3600),
     'cpu-pentium3': dict(fw='bios', append='xxriqaapps=40', cpu='pentium3', sentinel='pentium3', timeout=3600),
@@ -110,8 +117,9 @@ def run(iso, hook, name, sc, d):
                 text = m.vga_text() if sc['fw'] == 'bios' else open(serial, 'rb').read().decode('latin1', 'replace')
                 if 'XXRI OS Lite' in text and ('Reboot' in text or 'GNU GRUB' in text):
                     res['grub_menu'] = round(now, 1)
-                    edit = [['down'], ['type', 'search --no-floppy --set=h --file /xxri-qa-x.gz'],
-                            ['down'], ['end'], ['type', ' xxriqax ' + sc['append']],
+                    edit = [['down'], ['type', 'search --no-floppy --set=h --file /xxri-qa-x.gz' + sc.get('grub', '')],
+                            ['down'], ['end'], ['type', ' xxriqax ' + sc['append'] +
+                                                      ('' if sc['cpu'] or 'xxriqaapps' in sc['append'] else ' xxriqawait=240')],
                             ['down'], ['end'], ['type', ' ($h)/xxri-qa-x.gz']]
                     m.key('e'); time.sleep(1)
                     for step in edit:
@@ -121,11 +129,16 @@ def run(iso, hook, name, sc, d):
             if not injected and 'XQA_READY' in ser:
                 res['ready'] = round(now, 1)
                 shot(m, d, tmp, 'desktop', res)
-                # pointer: a walk over the empty desktop, then clicks; keys: 'a' x3
-                for dx, dy in ((40, 30), (60, -20), (-30, 40), (80, 10), (-50, -60)):
-                    m.cmd('mouse_move %d %d' % (dx, dy)); time.sleep(0.3)
+                # pointer: a walk over the empty desktop (25 packets - a server
+                # that detects the mouse protocol consumes the first few, as a
+                # real mouse sends dozens a second), then clicks; keys: 'a' x3
+                for i in range(25):
+                    dx, dy = ((40, 30), (60, -20), (-30, 40), (80, 10), (-50, -60))[i % 5]
+                    m.cmd('mouse_move %d %d' % (dx // 2, dy // 2)); time.sleep(0.1)
                 for _ in range(2):
                     m.cmd('mouse_button 1'); time.sleep(0.2); m.cmd('mouse_button 0'); time.sleep(0.4)
+                for dz in (1, 1, -1, -1):   # wheel: buttons 4/5
+                    m.cmd('mouse_move 0 0 %d' % dz); time.sleep(0.3)
                 for _ in range(3):
                     m.key('a'); time.sleep(0.3)
                 time.sleep(2)
@@ -137,6 +150,9 @@ def run(iso, hook, name, sc, d):
                     shot(m, d, tmp, 'app-' + app, res)
             if 'XQA_DONE' in ser and res['done'] is None:
                 res['done'] = round(now, 1)
+            if res['done'] is None and not res['shots'] and now > sc['timeout'] - 60 and not res.get('late_shot'):
+                res['late_shot'] = True
+                shot(m, d, tmp, 'late', res)
             time.sleep(1)
     finally:
         res['powered_off'] = p.poll() is not None
@@ -161,16 +177,23 @@ def shot(m, d, tmp, tag, res):
 
 def parse(rep):
     r = {}
+    dsk = re.search(r'^XQA desktop=(\w+)', rep, re.M)
+    r['desktop'] = dsk.group(1) if dsk else None
     s = re.search(r'^SERVER=(\S+) pid=\S+ args=(.*?) rss_kb=(\d*)', rep, re.M)
     r['server'] = s.group(1) if s else None
     r['server_rss_kb'] = int(s.group(3)) if s and s.group(3) else None
     ext = re.search(r'number of extensions:\s*(\d+)\n((?:\s{4}\S.*\n)+)', rep)
     r['extensions'] = [e.strip() for e in ext.group(2).splitlines()] if ext else []
-    for k in ('XI_MOTION', 'XI_BUTTONPRESS', 'XI_KEYPRESS', 'XI_KEY_A', 'XI_RAW'):
+    r['kernel_input'] = {m.group(1): int(m.group(2)) for m in re.finditer(r'^KERNEL (\S+) bytes=(\d+)', rep, re.M)}
+    for k in ('XI_MOTION', 'XI_BUTTONPRESS', 'XI_WHEEL', 'XI_KEYPRESS', 'XI_KEY_A', 'XI_RAW', 'XI_RAWMOTION'):
         v = re.search(r'^%s=(\d+)' % k, rep, re.M)
         r[k.lower()] = int(v.group(1)) if v else None
-    r['glamor'] = bool(re.search(r'glamor initialized|Glamor.*initialized|glamor.*init', rep, re.I)) and \
-        not re.search(r'AccelMethod.*none|glamor.*disabled|Failed to initialize glamor', rep, re.I)
+    # "glamor initialization failed" must not count: modesetting refuses glamor
+    # on Mesa's software rasteriser (llvmpipe) and falls back to plain fb
+    r['glamor'] = bool(re.search(r'glamor initialized\b', rep)) and \
+        not re.search(r'glamor initialization failed|AccelMethod.*none|Failed to initialize glamor', rep, re.I)
+    r['glamor_llvmpipe_refused'] = 'Refusing to try glamor on llvmpipe' in rep
+    r['vesa'] = bool(re.search(r'VESA\(0\): (Total Memory|Setting up VESA Mode|VESA VBE Version)', rep))
     r['accel_none'] = bool(re.search(r'AccelMethod.*"?none', rep, re.I))
     r['glx'] = 'GLX' in r['extensions']
     r['xinput2'] = 'XInputExtension' in r['extensions']
@@ -189,8 +212,8 @@ def main():
     results = {}
     for n in names:
         results[n] = run(iso, hook, n, SCENARIOS[n], os.path.join(outdir, n))
-        print(n, json.dumps({k: results[n][k] for k in ('server', 'ready', 'glamor', 'accel_none', 'glx',
-              'xinput2', 'xi_motion', 'xi_buttonpress', 'xi_key_a', 'server_rss_kb')}), flush=True)
+        print(n, json.dumps({k: results[n][k] for k in ('desktop', 'server', 'ready', 'glamor', 'glamor_llvmpipe_refused', 'vesa', 'accel_none', 'glx',
+              'xinput2', 'xi_motion', 'xi_buttonpress', 'xi_wheel', 'xi_key_a', 'server_rss_kb')}), flush=True)
     json.dump(results, open(os.path.join(outdir, 'results.json'), 'w'), indent=1)
 
 

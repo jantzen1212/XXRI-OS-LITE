@@ -71,7 +71,7 @@ XXRI_CORE_PKGS		:= xxri-base xxri-bootsplash xxri-compositor xxri-control-center
 	xxri-libexif xxri-libfm xxri-media xxri-menu-cache xxri-power-menu xxri-settings \
 	xxri-store xxri-wctl
 XXRI_BROWSER_TCZ_PKGS	:= xxri-qt5 xxri-browser
-XXRI_XLIBRE_TCZ_PKGS	:= xxri-xlibre xxri-xlibre-input-libinput
+XXRI_XLIBRE_TCZ_PKGS	:= xxri-xlibre xxri-xlibre-input-libinput xxri-xlibre-video-vesa
 XXRI_GRUB_TCZ_PKGS	:= xxri-grub-tools
 
 # Perl modules XXRI builds for the host (host-perl-xml-parser)

@@ -202,6 +202,9 @@ fi
 # Wrap up by performing updates as may be needed.
 if [ -e /etc/sysconfig/newmodules ]; then
 	depmod -a 2>/dev/null
+	# the trigger can load a display driver: the boot splash must let go of
+	# /dev/fb0 first (xxri-splash-handover; xxri-hw-init resumes it)
+	[ -x /usr/local/sbin/xxri-splash-handover ] && /usr/local/sbin/xxri-splash-handover pause
 	/sbin/udevadm trigger
 	rm -f /etc/sysconfig/newmodules
 fi

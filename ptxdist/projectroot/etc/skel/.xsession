@@ -13,19 +13,31 @@ XRES=$(sed -n 's/.*\bxres=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /proc/cmdline 2>/d
 #   Xfbdev  XLibre's small kdrive server on the kernel framebuffer (vesafb,
 #           efifb, a legacy fbdev driver): no KMS, no Mesa, software rendering,
 #           the boot loader's mode.  The fallback where no KMS device exists.
-start_xorg() {
+#   Xorg + vesa  the video BIOS, on BIOS machines left with no kernel display
+#           device at all (see start_xorg_vesa).
+# An Xorg with no input driver gives a desktop with no mouse and no keyboard,
+# which is far worse than Xfbdev.  Refuse to use it unless a real input
+# driver is present (xxri-xlibre.tcz carries XLibre's libinput one).
+# (XLibre's own input drivers live in the ABI directory; an older, unversioned
+# module directory is searched too)
+xorg_usable() {
 	command -v Xorg >/dev/null 2>&1 || return 1
-	# An Xorg with no input driver gives a desktop with no mouse and no
-	# keyboard, which is far worse than Xfbdev.  Refuse to use it unless a real
-	# input driver is present (xxri-xlibre.tcz carries XLibre's libinput one).
-	# (XLibre's own input drivers live in the ABI directory; an older,
-	# unversioned module directory is searched too)
-	have_input=""
 	for f in /usr/local/lib/xorg/modules/xlibre-25/drivers/input/*_drv.so \
 	         /usr/local/lib/xorg/modules/input/*_drv.so; do
-		[ -e "$f" ] && have_input=1
+		[ -e "$f" ] && return 0
 	done
-	[ -n "$have_input" ] || return 1
+	return 1
+}
+# Tiny Core's Mesa is i686 code (CMOV) built for SSE2: its libgallium runs
+# SSE2 as soon as glamor or GLX initialise (measured on an emulated Pentium
+# III) and its libEGL executes CMOV (measured on an emulated Pentium: both X
+# servers died with SIGILL).  Without SSE2 no X server may touch Mesa: Xorg
+# gets a configuration without GLX (and without glamor on KMS), Xfbdev runs
+# with -extension GLX.  Decided here, after the KMS device has settled, not
+# at hardware init - the connectors register asynchronously.
+nosse2() { ! grep -qw sse2 /proc/cpuinfo; }
+start_xorg() {
+	xorg_usable || return 1
 	# hw-init modprobes the KMS driver, but the device is set up asynchronously
 	# and Xorg exits immediately if it starts too early.  Waiting for
 	# /dev/dri/card0 to EXIST is not enough: drm_minor_register() calls
@@ -55,6 +67,7 @@ start_xorg() {
 		sleep 0.25
 	done
 	kms_ready || return 1
+	XORG_CFG=""; nosse2 && XORG_CFG="-config xxri-nosse2-kms.conf"
 	# -dpi 75 matches what Xvesa, the server before XLibre, reported (it advertised 347mm x 260mm for every
 	# mode, i.e. exactly 75dpi at 1024x768).  Xorg otherwise defaults to 96dpi,
 	# which scales every font and widget up ~28% and changes the whole desktop
@@ -68,8 +81,11 @@ start_xorg() {
 	# single request without the XXRI face.  These are Xorg's own compiled-in
 	# defaults with ours prepended, minus 75dpi: its bitmap helvetica wins
 	# FLTK's exact-size match against the scalable face and undoes the point.
+	run_xorg
+}
+run_xorg() {
 	XXRI_FP=/usr/local/share/fonts/xxri/,/usr/local/lib/X11/fonts/misc,/usr/local/lib/X11/fonts/TTF,/usr/local/lib/X11/fonts/Type1,built-ins
-	Xorg -nolisten tcp -novtswitch -sharevts vt7 -dpi 75 -fp "$XXRI_FP" >/tmp/xorg.log 2>&1 &
+	Xorg -nolisten tcp -novtswitch -sharevts vt7 -dpi 75 $XORG_CFG -fp "$XXRI_FP" >/tmp/xorg.log 2>&1 &
 	export XPID=$!
 	for i in $(seq 1 40); do
 		[ -e /tmp/.X11-unix/X0 ] && { waitforX && return 0; }
@@ -78,6 +94,21 @@ start_xorg() {
 	done
 	kill "$XPID" 2>/dev/null
 	return 1
+}
+# Xorg + vesa: the video BIOS (VBE, run by XLibre's x86emu), with no kernel
+# display device at all.  Only on a BIOS machine left with neither a KMS
+# device nor /dev/fb0: a KMS driver took the display over from vesafb and then
+# failed (a GPU whose firmware Tiny Core does not ship, a driver that rejects
+# the hardware) - the case Xvesa used to cover.  Xorg's own autoconfiguration
+# picks vesa when there is no KMS device.  UEFI firmware has no VBE.
+start_xorg_vesa() {
+	# a registered framebuffer, not the node: core.gz carries a static /dev/fb0
+	[ -e /sys/class/graphics/fb0 ] && return 1
+	[ -d /sys/firmware/efi ] && return 1
+	[ -e /usr/local/lib/xorg/modules/xlibre-25/drivers/vesa_drv.so ] || return 1
+	xorg_usable || return 1
+	XORG_CFG=""; nosse2 && XORG_CFG="-config xxri-nosse2.conf"
+	run_xorg
 }
 # Xorg picks the monitor's preferred mode, which is not what Xvesa (the server
 # before XLibre) did - it always used $XRES (the xres= boot code, default
@@ -107,10 +138,12 @@ apply_xres() {
 # UEFI) or a legacy fbdev driver.  Console keyboard and /dev/input/mice, like
 # Xvesa had; the mode is the framebuffer's.
 start_xfbdev() {
-	[ -e /dev/fb0 ] || return 1
+	[ -e /sys/class/graphics/fb0 ] || return 1
 	command -v Xfbdev >/dev/null 2>&1 || return 1
 	XXRI_FP=/usr/local/share/fonts/xxri/,/usr/local/lib/X11/fonts/misc,/usr/local/lib/X11/fonts/TTF,/usr/local/lib/X11/fonts/Type1,built-ins
-	Xfbdev -nolisten tcp -br -2button -dpi 75 -fp "$XXRI_FP" >/tmp/xfbdev.log 2>&1 &
+	# GLX loads Tiny Core's Mesa (i686, SSE2): not on a processor without SSE2
+	noglx=""; nosse2 && noglx="-extension GLX"
+	Xfbdev -nolisten tcp -br -2button -dpi 75 $noglx -fp "$XXRI_FP" >/tmp/xfbdev.log 2>&1 &
 	export XPID=$!
 	waitforX
 }
@@ -120,9 +153,10 @@ XSERVER=xorg
 # modesetting driver is the better server for it - so there Xorg gets a
 # second attempt first (the device can still be settling).
 start_xorg || { { [ -e /dev/dri/card0 ] || [ -e /dev/dri/card1 ]; } && sleep 2 && start_xorg; } ||
-	{ XSERVER=xfbdev; start_xfbdev || ! echo failed in waitforX || exit; }
+	{ XSERVER=xfbdev; start_xfbdev; } ||
+	{ XSERVER=xorg-vesa; start_xorg_vesa || ! echo failed in waitforX || exit; }
 export XSERVER
-[ "$XSERVER" = xorg ] && apply_xres
+[ "$XSERVER" = xfbdev ] || apply_xres
 # The XXRI face ("xxri" foundry) reaches the server through -fp on the Xorg
 # and Xfbdev command lines above.  There used to be
 # an `xset +fp` + `fp rehash` + `q` block here as well; it was measured to cost

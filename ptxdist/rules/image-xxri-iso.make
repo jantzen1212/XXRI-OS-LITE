@@ -12,8 +12,11 @@ IMAGE_XXRI_ISO_DIR	:= $(BUILDDIR)/$(IMAGE_XXRI_ISO)
 IMAGE_XXRI_ISO_IMAGE	:= $(IMAGEDIR)/XXRI-Lite-$(XXRI_OS_VERSION).iso
 
 ifdef PTXCONF_IMAGE_XXRI_ISO
-$(IMAGE_XXRI_ISO_IMAGE): $(IMAGE_XXRI_CORE_IMAGE) $(IMAGE_XXRI_BROWSER_TCZ_IMAGE) \
-		$(IMAGE_XXRI_XLIBRE_TCZ_IMAGE) $(IMAGE_XXRI_GRUB_TCZ_IMAGE) $(PTXDIST_WORKSPACE)/scripts/xxri-mkiso.sh \
+# The other images by file name: prerequisites are expanded when this file is
+# read, and PTXdist reads image-xxri-xlibre-tcz.make after this one, so
+# $(IMAGE_XXRI_XLIBRE_TCZ_IMAGE) would still be empty here.
+$(IMAGE_XXRI_ISO_IMAGE): $(IMAGEDIR)/core.gz $(IMAGEDIR)/xxri-browser.tcz \
+		$(IMAGEDIR)/xxri-xlibre.tcz $(IMAGEDIR)/xxri-grub.tcz $(PTXDIST_WORKSPACE)/scripts/xxri-mkiso.sh \
 		$(STATEDIR)/host-xxri-grub.install.post $(STATEDIR)/host-xxri-xorriso.install.post \
 		$(STATEDIR)/host-dosfstools.install.post $(STATEDIR)/host-mtools.install.post \
 		$(STATEDIR)/xxri-cde.install $(STATEDIR)/xxri-kernel.install

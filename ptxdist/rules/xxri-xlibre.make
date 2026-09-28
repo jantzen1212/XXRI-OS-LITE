@@ -27,6 +27,12 @@ XXRI_XLIBRE_CONF_ENV	:= PTXDIST_PKG_CONFIG_VAR_NO_SYSROOT=dridriverdir
 # Paths are Tiny Core's (its xorg-server.tcz used the same), so xkbcomp,
 # xkeyboard-config and the font directories of the extensions are found.
 XXRI_XLIBRE_CONF_TOOL	:= meson
+# int10 (x86emu) runs the video BIOS for the vesa driver, the last X fallback.
+# patches/xlibre-xserver-25.1.9/0001 (upstream 7dd2a11ae6, after 25.1.9): meson
+# compared host_machine.cpu() ("i586" here) with CPU family names, so a
+# 32-bit x86 build lost -D_PC - int10 never mapped the real BIOS and VBE was
+# "not detected" - and lost Linux ACPI support.  (-Dint10=vm86 does not
+# build in 25.1.9: its sources moved without the meson file.)
 XXRI_XLIBRE_CONF_OPT	:= $(CROSS_MESON_USR) -Dprefix=/usr/local \
 	-Dxorg=true -Dxfbdev=true -Dxephyr=false -Dxnest=false -Dxvfb=false \
 	-Dxwin=false -Dxquartz=false \
@@ -38,10 +44,10 @@ XXRI_XLIBRE_CONF_OPT	:= $(CROSS_MESON_USR) -Dprefix=/usr/local \
 	-Dfontrootdir=/usr/local/lib/X11/fonts \
 	-Ddefault_font_path=/usr/local/lib/X11/fonts/misc,/usr/local/lib/X11/fonts/TTF,/usr/local/lib/X11/fonts/OTF,/usr/local/lib/X11/fonts/Type1,/usr/local/lib/X11/fonts/100dpi,/usr/local/lib/X11/fonts/75dpi \
 	-Dlog_dir=/var/log \
-	-Dsuid_wrapper=false \
+	-Dsuid_wrapper=true -Dlibexecdir=lib/xorg \
 	-Dpciaccess=true -Dudev=true -Dudev_kms=true -Dhal=false \
 	-Dsystemd_notify=false -Dsystemd_logind=false -Dseatd_libseat=false \
-	-Dint10=false -Dvgahw=false -Ddga=false -Dagp=false \
+	-Dint10=x86emu -Dvgahw=true -Ddga=true -Dagp=false \
 	-Dxvmc=false -Dxv=true -Dxinerama=true -Dxselinux=false -Dxcsecurity=false \
 	-Dxdmcp=false -Dxdm-auth-1=false -Dlisten_tcp=false \
 	-Dsha1=libcrypto -Dlibunwind=false \
@@ -62,8 +68,23 @@ $(STATEDIR)/xxri-xlibre.targetinstall:
 	@$(call install_fixup, xxri-xlibre,AUTHOR,"XXRI OS Team")
 	@$(call install_fixup, xxri-xlibre,DESCRIPTION,"XLibre X server")
 
+#	# Xorg runs as root, as Tiny Core's X.Org did: /usr/local/bin/Xorg is a
+#	# script that runs the setuid wrapper, and Xwrapper.config tells the
+#	# wrapper to keep root for any user (the session is started from the
+#	# autologin shell, not from a console VT the wrapper would accept).
+#	# Without logind, which Tiny Core does not have, an unprivileged Xorg
+#	# cannot become DRM master or take over the VT.  Same layout as
+#	# xorg-server.tcz: server and wrapper in /usr/local/lib/xorg.
 	@$(call install_copy, xxri-xlibre, 0, 0, 0755, -, /usr/local/bin/Xorg)
 	@$(call install_link, xxri-xlibre, Xorg, /usr/local/bin/X)
+	@$(call install_copy, xxri-xlibre, 0, 0, 0755, -, /usr/local/lib/xorg/Xorg)
+	@$(call install_copy, xxri-xlibre, 0, 0, 4755, -, /usr/local/lib/xorg/Xorg.wrap)
+	@$(call install_copy, xxri-xlibre, 0, 0, 0644, \
+		$(PTXDIST_WORKSPACE)/config/xxri-xlibre/Xwrapper.config, /usr/local/etc/X11/Xwrapper.config)
+#	# the configurations ~/.xsession selects on a processor without SSE2
+	@$(foreach c, xxri-nosse2-kms.conf xxri-nosse2.conf, \
+		$(call install_copy, xxri-xlibre, 0, 0, 0644, \
+			$(PTXDIST_WORKSPACE)/config/xxri-xlibre/$(c), /usr/local/etc/X11/$(c))$(ptx/nl))
 #	# kdrive opens the console and the framebuffer itself: setuid root, as
 #	# Xvesa was
 	@$(call install_copy, xxri-xlibre, 0, 0, 4755, -, /usr/local/bin/Xfbdev)

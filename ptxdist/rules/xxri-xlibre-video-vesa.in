@@ -1,0 +1,16 @@
+## SECTION=project_specific
+
+config XXRI_XLIBRE_VIDEO_VESA
+	bool
+	select XXRI_XLIBRE
+	select HOST_XORG_UTIL_MACROS
+	select HOST_AUTOTOOLS_AUTOCONF
+	select HOST_AUTOTOOLS_AUTOMAKE
+	select HOST_AUTOTOOLS_LIBTOOL
+	prompt "xxri-xlibre-video-vesa: VESA BIOS video driver for XLibre"
+	help
+	  XLibre's xf86-video-vesa: drives the display through the video
+	  BIOS (VBE, executed by XLibre's x86emu int10), with no kernel
+	  framebuffer or KMS device.  The last X fallback on BIOS machines
+	  where a KMS driver took the display over from vesafb and then
+	  failed - the case Xvesa covered before XLibre.

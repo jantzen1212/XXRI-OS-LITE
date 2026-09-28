@@ -226,7 +226,7 @@ mkdir -p "$W/bin" && x /boot/core.gz "$W/bin/core.gz" && x /cde "$W/bin/cde" && 
 XXRI_ELF="/usr/local/bin/xxri- /usr/local/sbin/xxri- /usr/local/bin/flwm /usr/local/lib/libfm
 	/usr/local/lib/libmenu-cache /usr/local/lib/libexif /usr/local/lib/libGLdispatch
 	/usr/local/lib/libOpenGL /usr/local/lib/libGLESv2 /usr/local/lib/libglapi /usr/local/lib/xxri-browser
-	/usr/local/bin/Xorg /usr/local/bin/Xfbdev /usr/local/lib/xorg/modules"
+	/usr/local/bin/Xfbdev /usr/local/lib/xorg"
 if python3 "$HERE/tools/qa/elf-closure.py" "$W/bin/core.gz" "$W/bin/cde" --check $XXRI_ELF > "$W/closure" 2>&1; then
 	ok "$(tail -1 "$W/closure")"
 else
@@ -241,6 +241,19 @@ grep -qx 'xxri-xlibre.tcz' "$W/bin/cde/onboot.lst" && ok "X server: xxri-xlibre.
 for gone in Xvesa.tcz xorg-server.tcz; do
 	grep -qx "$gone" "$W/bin/cde/onboot.lst" && bad "$gone is still in onboot.lst (replaced by xxri-xlibre.tcz)"
 done
+# both servers need root (no logind): a lost setuid bit only shows as "no
+# desktop" on real hardware, so check the modes in the extension itself
+if [ -f "$W/bin/cde/optional/xxri-xlibre.tcz" ]; then
+	modes=$(unsquashfs -ll "$W/bin/cde/optional/xxri-xlibre.tcz" 2>/dev/null)
+	for f in usr/local/lib/xorg/Xorg.wrap usr/local/bin/Xfbdev; do
+		echo "$modes" | grep -q "^-rwsr-xr-x root/root .* squashfs-root/$f\$" && ok "X server: /$f setuid root" ||
+			bad "X server: /$f is not setuid root - X cannot start without logind"
+	done
+	grep -qx 'needs_root_rights=yes' "$W/bin/core/usr/local/etc/X11/Xwrapper.config" 2>/dev/null &&
+		grep -qx 'allowed_users=anybody' "$W/bin/core/usr/local/etc/X11/Xwrapper.config" &&
+		ok "X server: Xwrapper.config lets the autologin session start Xorg as root" ||
+		bad "X server: /usr/local/etc/X11/Xwrapper.config missing or restrictive - Xorg.wrap refuses the session"
+fi
 python3 "$HERE/tools/qa/isa-scan.py" $(cd "$W/bin/core" && for p in $XXRI_ELF; do ls -d ."$p"* 2>/dev/null; done |
 	sed "s|^\.|$W/bin/core|") 2>/dev/null | awk -F'\t' 'NR > 1 {
 		above = $3 + $4 + $5 + $6 + $7 + $8

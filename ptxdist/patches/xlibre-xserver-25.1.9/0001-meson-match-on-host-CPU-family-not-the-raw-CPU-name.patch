@@ -1,0 +1,69 @@
+From 7dd2a11ae6c3a1a587509844dc6636c3e9a843bc Mon Sep 17 00:00:00 2001
+From: galternat <galternat.twins223@simplelogin.com>
+Date: Sun, 23 Aug 2026 14:17:36 +0200
+Subject: [PATCH] meson: match on host CPU family, not the raw CPU name
+
+host_machine.cpu() returns the unnormalized machine name ('i686',
+'armv7l', 'powerpc64'), but all four of these tests compare it against
+cpu_family() names, so they mostly match nothing: 32-bit x86 builds
+without -D_PC and without ACPI, and the arm and FreeBSD/powerpc int10
+defaults never fire.
+
+Use cpu_family() throughout, and spell out ppc64 to match the powerpc*
+of the autotools case that rule came from. Only 32-bit x86, 32-bit ARM
+and FreeBSD/powerpc* change; x86_64, aarch64 and ia64 evaluate as
+before. ARM now gets the stub int10 that b241934238fe ("default to stub
+int10 implementation on arm") intended, which is why this needs the
+preceding commit.
+
+Fixes: 1549e3037275 ("Add a Meson build system alongside autotools.")
+Fixes: e02afb94783a ("meson: Make ACPI support optional")
+Fixes: 8c54d590cbca ("Fix build on FreeBSD/powerpc*")
+Assisted-by: Claude:claude-opus-5
+Signed-off-by: galternat <galternat.twins223@simplelogin.com>
+---
+ hw/xfree86/int10/meson.build | 2 +-
+ meson.build                  | 8 +++-----
+ 2 files changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/hw/xfree86/int10/meson.build b/hw/xfree86/int10/meson.build
+index c3f0ab9d689..73c658643e8 100644
+--- a/hw/xfree86/int10/meson.build
++++ b/hw/xfree86/int10/meson.build
+@@ -7,7 +7,7 @@ srcs_xorg_int10 = [
+ int10_c_args = [xorg_c_args]
+ int10_link = []
+ 
+-if host_machine.cpu() == 'i386' or host_machine.cpu() == 'x86_64'
++if host_machine.cpu_family() in ['x86', 'x86_64']
+     int10_c_args += '-D_PC'
+ endif
+ 
+diff --git a/meson.build b/meson.build
+index 7a6bfa5b692..a3944d6dcc0 100644
+--- a/meson.build
++++ b/meson.build
+@@ -327,10 +327,10 @@ message('IPv6 support: ' + (build_ipv6 ? 'YES' : 'NO'))
+ int10 = get_option('int10')
+ if int10 == 'auto'
+     int10 = 'x86emu'
+-    if host_machine.cpu() == 'ppc' and host_machine.system() == 'freebsd'
++    if host_machine.cpu_family() in ['ppc', 'ppc64'] and host_machine.system() == 'freebsd'
+         int10 = 'stub'
+     endif
+-    if host_machine.cpu() == 'arm'
++    if host_machine.cpu_family() == 'arm'
+         int10 = 'stub'
+     endif
+ endif
+@@ -619,9 +619,7 @@ endif
+ build_acpi = false
+ if (get_option('linux_acpi') == true and
+    host_machine.system() == 'linux')
+-    if (host_machine.cpu() == 'x86' or
+-       host_machine.cpu() == 'x86_64' or
+-       host_machine.cpu() == 'ia64')
++    if host_machine.cpu_family() in ['x86', 'x86_64', 'ia64']
+         build_acpi = true
+     endif
+ endif

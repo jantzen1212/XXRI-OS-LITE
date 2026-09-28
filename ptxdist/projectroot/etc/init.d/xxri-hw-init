@@ -22,30 +22,18 @@
 	# the session falls back to Xfbdev on the firmware framebuffer: software
 	# rendering in the boot loader's mode.  Probing by PCI class covers real
 	# hardware; the QEMU/VirtualBox display adapters are named explicitly.
+	# The boot splash must not hold /dev/fb0 while a KMS driver takes over
+	# (xxri-splash-handover); xxri-setup paused it for the udev trigger.
 	if [ ! -e /dev/dri/card0 ]; then
+		/usr/local/sbin/xxri-splash-handover pause
 		for d in $(pci_by_class 0x0300); do hw_load_driver "$d"; done
 		[ -e /dev/dri/card0 ] || for m in bochs cirrus qxl vmwgfx vboxvideo virtio-gpu simpledrm; do
 			modprobe "$m" 2>/dev/null && [ -e /dev/dri/card0 ] && break
 		done
 	fi
-	# Tiny Core's Mesa is compiled for SSE2 (its libgallium runs SSE2 code as
-	# soon as glamor or GLX initialise - measured on an emulated Pentium III).
-	# Without SSE2 the X server must not touch Mesa at all: modesetting without
-	# glamor (shadow framebuffer), no GLX.  Xfbdev never loads Mesa.
-	if ! grep -qw sse2 /proc/cpuinfo; then
-		mkdir -p /etc/X11/xorg.conf.d
-		cat > /etc/X11/xorg.conf.d/10-xxri-no-sse2.conf <<-EOF
-		# written by xxri-hw-init: this processor has no SSE2 (see docs/cpu-baseline.md)
-		Section "Device"
-		    Identifier "xxri-kms"
-		    Driver "modesetting"
-		    Option "AccelMethod" "none"
-		EndSection
-		Section "Module"
-		    Disable "glx"
-		EndSection
-		EOF
-	fi
+	/usr/local/sbin/xxri-splash-handover resume
+	# (Processors without SSE2: ~/.xsession starts the X servers without Mesa;
+	# see its xorg_nosse2_cfg.)
 	/usr/local/bin/xxri-display cache-modes
 	/usr/local/bin/xxri-audio init
 	G="$(sed -n 's/^GOVERNOR=//p' /usr/local/etc/xxri/power.conf 2>/dev/null)"

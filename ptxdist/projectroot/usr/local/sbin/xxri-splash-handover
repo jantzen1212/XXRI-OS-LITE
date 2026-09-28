@@ -1,0 +1,43 @@
+#!/bin/sh
+# xxri-splash-handover pause|resume - let a KMS driver take the display over.
+#
+# A KMS driver takes the display from the boot loader's framebuffer (vesafb,
+# efifb) by unregistering it, but the framebuffer gives its memory back only
+# when the last process that has /dev/fb0 open lets go.  Drivers that then
+# request their PCI regions exclusively (cirrus, vmwgfx, and others) fail
+# with EBUSY while anything still holds /dev/fb0 - and the machine is left
+# with no display device at all: no KMS device and no /dev/fb0.  The boot
+# splash paints on /dev/fb0 until X is up, so every boot step that can load
+# a display driver while it runs is bracketed with `pause` ... `resume`:
+# xxri-setup around the udev trigger for newly loaded module extensions (it
+# pauses), xxri-hw-init around its own display-driver loading (it resumes).
+# Measured in QEMU with a Cirrus adapter: with the splash running, "probe with
+# driver cirrus failed with error -16" and no desktop; paused, cirrus-drm
+# takes over and Xorg runs on it.
+S=/tmp/.xxri-splash-paused
+case "$1" in
+pause)
+	p=$(pidof xxri-bootsplash) || exit 0
+	kill $p 2>/dev/null
+	# the splash stops after the frame it is drawing (SIGTERM); give a slow
+	# machine time to finish one, then make sure
+	for i in $(seq 1 60); do
+		pidof xxri-bootsplash >/dev/null || break
+		sleep 0.05
+	done
+	p=$(pidof xxri-bootsplash) && kill -9 $p 2>/dev/null
+	: > $S
+	;;
+resume)
+	[ -e $S ] || exit 0
+	rm -f $S
+	# nothing to cover once X is up; the splash itself waits for /dev/fb0 and
+	# exits quietly if the display is gone
+	[ -e /tmp/.X11-unix/X0 ] || /usr/local/sbin/xxri-bootsplash >/dev/null 2>&1 &
+	;;
+*)
+	echo "usage: xxri-splash-handover pause|resume" >&2
+	exit 1
+	;;
+esac
+exit 0

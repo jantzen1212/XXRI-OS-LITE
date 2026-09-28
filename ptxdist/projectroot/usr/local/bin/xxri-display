@@ -26,11 +26,13 @@ MODES_CACHE="$XXRI_RUN_DIR/display.modes"
 # which display path is live (or would be, before X starts)
 driver() {
 	if pidof Xfbdev >/dev/null 2>&1; then echo fbdev; return; fi
-	if pidof Xorg >/dev/null 2>&1; then echo kms; return; fi
 	for c in /sys/class/drm/card*-*/status; do
 		[ -e "$c" ] && { echo kms; return; }
 	done
-	[ -e /dev/fb0 ] && echo fbdev || echo none
+	# Xorg without a KMS device: the vesa driver (video BIOS)
+	if pidof Xorg >/dev/null 2>&1; then echo vesa; return; fi
+	# a registered framebuffer, not the node: core.gz carries a static /dev/fb0
+	[ -e /sys/class/graphics/fb0 ] && echo fbdev || echo none
 }
 
 # modes of the connected DRM connectors, as WxHx32 (KMS scanout is 32bpp)
@@ -64,7 +66,7 @@ cmd_cache_modes() { # boot helper: X is not running yet
 
 modes() {
 	case "$(driver)" in
-	kms)
+	kms|vesa)
 		if [ -n "$DISPLAY" ] && have xrandr && pidof Xorg >/dev/null 2>&1; then
 			xr_modes | awk '!seen[$0]++' | sort -t x -k1,1n -k2,2n
 		else
