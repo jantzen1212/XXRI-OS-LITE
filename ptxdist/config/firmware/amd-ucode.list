@@ -1,0 +1,14 @@
+# AMD CPU microcode - boot/amd-ucode.img (rules/xxri-ucode.make)
+#
+# Source: linux-firmware 20260810 (pinned in rules/pre/xxri.make), through
+# its WHENCE by scripts/xxri-fw-select.py.  All of AMD's per-family
+# containers: family 10h-14h (K10, Llano, Bobcat), 15h (Bulldozer ..
+# Excavator), 16h (Jaguar/Puma), 17h (Zen 1/2), 19h (Zen 3/4), 1Ah (Zen 5).
+# scripts/xxri-mkucode.py concatenates them into AuthenticAMD.bin, as the
+# kernel's early loader expects.
+amd-ucode/microcode_amd.bin
+amd-ucode/microcode_amd_fam15h.bin
+amd-ucode/microcode_amd_fam16h.bin
+amd-ucode/microcode_amd_fam17h.bin
+amd-ucode/microcode_amd_fam19h.bin
+amd-ucode/microcode_amd_fam1ah.bin

@@ -1,0 +1,9 @@
+## SECTION=image
+
+config IMAGE_XXRI_FIRMWARE_AMD_TCZ
+	tristate
+	prompt "Generate xxri-firmware-amd.tcz"
+	help
+	  Firmware for AMD GPUs up to GCN 3: radeon Southern/Sea Islands (HD
+	  7000, R7/R9 200/300) and amdgpu Tonga, Fiji, Topaz, Carrizo, Stoney
+	  (loaded at boot, before the udev trigger that loads the KMS drivers).

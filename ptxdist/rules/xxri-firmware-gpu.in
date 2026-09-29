@@ -1,0 +1,12 @@
+## SECTION=project_specific
+
+config XXRI_FIRMWARE_GPU
+	bool
+	select HOST_SQUASHFS_TOOLS
+	select HOST_SQUASHFS_TOOLS_XZ_SUPPORT
+	prompt "xxri-firmware-gpu: firmware for legacy Radeon and Intel Gen9 GPUs"
+	help
+	  The GPU firmware the kernel's radeon and i915 drivers request on the
+	  hardware XXRI targets, taken unmodified from Tiny Core's
+	  firmware-radeon.tcz and firmware-i915.tcz.  config/firmware/gpu.list
+	  names every file and why the rest is left out.

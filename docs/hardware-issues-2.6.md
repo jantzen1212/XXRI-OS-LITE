@@ -118,10 +118,14 @@ comes from emulation, not from physical period hardware.
 * **A KMS driver that takes over and then fails** leaves neither KMS nor a
   framebuffer. On BIOS machines the session now falls back to Xorg with the
   vesa driver (video BIOS); on UEFI machines there is no such fallback and no
-  desktop. Likely real-world trigger: **no GPU firmware is shipped** (as in
-  2.6) - radeon/amdgpu need `radeon/*.bin`/`amdgpu/*.bin`; R100-R500 lose
-  only acceleration, newer AMD GPUs may fail KMS entirely. Not changed here;
-  shipping `firmware-radeon` (and amdgpu) is the candidate fix, with its size
-  cost.
+  desktop. Likely real-world trigger: missing GPU firmware. 2.6 shipped none;
+  the PTXdist build now ships `xxri-firmware-gpu.tcz` (148 KiB,
+  `config/firmware/gpu.list`): radeon R100 through Northern Islands and the
+  Palm/Sumo/Aruba APUs (CP/PFP/ME/RLC/SMC, and the MC firmware without which
+  NI cards do not initialise at all), and Intel Gen9 DMC. Still without
+  firmware, by choice: radeon SI/CIK (HD 7000 and newer; they fail KMS and
+  take the vesa fallback on BIOS machines), amdgpu, video decode (UVD/VCE),
+  i915 GuC/HuC. NVIDIA cards have no KMS driver in the Tiny Core kernel
+  (no nouveau) and always use the framebuffer or vesa path.
 * **Radeon R100 under QEMU** (`ati-vga`) hangs the guest in radeon KMS -
   an emulation limit; no statement about a real Radeon 7000 is possible.

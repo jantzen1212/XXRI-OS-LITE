@@ -241,6 +241,19 @@ grep -qx 'xxri-xlibre.tcz' "$W/bin/cde/onboot.lst" && ok "X server: xxri-xlibre.
 for gone in Xvesa.tcz xorg-server.tcz; do
 	grep -qx "$gone" "$W/bin/cde/onboot.lst" && bad "$gone is still in onboot.lst (replaced by xxri-xlibre.tcz)"
 done
+# GPU firmware (config/firmware/gpu.list): loaded at boot, before the udev
+# trigger that loads the KMS drivers, and exactly the reviewed files
+if [ -f "$W/bin/cde/optional/xxri-firmware-gpu.tcz" ]; then
+	grep -qx 'xxri-firmware-gpu.tcz' "$W/bin/cde/onboot.lst" && ok "GPU firmware: xxri-firmware-gpu.tcz in onboot.lst" ||
+		bad "xxri-firmware-gpu.tcz is not in onboot.lst: radeon/i915 start without their firmware"
+	fw=$(unsquashfs -l "$W/bin/cde/optional/xxri-firmware-gpu.tcz" 2>/dev/null | sed -n 's|^squashfs-root/usr/local/lib/firmware/||p' | grep '\.bin$' | sort)
+	want=$(unsquashfs -q -cat "$W/bin/cde/optional/xxri-firmware-gpu.tcz" usr/local/share/doc/xxri-firmware-gpu/gpu.list 2>/dev/null | grep -v '^#' | sort)
+	[ -n "$fw" ] && [ "$fw" = "$want" ] &&
+		ok "GPU firmware: $(echo "$fw" | wc -l) files as listed, $(( $(stat -c %s "$W/bin/cde/optional/xxri-firmware-gpu.tcz") / 1024 )) KiB" ||
+		bad "GPU firmware: xxri-firmware-gpu.tcz does not match its gpu.list"
+else
+	bad "xxri-firmware-gpu.tcz missing: legacy Radeon GPUs run without acceleration (NI cards not at all)"
+fi
 # both servers need root (no logind): a lost setuid bit only shows as "no
 # desktop" on real hardware, so check the modes in the extension itself
 if [ -f "$W/bin/cde/optional/xxri-xlibre.tcz" ]; then

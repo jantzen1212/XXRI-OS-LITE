@@ -1,0 +1,8 @@
+## SECTION=image
+
+config IMAGE_XXRI_FIRMWARE_NVIDIA_TCZ
+	tristate
+	prompt "Generate xxri-firmware-nvidia.tcz"
+	help
+	  The firmware nouveau needs for Maxwell 2 (GTX 900) acceleration
+	  (loaded at boot, before the udev trigger that loads the KMS drivers).

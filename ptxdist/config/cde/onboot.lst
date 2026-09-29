@@ -133,6 +133,7 @@ xkbcomp.tcz
 Xorg-7.7-bin.tcz
 i2c-6.12.11-tinycore.tcz
 graphics-6.12.11-tinycore.tcz
+xxri-firmware-gpu.tcz
 libevdev.tcz
 mtdev.tcz
 libwacom.tcz

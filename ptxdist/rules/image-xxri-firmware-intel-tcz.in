@@ -1,0 +1,9 @@
+## SECTION=image
+
+config IMAGE_XXRI_FIRMWARE_INTEL_TCZ
+	tristate
+	prompt "Generate xxri-firmware-intel.tcz"
+	help
+	  Firmware for the Atom/Celeron-class Intel iGPUs after Gen9:
+	  Elkhart/Jasper Lake, Tiger Lake, Alder Lake-S/-P/-N, Twin Lake
+	  (loaded at boot, before the udev trigger that loads the KMS drivers).

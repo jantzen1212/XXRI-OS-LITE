@@ -1,0 +1,37 @@
+# Intel GPU firmware - xxri-firmware-intel.tcz (rules/xxri-firmware-intel.make)
+#
+# Source: linux-firmware 20260810 (pinned in rules/pre/xxri.make), through its
+# WHENCE by scripts/xxri-fw-select.py.
+#
+# Scope: Intel graphics through Gen9 - in xxri-firmware-gpu.tcz (gpu.list:
+# Gen9 DMC for Skylake .. Comet Lake, Apollo Lake, Gemini Lake; older GPUs
+# need no firmware) - plus the newer Atom- and Celeron-class iGPUs.  Per
+# platform, exactly the files Tiny Core 6.12.11's i915 loads with default
+# parameters (gt/uc/intel_uc.c uc_expand_default_options(), intel_uc_fw.c,
+# display/intel_dmc.c); the pinned i915.ko binds every platform named here.
+#
+#   Elkhart Lake / Jasper Lake, Gen11 (Celeron N4500/N4505/N5100/N5105/N6210,
+#     Pentium Silver N6000, Atom x6000E)             DMC (icl_dmc: Ice Lake's)
+#   Tiger Lake (Celeron 6305, Pentium Gold 7505)       DMC (i915 leaves GuC/HuC
+#                                                     off on Tiger Lake)
+#   Alder Lake-S (Celeron G6900)                      DMC; GuC to load HuC
+#   Alder Lake-N and Twin Lake (Intel Processor N50/N95/N97/N100/N150/N200/
+#     N250, Core i3-N300/N305), Alder Lake-P/U (Celeron 7305)
+#                                                     DMC, GuC submission, HuC
+#
+# The same files serve the Core i3/i5/i7 of those platforms (Ice Lake, Tiger
+# Lake, 12th-14th generation Alder/Raptor Lake), which therefore work too.
+#
+# Left out (docs/gpu-cpu-support.md says what these GPUs do without them):
+#   Rocket Lake DMC; DG1/DG2 (Arc A-series), Meteor/Arrow Lake - on DG2 and
+#     Meteor Lake i915 keeps the display but has no acceleration without GuC
+#   xe: Lunar Lake (64-bit-UEFI-only laptops, which XXRI cannot boot) and
+#     Battlemage (Arc B-series: no legacy video BIOS)
+#   GuC/HuC for Gen9 and Gen11: 6.12's i915 never loads them by default
+i915/icl_dmc_ver1_09.bin
+i915/tgl_dmc_ver2_12.bin
+i915/adls_dmc_ver2_01.bin
+i915/adlp_dmc.bin
+i915/tgl_guc_70.bin
+i915/tgl_huc.bin
+i915/adlp_guc_70.bin

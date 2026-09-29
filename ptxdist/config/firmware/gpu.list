@@ -1,0 +1,108 @@
+# GPU firmware shipped in xxri-firmware-gpu.tcz (rules/xxri-firmware-gpu.make).
+# Every line is a file the kernel's radeon or i915 driver declares
+# (MODULE_FIRMWARE) and requests at probe time; the files come unmodified from
+# Tiny Core 16's firmware-radeon.tcz and firmware-i915.tcz (linux-firmware
+# 20240220).  Chosen for XXRI's hardware - 32-bit x86 machines, BIOS or
+# 32-bit UEFI:
+#
+#   radeon R100-R500 (Radeon 7000 .. X1950)      CP microcode: acceleration
+#   radeon R600-R700 (HD 2000 .. HD 4000, HD 3200/4200 IGPs)  PFP/ME/RLC/SMC
+#   radeon Evergreen (HD 5000), Palm/Sumo APUs (E-350/C-50 netbooks, Llano),
+#          Northern Islands (HD 6000), Aruba (Trinity/Richland)  PFP/ME/RLC/SMC,
+#          and MC for NI - without MC radeon cannot initialise NI at all
+#   i915   Gen9 DMC (Skylake, Kaby Lake, Broxton, Gemini Lake): display power
+#          states; older Intel GPUs (GMA .. Broadwell, Bay/Cherry Trail) need none
+#
+# Newer GPUs, up to the 2015-era generations, have extensions of their own
+# (linux-firmware 20260810):
+#   radeon SI/CIK, amdgpu GCN 3            xxri-firmware-amd.tcz     (amd.list)
+#   i915 Atom/Celeron-class Gen11/Gen12    xxri-firmware-intel.tcz   (intel.list)
+#   nouveau Maxwell 2                      xxri-firmware-nvidia.tcz  (nvidia.list)
+#
+# Deliberately not shipped (docs/hardware-issues-2.6.md):
+#   radeon UVD/VCE (video decode/encode, ~0.7 MB for these families): nothing
+#          in XXRI decodes video on the GPU; radeon runs without them
+#   i915 GuC/HuC for Gen9: 6.12's i915 never loads them without
+#          enable_guc= (GuC/HuC are default only from Gen12)
+#   ast_dp501_fw.bin (server BMC graphics)
+radeon/ARUBA_me.bin
+radeon/ARUBA_pfp.bin
+radeon/ARUBA_rlc.bin
+radeon/BARTS_mc.bin
+radeon/BARTS_me.bin
+radeon/BARTS_pfp.bin
+radeon/BARTS_smc.bin
+radeon/BTC_rlc.bin
+radeon/CAICOS_mc.bin
+radeon/CAICOS_me.bin
+radeon/CAICOS_pfp.bin
+radeon/CAICOS_smc.bin
+radeon/CAYMAN_mc.bin
+radeon/CAYMAN_me.bin
+radeon/CAYMAN_pfp.bin
+radeon/CAYMAN_rlc.bin
+radeon/CAYMAN_smc.bin
+radeon/CEDAR_me.bin
+radeon/CEDAR_pfp.bin
+radeon/CEDAR_rlc.bin
+radeon/CEDAR_smc.bin
+radeon/CYPRESS_me.bin
+radeon/CYPRESS_pfp.bin
+radeon/CYPRESS_rlc.bin
+radeon/CYPRESS_smc.bin
+radeon/JUNIPER_me.bin
+radeon/JUNIPER_pfp.bin
+radeon/JUNIPER_rlc.bin
+radeon/JUNIPER_smc.bin
+radeon/PALM_me.bin
+radeon/PALM_pfp.bin
+radeon/R100_cp.bin
+radeon/R200_cp.bin
+radeon/R300_cp.bin
+radeon/R420_cp.bin
+radeon/R520_cp.bin
+radeon/R600_me.bin
+radeon/R600_pfp.bin
+radeon/R600_rlc.bin
+radeon/R700_rlc.bin
+radeon/REDWOOD_me.bin
+radeon/REDWOOD_pfp.bin
+radeon/REDWOOD_rlc.bin
+radeon/REDWOOD_smc.bin
+radeon/RS600_cp.bin
+radeon/RS690_cp.bin
+radeon/RS780_me.bin
+radeon/RS780_pfp.bin
+radeon/RV610_me.bin
+radeon/RV610_pfp.bin
+radeon/RV620_me.bin
+radeon/RV620_pfp.bin
+radeon/RV630_me.bin
+radeon/RV630_pfp.bin
+radeon/RV635_me.bin
+radeon/RV635_pfp.bin
+radeon/RV670_me.bin
+radeon/RV670_pfp.bin
+radeon/RV710_me.bin
+radeon/RV710_pfp.bin
+radeon/RV710_smc.bin
+radeon/RV730_me.bin
+radeon/RV730_pfp.bin
+radeon/RV730_smc.bin
+radeon/RV740_smc.bin
+radeon/RV770_me.bin
+radeon/RV770_pfp.bin
+radeon/RV770_smc.bin
+radeon/SUMO2_me.bin
+radeon/SUMO2_pfp.bin
+radeon/SUMO_me.bin
+radeon/SUMO_pfp.bin
+radeon/SUMO_rlc.bin
+radeon/TURKS_mc.bin
+radeon/TURKS_me.bin
+radeon/TURKS_pfp.bin
+radeon/TURKS_smc.bin
+i915/bxt_dmc_ver1_07.bin
+i915/glk_dmc_ver1_04.bin
+i915/kbl_dmc_ver1_04.bin
+i915/skl_dmc_ver1_27.bin

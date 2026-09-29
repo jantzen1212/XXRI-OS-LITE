@@ -1,0 +1,8 @@
+## SECTION=image
+
+config IMAGE_XXRI_FIRMWARE_GPU_TCZ
+	tristate
+	prompt "Generate xxri-firmware-gpu.tcz"
+	help
+	  The GPU firmware extension (loaded at boot, before the udev trigger
+	  that loads the KMS drivers).

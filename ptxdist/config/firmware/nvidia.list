@@ -1,0 +1,65 @@
+# NVIDIA GPU firmware for nouveau - xxri-firmware-nvidia.tcz
+# (rules/xxri-firmware-nvidia.make; the driver itself is Tiny Core's pinned
+# nouveau-6.12.11-tinycore.tcz, config/cde)
+#
+# Source: linux-firmware 20260810 (pinned in rules/pre/xxri.make), through its
+# WHENCE by scripts/xxri-fw-select.py (most per-chip names are links).
+#
+# Scope: NVIDIA GPUs up to the 2015-era GTX generation, Maxwell.
+#   NV04 .. Kepler (Riva TNT .. GTX 780 Ti) and Maxwell 1 (GM107/GM108: GTX
+#   750/750 Ti, 840M-940MX) need no firmware.  Maxwell 2 (GM200/GM204/GM206:
+#   GTX 950-980 Ti, Titan X, GTX 965M-980M) needs NVIDIA's signed firmware for
+#   acceleration - every file 6.12.11's nouveau declares for those chips.
+#   nouveau runs all of them at the clocks the video BIOS sets (it does not
+#   reclock on its own).
+#
+# Left out: Pascal (GTX 10, 2016) and everything newer - Volta, Turing
+# (GTX 16, RTX 20), Ampere, Ada, and all GSP-RM.  nouveau still drives
+# Pascal .. Ampere displays without acceleration; Ada (RTX 40) needs GSP-RM,
+# so nouveau refuses it before taking the screen over and the firmware
+# framebuffer stays (docs/gpu-cpu-support.md).
+nvidia/gm200/acr/bl.bin
+nvidia/gm200/acr/ucode_load.bin
+nvidia/gm200/acr/ucode_unload.bin
+nvidia/gm200/gr/fecs_bl.bin
+nvidia/gm200/gr/fecs_data.bin
+nvidia/gm200/gr/fecs_inst.bin
+nvidia/gm200/gr/fecs_sig.bin
+nvidia/gm200/gr/gpccs_bl.bin
+nvidia/gm200/gr/gpccs_data.bin
+nvidia/gm200/gr/gpccs_inst.bin
+nvidia/gm200/gr/gpccs_sig.bin
+nvidia/gm200/gr/sw_bundle_init.bin
+nvidia/gm200/gr/sw_ctx.bin
+nvidia/gm200/gr/sw_method_init.bin
+nvidia/gm200/gr/sw_nonctx.bin
+nvidia/gm204/acr/bl.bin
+nvidia/gm204/acr/ucode_load.bin
+nvidia/gm204/acr/ucode_unload.bin
+nvidia/gm204/gr/fecs_bl.bin
+nvidia/gm204/gr/fecs_data.bin
+nvidia/gm204/gr/fecs_inst.bin
+nvidia/gm204/gr/fecs_sig.bin
+nvidia/gm204/gr/gpccs_bl.bin
+nvidia/gm204/gr/gpccs_data.bin
+nvidia/gm204/gr/gpccs_inst.bin
+nvidia/gm204/gr/gpccs_sig.bin
+nvidia/gm204/gr/sw_bundle_init.bin
+nvidia/gm204/gr/sw_ctx.bin
+nvidia/gm204/gr/sw_method_init.bin
+nvidia/gm204/gr/sw_nonctx.bin
+nvidia/gm206/acr/bl.bin
+nvidia/gm206/acr/ucode_load.bin
+nvidia/gm206/acr/ucode_unload.bin
+nvidia/gm206/gr/fecs_bl.bin
+nvidia/gm206/gr/fecs_data.bin
+nvidia/gm206/gr/fecs_inst.bin
+nvidia/gm206/gr/fecs_sig.bin
+nvidia/gm206/gr/gpccs_bl.bin
+nvidia/gm206/gr/gpccs_data.bin
+nvidia/gm206/gr/gpccs_inst.bin
+nvidia/gm206/gr/gpccs_sig.bin
+nvidia/gm206/gr/sw_bundle_init.bin
+nvidia/gm206/gr/sw_ctx.bin
+nvidia/gm206/gr/sw_method_init.bin
+nvidia/gm206/gr/sw_nonctx.bin

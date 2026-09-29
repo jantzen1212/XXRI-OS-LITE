@@ -1,0 +1,15 @@
+## SECTION=project_specific
+
+config XXRI_FIRMWARE_INTEL
+	bool
+	select HOST_PYTHON3
+	select HOST_SQUASHFS_TOOLS
+	select HOST_SQUASHFS_TOOLS_XZ_SUPPORT
+	prompt "xxri-firmware-intel: firmware for Atom/Celeron-class Intel GPUs after Gen9"
+	help
+	  The display (DMC), GuC and HuC firmware Tiny Core's i915 loads by
+	  default on the Atom- and Celeron-class iGPUs newer than Gen9 -
+	  Elkhart/Jasper Lake, Tiger Lake, Alder Lake-S/-P/-N, Twin Lake - from
+	  the pinned linux-firmware release; the same files serve the Core CPUs
+	  of those platforms. Gen9 DMC stays in xxri-firmware-gpu.
+	  config/firmware/intel.list names every file.

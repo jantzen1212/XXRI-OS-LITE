@@ -1,13 +1,20 @@
 # QA — the PTXdist-native build with XLibre (XXRI OS Lite 2.6)
 
-Everything here was measured on one ISO: the output of **one clean PTXdist
-build** — `rm -rf platform-xxri; ptxdist --j-intern=6 images` at commit
-`35eaf7d` (branch `xxri-ptxdist-native`, clean tree), 201.5 min wall /
-1010 min CPU on an 8-core i7-9700 with 32 GB, OSELAS.Toolchain-2024.11.1
+**Release candidate: `XXRI-Lite-2.6.iso`, 254,803,968 bytes, sha256
+`28d6304c6e14bc7c41dcf745a4e032151465ec2046b9e57b5c75e7b467ee003d`** — one
+clean PTXdist build (`rm -rf platform-xxri; ptxdist --j-intern=6 images`) at
+commit `3ae016b` (branch `xxri-ptxdist-native`, clean tree), 209.6 min wall /
+1013 min CPU on an 8-core i7-9700 with 32 GB, OSELAS.Toolchain-2024.11.1
 (i586, GCC 14.2.1, glibc 2.40).
 
-`XXRI-Lite-2.6.iso` — 254,650,368 bytes, sha256
-`75904012dd31a4fc9e05ca47d6c55093cade254ca44ed2d4192d395087eb764d`.
+It is the previous candidate (`75904012…`, clean build at `35eaf7d`, the
+full QA below) plus the GPU firmware extension. Between the two clean builds
+`core.gz`, `xxri-xlibre.tcz` and `xxri-grub.tcz` are byte-identical; the
+browser extension differs only in `libQt5WebEngineCore` (see
+Reproducibility). So the full QA carries over for everything byte-identical,
+and on the new ISO were re-run: the release gate with its boots, the GPU
+scenarios the firmware affects, the standard KMS path, an installer
+scenario, and the programs including the browser ("GPU firmware" below).
 
 The reference is the 2.6 release ISO (`aa8137be…`, Build A). Harnesses:
 `tools/qa/release-qa.sh` (everything below in one run), `full-qa.sh`,
@@ -17,7 +24,8 @@ The reference is the 2.6 release ISO (`aa8137be…`, Build A). Harnesses:
 
 | | 2.6 | PTXdist | |
 |---|---|---|---|
-| ISO | 278,568,960 B (265.7 MiB) | 254,650,368 B (242.9 MiB) | −8.6 % |
+| ISO | 278,568,960 B (265.7 MiB) | 254,803,968 B (243.0 MiB) | −8.5 % |
+| `xxri-firmware-gpu.tcz` | — (no GPU firmware) | 151,552 B | new |
 | `core.gz` | 16,676,285 B | 15,933,784 B | −4.5 % |
 | `xxri-browser.tcz` | 93,298,688 B | 70,942,720 B | −24 % |
 | X server | 3,387,392 B (5 extensions: `xorg-server`, `Xvesa`, `libXfont`, `xf86-input-libinput`, `xf86-video-fbdev`) | 2,482,176 B (`xxri-xlibre.tcz`) | −27 % |
@@ -37,7 +45,13 @@ The reference is the 2.6 release ISO (`aa8137be…`, Build A). Harnesses:
   path, from a later commit that touches no package content - **22 of 22
   payloads identical** file by file (`tools/qa/ipk-compare.py`). Before the
   two fixes below, the same comparison found the build path inside XLibre.
-* Not measured: a second clean build of Qt WebEngine (3+ hours).
+* **Two clean builds** (`35eaf7d` and `3ae016b`, which differ in no package
+  content): `core.gz`, `xxri-xlibre.tcz`, `xxri-grub.tcz` byte-identical.
+  `xxri-browser.tcz` is not: `libQt5WebEngineCore.so` has the same size and
+  the same 3,304 exported symbols, but `.text` differs by 64 bytes net, with
+  code shifted by -1,648 to +192 bytes at several places - some Chromium
+  translation units compile differently from build to build under GCC.
+  Everything else in the browser extension is identical. Not root-caused.
 
 ## Release gate (`validate-release.sh --boot`)
 
@@ -135,6 +149,50 @@ The PTXdist system uses **9 MB more at idle**. Browser resident sizes count
 shared library pages once per process, so they overstate real use (equally for
 both).
 
+## GPU firmware (`xxri-firmware-gpu.tcz`)
+
+**What ships** (`config/firmware/gpu.list`): 81 files the kernel's own
+drivers declare, unmodified from Tiny Core 16's `firmware-radeon.tcz` and
+`firmware-i915.tcz` (linux-firmware 20240220), 760 KiB unpacked:
+
+| Driver | Hardware | Files |
+|---|---|---|
+| radeon | R100–R500: Radeon 7000 … X1950 (1999–2008) | CP microcode |
+| radeon | R600–R700: HD 2000 … HD 4000, HD 3200/4200 IGPs | PFP, ME, RLC, SMC |
+| radeon | Evergreen HD 5000; Palm/Sumo APUs (E-350/C-50 netbooks, Llano); Northern Islands HD 6000; Aruba (Trinity/Richland) | PFP, ME, RLC, SMC; MC for NI, without which radeon cannot start an NI card at all |
+| i915 | Gen9: Skylake, Kaby Lake, Broxton, Gemini Lake | DMC (display power states) |
+
+**Left out**, as not useful on XXRI's hardware or unused: radeon UVD/VCE
+(~0.7 MiB for these families — nothing decodes video on the GPU), radeon
+SI/CIK (HD 7000 and newer, 5.4 MiB — they take the vesa fallback on BIOS
+machines), amdgpu (20.8 MiB compressed, GCN 1.2+), i915 GuC/HuC (off by
+default before Gen12) and Gen11+ DMC (64-bit-UEFI machines this ISO does not
+boot). The Tiny Core kernel has no nouveau: NVIDIA cards always use the
+framebuffer or vesa path, and no NVIDIA firmware would help.
+
+**Size impact**: the extension is 151,552 B; the ISO grows by 153,600 B
+(+0.06 %, 254,650,368 → 254,803,968). It is loop-mounted like every other
+extension, not copied into RAM. For comparison, Tiny Core's complete
+packages are 2.85 MB (radeon) + 12.5 MB (i915) + 20.8 MB (amdgpu).
+
+**Re-run on the new ISO:**
+
+| Test | Result |
+|---|---|
+| release gate: firmware extension in `onboot.lst`, contents = `gpu.list` | ok (81 files, 148 KiB) |
+| release gate: ELF closure, ISA, X server checks | ok (187 extensions) |
+| SeaBIOS + 32-bit OVMF × CD/disk/USB → desktop; 64-bit OVMF refusal; direct boot 1/16 GiB | 6/6, ok, 2/2 |
+| `gpu-rv100` (Radeon 7000, radeon KMS), kernel log on serial | the firmware now reaches the driver: before, `Failed to load firmware "radeon/R100_cp.bin"` and `failed initializing CP (-2)`; now the file is served, the microcode uploaded, and the CP ring test fails (`-22`) because QEMU's `ati-vga` does not emulate the command processor. The guest then hangs in QEMU as before. |
+| `kms-bios`, `gpu-rage128` (unaffected paths, regression) | desktop, input 33/2/4/3 and 20/3/4/3, as before |
+| installer `bios-auto-mbr`, installed disk read back | installs and boots; the installed root holds all 81 files (content identical) and both licences |
+| all XXRI programs incl. the browser (start page, HTTPS page) | 11/11 |
+
+Not verifiable here: that a real Radeon or Intel Gen9 GPU uses the
+firmware. QEMU emulates neither the Radeon command processor nor any Intel
+GPU; the delivery path (Tiny Core's udev helper serving
+`/usr/local/lib/firmware`) is proven, the file names match what the drivers
+request.
+
 ## Defects found by this QA and fixed before the clean build
 
 | Found by | Defect | Fix |
@@ -157,9 +215,10 @@ both).
 * **GPU acceleration** (glamor, GLX on a real driver): not reachable in QEMU.
 * **Period CPUs**: instruction-set compatibility is proven in emulation; speed
   on a real Pentium/K6 is not measured.
-* The Radeon 7000 path (QEMU hangs). GPU firmware is not shipped at all
-  (as in 2.6): Radeon R100–R500 lose acceleration, newer GPUs may fail KMS and
-  land on the vesa fallback (BIOS) or no desktop (UEFI).
+* The Radeon 7000 path (QEMU hangs) and whether real legacy Radeon / Intel
+  Gen9 GPUs use the shipped firmware. GPUs whose firmware is not shipped
+  (radeon SI/CIK, amdgpu) may fail KMS and land on the vesa fallback (BIOS)
+  or no desktop (UEFI).
 * XXRI Browser runs **without Chromium's sandbox**, as 2.6 did (see above).
 * The live session's first-run screen runs without the dock and without a
   window manager — identical to 2.6 (`/etc/sysconfig/desktop` is written only

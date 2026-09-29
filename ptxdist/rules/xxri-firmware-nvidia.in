@@ -1,0 +1,15 @@
+## SECTION=project_specific
+
+config XXRI_FIRMWARE_NVIDIA
+	bool
+	select HOST_PYTHON3
+	select HOST_SQUASHFS_TOOLS
+	select HOST_SQUASHFS_TOOLS_XZ_SUPPORT
+	prompt "xxri-firmware-nvidia: firmware for NVIDIA GPUs up to Maxwell (nouveau)"
+	help
+	  The signed NVIDIA firmware Tiny Core's nouveau module needs for
+	  acceleration on Maxwell 2 (GTX 950 .. 980 Ti), from the pinned
+	  linux-firmware release. NV04 .. Maxwell 1 need none; Pascal and newer
+	  (every RTX, all GSP-RM) are left out. The driver is Tiny Core's
+	  nouveau-6.12.11-tinycore.tcz (config/cde).
+	  config/firmware/nvidia.list names every file.

@@ -1,0 +1,15 @@
+## SECTION=project_specific
+
+config XXRI_FIRMWARE_AMD
+	bool
+	select HOST_PYTHON3
+	select HOST_SQUASHFS_TOOLS
+	select HOST_SQUASHFS_TOOLS_XZ_SUPPORT
+	prompt "xxri-firmware-amd: firmware for AMD GPUs up to GCN 3 (radeon SI/CIK, amdgpu VI)"
+	help
+	  The firmware for AMD GPUs up to the 2015-era GCN generations, from
+	  the pinned linux-firmware release: radeon's Southern and Sea Islands
+	  files (HD 7000, R7/R9 200/300 series, Kaveri/Kabini APUs) and
+	  amdgpu's Volcanic Islands files (Tonga, Fiji, Topaz, Carrizo,
+	  Stoney). Older Radeons are in xxri-firmware-gpu.
+	  config/firmware/amd.list names every file and what is left out.
