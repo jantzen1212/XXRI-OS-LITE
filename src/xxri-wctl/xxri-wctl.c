@@ -1,19 +1,15 @@
-/* xxri-wctl - window control + dock running indicators for XXRI OS Lite.
+/* xxri-wctl - window control and dock indicators.
  *
- * The dock (wbar) is a launcher: it starts programs and nothing else, so it
- * has no idea which are running, focused or minimised.  This gives it those
- * two things without replacing it:
+ * wbar only launches things; it doesn't know what is running or focused.
  *   list             every managed window + state
  *   running KEY      exit 0 if KEY has a managed window
  *   activate KEY     deiconify + raise + focus KEY's window
- *   indicators       daemon: running dots under the dock icons, AND the
+ *   indicators       daemon: running dots under the dock icons and the
  *                    right-click "Unpin from Dock" menu (see cmd_indicators)
  *
- * KEY matches WM_CLASS's instance name (the executable namaname), so the
- * dock's command line identifies a slot - no extra registry.  The WM is flwm
- * (ICCCM-only, no _NET_*), so everything below is plain ICCCM: WM_STATE tells
- * normal vs iconic, and a window is "managed" exactly when it has WM_STATE,
- * which also excludes the dock and Control Center (override-redirect).
+ * KEY is the WM_CLASS instance name (usually the executable name), so the
+ * dock's command line identifies a slot. flwm is ICCCM-only: managed means
+ * has WM_STATE, which also leaves out the override-redirect dock and CC.
  */
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -41,8 +37,7 @@ typedef struct {
 
 static int x_err(Display *d, XErrorEvent *e) { (void)d; (void)e; return 0; }
 
-/* WM_STATE is set by the window manager on the CLIENT window, so its presence
- * is the test for "this is a managed application window". */
+/* WM_STATE sits on the managed client window */
 static int wm_state(Window w, int *state)
 {
     Atom type; int fmt; unsigned long n, after; unsigned char *p = NULL;
@@ -54,9 +49,7 @@ static int wm_state(Window w, int *state)
     return type != None;
 }
 
-/* Descend at most a couple of levels looking for the window that carries
- * WM_STATE: flwm reparents each client into a frame, so root's children are
- * frames and the client sits one level down. */
+/* root's children are flwm frames, the client is one level down */
 static Window find_client(Window w, int depth, int *state)
 {
     Window r, parent, *kids = NULL; unsigned int nk = 0, i;
@@ -80,13 +73,9 @@ static void instance_name(Window w, char *out, size_t len)
     }
 }
 
-/* _NET_WM_PID is the ONE piece of identity a window carries that cannot be
- * guessed wrong: it says which process owns it, and /proc then says exactly
- * which program that is.  WM_CLASS is a name the application picked for
- * itself and often has nothing to do with how the desktop launches it -
- * Code-OSS is started as `xxri-app launch code-oss` and calls itself "code" -
- * so the pid is what lets the dock resolve a window back to its .desktop
- * entry instead of pattern-matching names. */
+/* the pid maps a window back to its program reliably; WM_CLASS is whatever
+ * the app picked (Code-OSS, launched as `xxri-app launch code-oss`, says
+ * "code") */
 static long window_pid(Window w)
 {
     Atom type; int fmt; unsigned long n, after; unsigned char *p = NULL;
@@ -125,7 +114,7 @@ static int key_matches(const char *inst, const char *key)
     return strcasecmp(inst, key) == 0;
 }
 
-/* Which client currently has the input focus (walk up to a WM_STATE window). */
+/* the focused client: walk up to the WM_STATE window */
 static Window focused_client(void)
 {
     Window w = None; int revert = 0;
@@ -149,8 +138,7 @@ static int cmd_list(void)
     for (int i = 0; i < n; i++) {
         char *nm = NULL;
         XFetchName(dpy, cl[i].client, &nm);
-        /* pid goes BEFORE the title: the title is the only field that may
-         * contain spaces, so it has to stay last for any reader. */
+        /* the title can contain spaces, keep it last */
         printf("0x%lx %s%s %s %ld %s\n", cl[i].client,
                cl[i].iconic ? "iconic" : "normal",
                cl[i].client == f ? ",focused" : "",
@@ -169,14 +157,12 @@ static int cmd_running(const char *key)
     return 1;
 }
 
-/* Bring a window back: deiconify it the ICCCM way (map the client and let the
- * window manager notice), raise its frame, and hand it the input focus. */
+/* deiconify, raise and focus */
 static int cmd_activate(const char *key)
 {
     Client cl[MAX_CLIENTS];
     int n = collect(cl, MAX_CLIENTS), hit = -1;
-    /* prefer a window that is already normal, so repeated dock clicks cycle
-     * to something visible rather than resurrecting a minimised one first */
+    /* prefer a window that is already visible over a minimised one */
     for (int i = 0; i < n; i++)
         if (key_matches(cl[i].inst, key) && !cl[i].iconic) { hit = i; break; }
     if (hit < 0)
@@ -184,13 +170,8 @@ static int cmd_activate(const char *key)
             if (key_matches(cl[i].inst, key)) { hit = i; break; }
     if (hit < 0) return 1;
 
-    /* Deiconify + raise through the window manager, not behind its back.
-     * Mapping the client window directly does nothing here: flwm reparents the
-     * client into a frame it owns, so while the window is iconic the frame is
-     * unmapped and a map of the client inside it is invisible and unnoticed.
-     * The ICCCM message below is the supported route - flwm answers a
-     * WM_CHANGE_STATE of NormalState by calling Frame::raise(), which restores
-     * the frame, restacks it on top and writes WM_STATE back to NormalState. */
+    /* through flwm: mapping the client does nothing while its frame is
+     * unmapped. flwm answers WM_CHANGE_STATE NormalState with Frame::raise(). */
     XEvent ev;
     memset(&ev, 0, sizeof ev);
     ev.xclient.type         = ClientMessage;
@@ -206,22 +187,40 @@ static int cmd_activate(const char *key)
     return 0;
 }
 
-/* One tiny override-redirect window per dock slot.  There is no compositor on
- * this desktop, so a translucent surface would paint black; a small solid
- * window whose background colour IS the indicator needs no drawing code, no
- * expose handling and no shape extension, and it can never flicker. */
+/* One tiny override-redirect window per dock slot, its background colour is
+ * the indicator: no drawing, no expose handling, no flicker, and no need for
+ * the compositor. */
 
 #define IND_H      3
 #define IND_W_RUN  16
 #define IND_W_FOC  22
-#define C_RUN      0x9C8CF0
-#define C_FOC      0x4B2FD6
+#define C_RUN      0x8DB6F9
+#define C_FOC      0x2E7CF6
 
 typedef struct { char key[128]; Window win; int mapped; int w; unsigned long col; } Slot;
 
-/* The dock's launcher list, in slot order, straight out of the file wbar
- * itself reads.  The first triplet in that file is wbar's own configuration
- * line, not a launcher, so it is skipped. */
+/* an option from wbar's own line (the first "c: wbar ..." in tce.icons), e.g.
+ * -isize, which Settings can change */
+static int wbar_option(const char *opt, int fallback)
+{
+    FILE *f = fopen("/usr/local/tce.icons", "r");
+    if (!f) return fallback;
+    char line[1024]; int v = fallback;
+    while (fgets(line, sizeof line, f)) {
+        if (strncmp(line, "c: ", 3) != 0) continue;
+        char *p = strstr(line, opt);
+        size_t n = strlen(opt);
+        if (p && (p[n] == ' ' || p[n] == '\t')) {
+            int x = atoi(p + n);
+            if (x > 0 && x <= 256) v = x;
+        }
+        break;                                        /* only wbar's own line */
+    }
+    fclose(f);
+    return v;
+}
+
+/* the dock's launchers in slot order, from the file wbar reads */
 static int read_slots(Slot *s, int max)
 {
     FILE *f = fopen("/usr/local/tce.icons", "r");
@@ -236,24 +235,21 @@ static int read_slots(Slot *s, int max)
         while (*p == ' ') p++;
         tok = strtok(p, " \t\r\n");                   /* the program itself */
         if (!tok) continue;
-        char *nama = strrchr(tok, '/');
-        nama = nama ? nama + 1 : tok;
-        /* Every launcher is wrapped as `xxri-dock-launch KEY REALCOMMAND`, so
-         * the identity to watch is the wrapper's first argument, not the
-         * wrapper.  A leading '+' means the application may have several
-         * windows (a terminal) - it is still indicated.  A bare '-' means the
-         * entry is not an application (the power menu) and gets no indicator. */
-        if (!strcmp(nama, "xxri-dock-launch")) {
+        char *name = strrchr(tok, '/');
+        name = name ? name + 1 : tok;
+        /* `xxri-dock-launch KEY CMD`: the key is what to watch. '+KEY' (may
+         * have several windows) still gets a dot, '-' (not an app, e.g. the
+         * power menu) doesn't. */
+        if (!strcmp(name, "xxri-dock-launch")) {
             char *k = strtok(NULL, " \t\r\n");
             if (!k) continue;
             if (*k == '+') k++;
             if (*k == '-') { s[n].key[0] = 0; }
             else snprintf(s[n].key, sizeof s[n].key, "%s", k);
         } else {
-            snprintf(s[n].key, sizeof s[n].key, "%s", nama);
+            snprintf(s[n].key, sizeof s[n].key, "%s", name);
         }
-        /* One indicator per application: the Disks icon opens the same program
-         * as Settings, and two lit dots for one window would be a lie. */
+        /* one dot per app (Disks opens Settings too) */
         for (int j = 0; j < n; j++)
             if (s[n].key[0] && !strcasecmp(s[j].key, s[n].key)) { s[n].key[0] = 0; break; }
         s[n].win = None; s[n].mapped = 0; s[n].w = 0; s[n].col = 0;
@@ -263,8 +259,7 @@ static int read_slots(Slot *s, int max)
     return n;
 }
 
-/* wbar's own window gives the dock's true position and size, so the
- * indicators track it instead of assuming a hard-coded layout. */
+/* from wbar's own window, no hard-coded layout */
 static int dock_geometry(int *dx, int *dy, int *dw, int *dh)
 {
     Window r, parent, *kids = NULL; unsigned int nk = 0, i;
@@ -296,30 +291,15 @@ static Window make_indicator(void)
                          CWOverrideRedirect | CWBackPixel | CWSaveUnder, &wa);
 }
 
-/* --------------------------------------------------- dock right-click menu
- *
- * wbar is a third-party binary with no context menu of its own, and it is not
- * ours to add one to.  Instead, button 3 is grabbed on wbar's OWN window - a
- * passive grab any client can place on a window it does not own, exactly how
- * a window manager grabs button 1 on client windows for click-to-focus - so
- * every right-click physically on the dock is delivered here instead of to
- * wbar (which never did anything with it anyway).  GrabModeAsync everywhere:
- * there is no reason to let wbar also see the event, so there is nothing to
- * freeze/replay for, unlike a click-to-focus WM would need.
- *
- * The grab is scoped to wbar's window ONLY, never the root window - a right-
- * click anywhere else on the desktop (another app, empty wallpaper) is
- * completely unaffected, and re-grabbing on every detected wbar restart (a
- * pin/unpin, or a crash) is what keeps it that way across the dock's whole
- * lifetime rather than just the copy of wbar that happened to be running
- * when this daemon started.
- */
+/* ---- dock right-click menu
+ * wbar has no context menu. Button 3 is grabbed on the root window (see
+ * cmd_indicators) and a click on the dock spawns `xxri-launcher --dockmenu`
+ * for the pinned icon under it. */
 #define PINNED_LIST "/usr/local/share/xxri-launcher/pinned.list"
 #define APPDIR      "/usr/local/share/applications"
 
-/* pinned.list, in order, skipping any id whose .desktop has since vanished -
- * write_dock() (xxri-dock-pin) drops those from the live dock too, so this
- * stays index-aligned with the slots read_slots() finds in tce.icons. */
+/* pinned.list without ids whose .desktop is gone - write_dock() in
+ * xxri-dock-pin drops them too, so the index matches read_slots() */
 static int read_pinned_ids(char ids[][128], int max)
 {
     FILE *f = fopen(PINNED_LIST, "r");
@@ -341,10 +321,8 @@ static int read_pinned_ids(char ids[][128], int max)
     return n;
 }
 
-/* event.x is relative to wbar's own window (owner_events=False in the grab
- * below), which is exactly the coordinate space the pad/isize/idist math
- * everywhere else in this file already uses once dx is subtracted out - so
- * this mirrors cmd_indicators()'s own slot-position formula, not a new one. */
+/* e->x is dock-relative (the caller subtracts the dock's x); same slot math
+ * as the indicators in cmd_indicators() */
 static void handle_dock_right_click(XButtonEvent *e, int nslots,
                                     char ids[][128], int nids,
                                     int isize, int idist)
@@ -369,9 +347,8 @@ static int cmd_indicators(int debug)
     Slot slots[MAX_SLOTS];
     int nslots = read_slots(slots, MAX_SLOTS);
     if (nslots <= 0) { fprintf(stderr, "xxri-wctl: no dock slots found\n"); return 1; }
-    /* icon pitch comes from the dock's own options; these are the values in
-     * /usr/local/share/wbar/dot.wbar (-isize 40 -idist 7) */
-    const int isize = 40, idist = 7;
+    /* dot.wbar ships -isize 40 -idist 7, Settings may change the size */
+    const int isize = wbar_option("-isize", 40), idist = wbar_option("-idist", 7);
     for (int i = 0; i < nslots; i++)
         if (slots[i].key[0]) slots[i].win = make_indicator();
     if (debug) fprintf(stderr, "xxri-wctl: %d dock slots\n", nslots);
@@ -382,26 +359,13 @@ static int cmd_indicators(int debug)
 
     Client cl[MAX_CLIENTS];
     for (;;) {
-        /* wbar gets a new window id every restart (a pin/unpin, or a crash),
-         * so the button-3 grab is re-placed whenever a different window is
-         * found - this indicators process itself is also restarted on every
-         * pin/unpin (xxri-dock-pin's regen()), so pinned_ids is re-read fresh
-         * from a brand-new process rather than needing to watch the file. */
-        /* Button 3 is grabbed on the ROOT window, not on wbar's own: a
-         * passive grab placed on another client's override-redirect window
-         * never delivered anything here (the grab is accepted, the events
-         * simply do not arrive), whereas a root grab is the mechanism every
-         * "global gesture" tool uses and is reliable.  The cost is that it
-         * sees EVERY right-click on the desktop, so it must give back the
-         * ones that are not on the dock - that is what GrabModeSync plus
-         * XAllowEvents(ReplayPointer) is for: the click is re-delivered as
-         * though this grab never existed, so right-clicking inside any other
-         * application still behaves exactly as it always did.
-         *
-         * XAllowEvents is called IMMEDIATELY on receiving the event, before
-         * anything else can fail: a sync grab freezes pointer processing for
-         * the whole server until it is called, so nothing slow or fallible
-         * may come first. */
+        /* Button 3 on the root window: a grab on wbar's own window was
+         * accepted but never delivered anything. A root grab sees every
+         * right-click, so it is sync and anything not on the dock is given
+         * back with ReplayPointer - other apps see their clicks as before.
+         * XAllowEvents first thing, a sync grab freezes the whole server's
+         * pointer until then. (xxri-dock-pin restarts this daemon on every
+         * pin/unpin, so pinned_ids is always fresh.) */
         if (!grabbed) {
             unsigned int mods[] = { 0, LockMask, Mod2Mask, LockMask | Mod2Mask };
             for (unsigned m = 0; m < sizeof mods / sizeof mods[0]; m++)
@@ -454,8 +418,7 @@ static int cmd_indicators(int debug)
                 int w   = foc ? IND_W_FOC : IND_W_RUN;
                 unsigned long col = foc ? C_FOC : C_RUN;
                 int cx  = dx + pad + s * (isize + idist) + isize / 2;
-                /* Measured from the ICON, not from the pill: derived from the
-                   pill's lower edge it crept up under the icon and touched it. */
+                /* from the icon, not the pill edge (that touched the icon) */
                 int iy  = dy + (dh - isize)/2 + isize + 2;
                 XMoveResizeWindow(dpy, slots[s].win, cx - w / 2, iy, w, IND_H);
                 if (col != slots[s].col) {
@@ -466,12 +429,13 @@ static int cmd_indicators(int debug)
                 if (!slots[s].mapped) { XMapRaised(dpy, slots[s].win); slots[s].mapped = 1; }
                 else XRaiseWindow(dpy, slots[s].win);
             }
+        } else {
+            /* no dock (installer, wbar restart): hide, or the dots float alone */
+            for (int s = 0; s < nslots; s++)
+                if (slots[s].mapped) { XUnmapWindow(dpy, slots[s].win); slots[s].mapped = 0; }
         }
-        /* Publish where every dock icon is, so the window manager can make a
-         * window come from - and go back to - its own icon.  A root property is
-         * the natural channel: the dock helper is the only thing that knows the
-         * geometry, the window manager is the only thing that can move windows,
-         * and neither has to know the other exists. */
+        /* publish the icon positions as a root property for flwm's
+         * minimise/restore animation */
         {
             char buf[MAX_SLOTS * 160];
             int n2 = 0, len = 0;

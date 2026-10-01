@@ -2,97 +2,386 @@
 # xxri-bluetooth - bluetooth backend (xxri Hardware Layer).
 #
 #   xxri-bluetooth status [--json]
-#   xxri-bluetooth scan|pair MAC|connect MAC|disconnect MAC
+#   xxri-bluetooth power [on|off] [--json]    the radio; on/off is kept across boots
+#   xxri-bluetooth start                      D-Bus and bluetoothd, if not running
+#   xxri-bluetooth auto                       boot-time: start unless switched off
+#   xxri-bluetooth devices [--json]           paired devices (also: paired)
+#   xxri-bluetooth scan [SECONDS] [--json]    devices nearby, default 8 s
+#   xxri-bluetooth pair MAC [--json]          pair, trust and connect
+#   xxri-bluetooth connect|disconnect|trust|remove MAC [--json]
+#   xxri-bluetooth name [NAME] [--json]       the name other devices see
 #
-# xxri OS Lite does not ship the BlueZ stack by default (it would add
-# >15 MB of dependencies).  This backend provides the stable API with
-# graceful fallback: it detects adapters and rfkill state from sysfs,
-# and drives bluetoothctl automatically once bluez5 is installed
-# (xxri-pkg -wi bluez5).  Frontends code against this API either way.
+# BlueZ 5 (bluez5.tcz): bluetoothd on the system D-Bus, driven with
+# bluetoothctl. Pairing is one interactive bluetoothctl with its own agent.
+# While it runs, `pair` prints what the user has to see or decide:
+#   confirm NNNNNN   compare with the device's number; answer yes/no on stdin
+#   passkey NNNNNN   type this on the device (keyboards)
+#   pin NNNN         the same for older devices
+# and the result as the last line.
 . /usr/local/lib/xxri/hw-lib.sh
 
+# --json may come anywhere; the rest keep their positions (names have spaces)
 JSON=0
-for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+qs() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+_args=""
+for a in "$@"; do
+	[ "$a" = "--json" ] && { JSON=1; continue; }
+	_args="$_args $(qs "$a")"
+done
+eval "set -- $_args"
 
-adapters() { for b in /sys/class/bluetooth/hci*; do [ -e "$b" ] && echo "${b##*/}"; done; }
-rf_blocked() {
-	for r in /sys/class/rfkill/*; do
-		[ "$(sf "$r/type")" = bluetooth ] || continue
-		[ "$(sf "$r/soft")" = 1 ] || [ "$(sf "$r/hard")" = 1 ] && { echo 1; return; }
+BTD=/usr/local/lib/bluetooth/bluetoothd
+BTCONF=/usr/local/etc/bluetooth
+BZFILES=/usr/local/share/bluez/files
+DBUS_PID=/var/run/dbus/pid
+ESC="$(printf '\033')"
+
+adapters() {
+	for b in /sys/class/bluetooth/hci*; do
+		n="${b##*/}"
+		# hci0:11 and the like are connections, not adapters
+		case "$n" in *:*|'hci*') continue ;; esac
+		echo "$n"
 	done
-	echo 0
 }
-stack() { have bluetoothctl && echo 1 || echo 0; }
+first_adapter() { adapters | head -1; }
+stack() { [ -x "$BTD" ] && have bluetoothctl && echo 1 || echo 0; }
+btd_up() { pidof bluetoothd >/dev/null 2>&1; }
+# the adapter's own state, read with an ioctl (no D-Bus, cheap enough for
+# Control Center's polling)
+hci_up()   { hciconfig "$1" 2>/dev/null | grep -qw UP; }
+hci_addr() { hciconfig "$1" 2>/dev/null | sed -n 's/.*BD Address: \([0-9A-Fa-f:]*\).*/\1/p' | head -1; }
 
+# ---- radio (rfkill) ---------------------------------------------------------
+rf_bt()   { for r in /sys/class/rfkill/rfkill*; do [ "$(sf "$r/type")" = bluetooth ] && echo "$r"; done; }
+rf_any()  { for r in $(rf_bt); do [ "$(sf "$r/$1")" = 1 ] && { echo 1; return; }; done; echo 0; }
+rf_soft() { for r in $(rf_bt); do sudo_if sh -c "echo $1 > $r/soft" 2>/dev/null; done; }
+
+# bluetoothctl in command mode, without colours; never hangs on a dead daemon
+bctl() {
+	btd_up || return 1
+	timeout "${BCTL_WAIT:-10}" bluetoothctl "$@" 2>/dev/null | sed "s/${ESC}\[[0-9;]*m//g" | tr -d '\r\001\002'
+}
+
+mac_ok() { # normalise a device address, fail on anything else
+	m="$(printf '%s' "$1" | tr 'a-f' 'A-F')"
+	case "$m" in
+		[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]:[0-9A-F][0-9A-F]) echo "$m" ;;
+		*) return 1 ;;
+	esac
+}
+
+ensure_drivers() { # USB class e0 = wireless controller (Bluetooth)
+	for u in /sys/bus/usb/devices/*:*; do
+		[ "$(sf "$u/bInterfaceClass")" = e0 ] && hw_load_driver "$u"
+	done
+}
+
+dbus_alive() { p="$(cat "$DBUS_PID" 2>/dev/null)"; [ -n "$p" ] && kill -0 "$p" 2>/dev/null; }
+
+cmd_start() {
+	[ "$(stack)" = 1 ] || return 1
+	ensure_drivers
+	# what bluez5.tcz's install script does on a live boot; an installed system
+	# has the files unpacked and never runs it
+	sudo_if mkdir -p "$BTCONF"
+	for f in main input network; do
+		[ -f "$BTCONF/$f.conf" ] || sudo_if cp -p "$BZFILES/$f.conf" "$BTCONF/" 2>/dev/null
+	done
+	# the system bus: nothing else in XXRI needs it, so it starts here. On an
+	# installed system /var/run is on disk: a pid file from an earlier boot
+	# would stop dbus-daemon from starting at all.
+	# Tiny Core's system bus runs as the user "tc", which XXRI does not have
+	# (dbus-daemon: Could not get UID and GID for username "tc"). BlueZ's policy
+	# is written for root anyway.
+	sbu="$(sed -n 's|.*<user>\(.*\)</user>.*|\1|p' /usr/local/share/dbus-1/system.conf | head -1)"
+	if [ -n "$sbu" ] && ! grep -q "^$sbu:" /etc/passwd && [ ! -f /usr/local/etc/dbus-1/system-local.conf ]; then
+		printf '%s\n' '<!DOCTYPE busconfig PUBLIC "-//freedesktop//DTD D-Bus Bus Configuration 1.0//EN"' \
+			' "http://www.freedesktop.org/standards/dbus/1.0/busconfig.dtd">' \
+			'<busconfig><user>root</user></busconfig>' > "$XXRI_TMP/dbus-local.conf"
+		sudo_if cp "$XXRI_TMP/dbus-local.conf" /usr/local/etc/dbus-1/system-local.conf
+	fi
+	if ! dbus_alive; then
+		sudo_if rm -f "$DBUS_PID"
+		sudo_if /usr/local/etc/init.d/dbus start >/dev/null 2>&1
+	elif [ /usr/local/share/dbus-1/system.d/bluetooth.conf -nt "$DBUS_PID" ]; then
+		# a bus that started before BlueZ was there lacks its policy
+		sudo_if kill -HUP "$(cat "$DBUS_PID")" 2>/dev/null
+	fi
+	if ! btd_up; then
+		sudo_if sh -c "$BTD >/dev/null 2>&1 &"
+		i=0
+		while [ $i -lt 20 ] && ! bctl list | grep -q '^Controller'; do sleep 0.25; i=$((i+1)); done
+	fi
+	# the name phones see: the one chosen in Settings, else the computer's
+	nm="$(cfg_get bluetooth NAME "")"; [ -n "$nm" ] || nm="$(hostname)"
+	al="$(bctl show | sed -n 's/^[[:space:]]*Alias: //p' | head -1)"
+	[ -n "$al" ] && [ "$al" != "$nm" ] && bctl system-alias "$nm" >/dev/null
+	btd_up
+}
+
+cmd_auto() { # boot path, as root
+	[ "$(cfg_get bluetooth POWER on)" = off ] && { rf_soft 1; return 0; }
+	ensure_drivers
+	[ -n "$(adapters)" ] || return 0
+	cmd_start
+}
+
+# ---- status -----------------------------------------------------------------
 cmd_status() {
-	ad="$(adapters)"; st="$(stack)"
+	ad="$(adapters)"; st="$(stack)"; hc="$(first_adapter)"
+	hard="$(rf_any hard)"; soft="$(rf_any soft)"
+	powered=0; [ -n "$hc" ] && hci_up "$hc" && powered=1
+	running=0; btd_up && running=1
+	off=0; [ "$(cfg_get bluetooth POWER on)" = off ] && off=1
+	enabled=0; [ $powered = 1 ] && [ $running = 1 ] && enabled=1
 	if [ $JSON = 1 ]; then
 		a_new; for x in $ad; do a_add "\"$x\""; done
 		j_new
 		j_bool available "$([ -n "$ad" ] && [ "$st" = 1 ] && echo 1 || echo 0)"
 		j_raw adapters "$(a_out)"
 		j_bool stack_installed "$st"
-		j_bool rfkill_blocked "$(rf_blocked)"
+		j_bool rfkill_blocked "$([ "$hard" = 1 ] || [ "$soft" = 1 ] && echo 1 || echo 0)"
+		j_bool hard_blocked "$hard"
+		j_bool running $running; j_bool powered $powered; j_bool enabled $enabled
+		j_bool switched_off $off
+		j_str address "$([ -n "$hc" ] && hci_addr "$hc")"
+		j_str name "$(cfg_get bluetooth NAME "$(hostname)")"
 		if [ -z "$ad" ]; then j_str reason "no bluetooth adapter detected"
 		elif [ "$st" = 0 ]; then j_str reason "BlueZ stack not installed"; j_str hint "install with: xxri-pkg -wi bluez5"
+		elif [ "$hard" = 1 ]; then j_str reason "switched off by the computer's wireless switch or key"
 		fi
 		j_root bluetooth "\"status\":$(j_obj)"
 	else
 		if [ -z "$ad" ]; then echo "Bluetooth: no adapter detected"
 		elif [ "$st" = 0 ]; then echo "Bluetooth: adapter $ad present, stack not installed (xxri-pkg -wi bluez5)"
-		else echo "Bluetooth: adapter $ad ready$([ "$(rf_blocked)" = 1 ] && echo ' (rfkill blocked)')"; fi
+		elif [ "$hard" = 1 ]; then echo "Bluetooth: off (hardware switch)"
+		elif [ $enabled = 1 ]; then echo "Bluetooth: on ($hc $(hci_addr "$hc"))"
+		else echo "Bluetooth: off"; fi
 	fi
 	return 0
 }
 
-need_stack() {
-	if [ "$(stack)" = 0 ] || [ -z "$(adapters)" ]; then
-		if [ $JSON = 1 ]; then
-			j_new; j_bool ok 0
-			j_str reason "$([ -z "$(adapters)" ] && echo 'no bluetooth adapter' || echo 'BlueZ not installed (xxri-pkg -wi bluez5)')"
-			j_root bluetooth "\"error\":$(j_obj)"
-		else
-			cmd_status
-		fi
-		return 1
+fail() { # CODE MESSAGE [what]
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok 0; j_str error "$1"; j_str reason "$2"
+		j_root bluetooth "\"${3:-error}\":$(j_obj)"
+	else
+		echo "$2" >&2
 	fi
-	return 0
+	return 1
+}
+need_on() {
+	[ -n "$(adapters)" ] || { fail noadapter "no bluetooth adapter"; return 1; }
+	[ "$(stack)" = 1 ] || { fail nostack "BlueZ is not installed (xxri-pkg -wi bluez5)"; return 1; }
+	btd_up || cmd_start >/dev/null 2>&1
+	btd_up || { fail daemon "the Bluetooth service did not start"; return 1; }
+	hci_up "$(first_adapter)" || { fail off "Bluetooth is off"; return 1; }
 }
 
-bt() { printf '%s\n' "$@" quit | bluetoothctl 2>/dev/null; }
-
-cmd_scan() {
-	need_stack || return 1
-	( printf 'scan on\n'; sleep 8; printf 'devices\nscan off\nquit\n' ) | bluetoothctl 2>/dev/null \
-		| sed -n 's/^Device \([0-9A-F:]*\) \(.*\)/\1  \2/p' | sort -u
+cmd_power() {
+	case "$1" in
+	on)
+		cfg_set bluetooth POWER on
+		rf_soft 0
+		cmd_start >/dev/null 2>&1
+		bctl power on >/dev/null ;;
+	off)
+		cfg_set bluetooth POWER off
+		bctl power off >/dev/null
+		rf_soft 1 ;;
+	esac
+	cmd_status
 }
-cmd_paired() {
-	need_stack || return 1
+
+# ---- devices ----------------------------------------------------------------
+# one device's properties as a JSON object (from `bluetoothctl info`)
+dev_json() { # MAC
+	bctl info "$1" > "$XXRI_TMP/btinfo.$$"
+	pv() { sed -n "s/^[[:space:]]*$1: //p" "$XXRI_TMP/btinfo.$$" | head -1; }
+	yn() { [ "$(pv "$1")" = yes ] && echo 1 || echo 0; }
+	nm="$(pv Name)"; al="$(pv Alias)"
+	j_new
+	j_str mac "$1"
+	j_str name "${al:-$nm}"
+	j_bool named "$([ -n "$nm" ] && echo 1 || echo 0)"
+	j_str icon "$(pv Icon)"
+	j_bool paired "$([ "$(yn Paired)" = 1 ] || [ "$(yn Bonded)" = 1 ] && echo 1 || echo 0)"
+	j_bool trusted "$(yn Trusted)"
+	j_bool connected "$(yn Connected)"
+	j_num rssi "$(pv RSSI | sed 's/^0x[0-9a-f]* (\(-*[0-9]*\))$/\1/; s/[^0-9-].*//')"
+	rm -f "$XXRI_TMP/btinfo.$$"
+	j_obj
+}
+dev_macs() { # [Paired]
+	bctl devices $1 | sed -n 's/^Device \([0-9A-F:]*\) .*/\1/p'
+}
+
+cmd_devices() {
+	need_on || return 1
 	if [ $JSON = 1 ]; then
 		a_new
-		bluetoothctl paired-devices 2>/dev/null | sed -n 's/^Device \([0-9A-F:]*\) \(.*\)/\1|\2/p' | while IFS='|' read -r mac name; do
-			j_new; j_str mac "$mac"; j_str name "$name"; echo "	$(j_obj)"
-		done > "$XXRI_TMP/btp.$$"
-		l="$(sed 's/^	//' "$XXRI_TMP/btp.$$" | tr '\n' ',' | sed 's/,$//')"
-		rm -f "$XXRI_TMP/btp.$$"
-		j_root bluetooth "\"paired\":[$l]"
+		for m in $(dev_macs Paired); do a_add "$(dev_json "$m")"; done
+		# "paired" is what Settings read before 2.6 final
+		j_root bluetooth "\"devices\":$(a_out),\"paired\":$(a_out)"
 	else
-		bluetoothctl paired-devices 2>/dev/null
+		for m in $(dev_macs Paired); do
+			bctl info "$m" | sed -n 's/^[[:space:]]*Alias: //p' | head -1 | sed "s/^/$m  /"
+		done
 	fi
 }
-cmd_remove()     { need_stack || return 1; bt "remove $1"; }
-cmd_pair()       { need_stack || return 1; bt "pair $1"; }
-cmd_connect()    { need_stack || return 1; bt "connect $1"; }
-cmd_disconnect() { need_stack || return 1; bt "disconnect $1"; }
+
+cmd_scan() {
+	need_on || return 1
+	secs="${1:-8}"; case "$secs" in ''|*[!0-9]*) secs=8 ;; esac
+	# discovery lasts as long as the client that asked for it
+	BCTL_WAIT=$((secs + 5)) bctl --timeout "$secs" scan on >/dev/null
+	a_new
+	for m in $(dev_macs); do
+		o="$(dev_json "$m")"
+		# paired ones are listed by `devices`; nameless ones are mostly beacons
+		case "$o" in *'"paired":true'*|*'"named":false'*) continue ;; esac
+		[ $JSON = 1 ] && a_add "$o" || echo "$m  $(printf '%s' "$o" | sed -n 's/.*"name":"\([^"]*\)".*/\1/p')"
+	done
+	[ $JSON = 1 ] && j_root bluetooth "\"scan\":$(a_out)"
+	return 0
+}
+
+# ---- pairing ----------------------------------------------------------------
+cmd_pair() {
+	need_on || return 1
+	mac="$(mac_ok "$1")" || { fail badmac "not a device address: $1" pair; return 1; }
+	d="$XXRI_TMP/btpair.$$"; rm -rf "$d"; mkdir -p "$d"; mkfifo "$d/in"
+	# KeyboardDisplay: can show a passkey and ask about a number, so every
+	# kind of device can pair (headsets need neither, keyboards the passkey)
+	bluetoothctl --agent KeyboardDisplay < "$d/in" > "$d/out" 2>&1 &
+	bpid=$!
+	exec 3> "$d/in"
+	# stopped by Settings' Cancel: call the pairing off on the way out
+	trap 'echo "cancel-pairing $mac" >&3; echo quit >&3; exec 3>&-; rm -rf "$d"; exit 1' TERM INT
+	out() { sed "s/${ESC}\[[0-9;]*m//g" "$d/out" | tr -d '\r\001\002'; }
+	t=0
+	while [ $t -lt 50 ] && ! out | grep -q 'Agent registered'; do sleep 0.1; t=$((t+1)); done
+	# the device must be known: one found by a scan a while ago is forgotten
+	if ! out | grep -q "Device $mac"; then
+		bctl info "$mac" | grep -q "Device $mac" || {
+			echo "scan on" >&3
+			t=0; while [ $t -lt 100 ] && ! out | grep -q "Device $mac"; do sleep 0.1; t=$((t+1)); done
+			echo "scan off" >&3
+		}
+	fi
+	echo "pair $mac" >&3
+	res=""; err=""; seen=""
+	# a minute for the device, plus whatever time the user takes to answer
+	end=$(( $(date +%s) + 60 ))
+	while [ "$(date +%s)" -lt $end ]; do
+		o="$(out)"
+		case "$o" in *"Pairing successful"*) res=ok; break ;; esac
+		e="$(printf '%s\n' "$o" | sed -n 's/.*Failed to pair: \([^ ]*\).*/\1/p' | tail -1)"
+		[ -n "$e" ] && { res=fail; err="$e"; break; }
+		case "$o" in *"not available"*) res=fail; err=NotAvailable; break ;; esac
+		# each request once
+		n="$(printf '%s\n' "$o" | sed -n 's/.*Confirm passkey \([0-9]*\).*/\1/p' | tail -1)"
+		if [ -n "$n" ] && ! echo "$seen" | grep -q "c$n"; then
+			seen="$seen c$n"
+			echo "confirm $n"
+			ans=no; read -t 60 ans || ans=no
+			case "$ans" in y*|Y*) echo yes >&3 ;; *) echo no >&3 ;; esac
+			end=$(( $(date +%s) + 30 ))
+		fi
+		n="$(printf '%s\n' "$o" | sed -n 's/.*Passkey: \([0-9]*\).*/\1/p' | tail -1)"
+		[ -n "$n" ] && ! echo "$seen" | grep -q "p$n" && { seen="$seen p$n"; echo "passkey $n"; }
+		n="$(printf '%s\n' "$o" | sed -n 's/.*PIN code: \([0-9A-Za-z]*\).*/\1/p' | tail -1)"
+		[ -n "$n" ] && ! echo "$seen" | grep -q "d$n" && { seen="$seen d$n"; echo "pin $n"; }
+		# older devices ask for a PIN: headsets have 0000 built in, a keyboard
+		# gets a random one to type on it
+		if printf '%s\n' "$o" | grep -q 'Enter PIN code' && ! echo "$seen" | grep -q 'P'; then
+			seen="$seen P"
+			case "$(bctl info "$mac" | sed -n 's/^[[:space:]]*Icon: //p')" in
+				input-keyboard*) pin="$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')"; pin="$(printf '%06d' $((pin % 1000000)))" ;;
+				*) pin=0000 ;;
+			esac
+			echo "$pin" >&3; echo "pin $pin"
+		fi
+		# we started it: accept what the agent is asked to authorise
+		if printf '%s\n' "$o" | grep -q -e 'Accept pairing (yes/no)' -e 'Authorize service' && \
+		   ! echo "$seen" | grep -q 'A'; then
+			seen="$seen A"; echo yes >&3
+		fi
+		sleep 0.2
+	done
+	[ -n "$res" ] || { res=fail; err=Timeout; echo "cancel-pairing $mac" >&3; }
+	trap - TERM INT
+	echo quit >&3; exec 3>&-
+	( sleep 2; kill $bpid 2>/dev/null ) & wait $bpid 2>/dev/null
+	rm -rf "$d"
+	if [ $res = ok ]; then
+		bctl trust "$mac" >/dev/null
+		BCTL_WAIT=20 bctl connect "$mac" >/dev/null
+	fi
+	case "$err" in
+		*AuthenticationFailed*|*AuthenticationRejected*) msg="the device did not accept the pairing" ;;
+		*AuthenticationCanceled*) msg="pairing was cancelled" ;;
+		*AuthenticationTimeout*|Timeout) msg="the device did not answer in time" ;;
+		*ConnectionAttemptFailed*|*NotAvailable*|*DoesNotExist*) msg="the device is not in range, or not in pairing mode" ;;
+		*AlreadyExists*) res=ok ;;
+		*) msg="pairing failed${err:+ ($err)}" ;;
+	esac
+	if [ $JSON = 1 ]; then
+		if [ $res = ok ]; then
+			j_root bluetooth "\"pair\":$(dev_json "$mac")"
+		else
+			j_new; j_bool paired 0; j_str mac "$mac"; j_str error "${err##*.}"; j_str reason "$msg"
+			j_root bluetooth "\"pair\":$(j_obj)"
+		fi
+	else
+		[ $res = ok ] && echo "paired with $mac" || echo "could not pair with $mac: $msg"
+	fi
+	[ $res = ok ]
+}
+
+cmd_dev() { # connect|disconnect|trust|remove MAC
+	need_on || return 1
+	mac="$(mac_ok "$2")" || { fail badmac "not a device address: $2" "$1"; return 1; }
+	BCTL_WAIT=25 bctl "$1" "$mac" > "$XXRI_TMP/btdev.$$"
+	ok=0
+	case "$1" in
+		connect)    grep -q 'Connection successful' "$XXRI_TMP/btdev.$$" && ok=1 ;;
+		disconnect) grep -q 'Successful disconnected' "$XXRI_TMP/btdev.$$" && ok=1 ;;
+		trust)      grep -q 'trust succeeded' "$XXRI_TMP/btdev.$$" && ok=1 ;;
+		remove)     grep -q -e 'Device has been removed' -e 'not available' "$XXRI_TMP/btdev.$$" && ok=1 ;;
+	esac
+	why="$(sed -n 's/.*Failed to [^:]*: //p' "$XXRI_TMP/btdev.$$" | tail -1)"
+	rm -f "$XXRI_TMP/btdev.$$"
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok $ok; j_str mac "$mac"
+		[ $ok = 1 ] || j_str reason "${why:-the device did not answer}"
+		j_root bluetooth "\"$1\":$(j_obj)"
+	else
+		[ $ok = 1 ] && echo "$1: $mac" || echo "$1 failed: ${why:-the device did not answer}"
+	fi
+	[ $ok = 1 ]
+}
+
+cmd_name() {
+	if [ -n "$1" ]; then
+		cfg_set bluetooth NAME "$1"
+		btd_up && bctl system-alias "$1" >/dev/null
+	fi
+	nm="$(cfg_get bluetooth NAME "$(hostname)")"
+	if [ $JSON = 1 ]; then j_new; j_str name "$nm"; j_root bluetooth "\"name\":$(j_obj)"
+	else echo "$nm"; fi
+}
 
 case "$1" in
 	status|"") cmd_status ;;
-	scan) cmd_scan ;;
-	paired) cmd_paired ;;
-	remove) shift; cmd_remove "$@" ;;
+	power) shift; cmd_power "$@" ;;
+	start) cmd_start ;;
+	auto) cmd_auto ;;
+	devices|paired) cmd_devices ;;
+	scan) shift; cmd_scan "$@" ;;
 	pair) shift; cmd_pair "$@" ;;
-	connect) shift; cmd_connect "$@" ;;
-	disconnect) shift; cmd_disconnect "$@" ;;
-	--json) cmd_status ;;
-	*) echo "usage: xxri-bluetooth status|scan|pair MAC|connect MAC|disconnect MAC [--json]" >&2; exit 1 ;;
+	connect|disconnect|trust|remove) cmd_dev "$@" ;;
+	name) shift; cmd_name "$@" ;;
+	*) echo "usage: xxri-bluetooth status|power [on|off]|start|auto|devices|scan [SECONDS]|pair MAC|connect MAC|disconnect MAC|trust MAC|remove MAC|name [NAME] [--json]" >&2; exit 1 ;;
 esac

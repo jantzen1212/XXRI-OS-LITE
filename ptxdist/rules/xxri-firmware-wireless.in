@@ -1,0 +1,15 @@
+## SECTION=project_specific
+
+config XXRI_FIRMWARE_WIRELESS
+	bool
+	select HOST_PYTHON3
+	select HOST_SQUASHFS_TOOLS
+	select HOST_SQUASHFS_TOOLS_XZ_SUPPORT
+	prompt "xxri-firmware-wireless: Wi-Fi and Bluetooth firmware up to 802.11ac"
+	help
+	  Firmware for the Wi-Fi and Bluetooth adapters of machines up to
+	  about 2018 - Intel, Qualcomm Atheros, Broadcom, Realtek, Ralink/
+	  MediaTek and Marvell parts on PCI, PCIe, CardBus and USB - from the
+	  pinned linux-firmware release, plus regulatory.db from
+	  wireless-regdb. config/firmware/wireless.list names every file and
+	  says what is left out.

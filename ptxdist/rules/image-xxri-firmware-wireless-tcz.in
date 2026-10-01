@@ -1,0 +1,9 @@
+## SECTION=image
+
+config IMAGE_XXRI_FIRMWARE_WIRELESS_TCZ
+	tristate
+	prompt "Generate xxri-firmware-wireless.tcz"
+	help
+	  Wi-Fi and Bluetooth firmware up to the 802.11ac generation and the
+	  wireless regulatory database (loaded at boot, before the udev
+	  trigger that loads the wireless and Bluetooth drivers).

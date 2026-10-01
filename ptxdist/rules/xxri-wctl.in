@@ -5,4 +5,5 @@ config XXRI_WCTL
 	select XXRI_TC_SYSROOT
 	prompt "xxri-wctl: window control helper"
 	help
-	  Small X11 tool the dock and shell scripts use to list, raise and close windows.
+	  Small X11 tool the dock and shell scripts use to list and raise windows;
+	  also the dock's running indicators and right-click menu.
