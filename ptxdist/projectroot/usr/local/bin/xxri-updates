@@ -1,5 +1,5 @@
 #!/bin/busybox ash
-# xxri-updates - package update backend (Settings / future Software Store).
+# xxri-updates - Tiny Core extension updates (Settings > Software Update).
 #   xxri-updates status [--json]   installed package count + mirror
 #   xxri-updates check             list packages with newer versions
 #   xxri-updates apply             download + stage updates (xxri-pkg-update)

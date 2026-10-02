@@ -1,0 +1,476 @@
+#!/bin/busybox ash
+# xxri-system-update - XXRI OS Lite system updates (Settings > Software Update).
+#
+#   xxri-system-update status [--json]     this system, the update source, the
+#                                          last check and any install in progress
+#   xxri-system-update check [--json]      read the published manifest: is a
+#                                          newer release available?
+#   xxri-system-update install [--json]    download -> verify SHA-256 -> stage ->
+#                                          apply (runs as root through sudo)
+#   xxri-system-update progress [--json]   where a running install is
+#   xxri-system-update history [--json]    updates applied to this system
+#
+# The source is manifest.json in the XXRI repository on GitHub
+# (MANIFEST_URL in /usr/local/etc/xxri/update.conf overrides it; so does
+# XXRI_UPDATE_MANIFEST in the environment, for testing).  docs/software-update.md
+# describes the manifest and the payload; tools/update/mkupdate.sh makes both.
+#
+# One payload per release, a gzip tar with up to four members:
+#   files/...     normal files, laid over / (each one renamed into place, so a
+#                 running program or script keeps its old copy until it exits)
+#   boot/...      system files for the boot directory: vmlinuz, core.gz,
+#                 intel-ucode.img, amd-ucode.img.  The current ones are kept as
+#                 *.prev and GRUB gets an "XXRI OS Lite (previous system)" entry
+#                 that boots them - the whole rollback story; no A/B scheme.
+#   remove.list   absolute paths the release deletes, one per line
+#   UPDATE        optional notes, ignored by this script
+# Everything a release replaces or deletes under / is copied to
+# /var/lib/xxri-update/backup first, and put back if applying fails half way.
+#
+# Updates apply to an INSTALLED system (its root is a disk).  A live session
+# runs from RAM and the medium is read-only, so it can check but not install.
+# sudo's secure_path may leave out /usr/local, where openssl and GNU wget live
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+. /usr/local/lib/xxri/hw-lib.sh
+
+JSON=0
+for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
+
+DEFAULT_MANIFEST=https://raw.githubusercontent.com/jantzen1212/XXRI-OS-LITE/main/manifest.json
+MANIFEST_URL="${XXRI_UPDATE_MANIFEST:-$(cfg_get update MANIFEST_URL "$DEFAULT_MANIFEST")}"
+WORK=/var/cache/xxri-update          # download + staging, on the installed disk
+BACKUP=/var/lib/xxri-update          # what the last update replaced
+RUN=/tmp/xxri-update                 # progress + last check, readable by the desktop user
+HISTORY="$XXRI_CFG_DIR/update-history"
+BOOT=/boot
+
+# ---- network (same client and trust store as the Store) ----------------------
+GNUWGET=""
+for w in /usr/local/bin/wget /usr/bin/gnu-wget; do [ -x "$w" ] && { GNUWGET="$w"; break; }; done
+CABUNDLE=""
+for c in /usr/local/etc/ssl/certs/ca-certificates.crt /usr/local/etc/ssl/cacert.pem \
+         /usr/local/etc/ssl/ca-bundle.crt /etc/ssl/certs/ca-certificates.crt; do
+	[ -r "$c" ] && { CABUNDLE="$c"; break; }
+done
+fetch() { # url outfile timeout
+	if [ -n "$GNUWGET" ]; then
+		"$GNUWGET" -q --timeout="${3:-30}" --tries=2 ${CABUNDLE:+--ca-certificate="$CABUNDLE"} \
+			-U "xxri-system-update/$(current_version)" -O "$2" "$1"
+	else
+		# busybox wget has no TLS on this system: http:// only
+		wget -q -T "${3:-30}" -O "$2" "$1"
+	fi
+}
+# why a fetch failed, from GNU wget's exit status: a word for Settings ...
+fetch_reason() {
+	case "$1" in 8) echo unpublished ;; 5) echo certificate ;; 4) echo network ;; *) echo error ;; esac
+}
+# ... and a sentence for people
+fetch_error() {
+	case "$1" in
+		8) echo "No update information is published at the update source yet." ;;
+		5) echo "The update server's certificate could not be verified." ;;
+		4) echo "Could not reach the update server. Check the network connection." ;;
+		*) echo "Could not read the update information (error $1)." ;;
+	esac
+}
+sha256_of() {
+	if have sha256sum; then sha256sum "$1" 2>/dev/null | cut -d' ' -f1
+	elif have openssl; then openssl dgst -sha256 "$1" 2>/dev/null | sed 's/.*[= ]//'
+	fi
+}
+
+# ---- manifest -----------------------------------------------------------------
+# jv FILE KEY -> a top-level scalar of the (flat) manifest: a string with its
+# escapes undone, or a bare number / true / false
+jv() {
+	awk -v k="$2" '
+	BEGIN { RS = "\001" }
+	{
+		s = $0; key = "\"" k "\""; found = 0
+		while ((p = index(s, key)) > 0) {
+			s = substr(s, p + length(key))
+			if (match(s, /^[ \t\r\n]*:[ \t\r\n]*/)) { s = substr(s, RLENGTH + 1); found = 1; break }
+		}
+		if (!found) exit
+		if (substr(s, 1, 1) == "\"") {
+			out = ""; i = 2; n = length(s)
+			while (i <= n) {
+				c = substr(s, i, 1)
+				if (c == "\\") {
+					d = substr(s, i + 1, 1); i += 2
+					if (d == "n") out = out "\n"
+					else if (d == "t") out = out "\t"
+					else if (d == "r") out = out ""
+					else if (d == "u") { out = out "?"; i += 4 }
+					else out = out d
+					continue
+				}
+				if (c == "\"") break
+				out = out c; i++
+			}
+			printf "%s", out
+		} else if (match(s, /^[^],}\r\n]*/)) {
+			v = substr(s, 1, RLENGTH); sub(/[ \t]+$/, "", v); printf "%s", v
+		}
+	}' "$1" 2>/dev/null
+}
+# vercmp A B -> -1 / 0 / 1, numerically by dot-separated parts
+vercmp() {
+	awk -v a="$1" -v b="$2" 'BEGIN {
+		na = split(a, x, "."); nb = split(b, y, "."); n = na > nb ? na : nb
+		for (i = 1; i <= n; i++) { p = x[i] + 0; q = y[i] + 0
+			if (p < q) { print -1; exit } if (p > q) { print 1; exit } }
+		print 0 }'
+}
+valid_version() { echo "$1" | grep -qE '^[0-9]+(\.[0-9]+){0,3}$'; }
+
+current_version() {
+	v="$(sed -n 's/^IMAGE_VERSION=//p' /etc/os-release 2>/dev/null | tr -d '"' | head -1)"
+	[ -n "$v" ] || v="$(sed -n 's/^VERSION="\{0,1\}\([0-9.]*\).*/\1/p' /etc/os-release 2>/dev/null | head -1)"
+	echo "${v:-0}"
+}
+current_build() { sed -n 's/^BUILD_ID=//p' /etc/os-release 2>/dev/null | tr -d '"' | head -1; }
+
+# Why this system cannot install an update (empty: it can)
+install_blocker() {
+	rt="$(awk '$2 == "/" { t = $3 } END { print t }' /proc/mounts 2>/dev/null)"
+	case "$rt" in
+		ext2|ext3|ext4|btrfs|xfs|f2fs) ;;
+		*) echo "XXRI is running from the live medium. Install XXRI to a disk to receive updates."; return ;;
+	esac
+	[ -f "$BOOT/vmlinuz" ] && [ -f "$BOOT/grub/grub.cfg" ] ||
+		echo "This installation has no /boot/grub/grub.cfg, so system files cannot be updated."
+}
+
+# ---- progress -------------------------------------------------------------------
+# the desktop user (check) and root (install) both write here
+run_dir() { [ -d "$RUN" ] || { mkdir -p "$RUN" && chmod 1777 "$RUN"; } 2>/dev/null; }
+state() { # phase percent message [error]
+	run_dir
+	{
+		echo "PHASE=$1"; echo "PERCENT=$2"; echo "MESSAGE=$3"; echo "ERROR=${4:-}"
+		echo "VERSION=${S_VER:-}"; echo "RESTART=${S_RESTART:-}"; echo "PID=$$"
+		echo "TIME=$(date '+%Y-%m-%d %H:%M')"
+	} > "$RUN/state.new"
+	chmod 644 "$RUN/state.new"; mv -f "$RUN/state.new" "$RUN/state"
+}
+fail() { # message
+	state failed 0 "The update was not installed." "$1"
+	log_upd "FAILED: $1"
+	[ $JSON = 1 ] && { j_new; j_bool ok 0; j_str error "$1"; j_root system-update "\"install\":$(j_obj)"; } ||
+		echo "update failed: $1" >&2
+	exit 1
+}
+log_upd() { mkdir -p "$WORK" 2>/dev/null; echo "$(date '+%F %T') $*" >> "$WORK/update.log" 2>/dev/null; }
+st() { sed -n "s/^$1=//p" "$RUN/state" 2>/dev/null | head -1; }
+
+# ---- commands -------------------------------------------------------------------
+cmd_check() {
+	run_dir
+	t="$RUN/manifest.$$"
+	cur="$(current_version)"; bl="$(install_blocker)"
+	j_new
+	j_str current "$cur"; j_str source "$MANIFEST_URL"; j_str checked "$(date '+%Y-%m-%d %H:%M')"
+	j_bool can_install "$([ -z "$bl" ] && echo 1 || echo 0)"; j_str blocker "$bl"
+	fetch "$MANIFEST_URL" "$t" 20; rc=$?
+	if [ $rc != 0 ] || [ ! -s "$t" ]; then
+		rm -f "$t"
+		j_bool ok 0; j_bool available 0; j_str reason "$(fetch_reason "$rc")"; j_str error "$(fetch_error "$rc")"
+	elif [ "$(jv "$t" product)" != "xxri-os-lite" ] || ! valid_version "$(jv "$t" version)"; then
+		rm -f "$t"
+		j_bool ok 0; j_bool available 0; j_str reason invalid; j_str error "The update information is not an XXRI OS Lite manifest."
+	else
+		ver="$(jv "$t" version)"; url="$(jv "$t" payload_url)"; sha="$(jv "$t" payload_sha256)"
+		min="$(jv "$t" min_version)"
+		avail=0; note=""
+		if [ "$(vercmp "$cur" "$ver")" = -1 ]; then
+			if [ -z "$url" ] || ! echo "$sha" | grep -qE '^[0-9a-f]{64}$'; then
+				note="XXRI OS Lite $ver is announced, but its download is not published yet."
+			elif [ -n "$min" ] && [ "$(vercmp "$cur" "$min")" = -1 ]; then
+				note="XXRI OS Lite $ver needs version $min or newer to be installed first."
+			else avail=1; fi
+		fi
+		j_bool ok 1; j_bool available "$avail"; j_str note "$note"
+		j_str latest "$ver"; j_str title "$(jv "$t" title)"; j_str notes "$(jv "$t" notes)"
+		j_str released "$(jv "$t" released)"; j_num size "$(jv "$t" payload_size)"
+		j_str restart "$(jv "$t" restart)"
+		mv -f "$t" "$RUN/manifest.json"; chmod 644 "$RUN/manifest.json" 2>/dev/null
+	fi
+	out="$(j_obj)"
+	printf '%s\n' "$out" > "$RUN/last-check.json" 2>/dev/null
+	if [ $JSON = 1 ]; then j_root system-update "\"check\":$out"
+	else
+		echo "installed: XXRI OS Lite $cur"
+		case "$out" in
+			*'"available":true'*) echo "available: XXRI OS Lite $ver" ;;
+			*'"ok":false'*) echo "check failed" ;;
+			*) echo "up to date${note:+ ($note)}" ;;
+		esac
+	fi
+}
+
+cmd_status() {
+	cur="$(current_version)"; bl="$(install_blocker)"
+	if [ $JSON = 1 ]; then
+		j_new
+		j_str current "$cur"; j_str build "$(current_build)"; j_str source "$MANIFEST_URL"
+		j_bool can_install "$([ -z "$bl" ] && echo 1 || echo 0)"; j_str blocker "$bl"
+		j_raw job "$(JSON=1 job_json)"
+		lc="$(cat "$RUN/last-check.json" 2>/dev/null)"
+		j_raw last_check "${lc:-null}"
+		j_root system-update "\"status\":$(j_obj)"
+	else
+		echo "XXRI OS Lite $cur ($(current_build))"
+		echo "source: $MANIFEST_URL"
+		[ -n "$bl" ] && echo "$bl"
+		[ -f "$RUN/state" ] && echo "last job: $(st PHASE) - $(st MESSAGE) $(st ERROR)"
+	fi
+}
+
+job_json() {
+	ph="$(st PHASE)"
+	# a job whose process is gone without saying so did not finish (/proc, not
+	# kill -0: the install runs as root and the desktop user may not signal it)
+	case "$ph" in checking|downloading|verifying|staging|installing)
+		p="$(st PID)"; [ -n "$p" ] && [ -d "/proc/$p" ] || ph=interrupted ;;
+	esac
+	j_new
+	j_str phase "${ph:-idle}"; j_num percent "$(st PERCENT)"; j_str message "$(st MESSAGE)"
+	j_str error "$(st ERROR)"; j_str version "$(st VERSION)"; j_str restart "$(st RESTART)"
+	j_str time "$(st TIME)"
+	j_obj
+}
+cmd_progress() {
+	if [ $JSON = 1 ]; then j_root system-update "\"progress\":$(job_json)"
+	else echo "$(st PHASE) $(st PERCENT)% $(st MESSAGE) $(st ERROR)"; fi
+}
+
+cmd_history() {
+	if [ $JSON = 1 ]; then
+		a_new
+		while IFS='|' read -r d v ti rs; do
+			[ -n "$v" ] || continue
+			j_new; j_str date "$d"; j_str version "$v"; j_str title "$ti"; j_str restart "$rs"; a_add "$(j_obj)"
+		done <<EOF
+$(sed '1!G;h;$!d' "$HISTORY" 2>/dev/null)
+EOF
+		j_new; j_raw history "$(a_out)"; j_root system-update "\"history\":$(j_obj)"
+	else
+		cat "$HISTORY" 2>/dev/null || echo "no updates installed yet"
+	fi
+}
+
+# ---- installing -----------------------------------------------------------------
+# lay stage/files over /, one rename per file; back up what is replaced
+apply_files() {
+	[ -d "$1" ] || return 0
+	(
+		cd "$1" || exit 1
+		find . -type d | while read -r d; do [ "$d" = . ] || mkdir -p "/${d#./}" || exit 1; done || exit 1
+		find . ! -type d | while read -r f; do
+			f="${f#./}"
+			if [ -e "/$f" ] || [ -L "/$f" ]; then
+				mkdir -p "$BACKUP/backup/files/$(dirname "$f")" && cp -a "/$f" "$BACKUP/backup/files/$f" || exit 1
+			else
+				echo "/$f" >> "$BACKUP/backup/added.list"
+			fi
+			rm -f "/$f.xxri-new"
+			cp -a "$f" "/$f.xxri-new" && mv -f "/$f.xxri-new" "/$f" || exit 1
+		done
+	)
+}
+apply_remove() {
+	[ -f "$1" ] || return 0
+	while read -r p; do
+		case "$p" in /*) ;; *) continue ;; esac
+		case "$p" in */../*|*/..) continue ;; esac
+		[ -e "$p" ] || [ -L "$p" ] || continue
+		[ -d "$p" ] && [ ! -L "$p" ] && continue      # files only
+		mkdir -p "$BACKUP/backup/files$(dirname "$p")" && cp -a "$p" "$BACKUP/backup/files$p" && rm -f "$p" || return 1
+	done < "$1"
+}
+# put back what apply_files/apply_remove changed
+restore_files() {
+	b="$BACKUP/backup"
+	[ -d "$b/files" ] && ( cd "$b/files" && find . ! -type d | while read -r f; do
+		f="${f#./}"; cp -a "$f" "/$f.xxri-new" && mv -f "/$f.xxri-new" "/$f"; done )
+	[ -f "$b/added.list" ] && while read -r p; do rm -f "$p"; done < "$b/added.list"
+}
+apply_boot() {
+	[ -d "$1" ] || return 0
+	for f in "$1"/*; do
+		[ -f "$f" ] || continue
+		n="${f##*/}"
+		[ -f "$BOOT/$n" ] && cp -a "$BOOT/$n" "$BOOT/$n.prev"
+		cp "$f" "$BOOT/$n.new" && sync && mv -f "$BOOT/$n.new" "$BOOT/$n" || return 1
+	done
+	sync
+	grub_previous_entry
+}
+# "XXRI OS Lite (previous system)": the installer's main entry, pointed at the
+# *.prev files this update kept.  Rewritten on every system update.
+grub_previous_entry() {
+	g="$BOOT/grub/grub.cfg"
+	[ -f "$g" ] || return 0
+	k=vmlinuz; [ -f "$BOOT/vmlinuz.prev" ] && k=vmlinuz.prev
+	i=core.gz; [ -f "$BOOT/core.gz.prev" ] && i=core.gz.prev
+	[ "$k$i" = vmlinuzcore.gz ] && return 0
+	awk '
+		/^# xxri-system-update: previous system/ { skip = 1; next }
+		skip && /^}/ { skip = 0; next }
+		skip { next }
+		{ print }' "$g" > "$g.new"
+	awk -v k="$k" -v i="$i" '
+		/^menuentry .*--id xxri[ {]/ { on = 1; print "# xxri-system-update: previous system"
+			print "menuentry \"XXRI OS Lite (previous system)\" --id xxri-previous {"; next }
+		on && /^}/ { print; exit }
+		on { sub(/\/boot\/vmlinuz/, "/boot/" k); sub(/\/boot\/core\.gz/, "/boot/" i); print }' "$g" >> "$g.new"
+	grep -q 'id xxri-previous' "$g.new" && mv -f "$g.new" "$g" || rm -f "$g.new"
+}
+set_version() { # version build
+	f=/etc/os-release
+	sed -i -e "s/^IMAGE_VERSION=.*/IMAGE_VERSION=$1/" -e "s/^VERSION=.*/VERSION=\"$1 Lite\"/" \
+	       -e "s/^PRETTY_NAME=.*/PRETTY_NAME=\"XXRI OS Lite $1\"/" -e "s/^BUILD_ID=.*/BUILD_ID=${2:-$1}/" "$f"
+	grep -q '^IMAGE_VERSION=' "$f" || echo "IMAGE_VERSION=$1" >> "$f"
+	grep -q '^BUILD_ID=' "$f" || echo "BUILD_ID=${2:-$1}" >> "$f"
+}
+
+cmd_install() {
+	shift
+	asroot=0
+	while [ $# -gt 0 ]; do case "$1" in --manifest) MANIFEST_URL="$2"; shift ;; --as-root) asroot=1 ;; esac; shift; done
+	if [ "$(id -u)" != 0 ]; then
+		# a second pass that still is not root: sudo did not grant it
+		[ $asroot = 1 ] && fail "Installing needs administrator rights, and sudo did not grant them."
+		# root for the rest; the manifest URL travels explicitly because sudo
+		# resets the environment
+		exec sudo /usr/local/bin/xxri-system-update install --as-root --manifest "$MANIFEST_URL" $([ $JSON = 1 ] && echo --json)
+	fi
+	p="$(st PID)"
+	case "$(st PHASE)" in checking|downloading|verifying|staging|installing)
+		[ -n "$p" ] && [ "$p" != "$$" ] && [ -d "/proc/$p" ] && { echo "an update is already being installed" >&2; exit 1; } ;;
+	esac
+	S_VER=""; S_RESTART=""
+	state checking 0 "Reading the update information"
+	log_upd "install from $MANIFEST_URL"
+	bl="$(install_blocker)"; [ -z "$bl" ] || fail "$bl"
+	mkdir -p "$WORK" || fail "cannot create $WORK"
+	m="$WORK/manifest.json"
+	fetch "$MANIFEST_URL" "$m" 30 || fail "$(fetch_error $?)"
+	[ "$(jv "$m" product)" = xxri-os-lite ] || fail "The update information is not an XXRI OS Lite manifest."
+	S_VER="$(jv "$m" version)"; valid_version "$S_VER" || fail "The manifest names no valid version."
+	url="$(jv "$m" payload_url)"; sha="$(jv "$m" payload_sha256 | tr 'A-F' 'a-f')"
+	size="$(jv "$m" payload_size)"; min="$(jv "$m" min_version)"; build="$(jv "$m" build)"
+	title="$(jv "$m" title)"; [ -n "$title" ] || title="XXRI OS Lite $S_VER"
+	S_RESTART="$(jv "$m" restart)"; case "$S_RESTART" in none|session|reboot) ;; *) S_RESTART=reboot ;; esac
+	cur="$(current_version)"
+	[ "$(vercmp "$cur" "$S_VER")" = -1 ] || fail "XXRI OS Lite $cur is already up to date."
+	[ -z "$min" ] || [ "$(vercmp "$cur" "$min")" != -1 ] || fail "This update needs XXRI OS Lite $min or newer first."
+	[ -n "$url" ] || fail "The manifest has no download for $S_VER."
+	echo "$sha" | grep -qE '^[0-9a-f]{64}$' || fail "The manifest has no valid SHA-256 for the download."
+	case "$size" in ''|*[!0-9]*) size=0 ;; esac
+	have_sha=0; { have sha256sum || have openssl; } && have_sha=1
+	[ $have_sha = 1 ] || fail "No SHA-256 tool (openssl) is available to verify the download."
+
+	# room for the download, the unpacked copy and the backups
+	need=$(( size / 1024 * 3 + 20480 ))
+	free=$(df -k "$WORK" 2>/dev/null | awk 'NR == 2 { print $4 }')
+	[ -z "$free" ] || [ "$free" -ge "$need" ] || fail "Not enough free disk space: the update needs $((need / 1024)) MB, $((free / 1024)) MB are free."
+
+	dir="$WORK/$S_VER"; rm -rf "$dir"; mkdir -p "$dir"
+	pay="$dir/payload.tar.gz"
+	state downloading 0 "Downloading XXRI OS Lite $S_VER"
+	fetch "$url" "$pay.part" 60 &
+	fp=$!
+	while kill -0 $fp 2>/dev/null; do
+		got=0; [ -f "$pay.part" ] && got=$(wc -c < "$pay.part")
+		if [ "$size" -gt 0 ]; then
+			pct=$(awk -v a="$got" -v b="$size" 'BEGIN { p = int(a * 100 / b); print (p > 99 ? 99 : p) }')
+			state downloading "$pct" "$(awk -v a="$got" -v b="$size" 'BEGIN { printf "Downloading: %.1f of %.1f MB", a / 1048576, b / 1048576 }')"
+		else
+			state downloading 0 "$(awk -v a="$got" 'BEGIN { printf "Downloading: %.1f MB", a / 1048576 }')"
+		fi
+		sleep 1
+	done
+	wait $fp || { rc=$?; rm -rf "$dir"; fail "The download failed. $(fetch_error $rc)"; }
+	mv -f "$pay.part" "$pay"
+
+	state verifying 100 "Verifying the download (SHA-256)"
+	got="$(sha256_of "$pay")"
+	if [ "$got" != "$sha" ]; then
+		rm -rf "$dir"
+		fail "The download does not match its SHA-256 checksum, so it was discarded. Nothing was changed."
+	fi
+	log_upd "verified $url sha256 $got"
+
+	state staging 100 "Preparing the update"
+	list="$(tar -tzf "$pay" 2>/dev/null)" || { rm -rf "$dir"; fail "The update archive is damaged."; }
+	bad="$(echo "$list" | sed 's|^\./||' | awk '
+		$0 == "" { next }
+		/^\// || /(^|\/)\.\.(\/|$)/ { print; next }
+		$0 == "UPDATE" || $0 == "remove.list" || $0 ~ /^(files|boot)(\/|$)/ { next }
+		{ print }' | head -3)"
+	[ -z "$bad" ] || { rm -rf "$dir"; fail "The update archive contains paths it may not: $(echo $bad)"; }
+	# no member may be written THROUGH a symlink the archive itself creates
+	# (files/usr -> /etc, then files/usr/x) - that would escape the staging area
+	for l in $(tar -tvzf "$pay" 2>/dev/null | awk '/^l/ { sub(/ -> .*/, ""); print $NF }' | sed 's|^\./||'); do
+		echo "$list" | sed 's|^\./||' | grep -q "^$l/" &&
+			{ rm -rf "$dir"; fail "The update archive writes files through a symlink ($l)."; }
+	done
+	mkdir -p "$dir/stage" && tar -xzf "$pay" -C "$dir/stage" || { rm -rf "$dir"; fail "The update archive could not be unpacked."; }
+	rm -f "$pay"
+	if [ -d "$dir/stage/boot" ]; then
+		for f in "$dir/stage/boot"/*; do
+			[ -e "$f" ] || continue
+			n="${f##*/}"
+			case "$n" in
+				vmlinuz) [ "$(dd if="$f" bs=1 skip=514 count=4 2>/dev/null)" = HdrS ] ||
+					{ rm -rf "$dir"; fail "boot/vmlinuz in the update is not a Linux kernel."; } ;;
+				core.gz) [ "$(dd if="$f" bs=1 count=2 2>/dev/null | od -An -tx1 | tr -d ' \n')" = 1f8b ] ||
+					{ rm -rf "$dir"; fail "boot/core.gz in the update is not a gzip initrd."; } ;;
+				intel-ucode.img|amd-ucode.img) ;;
+				*) { rm -rf "$dir"; fail "boot/$n is not a file an update may replace."; } ;;
+			esac
+		done
+	fi
+
+	state installing 100 "Installing XXRI OS Lite $S_VER"
+	rm -rf "$BACKUP/backup"; mkdir -p "$BACKUP/backup"
+	echo "$cur" > "$BACKUP/backup/from-version"
+	if ! apply_files "$dir/stage/files" || ! apply_remove "$dir/stage/remove.list"; then
+		restore_files
+		rm -rf "$dir"
+		fail "Installing the new files failed; the previous files were put back."
+	fi
+	if ! apply_boot "$dir/stage/boot"; then
+		restore_files
+		rm -rf "$dir"
+		fail "Installing the new system files failed. The previous kernel and initrd are kept as /boot/*.prev."
+	fi
+	set_version "$S_VER" "$build"
+	printf '%s|%s|%s|%s\n' "$(date '+%Y-%m-%d %H:%M')" "$S_VER" "$(echo "$title" | tr '|' '/')" "$S_RESTART" >> "$HISTORY"
+	chmod 644 "$HISTORY" 2>/dev/null
+	rm -rf "$dir"
+	sync
+	log_upd "installed $S_VER (restart: $S_RESTART)"
+	case "$S_RESTART" in
+		reboot)  state done 100 "XXRI OS Lite $S_VER is installed. Restart the computer to finish." ;;
+		session) state done 100 "XXRI OS Lite $S_VER is installed. Restart the desktop to finish." ;;
+		*)       state done 100 "XXRI OS Lite $S_VER is installed." ;;
+	esac
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok 1; j_str version "$S_VER"; j_str restart "$S_RESTART"
+		j_root system-update "\"install\":$(j_obj)"
+	else echo "installed XXRI OS Lite $S_VER (restart: $S_RESTART)"; fi
+}
+
+case "$1" in
+	status|"") cmd_status ;;
+	check) cmd_check ;;
+	install) cmd_install "$@" ;;
+	progress) cmd_progress ;;
+	history) cmd_history ;;
+	--json) cmd_status ;;
+	*) echo "usage: xxri-system-update status|check|install|progress|history [--json]" >&2; exit 1 ;;
+esac
