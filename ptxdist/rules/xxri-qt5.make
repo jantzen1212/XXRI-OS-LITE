@@ -288,12 +288,11 @@ XXRI_QT5_LIBS := Core Gui Widgets Network Qml QmlModels Quick QuickWidgets \
 	WebChannel Positioning PrintSupport DBus XcbQpa Svg X11Extras \
 	WebEngineCore WebEngineWidgets
 
-# the 2.6 browser's plugin set: X11 platform with its GLX/EGL integrations,
-# the image formats and SVG icon engine its own UI uses (2.6 also carried
-# qtimageformats' icns/tga/wbmp, which no XXRI Browser UI image uses; web
-# content is decoded by Chromium itself), and - like 2.6 - no GTK platform
-# theme, no input-method plugins and no position plugins (Tiny Core has no
-# geoclue, so geolocation requests are answered "unavailable" either way)
+# the browser's plugin set: X11 platform with its GLX/EGL integrations, the
+# image formats and SVG icon engine its own UI uses (web content is decoded by
+# Chromium itself); no GTK platform theme, no input-method plugins and no
+# position plugins (Tiny Core has no geoclue, so geolocation requests are
+# answered "unavailable" either way)
 XXRI_QT5_PLUGINS := \
 	platforms/libqxcb \
 	xcbglintegrations/libqxcb-glx-integration \

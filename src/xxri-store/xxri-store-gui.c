@@ -1,13 +1,13 @@
-/* xxri-store-gui - the XXRI Store.  GTK3 frontend only.
+/* xxri-store-gui - the XXRI Store, GTK3 frontend only.
  *
- * All catalog / network / install work goes through the xxri-store engine,
- * which hands AppImages to xxri-app.  This program never downloads, mounts or
- * writes .desktop files: it renders the repository and drives those backends.
- * Look and feel follows the rest of XXRI - soft cards, pill buttons, the pink
- * -> purple -> blue gradient, an icon rail, search header and section rails.
+ * Catalog, network and install work all go through the xxri-store engine
+ * (which hands AppImages to xxri-app). Nothing here downloads, mounts or
+ * writes .desktop files.
  */
 #include <gtk/gtk.h>
 #include "xxri-chrome.h"
+#include "xxri-dialog.h"
+#include "xxri-theme.h"
 #include <cairo.h>
 #include <string.h>
 #include <stdlib.h>
@@ -18,16 +18,10 @@
 
 #define STORE_DIR "/usr/local/share/xxri-store"
 #define ICON_DIR  STORE_DIR "/icons"
-#define UI_ICONS  STORE_DIR "/ui"
 
-/* This TC gdk-pixbuf build ships broken built-in PNG loaders, so PNGs come in
- * through cairo (libpng direct) and are converted to a GdkPixbuf. */
+/* PNG through cairo: TC's gdk-pixbuf built-in PNG loader is broken. Anything
+ * else (some repo icons are SVG) goes to gdk-pixbuf's loaders.cache loaders. */
 static GdkPixbuf* load_png(const char* path, int w, int h) {
-    /* Repository icon_url values are not all PNG - Blender's, for one, is an
-       SVG.  cairo only decodes PNG, so an SVG silently became "no icon" and the
-       card fell back to a generated placeholder.  Try gdk-pixbuf first for
-       anything cairo cannot handle: its loader set (including librsvg's SVG
-       loader) is registered now that loaders.cache ships in the image. */
     cairo_surface_t* s = cairo_image_surface_create_from_png(path);
     if (cairo_surface_status(s) != CAIRO_STATUS_SUCCESS) {
         cairo_surface_destroy(s);
@@ -49,10 +43,7 @@ static GdkPixbuf* load_png(const char* path, int w, int h) {
     return full;
 }
 
-/* startup tracing, enabled with XXRI_STORE_DEBUG.
-   Writes to $HOME/xxri-store-debug.log whenever XXRI_STORE_DEBUG is set, so the
-   Store can be traced when launched FROM THE DOCK, where there is no terminal
-   to read stderr from. */
+/* XXRI_STORE_DEBUG=1 -> ~/xxri-store-debug.log (no terminal from the dock) */
 static void dbg(const char* fmt, ...) {
     static FILE* f = NULL;
     if (!g_getenv("XXRI_STORE_DEBUG")) return;
@@ -79,10 +70,8 @@ static char* run_cmd(const char* fmt, ...) {
     while (s->len && (s->str[s->len-1]=='\n' || s->str[s->len-1]=='\r')) g_string_truncate(s, s->len-1);
     return g_string_free(s, FALSE);
 }
-/* fire-and-forget: the UI must never block on the network */
-/* Stage log for the install path.  Always on to stderr when XXRI_GUI_TRACE is
-   set, and additionally appended to the shared install-trace.log so the GUI and
-   backend stages interleave in one file. */
+/* XXRI_GUI_TRACE: install-path trace to stderr and to install-trace.log,
+   interleaved with the backend's lines */
 static void gtrace(const char* fmt, ...) {
     if (!g_getenv("XXRI_GUI_TRACE")) return;
     char msg[1024]; va_list ap; va_start(ap,fmt);
@@ -93,6 +82,7 @@ static void gtrace(const char* fmt, ...) {
         FILE* f=fopen(pth,"a"); if(f){ fprintf(f,"%-8s %-20s %s\n","gui","stage",msg); fclose(f);} }
 }
 
+/* fire-and-forget: the UI must never block on the network */
 static void run_bg(const char* fmt, ...) {
     char cmd[2048]; va_list ap; va_start(ap, fmt);
     vsnprintf(cmd, sizeof cmd, fmt, ap); va_end(ap);
@@ -105,9 +95,8 @@ static void run_bg(const char* fmt, ...) {
     if (err) g_error_free(err);
 }
 
-/* flat-JSON helpers (same approach as Settings; the backends emit flat schemas).
- * jfind tolerates whitespace around ':' so a pretty-printed remote repository
- * parses exactly like the compact bundled one. */
+/* flat-JSON helpers like Settings'; jfind allows whitespace around ':' for the
+ * pretty-printed remote catalog */
 static const char* jfind(const char* doc, const char* key, char want) {
     char pat[128]; snprintf(pat,sizeof pat,"\"%s\"",key);
     size_t pl=strlen(pat);
@@ -137,10 +126,8 @@ static char* jget(const char* doc, const char* key) {
     const char* e=p; while(*e && *e!=','&&*e!='}'&&*e!=']')e++;
     return g_strndup(p,e-p);
 }
-/* Read a scalar key at the TOP level of one object.  Catalog entries nest
-   objects (each app carries a "sources" array whose members repeat key names
-   like "version" and "priority"), so a plain search would return a nested
-   value.  Depth is tracked and only depth-1 keys are accepted. */
+/* scalar at the top level of one object only: each app's "sources" array
+   repeats keys like "version" and "priority" */
 static char* jtop(const char* obj, const char* key) {
     size_t klen = strlen(key);
     int depth = 0, instr = 0;
@@ -219,7 +206,7 @@ static gboolean     g_repo_offline = FALSE;   /* serving the cached catalog     
 static gboolean     g_repo_available = FALSE; /* a catalog (fresh or cached) exists  */
 static char*        g_repo_schema  = NULL;    /* schema_version from the catalog     */
 static char*        g_repo_updated = NULL;    /* last_updated from the catalog       */
-static char*        g_repo_kind=NULL;/* "cached" | "bundled"                */
+static char*        g_repo_kind=NULL;/* "remote" | "cached" (engine status) */
 static char*        g_cache = NULL;  /* ~/.cache/xxri-store                 */
 static gboolean     g_online = FALSE;
 static gint64       g_free_kb = 0;   /* free space on / , refreshed with state */
@@ -229,11 +216,8 @@ static GHashTable*  g_updates;       /* catalog id -> "cur|latest"          */
 static GHashTable*  g_dlstate;       /* catalog id -> state string          */
 static GHashTable*  g_sections;      /* section -> GPtrArray of App*        */
 static GHashTable*  g_iconcache;     /* "id@size" -> GdkPixbuf*  (real icon)  */
-/* Generated letter tiles are cached separately from real icons.  Sharing one
-   table made a cache hit indistinguishable from "this app has an icon", so the
-   second card for an app that appears in two rails was handed the placeholder
-   and never registered for the icon fetch - it kept the tile for the whole
-   session even after the real icon had been downloaded. */
+/* placeholders kept apart, or a cached tile looks like a real icon and the
+   widget never gets queued for the icon fetch */
 static GHashTable*  g_tilecache;     /* "id@size" -> GdkPixbuf*  (placeholder) */
 static GtkWidget   *g_stack, *g_win, *g_search_entry, *g_status_chip, *g_rail;
 static char*        g_page = NULL;   /* current page id                     */
@@ -247,12 +231,23 @@ static gboolean app_installable(App* a);
 static void rebuild(const char* id);
 static void refresh_state(void);
 
-static const char* CAT_TITLE(const char* id);
+static const char* ALL_CATS[]={"browser","office","development","graphics","photography","video","audio",
+    "education","communication","ai","games","utilities","science","finance","security","system",
+    "virtualization","networking","productivity","accessories",NULL};
+static const char* cat_title(const char* id){
+    static const struct{const char*i;const char*t;} M[]={
+     {"browser","Browsers"},{"office","Office"},{"development","Development"},{"graphics","Graphics"},
+     {"photography","Photography"},{"video","Video"},{"audio","Audio"},{"education","Education"},
+     {"communication","Communication"},{"ai","AI"},{"games","Games"},{"utilities","Utilities"},
+     {"science","Science"},{"finance","Finance"},{"security","Security"},{"system","System"},
+     {"virtualization","Virtualization"},{"networking","Networking"},{"productivity","Productivity"},
+     {"accessories","Accessories"},{NULL,NULL}};
+    for (int i=0;M[i].i;i++) if(!strcmp(M[i].i,id)) return M[i].t;
+    return id;
+}
 
-/* The repository labels categories for humans ("Remote Desktop", "IDE"); the
-   Store's pages, rails and filters are keyed on its own slugs.  Translate at
-   load time so the existing category UI keeps working untouched - without this
-   no application matches any category and every page renders empty. */
+/* The repository's category labels are for humans ("Remote Desktop", "IDE");
+   pages, rails and filters are keyed on these slugs. */
 static const char* cat_slug(const char* c) {
     struct { const char* from; const char* to; } m[] = {
         {"Browser","browser"},      {"Chat","communication"},   {"Office","office"},
@@ -267,16 +262,14 @@ static const char* cat_slug(const char* c) {
     };
     if (!c || !*c) return "utilities";
     for (int i=0;m[i].from;i++) if (!g_ascii_strcasecmp(c,m[i].from)) return m[i].to;
-    /* an unmapped label is lower-cased and used as-is, so a category the
-       repository adds later still groups sensibly instead of vanishing */
+    /* unknown: lower-cased as is, so new repo categories still group */
     static char buf[64];
     g_snprintf(buf,sizeof buf,"%s",c);
     for (char* q=buf; *q; q++) *q = g_ascii_tolower(*q);
     return buf;
 }
 
-/* Order for the home-page rails: the repository's own priority_tier first
-   (higher rank = lower tier number = better supported), then title. */
+/* home rails: priority_tier first (lower tier = higher rank), then title */
 static gint cmp_rank_then_name(gconstpointer x, gconstpointer y) {
     const App* a = *(const App* const*)x;
     const App* b = *(const App* const*)y;
@@ -301,11 +294,8 @@ static void load_catalog(void) {
     g_repo = run_cmd("xxri-store repo-path");
     if (!*g_repo) { g_free(g_repo); g_repo = g_strdup(STORE_DIR "/repository"); }
 
-    /* The catalog is the repository's i686.json, fetched by the backend into
-       the cache.  Nothing is bundled and nothing is generated locally: this is
-       the single source of truth, and the schema's own field names are read
-       directly.  Fields we do not know about are simply never asked for, so the
-       repository can grow without needing a new Store. */
+    /* the repository's i686.json, fetched into the cache by the backend; the
+       only source of truth. Unknown fields are ignored. */
     char cpath[1024]; snprintf(cpath,sizeof cpath,"%s/i686.json",g_repo);
     char* doc=NULL; gsize len;
     g_repo_available = FALSE;
@@ -349,15 +339,11 @@ static void load_catalog(void) {
             char* url = jtop(o,"download_url");
             gboolean has_url = *url && strcmp(url,"null") && g_str_has_prefix(url,"http");
             char* tier = jtop(o,"priority_tier");
-            /* An absent tier is spelled "null"; atoi("null") is 0, which would
-               otherwise score higher than tier 1 and push every unsupported
-               entry to the top of the home page. */
+            /* absent tier is "null": rank 0, not above tier 1 */
             int tn = (*tier && strcmp(tier,"null")) ? atoi(tier) : 0;
             a->rank = tn ? (100 - tn*10) : 0;
-            /* Packaging is decided from the URL's real extension, exactly as
-               the backend does.  This used to shell out to `xxri-store field`
-               once per application - 57 popen() calls that delayed the first
-               paint by seconds - and the answer is a pure string test. */
+            /* packaging from the URL's extension, same rule as the backend
+               (asking `xxri-store field` per app cost seconds at startup) */
             const char* ext = url;
             a->kind = g_strdup(
                 (g_str_has_suffix(ext,".AppImage")||g_str_has_suffix(ext,".appimage")) ? "appimage" :
@@ -396,10 +382,7 @@ static void load_catalog(void) {
     } else dbg("PARSE_FAILED could not read %s", cpath);
     dbg("REPO_AVAILABLE=%d MODEL_APPS=%u", g_repo_available, g_apps?g_apps->len:0);
 
-    /* app_visible() below compares against this device's architecture, so it
-       must be known before any visibility test runs - it used to be resolved
-       further down, which left g_arch NULL here and crashed the Store on
-       startup the moment the section builder called app_visible(). */
+    /* before any app_visible()/app_installable() call below */
     if (!g_arch) {
         char* ar = run_cmd("xxri-store arch");
         g_arch = jget(ar,"arch"); g_free(ar);
@@ -425,18 +408,12 @@ static void load_catalog(void) {
         }
         g_free(sdoc);
     } else {
-        /* The online repository publishes no sections file, so the same
-           section keys are filled from the repository's own ranking
-           (priority_tier, already stored in App.rank).  The home page code
-           below is untouched - only where these id lists come from changed,
-           exactly as the catalog itself did.  Without this every rail and hero
-           renders empty even though the catalog loaded fine. */
+        /* the online repo has no sections.json: fill the same keys from the
+           ranking */
         GPtrArray* pool = g_ptr_array_new();
         for (guint i=0;i<g_apps->len;i++) {
             App* a = g_apps->pdata[i];
-            /* app_installable() only tests the catalog (verified + arch);
-               app_visible() would consult g_installed, which load_installed()
-               has not built yet at this point in startup. */
+            /* not app_visible(): g_installed doesn't exist yet */
             if (app_installable(a)) g_ptr_array_add(pool,a);
         }
         g_ptr_array_sort(pool, cmp_rank_then_name);
@@ -456,11 +433,6 @@ static void load_catalog(void) {
             g_hash_table_replace(g_sections,g_strdup(S[k].key),v);
         }
         g_ptr_array_free(pool,TRUE);
-    }
-    if (!g_arch) {
-        char* ar = run_cmd("xxri-store arch");
-        g_arch = jget(ar,"arch"); g_free(ar);
-        if (!*g_arch) { g_free(g_arch); g_arch = g_strdup("i686"); }
     }
 }
 
@@ -519,20 +491,11 @@ static gboolean app_compatible(App* a) {
     for (int i=0;v[i];i++) if (!strcmp(v[i],g_arch)||!strcmp(v[i],"any")) ok=TRUE;
     g_strfreev(v); return ok;
 }
-/* On XXRI Lite most catalog apps are x86_64/aarch64 and cannot run.  Hide them
- * by default (a header toggle brings them back), so browsing shows only what
- * this device can actually install.  Installed apps always stay visible. */
+/* Most catalog apps are x86_64/aarch64. Shown: what this device can install
+ * (verified asset + matching arch), what is installed, and entries that say
+ * why they're unsupported. The header toggle shows the rest. */
 static gboolean g_show_incompat = FALSE;
-/* Parts 4 + 8: an app is shown only when this device can actually install it -
- * the architecture matches AND a concrete downloadable asset was confirmed at
- * catalog-build time (dead links / metadata-only entries are hidden).  Already
- * installed apps always stay visible, and the header toggle reveals the rest of
- * the catalog for browsing. */
 static gboolean app_installable(App* a) { return a->verified && app_compatible(a); }
-/* Only what this device can actually install is shown: the app must be verified
- * (a confirmed, downloadable asset) AND built for this CPU.  Apps for other
- * architectures are hidden, reachable only through the header toggle, so the
- * Store never advertises something the user cannot install. */
 static gboolean app_unavailable(App* a) { return a->unavailable && *a->unavailable; }
 static gboolean app_visible(App* a) {
     return g_show_incompat || app_installable(a) || app_installed(a) || app_unavailable(a);
@@ -540,9 +503,7 @@ static gboolean app_visible(App* a) {
 static gboolean app_updatable(App* a) { return g_hash_table_contains(g_updates,a->id); }
 static const char* app_dlstate(App* a) { return g_hash_table_lookup(g_dlstate,a->id); }
 
-/* An app can publish several architectures.  Name the one a user would look
- * for (x86_64 unless the app is not built for it), and be able to list them
- * all - "published for aarch64 only" when it also ships x86_64 is a lie. */
+/* x86_64 if the app ships it, else its first arch */
 static char* primary_arch(App* a) {
     char** v=g_strsplit(a->arch,"\n",-1);
     char* out=NULL;
@@ -589,9 +550,8 @@ static GtkWidget* lbl_ell(const char* t,const char* c,gfloat x,int chars){
     return l;
 }
 
-/* ---- generated app tile: a gradient rounded square with the app initial ---
- * 950+ apps cannot ship 950 icons, and an app without an icon must still look
- * like it belongs.  The tile is deterministic (same app -> same colours).  */
+/* ---- placeholder tile for apps without an icon: gradient + initial,
+ * colours picked from the id so they stay the same */
 static void rr_path(cairo_t* cr,double x,double y,double w,double h,double r){
     cairo_new_sub_path(cr);
     cairo_arc(cr,x+w-r,y+r,r,-G_PI/2,0); cairo_arc(cr,x+w-r,y+h-r,r,0,G_PI/2);
@@ -617,7 +577,6 @@ static GdkPixbuf* gen_tile(const char* id,const char* name,int size){
     cairo_pattern_add_color_stop_rgb(pat,1,TILE_B[k].r,TILE_B[k].g,TILE_B[k].b);
     rr_path(cr,0,0,size,size,size*0.22);
     cairo_set_source(cr,pat); cairo_fill(cr); cairo_pattern_destroy(pat);
-    /* the initial, in the family the rest of the OS uses */
     char init[8]={0}; const char* p=name&&*name?name:id;
     g_utf8_strncpy(init,p,1);
     char* up=g_utf8_strup(init,-1);
@@ -632,19 +591,16 @@ static GdkPixbuf* gen_tile(const char* id,const char* name,int size){
     cairo_surface_destroy(s);
     return pb;
 }
-/* icon resolution: runtime cache -> bundled -> generated tile */
+/* icon: installed app's -> runtime cache -> bundled -> generated tile */
 static GdkPixbuf* app_icon(App* a,int size,gboolean* from_file){
     char key[256]; snprintf(key,sizeof key,"%s@%d",a->id,size);
     GdkPixbuf* pb=g_hash_table_lookup(g_iconcache,key);
     if (pb) { if(from_file)*from_file=TRUE; return pb; }
-    /* a cached placeholder is NOT an icon: report it as such so the caller
-       still queues this widget for the icon fetch */
+    /* a placeholder: not real, so the caller still queues the fetch */
     pb=g_hash_table_lookup(g_tilecache,key);
     if (pb) { if(from_file)*from_file=FALSE; return pb; }
     char p[1024]; GdkPixbuf* out=NULL; gboolean real=FALSE;
-    /* An installed app's own extracted icon wins: xxri-app resolves it from the
-       application's real metadata, so the Store then shows exactly what the
-       dock and the menu show instead of a second, differently-sourced image. */
+    /* installed app: xxri-app's icon, same as the dock and menu show */
     snprintf(p,sizeof p,"/usr/local/share/pixmaps/xxri-app-%s.png",a->id);
     out=load_png(p,size,size);
     if (!out && g_cache) { snprintf(p,sizeof p,"%s/icons/%s.png",g_cache,a->id); out=load_png(p,size,size); }
@@ -693,12 +649,8 @@ static gboolean poll_icons(gpointer u){
         }
         i++;
     }
-    /* Patience must match the work: the repository publishes an icon for every
-       application, so a cold cache means the engine is fetching dozens of files
-       one HTTPS round trip at a time.  Counting polls from the start gave up
-       after 18s and left the rest of the page as generated tiles, so the clock
-       restarts every time an icon actually lands and only a genuinely idle
-       stretch ends the poll. */
+    /* a cold cache fetches dozens of icons one by one: only give up after
+       40 polls with nothing landing */
     if (landed) tries = 0;
     if (++tries > 40) { tries=0; return G_SOURCE_REMOVE; }
     return G_SOURCE_CONTINUE;
@@ -750,7 +702,7 @@ static void act_remove(GtkWidget* w,gpointer p){ App* a=p; (void)w;
     int r=gtk_dialog_run(GTK_DIALOG(d));
     gtk_widget_destroy(d);
     if (r!=GTK_RESPONSE_ACCEPT) return;
-    char* hasil=run_cmd("xxri-app remove %s --purge",rid); g_free(hasil);
+    char* out=run_cmd("xxri-app remove %s --purge",rid); g_free(out);
     refresh_state();
     rebuild(g_page);
 }
@@ -758,8 +710,7 @@ static void act_update(GtkWidget* w,gpointer p){ App* a=p; (void)w;
     run_bg("xxri-store install %s",a->id);
     open_page("downloads");
 }
-/* update by bare catalog id - used when the installed app's catalog entry is
- * not in the currently loaded catalog (e.g. a catalog that changed under us) */
+/* by catalog id, for an installed app missing from the loaded catalog */
 static void act_update_id(GtkWidget* w,gpointer p){ (void)p;
     const char* cid=g_object_get_data(G_OBJECT(w),"cid");
     if (cid && *cid) { run_bg("xxri-store install %s",cid); open_page("downloads"); }
@@ -768,16 +719,14 @@ static void act_website(GtkWidget* w,gpointer p){ App* a=p; (void)w;
     if (*a->homepage) run_bg("xxri-open-url '%s'",a->homepage);
 }
 
-/* Disk this app will really need, in KB - the same estimate the backend uses
-   (see space_needed() in xxri-store).  A compressed archive expands to several
-   times its download size, and a native extension drags in a dependency chain
-   much larger than itself, so the download size alone is not the answer. */
+/* disk needed in KB: archives unpack bigger, a tcz pulls in deps.
+   Keep in sync with space_needed() in xxri-store */
 static gint64 app_space_kb(App* a){
     gint64 sz = a->size > 0 ? a->size : (gint64)32*1024*1024;
     int mult = 2;
     if (a->kind && !strcmp(a->kind,"tcz"))          mult = 5;
     else if (a->kind && !strcmp(a->kind,"archive")) mult = 4;
-    return (sz/1024)*mult + 51200;   /* +50 MB headroom: something always wants more */
+    return (sz/1024)*mult + 51200;   /* +50 MB headroom */
 }
 static gboolean app_has_room(App* a){
     return g_free_kb <= 0 || app_space_kb(a) <= g_free_kb;
@@ -834,9 +783,7 @@ static GtkWidget* action_button(App* a,gboolean big){
         return b;
     }
     if (!app_has_room(a)) {
-        /* The Store must not offer an action that cannot succeed: this install
-           would run out of disk part-way through and fail deep inside the
-           unpacker, which reads to the user as "Install does nothing". */
+        /* would fail half way in the unpacker, looking like "Install does nothing" */
         GtkWidget* b=gtk_button_new_with_label(big ? "Not enough disk space" : "No space");
         gtk_widget_set_sensitive(b,FALSE); css(b,"xxri-chip");
         char tip[192]; snprintf(tip,sizeof tip,
@@ -863,8 +810,9 @@ static gboolean draw_dl_glyph(GtkWidget* w,cairo_t* cr,gpointer u){
     gboolean busy = st && (!strcmp(st,"downloading")||!strcmp(st,"queued")||!strcmp(st,"installing"));
     if (upd || (!inst && ok && !busy)) {
         cairo_pattern_t* p=cairo_pattern_create_linear(0,0,al.width,al.height);
-        cairo_pattern_add_color_stop_rgb(p,0,0.929,0.424,0.878);
-        cairo_pattern_add_color_stop_rgb(p,1,0.514,0.443,0.969);
+        /* the primary action: dark blue to light blue, as every primary button */
+        cairo_pattern_add_color_stop_rgb(p,0,0.118,0.310,0.761);
+        cairo_pattern_add_color_stop_rgb(p,1,0.290,0.604,0.961);
         cairo_set_source(cr,p); cairo_arc(cr,cx,cy,S/2-1,0,2*G_PI); cairo_fill(cr);
         cairo_pattern_destroy(p);
         cairo_set_source_rgb(cr,1,1,1); cairo_set_line_width(cr,1.8);
@@ -877,12 +825,14 @@ static gboolean draw_dl_glyph(GtkWidget* w,cairo_t* cr,gpointer u){
         cairo_move_to(cr,cx-S*0.16,cy); cairo_line_to(cr,cx-S*0.04,cy+S*0.13);
         cairo_line_to(cr,cx+S*0.17,cy-S*0.15); cairo_stroke(cr);
     } else if (busy) {
-        cairo_set_source_rgba(cr,0.514,0.443,0.969,0.18); cairo_arc(cr,cx,cy,S/2-1,0,2*G_PI); cairo_fill(cr);
-        cairo_set_source_rgb(cr,0.514,0.443,0.969); cairo_set_line_width(cr,2);
+        cairo_set_source_rgba(cr,0.180,0.486,0.965,0.14); cairo_arc(cr,cx,cy,S/2-1,0,2*G_PI); cairo_fill(cr);
+        cairo_set_source_rgb(cr,0.180,0.486,0.965); cairo_set_line_width(cr,2);
         cairo_arc(cr,cx,cy,S*0.22,-G_PI/2,G_PI); cairo_stroke(cr);
     } else {
-        cairo_set_source_rgba(cr,0.11,0.106,0.141,0.07); cairo_arc(cr,cx,cy,S/2-1,0,2*G_PI); cairo_fill(cr);
-        cairo_set_source_rgba(cr,0.42,0.41,0.50,0.9); cairo_set_line_width(cr,1.6);
+        if (xxri_theme_dark()) cairo_set_source_rgba(cr,1,1,1,0.08);
+        else cairo_set_source_rgba(cr,0,0,0,0.06);
+        cairo_arc(cr,cx,cy,S/2-1,0,2*G_PI); cairo_fill(cr);
+        cairo_set_source_rgba(cr,0.42,0.42,0.45,0.9); cairo_set_line_width(cr,1.6);
         cairo_move_to(cr,cx-S*0.12,cy); cairo_line_to(cr,cx+S*0.12,cy); cairo_stroke(cr);
     }
     return FALSE;
@@ -963,7 +913,7 @@ static GtkWidget* app_card(App* a){
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(a->summary,"xxri-app-summary",0,52),FALSE,FALSE,0);
     char sub[192]; char* hs=human_size(a->size);
     { const char* parts[3]; int n=0;
-      const char* cat=CAT_TITLE(a->category);
+      const char* cat=cat_title(a->category);
       if (a->developer && *a->developer) parts[n++]=a->developer;
       if (cat && *cat)                   parts[n++]=cat;
       if (hs && *hs)                     parts[n++]=hs;
@@ -1021,13 +971,8 @@ static GtkWidget* lazy_grid(GPtrArray* apps){
     return wrap;
 }
 
-/* a horizontal row of tiles, like the mockup's "Recomended apps" */
 static void on_seeall(GtkWidget* w,gpointer p){ (void)w; open_page((char*)p); }
-/* A rail scrolls horizontally with no visible scrollbar, so the last card is
-   simply chopped off at the window edge and the row reads as broken rather than
-   as continuing.  Painting a short fade to the page background over the right
-   edge turns that hard cut into an obvious "there is more this way", which is
-   what every shelf UI does and what the mockup implies. */
+/* rails have no scrollbar, so fade the cut-off edge to show there's more */
 static gboolean rail_fade_draw(GtkWidget* w, cairo_t* cr, gpointer d){
     (void)d;
     GtkAdjustment* adj = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(w));
@@ -1038,8 +983,9 @@ static gboolean rail_fade_draw(GtkWidget* w, cairo_t* cr, gpointer d){
     int ww = gtk_widget_get_allocated_width(w);
     int wh = gtk_widget_get_allocated_height(w);
     const double FADE = 34.0;
-    /* the page background the rails sit on: @xxri_surface, #EFEDF8 */
-    const double R = 239/255.0, G = 237/255.0, B = 248/255.0;
+    /* the page background the rails sit on: @xxri_surface (dark: #242124) */
+    const gboolean dk = xxri_theme_dark();
+    const double R = dk ? 0.141 : 1.0, G = dk ? 0.129 : 1.0, B = dk ? 0.141 : 1.0;
     if (upper - (lo + page) > 1.0) {            /* something is off the right */
         cairo_pattern_t* p = cairo_pattern_create_linear(ww - FADE, 0, ww, 0);
         cairo_pattern_add_color_stop_rgba(p, 0.0, R, G, B, 0.0);
@@ -1061,6 +1007,7 @@ static gboolean rail_fade_draw(GtkWidget* w, cairo_t* cr, gpointer d){
     return FALSE;
 }
 
+/* a horizontal row of tiles, like the mockup's "Recomended apps" */
 static void section_rail(GtkWidget* box,const char* title,GPtrArray* apps,const char* seeall){
     if (!apps || !apps->len) return;
     GtkWidget* hdr=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);
@@ -1074,9 +1021,8 @@ static void section_rail(GtkWidget* box,const char* title,GPtrArray* apps,const 
     }
     gtk_box_pack_start(GTK_BOX(box),hdr,FALSE,FALSE,0);
     GtkWidget* sc=gtk_scrolled_window_new(NULL,NULL);
-    /* EXTERNAL, not AUTOMATIC: a permanent grey scroll strip under every rail
-       is the single biggest departure from the mockup.  The rail still scrolls
-       with the wheel and by dragging, and "See all" opens the full list. */
+    /* EXTERNAL: no scroll strip under every rail (the mockup has none);
+       wheel and drag still scroll */
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sc),GTK_POLICY_EXTERNAL,GTK_POLICY_NEVER);
     gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(sc),TRUE);
     /* after the children, so the fade lies on top of the cards */
@@ -1131,8 +1077,8 @@ static gboolean draw_hero(GtkWidget* w,cairo_t* cr,gpointer u){
     GtkAllocation al; gtk_widget_get_allocation(w,&al);
     cairo_pattern_t* p=cairo_pattern_create_linear(0,0,al.width,al.height);
     /* three brand ramps, chosen per banner */
-    if (h%3==0) { cairo_pattern_add_color_stop_rgb(p,0,0.110,0.106,0.141);
-                  cairo_pattern_add_color_stop_rgb(p,1,0.325,0.278,0.671); }
+    if (h%3==0) { cairo_pattern_add_color_stop_rgb(p,0,0.110,0.110,0.118);
+                  cairo_pattern_add_color_stop_rgb(p,1,0.227,0.251,0.318); }
     else if (h%3==1) { cairo_pattern_add_color_stop_rgb(p,0,0.929,0.424,0.878);
                        cairo_pattern_add_color_stop_rgb(p,1,0.180,0.486,0.965); }
     else { cairo_pattern_add_color_stop_rgb(p,0,0.180,0.486,0.965);
@@ -1230,7 +1176,7 @@ static void build_home(GtkWidget* box){
         GPtrArray* ap=apps_in_cat(pop[i]); int cnt=ap->len; g_ptr_array_free(ap,TRUE);
         if (!cnt) continue;
         GtkWidget* t=gtk_box_new(GTK_ORIENTATION_VERTICAL,2); css(t,"xxri-cat-tile");
-        gtk_box_pack_start(GTK_BOX(t),lbl(CAT_TITLE(pop[i]),"xxri-cat-name",0),FALSE,FALSE,0);
+        gtk_box_pack_start(GTK_BOX(t),lbl(cat_title(pop[i]),"xxri-cat-name",0),FALSE,FALSE,0);
         char c[32]; snprintf(c,sizeof c,"%d app%s",cnt,cnt==1?"":"s");
         gtk_box_pack_start(GTK_BOX(t),lbl(c,"xxri-cat-count",0),FALSE,FALSE,0);
         GtkWidget* ev=gtk_event_box_new();
@@ -1253,11 +1199,10 @@ static void build_categories(GtkWidget* box){
     gtk_flow_box_set_row_spacing(GTK_FLOW_BOX(fb),8);
     gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(fb),8);
     gtk_flow_box_set_homogeneous(GTK_FLOW_BOX(fb),TRUE);
-    extern const char* ALL_CATS[];
     for (int i=0;ALL_CATS[i];i++) {
         GPtrArray* ap=apps_in_cat(ALL_CATS[i]); int cnt=ap->len; g_ptr_array_free(ap,TRUE);
         GtkWidget* t=gtk_box_new(GTK_ORIENTATION_VERTICAL,2); css(t,"xxri-cat-tile");
-        gtk_box_pack_start(GTK_BOX(t),lbl(CAT_TITLE(ALL_CATS[i]),"xxri-cat-name",0),FALSE,FALSE,0);
+        gtk_box_pack_start(GTK_BOX(t),lbl(cat_title(ALL_CATS[i]),"xxri-cat-name",0),FALSE,FALSE,0);
         char c[32]; snprintf(c,sizeof c,"%d app%s",cnt,cnt==1?"":"s");
         gtk_box_pack_start(GTK_BOX(t),lbl(c,"xxri-cat-count",0),FALSE,FALSE,0);
         GtkWidget* ev=gtk_event_box_new();
@@ -1281,7 +1226,7 @@ static void build_category(GtkWidget* box,const char* cat){
         for (guint i=0;i<g_apps->len;i++){ App* a=g_apps->pdata[i]; if(app_visible(a)) g_ptr_array_add(ap,a); } }
     else ap=apps_in_cat(cat);
     g_ptr_array_sort(ap,cmp_rank);
-    gtk_box_pack_start(GTK_BOX(box),lbl(!strcmp(cat,"all")?"All apps":CAT_TITLE(cat),"xxri-page-title",0),FALSE,FALSE,0);
+    gtk_box_pack_start(GTK_BOX(box),lbl(!strcmp(cat,"all")?"All apps":cat_title(cat),"xxri-page-title",0),FALSE,FALSE,0);
     int total=0; for(guint i=0;i<g_apps->len;i++){App*a=g_apps->pdata[i]; if((!strcmp(cat,"all")||!strcmp(a->category,cat))&&!app_installable(a)&&!app_installed(a)) total++; }
     char s[128];
     if (!g_show_incompat && total>0)
@@ -1347,12 +1292,10 @@ static void build_appdetail(GtkWidget* box,App* a){
     GtkWidget* tv=gtk_box_new(GTK_ORIENTATION_VERTICAL,4);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(a->name,"xxri-page-title",0,26),FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(tv),lbl_ell(a->developer,"xxri-app-dev",0,40),FALSE,FALSE,0);
-    /* join only the fields that exist: the repository leaves license and size
-       empty for most entries, and "Browsers \xc2\xb7 " with nothing after it
-       looked like a rendering bug */
+    /* only fields that exist, most entries have no license or size */
     char meta[256]; char* hs=human_size(a->size);
     { const char* parts[3]; int n=0;
-      const char* cat=CAT_TITLE(a->category);
+      const char* cat=cat_title(a->category);
       if (cat && *cat)          parts[n++]=cat;
       if (a->license && *a->license) parts[n++]=a->license;
       if (hs && *hs)            parts[n++]=hs;
@@ -1445,7 +1388,7 @@ static void build_appdetail(GtkWidget* box,App* a){
         if (iv&&*iv) kv(ic2,"Installed version",iv);
     }
     kv(ic2,"Release date",a->release_date);
-    kv(ic2,"Category",CAT_TITLE(a->category));
+    kv(ic2,"Category",cat_title(a->category));
     char* archs=g_strdup(a->arch);
     for (char* p=archs;*p;p++) if(*p=='\n')*p=' ';
     kv(ic2,"Architecture",archs); g_free(archs);
@@ -1531,14 +1474,14 @@ static void do_search(void){
             char* de=g_ascii_strdown(a->description,-1);
             char* kw=g_ascii_strdown(a->keywords?a->keywords:"",-1);
             char* tg=g_ascii_strdown(a->tags,-1);
-            const char* ct=CAT_TITLE(a->category);
+            const char* ct=cat_title(a->category);
             char* cl=g_ascii_strdown(ct,-1);
             gboolean hit = strstr(nl,ql)||strstr(sl,ql)||strstr(dl,ql)||strstr(pl,ql)
                          ||strstr(de,ql)||strstr(kw,ql)||strstr(tg,ql)||strstr(cl,ql);
             g_free(nl);g_free(sl);g_free(dl);g_free(pl);g_free(de);g_free(kw);g_free(tg);g_free(cl);
             if (!hit) continue;
         }
-        if (cat && strcmp(cat,"All categories") && strcmp(CAT_TITLE(a->category),cat)) continue;
+        if (cat && strcmp(cat,"All categories") && strcmp(cat_title(a->category),cat)) continue;
         /* hide incompatible unless the toggle is on OR the user picked an arch */
         gboolean arch_picked = arch && strcmp(arch,"Any architecture") && strcmp(arch,"Runs on this device");
         if (!g_show_incompat && !arch_picked && !app_visible(a)) continue;
@@ -1576,10 +1519,9 @@ static void build_search(GtkWidget* box){
     gtk_widget_set_margin_top(fr,8);
     g_f_cat=gtk_combo_box_text_new();
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(g_f_cat),"All categories");
-    extern const char* ALL_CATS[];
     for (int i=0;ALL_CATS[i];i++) {
         GPtrArray* ap=apps_in_cat(ALL_CATS[i]); int n=ap->len; g_ptr_array_free(ap,TRUE);
-        if (n) gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(g_f_cat),CAT_TITLE(ALL_CATS[i]));
+        if (n) gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(g_f_cat),cat_title(ALL_CATS[i]));
     }
     gtk_combo_box_set_active(GTK_COMBO_BOX(g_f_cat),0);
     g_signal_connect(g_f_cat,"changed",G_CALLBACK(on_filter),NULL);
@@ -1594,8 +1536,7 @@ static void build_search(GtkWidget* box){
     g_signal_connect(g_f_arch,"changed",G_CALLBACK(on_filter),NULL);
     gtk_box_pack_start(GTK_BOX(fr),g_f_arch,FALSE,FALSE,0);
 
-    /* publishers: only those with more than a couple of apps, else the list
-     * would be 700 entries long */
+    /* only publishers with 3+ apps, or the list runs to hundreds */
     g_f_pub=gtk_combo_box_text_new();
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(g_f_pub),"All publishers");
     GHashTable* pc=g_hash_table_new(g_str_hash,g_str_equal);
@@ -1632,20 +1573,18 @@ static void build_search(GtkWidget* box){
 }
 
 static void draw_glyph(cairo_t* cr,int g,double S,gboolean on);  /* rail glyphs */
-/* Centred empty state, same language as Settings: a soft badge holding the
-   page's own rail glyph, a bold line and a muted explanation.  The Store used
-   to drop a hint bar at the top of an otherwise blank page, which read as an
-   error message rather than "nothing here yet". */
-typedef struct { int glyph; } EmptyBadge;
+/* centred empty state like Settings': the page's rail glyph in a soft badge,
+   a title and a muted line */
 static gboolean empty_badge_draw(GtkWidget* w,cairo_t* cr,gpointer u){
-    EmptyBadge* b=u;
+    int glyph=GPOINTER_TO_INT(u);
     GtkAllocation al; gtk_widget_get_allocation(w,&al);
     double S=al.width;
-    cairo_set_source_rgba(cr,0.514,0.443,0.969,0.13);
+    if (xxri_theme_dark()) cairo_set_source_rgba(cr,1,1,1,0.06);
+    else cairo_set_source_rgba(cr,0,0,0,0.05);
     cairo_arc(cr,S/2,S/2,S/2,0,2*G_PI); cairo_fill(cr);
     double g=S*0.46;
     cairo_save(cr); cairo_translate(cr,(S-g)/2,(S-g)/2);
-    draw_glyph(cr,b->glyph,g,TRUE);
+    draw_glyph(cr,glyph,g,TRUE);
     cairo_restore(cr);
     return FALSE;
 }
@@ -1657,8 +1596,7 @@ static GtkWidget* empty_state(int glyph,const char* title,const char* sub){
     GtkWidget* da=gtk_drawing_area_new();
     gtk_widget_set_size_request(da,78,78);
     gtk_widget_set_halign(da,GTK_ALIGN_CENTER);
-    EmptyBadge* b=g_new0(EmptyBadge,1); b->glyph=glyph;
-    g_signal_connect_data(da,"draw",G_CALLBACK(empty_badge_draw),b,(GClosureNotify)g_free,0);
+    g_signal_connect(da,"draw",G_CALLBACK(empty_badge_draw),GINT_TO_POINTER(glyph));
     gtk_box_pack_start(GTK_BOX(w),da,FALSE,FALSE,0);
     GtkWidget* t=lbl(title,"xxri-empty-title",0.5);
     gtk_label_set_justify(GTK_LABEL(t),GTK_JUSTIFY_CENTER);
@@ -1908,8 +1846,7 @@ static void build_downloads(GtkWidget* box){
     g_timeout_add(1000,poll_downloads,NULL);
 }
 
-/* later releases will ship kind:"theme" entries; the page already reads the same
- * catalog, so nothing here changes when they arrive. */
+/* a page per catalog kind (themes); `soon` stands in while it has none */
 static void build_kind(GtkWidget* box,const char* kind,const char* title,const char* soon){
     gtk_box_pack_start(GTK_BOX(box),lbl(title,"xxri-page-title",0),FALSE,FALSE,0);
     GPtrArray* r=g_ptr_array_new();
@@ -1989,18 +1926,15 @@ static void open_page(const char* id){
 static void show_app(App* a){ char pg[160]; snprintf(pg,sizeof pg,"app:%s",a->id); open_page(pg); }
 static void refresh_state(void){
     load_installed();
-    /* free space decides whether an Install button can honestly be offered */
+    /* free space decides whether an Install button is offered */
     char* fk = run_cmd("df -k / 2>/dev/null | awk 'NR==2{print $4}'");
     g_free_kb = g_ascii_strtoll(fk, NULL, 10);
     g_free(fk);
 }
 
-/* Live refresh: a lightweight background poll notices when the installed set
- * changes (an install finished, an update landed, a removal completed - whether
- * driven from the Store or from xxri-app elsewhere) and re-renders the visible
- * page, the rail badge and all state, with no manual refresh and no reboot.
- * Progress ticks do NOT trigger it (only the installed set + terminal download
- * states feed the signature), so active downloads are never interrupted. */
+/* Live refresh: re-render when the installed set, the updates or a download's
+ * final state change (from the Store or from xxri-app elsewhere). Progress
+ * isn't part of the signature, so running downloads aren't disturbed. */
 static guint g_live_sig = 0;
 static guint live_signature(void){
     guint h=5381; char* p;
@@ -2039,34 +1973,18 @@ static void go_back(GtkWidget* w,gpointer u){ (void)w;(void)u;
     rebuild(prev); g_free(prev);
 }
 
-const char* ALL_CATS[]={"browser","office","development","graphics","photography","video","audio",
-    "education","communication","ai","games","utilities","science","finance","security","system",
-    "virtualization","networking","productivity","accessories",NULL};
-static const char* CAT_TITLE(const char* id){
-    static const struct{const char*i;const char*t;} M[]={
-     {"browser","Browsers"},{"office","Office"},{"development","Development"},{"graphics","Graphics"},
-     {"photography","Photography"},{"video","Video"},{"audio","Audio"},{"education","Education"},
-     {"communication","Communication"},{"ai","AI"},{"games","Games"},{"utilities","Utilities"},
-     {"science","Science"},{"finance","Finance"},{"security","Security"},{"system","System"},
-     {"virtualization","Virtualization"},{"networking","Networking"},{"productivity","Productivity"},
-     {"accessories","Accessories"},{NULL,NULL}};
-    for (int i=0;M[i].i;i++) if(!strcmp(M[i].i,id)) return M[i].t;
-    return id;
-}
-
-/* The mockup's icon rail.  Glyphs are drawn with cairo so they stay crisp and
- * on-palette at any size - no bitmap set to keep in sync. */
+/* the icon rail; glyphs are cairo, no bitmaps to keep in sync */
 typedef struct { const char* id; const char* label; int glyph; } Rail;
 static const Rail RAIL[]={
     {"home","Home",0},{"categories","Categories",1},{"search","Search",2},
     {"downloads","Downloads",3},{"updates","Updates",4},{"installed","My apps",5},
 };
 static void draw_glyph(cairo_t* cr,int g,double S,gboolean on){
-    if (on) { cairo_pattern_t* p=cairo_pattern_create_linear(0,0,S,S);
-        cairo_pattern_add_color_stop_rgb(p,0,0.929,0.424,0.878);
-        cairo_pattern_add_color_stop_rgb(p,1,0.514,0.443,0.969);
-        cairo_set_source(cr,p); cairo_pattern_destroy(p);
-    } else cairo_set_source_rgba(cr,0.25,0.24,0.33,0.85);
+    gboolean dk=xxri_theme_dark();
+    if (on) { if (dk) cairo_set_source_rgb(cr,0.298,0.576,0.973);   /* accent */
+              else    cairo_set_source_rgb(cr,0.180,0.486,0.965); }
+    else if (dk) cairo_set_source_rgba(cr,0.949,0.949,0.957,0.78);   /* ink */
+    else    cairo_set_source_rgba(cr,0.11,0.11,0.118,0.78);
     cairo_set_line_width(cr,1.7);
     cairo_set_line_cap(cr,CAIRO_LINE_CAP_ROUND);
     cairo_set_line_join(cr,CAIRO_LINE_JOIN_ROUND);
@@ -2112,13 +2030,15 @@ static gboolean draw_rail_btn(GtkWidget* w,cairo_t* cr,gpointer u){
     gboolean on = g_page && (!strcmp(g_page,rb->id) ||
                   (!strcmp(rb->id,"categories") && !strncmp(g_page,"cat:",4)));
     double S=al.width;
-    if (on) { cairo_set_source_rgba(cr,1,1,1,0.95); rr_path(cr,2,2,al.width-4,al.height-4,13);
+    if (on) { if (xxri_theme_dark()) cairo_set_source_rgb(cr,0.271,0.275,0.314);   /* @xxri_pop */
+              else cairo_set_source_rgba(cr,1,1,1,0.95);
+              rr_path(cr,2,2,al.width-4,al.height-4,13);
               cairo_fill(cr); }
     cairo_save(cr);
     cairo_translate(cr,(al.width-S)/2,(al.height-S)/2);
     draw_glyph(cr,rb->glyph,S,on);
     cairo_restore(cr);
-    /* a dot when downloads or updates need attention */
+    /* dot when updates are waiting */
     if (!strcmp(rb->id,"updates") && g_updates && g_hash_table_size(g_updates)) {
         cairo_set_source_rgb(cr,0.941,0.416,0.557);
         cairo_arc(cr,al.width-11,11,3.6,0,2*G_PI); cairo_fill(cr);
@@ -2164,11 +2084,7 @@ static void on_search_changed(GtkWidget* w,gpointer u){ (void)w;(void)u;
 static void update_status_chip(void){
     if (!g_status_chip) return;
     char t[200], tip[240];
-    /* The chip has room for about forty characters at 1024px, and the old text
-       was longer than that: it ellipsised in the middle of the date, so the
-       date AND the architecture were both lost and the pill just looked
-       unfinished.  The chip now carries only what it needs to say - reachable
-       or not, and which repository - and the full detail lives in its tooltip. */
+    /* ~40 chars fit at 1024px: short text on the chip, details in the tooltip */
     if (!g_repo_available) {
         snprintf(t,sizeof t,"Repository unavailable");
         snprintf(tip,sizeof tip,"Could not reach repo.xxri.flows.best, and no catalog is cached.\nArchitecture: %s", g_arch);
@@ -2201,36 +2117,29 @@ static gboolean poll_startup(gpointer u){ (void)u;
     char* doc=NULL; gsize len;
     if (g_file_get_contents(sp,&doc,&len,NULL)) {
         char* on=jget(doc,"online"); char* rk=jget(doc,"repo");
-        gboolean was=g_online;
         g_online=!strcmp(on,"true");
         g_free(g_repo_kind); g_repo_kind=rk;
         g_free(on); g_free(doc);
-        if (was!=g_online) update_status_chip(); else update_status_chip();
+        update_status_chip();
     }
     if (g_file_test(dp,G_FILE_TEST_EXISTS)) {
         g_unlink(dp);
         dbg("REFRESH_DONE marker seen after %d polls", tries);
         char rl[512]; snprintf(rl,sizeof rl,"%s/refresh.log",g_cache);
         char* log=NULL;
-        /* Match what the backend actually reports.  cmd_refresh prints
-           updated | unchanged | offline-cached | unavailable - it stopped
-           printing "ok" when the catalog moved online, so this test silently
-           never fired and the Store kept its empty startup model (and the
-           "Repository unavailable" chip) even though the catalog had just been
-           downloaded successfully. */
+        /* cmd_refresh prints updated | unchanged | offline-cached | unavailable
+           ("ok" is from older engines). Keep in sync with xxri-store. */
         gboolean got = g_file_get_contents(rl,&log,&len,NULL) && log &&
                        (strstr(log,"updated") || strstr(log,"unchanged") ||
                         strstr(log,"offline-cached") || strstr(log,"ok"));
         g_free(log);
-        /* Belt and braces: on a fresh install the Store starts with no catalog
-           at all.  If one exists now, reload regardless of what the log said -
-           anything is better than the empty model we painted with. */
+        /* started without any catalog (fresh install): reload if one exists now */
         if (!got && !g_repo_available) {
             char cp[1024]; snprintf(cp,sizeof cp,"%s/i686.json",g_cache);
             got = g_file_test(cp,G_FILE_TEST_EXISTS);
         }
         dbg("REFRESH_GOT=%d (log=%s)", got, "see refresh.log");
-        if (got) {          /* the remote catalog replaced the bundled one */
+        if (got) {          /* a catalog arrived or changed */
             load_catalog(); load_installed(); rebuild(g_page);
             dbg("RELOADED apps=%u available=%d", g_apps?g_apps->len:0, g_repo_available);
         } else if (g_online) {
@@ -2275,6 +2184,11 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     gtk_css_provider_load_from_path(prov,STORE_DIR "/xxri-store.css",NULL);
     gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
         GTK_STYLE_PROVIDER(prov),GTK_STYLE_PROVIDER_PRIORITY_APPLICATION+1);
+    /* Light or Dark as in Settings, switching while open; the rail and the
+       tile glyphs are cairo, so they repaint */
+    xxri_theme_init(STORE_DIR "/xxri-store-dark.css",
+        +[](gboolean dark, gpointer d){ (void)dark;(void)d; if (g_win) gtk_widget_queue_draw(g_win); }, NULL);
+    xxri_dialogs_init();
 
     g_cache=run_cmd("xxri-store cache-path");
     if (!*g_cache) { g_free(g_cache); g_cache=g_strdup_printf("%s/.cache/xxri-store",g_get_home_dir()); }
@@ -2303,14 +2217,10 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     }
 
     GtkWidget* hb=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0);
-    /* The Store's composition is not the Settings one: a NARROW icon rail on the
-       left with the window controls at its top, and a HORIZONTAL header beside
-       it carrying the wordmark and search.  The mockups use both arrangements
-       deliberately, so this keeps its own. */
+    /* not the Settings layout on purpose: narrow icon rail with the window
+       controls on top, header with wordmark and search beside it (mockup) */
     XxriChrome* chrome = xxri_chrome_new(g_win);
     GtkWidget* railcol = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    /* The rail surface includes the control row above the icon rail, so it
-       reaches the window's top edge without adding a second painted layer. */
     css(railcol, "xxri-rail-col");
     GtkWidget* crow = gtk_event_box_new();
     gtk_event_box_set_visible_window(GTK_EVENT_BOX(crow), TRUE);
@@ -2328,8 +2238,7 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     /* header: back, wordmark, search, refresh, status chip */
     GtkWidget* headbox=gtk_event_box_new();
     gtk_event_box_set_visible_window(GTK_EVENT_BOX(headbox),TRUE);
-    /* The header is a drag handle, but NOT a transparent one: the mockup draws
-       it as a clean light toolbar.  Only the rail beside it is translucent. */
+    /* drag handle; opaque toolbar, only the rail is translucent */
     css(headbox,"xxri-headbox");
     xxri_chrome_drag_area(chrome, headbox);
     GtkWidget* head=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10);
@@ -2346,18 +2255,14 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     css(sb,"xxri-searchbar");
     g_search_entry=gtk_entry_new();
     gtk_entry_set_placeholder_text(GTK_ENTRY(g_search_entry),"Search apps, categories, publishers\xe2\x80\xa6");
-    /* 34 characters made the header's minimum width 1097px, so on a 1024x768
-       panel the window opened wider than the screen and the search box hung
-       off the right edge.  16 is the minimum; the box still expands into
-       whatever room the header has left. */
+    /* minimum only, it still expands; 34 made the window wider than 1024px */
     gtk_entry_set_width_chars(GTK_ENTRY(g_search_entry),16);
-    /* A cairo-drawn magnifier: the device has no icon theme and the TC
-     * gdk-pixbuf cannot load GTK's fallback icon, so a themed-name icon would
-     * ABORT the app on Xvesa.  Everything visual in the Store is cairo/PNG. */
+    /* cairo magnifier: no icon theme here, and a themed icon name makes GTK
+     * abort when even its fallback icon can't be loaded */
     {
         cairo_surface_t* ms=cairo_image_surface_create(CAIRO_FORMAT_ARGB32,18,18);
         cairo_t* mc=cairo_create(ms);
-        cairo_set_source_rgba(mc,0.42,0.41,0.50,0.9); cairo_set_line_width(mc,1.6);
+        cairo_set_source_rgba(mc,0.42,0.42,0.45,0.9); cairo_set_line_width(mc,1.6);
         cairo_arc(mc,7.5,7.5,4.5,0,2*G_PI); cairo_stroke(mc);
         cairo_move_to(mc,11,11); cairo_line_to(mc,15.5,15.5); cairo_stroke(mc);
         cairo_destroy(mc);
@@ -2394,8 +2299,6 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     gtk_stack_set_transition_duration(GTK_STACK(g_stack),140);
     gtk_box_pack_start(GTK_BOX(right),g_stack,TRUE,TRUE,0);
 
-    /* Invisible edge/corner input regions live in an overlay and do not alter
-       the layout or appearance of the Store root. */
     gtk_container_add(GTK_CONTAINER(g_win), xxri_chrome_resizable(chrome, hb));
 
     update_status_chip();
@@ -2407,9 +2310,8 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
 }
 
 int main(int argc,char** argv){
-    /* deep link: `xxri-store-gui <page>` (used by the dock, help and QA) */
-    /* --dump <id>: print the catalog entry exactly as the GUI parsed it, plus
-       icon resolution and the action the UI would build.  No X needed. */
+    /* --dump <id>: the catalog entry as parsed, icon resolution and the action
+       the UI would build, no X needed. --click also runs the install handler. */
     if (argc>2 && (!strcmp(argv[1],"--dump") || !strcmp(argv[1],"--click"))) {
         gboolean click = !strcmp(argv[1],"--click");
         gtk_init_check(&argc,&argv);          /* works headless too */
@@ -2471,8 +2373,8 @@ int main(int argc,char** argv){
                 !app_has_room(a) ? "Not enough disk space" : "INSTALL");
         } else {
             GtkWidget* b=action_button(a,TRUE);
-            const char* lbl = GTK_IS_BUTTON(b)?gtk_button_get_label(GTK_BUTTON(b)):"(not a button)";
-            printf("  button label   : '%s'\n", lbl);
+            const char* label = GTK_IS_BUTTON(b)?gtk_button_get_label(GTK_BUTTON(b)):"(not a button)";
+            printf("  button label   : '%s'\n", label);
             printf("  sensitive      : %d\n", gtk_widget_get_sensitive(b));
             guint sig=g_signal_lookup("clicked",GTK_TYPE_BUTTON);
             printf("  install handler attached: %lu\n",
@@ -2488,6 +2390,7 @@ int main(int argc,char** argv){
         }
         return 0;
     }
+    /* deep link: `xxri-store-gui <page>` (dock, help and QA use it) */
     const char* start = argc>1 ? argv[1] : NULL;
     GtkApplication* app=gtk_application_new("best.flows.xxri.store",G_APPLICATION_NON_UNIQUE);
     g_signal_connect(app,"activate",G_CALLBACK(activate),NULL);

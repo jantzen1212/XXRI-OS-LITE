@@ -1,0 +1,44 @@
+/* xxri Settings - dark appearance. Loaded over xxri.css at a higher
+ * priority while Mode is Dark, so dialogs and the file chooser follow too.
+ * Mostly xxri.css's surface names again; primary and accent stay blue. */
+
+@define-color xxri_bg       #242124;
+@define-color xxri_surface  #2A2B33;
+@define-color xxri_raised   #34353E;
+@define-color xxri_sunken   #3C3D47;
+@define-color xxri_pop      #454650;
+@define-color xxri_side     #1D1B1D;
+@define-color xxri_line     alpha(#FFFFFF, 0.08);
+@define-color xxri_ink      #F2F2F4;
+@define-color xxri_muted    #A0A1AA;
+@define-color xxri_accent   #4C93F8;
+
+/* dialogs (xxri-dialog.h): a card one step above the window */
+@define-color xxri_dlg_bg    #2A2B33;
+@define-color xxri_dlg_ink   #F2F2F4;
+@define-color xxri_dlg_muted #A0A1AA;
+@define-color xxri_dlg_line  alpha(#FFFFFF, 0.10);
+@define-color xxri_dlg_btn   #3C3D47;
+@define-color xxri_dlg_btn_h #454650;
+
+window, .xxri-root, .xxri-content { background-color: @xxri_bg; color: @xxri_ink; }
+.xxri-root.composited { background-color: transparent; }
+.xxri-root.composited .xxri-content { background-color: @xxri_bg; }
+.xxri-root.composited .xxri-sidebar { background-color: alpha(@xxri_side, 0.78); }
+
+/* elevation reads as lighter, not as shadow, on a dark ground */
+.xxri-userchip, list.xxri-nav row:selected { box-shadow: none; }
+.xxri-card button { box-shadow: none; }
+button:hover, .xxri-card button:hover   { background-color: shade(@xxri_pop, 1.12); }
+button:active, .xxri-card button:active { background-color: shade(@xxri_pop, 0.92); }
+.xxri-seg button:checked, .xxri-card .xxri-seg button:checked { box-shadow: none; }
+entry { border-color: alpha(#FFFFFF, 0.12); }
+
+/* popups and the file chooser are windows of their own */
+menu, .menu, popover { background-color: @xxri_surface; color: @xxri_ink; border: 1px solid @xxri_line; }
+menuitem:hover { background-color: @xxri_pop; color: @xxri_ink; }
+treeview.view, iconview, placessidebar, placessidebar list { background-color: @xxri_surface; color: @xxri_ink; }
+treeview.view:selected, placessidebar row:selected { background-color: @xxri_accent; color: #FFFFFF; }
+treeview.view header button { background-image: none; background-color: @xxri_raised; color: @xxri_muted; }
+.xxri-upd-error { color: #FF8A80; }
+.xxri-dlg-error { color: #FF8A80; }

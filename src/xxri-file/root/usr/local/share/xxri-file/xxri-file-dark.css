@@ -1,0 +1,31 @@
+/* xxri-file-dark.css - XXRI File while Mode is Dark (xxri-theme.h): the
+ * named colours again (Settings' dark palette), then the surfaces the light
+ * sheet writes out. The gradient chips and the place artwork are the same in
+ * both; the near-black glyphs have -dark twins (tools/icons/files-dark.sh). */
+
+@define-color xxri_ink     #F2F2F4;
+@define-color xxri_muted   #A0A1AA;
+@define-color xxri_content #242124;
+@define-color xxri_side    #1D1B1D;
+@define-color xxri_accent  #4C93F8;
+
+/* libfm's dialogs and menus (xxri-dialog.h) */
+@define-color xxri_dlg_bg    #2A2B33;
+@define-color xxri_dlg_ink   #F2F2F4;
+@define-color xxri_dlg_muted #A0A1AA;
+@define-color xxri_dlg_line  alpha(#FFFFFF, 0.10);
+@define-color xxri_dlg_btn   #3C3D47;
+@define-color xxri_dlg_btn_h #454650;
+
+.xxri-file-root.composited .xxri-rail {
+  background-image: linear-gradient(to bottom,
+                    alpha(#1D1B1D, 0.80), alpha(#242124, 0.70));
+}
+.xxri-rail-btn:hover    { background-color: alpha(#FFFFFF, 0.08); }
+.xxri-rail-btn.selected { background-color: alpha(#FFFFFF, 0.14); }
+.xxri-file-content.composited { background-color: alpha(#242124, 0.93); }
+.xxri-locpill { background-color: alpha(#FFFFFF, 0.10); }
+
+menu, .menu, popover { background-color: #2A2B33; color: @xxri_ink; border: 1px solid alpha(#FFFFFF, 0.10); }
+menuitem:hover { background-color: #3C3D47; color: @xxri_ink; }
+entry { background-color: #34353E; color: @xxri_ink; border-color: alpha(#FFFFFF, 0.12); }

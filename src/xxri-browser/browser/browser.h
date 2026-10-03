@@ -68,16 +68,8 @@ public:
     BrowserWindow *createWindow(bool offTheRecord = false);
     BrowserWindow *createDevToolsWindow();
 
-    /*
-     * The browsing profile.
-     *
-     * QWebEngineProfile::defaultProfile() is off the record: no cookies, no
-     * HTTP cache and no local storage survive the process.  A browser that
-     * forgets every site it has been to the moment it is closed is not one
-     * anybody can sign in with, and to a site it looks like a first-ever
-     * visitor on every single request.  This is a named profile, so the engine
-     * keeps all three under the user's own directories.
-     */
+    /* A named, persistent profile: defaultProfile() is off the record and
+     * keeps no cookies, cache or local storage, so nobody stays signed in. */
     static QWebEngineProfile *profile();
 
     DownloadManagerWidget &downloadManagerWidget() { return m_downloadManagerWidget; }

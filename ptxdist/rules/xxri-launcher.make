@@ -28,7 +28,7 @@ XXRI_LAUNCHER_CONF_TOOL	:= NO
 $(STATEDIR)/xxri-launcher.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_LAUNCHER_BUILD_DIR) && mkdir -p $(XXRI_LAUNCHER_BUILD_DIR)
-	@$(call world/execute, XXRI_LAUNCHER, $(CROSS_CC) $(XXRI_OS_CFLAGS) -std=gnu17 -w $(XXRI_GTK3_CFLAGS) $(XXRI_LAUNCHER_DIR)/xxri-launcher.c -o $(XXRI_LAUNCHER_BUILD_DIR)/xxri-launcher $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -lX11 -lm -mtls-dialect=gnu -static-libgcc)
+	@$(call world/execute, XXRI_LAUNCHER, $(CROSS_CC) $(XXRI_OS_CFLAGS) -std=gnu17 -w $(XXRI_GTK3_CFLAGS) $(XXRI_LAUNCHER_DIR)/xxri-launcher.c -o $(XXRI_LAUNCHER_BUILD_DIR)/xxri-launcher $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -lXi -lX11 -lm -mtls-dialect=gnu -static-libgcc)
 	@$(call touch)
 
 $(STATEDIR)/xxri-launcher.install:

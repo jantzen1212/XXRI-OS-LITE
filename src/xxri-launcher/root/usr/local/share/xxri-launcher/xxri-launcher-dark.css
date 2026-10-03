@@ -1,0 +1,25 @@
+/* xxri-launcher-dark.css - the All Apps drawer while Mode is Dark
+   (xxri-theme.h). The panel is cairo; this restyles what sits on it with
+   Settings' dark palette: ink #F2F2F4, muted #A0A1AA, light washes. */
+
+.xxri-cell:hover      { background: rgba(255,255,255,0.07); }
+.xxri-cell:active     { background: rgba(255,255,255,0.13); }
+.xxri-cell:focus      { background: rgba(255,255,255,0.10); }
+.xxri-tile-label      { color: #F2F2F4; }
+
+.xxri-scroll scrollbar slider       { background: rgba(255,255,255,0.22); }
+.xxri-scroll scrollbar slider:hover { background: rgba(255,255,255,0.34); }
+
+.xxri-search {
+    color: #F2F2F4;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+.xxri-search:focus {
+    background: #34353E;
+    border: 1px solid rgba(76,147,248,0.70);
+}
+.xxri-search image      { color: #A0A1AA; }
+.xxri-search placeholder,
+.xxri-search text selection:backdrop { color: #A0A1AA; }
+.xxri-search selection  { background: #4C93F8; color: #FFFFFF; }

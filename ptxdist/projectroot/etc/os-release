@@ -1,10 +1,16 @@
 # VERSION_ID is the PACKAGE lineage (Tiny Core 16.x mirror path), not the
 # product version - xxri-functions builds MIRROR from getMajorVer().
+# IMAGE_VERSION is the XXRI release this system is at: Settings > About shows
+# it and xxri-system-update compares it with the update manifest (and raises
+# it, together with VERSION/PRETTY_NAME/BUILD_ID, when an update is applied).
 NAME="XXRI OS Lite"
-VERSION="2.0 Lite"
+VERSION="2.6 Lite"
 ID=xxri
 VERSION_ID=16.0
-PRETTY_NAME="XXRI OS Lite 2.0"
+PRETTY_NAME="XXRI OS Lite 2.6"
+IMAGE_ID=xxri-os-lite
+IMAGE_VERSION=2.6
+BUILD_ID=2.6
 ANSI_COLOR="0;34"
 CPE_NAME="cpe:/o:xxri:xxri_os_lite:16.0"
 HOME_URL="https://xxri.flows.best/"

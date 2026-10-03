@@ -1,10 +1,7 @@
 /*
- * xxridata.h - persistent state for XXRI Browser.
- *
- * Shortcut tiles, bookmarks and history are what make the sidebar in
- * assets/mockup/mockup1.jpg a real control surface rather than a picture, so
- * they live in one process-wide store that every window observes.  Storage is
- * a plain INI file under the user's config directory.
+ * xxridata.h - persistent state for XXRI Browser: bookmarks, history and the
+ * search engine, in one process-wide store every window observes. Stored as
+ * an INI file in the user's config directory.
  */
 
 #ifndef XXRIDATA_H
@@ -29,15 +26,8 @@ class XxriStore : public QObject
 public:
     static XxriStore *instance();
 
-    /*
-     * Bookmarks - one list, shown as the sidebar's tile grid.
-     *
-     * There used to be two: a "shortcuts" row of tiles and a "Bookmark" list
-     * of slots, which were the same thing to anyone looking at them and left
-     * the sidebar holding three permanently empty pills.  A saved page is a
-     * bookmark; it has one home, the grid grows to fit however many there are,
-     * and nothing reserves space for one that does not exist.
-     */
+    // bookmarks: one list, the sidebar's tile grid (old profiles' separate
+    // "shortcuts" are merged in on load)
     QVector<XxriEntry> bookmarks() const { return m_bookmarks; }
     bool isBookmarked(const QUrl &url) const;
     void addBookmark(const XxriEntry &e);
@@ -46,18 +36,8 @@ public:
     void toggleBookmark(const XxriEntry &e);
     void clearBookmarks();
 
-    /*
-     * The search engine.
-     *
-     * Google is the default, because that is what the XXRI Browser design
-     * expects and what the artwork's own shortcut rail lists.  It is a setting
-     * rather than a constant because on some networks Google answers this
-     * engine's requests with its "unusual traffic" challenge rather than with
-     * results - a fingerprint judgement about Chromium 87 that nothing in this
-     * browser can change - and a browser whose address bar cannot complete a
-     * search on such a network is not usable.  The menu offers the choice; the
-     * default is unchanged.
-     */
+    // Search engine, Google by default. A setting because on some networks
+    // Google answers Chromium 87 with its "unusual traffic" page instead.
     QString searchUrl() const { return m_searchUrl; }
     void    setSearchUrl(const QString &url);
 

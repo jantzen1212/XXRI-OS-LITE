@@ -1,0 +1,13 @@
+## SECTION=project_specific
+
+config XXRI_UCODE
+	bool
+	select HOST_PYTHON3
+	prompt "xxri-ucode: early CPU microcode images (Intel, AMD)"
+	help
+	  boot/intel-ucode.img and boot/amd-ucode.img for the ISO and the
+	  installed system: uncompressed early cpio archives GRUB loads in
+	  front of core.gz, so the kernel updates the boot CPU's microcode
+	  before anything else runs.  Intel's from Intel's microcode release,
+	  AMD's from the pinned linux-firmware release
+	  (config/firmware/amd-ucode.list).

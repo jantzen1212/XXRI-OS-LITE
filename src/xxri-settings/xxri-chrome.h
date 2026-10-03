@@ -1,18 +1,9 @@
-/* xxri-chrome.h - the XXRI window controls, drawn by the application itself.
+/* xxri-chrome.h - window controls drawn by the app (CSD).
  *
- * The mockups do not put a titlebar above these windows.  The △ □ X controls
- * sit INSIDE the application's own top-left surface - the sidebar in Settings,
- * the icon rail in Store - and that surface runs to the top edge of the window.
- * A window-manager titlebar cannot do that: it is a separate opaque strip
- * spanning the whole width, which is exactly the "empty white header" the
- * design does not have.
- *
- * So these windows are undecorated (flwm honours _MOTIF_WM_HINTS, which is what
- * gtk_window_set_decorated(FALSE) sets) and draw the controls themselves.  The
- * glyphs are deliberately identical to the ones flwm draws for every other
- * window, so the language is the same everywhere: a magenta triangle to
- * minimise, a purple rounded square to maximise, a blue circle with an X
- * knocked out of it to close.
+ * The mockups have no titlebar: the △ □ X sit inside the app's own sidebar or
+ * rail, which runs to the top edge. So the window is undecorated (flwm honours
+ * _MOTIF_WM_HINTS) and draws the controls itself, with the same glyphs flwm
+ * draws for everything else. Identical copies in settings, store and Files.
  */
 #ifndef XXRI_CHROME_H
 #define XXRI_CHROME_H
@@ -46,7 +37,7 @@ static gboolean xc_draw(GtkWidget* w, cairo_t* cr, gpointer d) {
         double cy = h / 2.0;
         unsigned base = i == 0 ? XC_MIN : i == 1 ? XC_MAX : XC_CLOSE;
         gboolean hot = (c->hot == i), press = (c->pressed == i);
-        /* the same felt-not-seen halo flwm uses */
+        /* same faint hover halo as flwm */
         if (hot || press) {
             cairo_set_source_rgba(cr, 0.11, 0.10, 0.14, press ? 0.13 : 0.07);
             cairo_arc(cr, cx, cy, 8.5, 0, 2*M_PI);
@@ -88,14 +79,13 @@ static int xc_index(GdkEventButton* e) {
     return (i >= 0 && i < 3) ? i : -1;
 }
 
-/* Maximise without EWMH: flwm is ICCCM-only, so the window does it itself and
-   stops above the dock, exactly where a window-manager maximise would. */
+/* flwm is ICCCM-only (no EWMH maximise): do it ourselves, stop above the dock */
 static void xc_toggle_max(XxriChrome* c) {
     GtkWindow* w = GTK_WINDOW(c->win);
     GdkScreen* sc = gtk_widget_get_screen(c->win);
     int sw = gdk_screen_get_width(sc), sh = gdk_screen_get_height(sc);
-    const char* res = g_getenv("XXRI_DOCK_RESERVE");
-    int reserve = res ? atoi(res) : 78;
+    const char* env = g_getenv("XXRI_DOCK_RESERVE");
+    int reserve = env ? atoi(env) : 78;
     if (c->maximized) {
         gtk_window_move(w, c->rx, c->ry);
         gtk_window_resize(w, c->rw, c->rh);
@@ -142,8 +132,7 @@ static gboolean xc_leave(GtkWidget* w, GdkEventCrossing* e, gpointer d) {
     return FALSE;
 }
 
-/* The area beside the controls drags the window, and double-click maximises -
-   the two things a titlebar was doing for us. */
+/* what the titlebar used to do: drag, double-click maximises */
 static gboolean xc_drag_press(GtkWidget* w, GdkEventButton* e, gpointer d) {
     (void)w; XxriChrome* c = d;
     if (e->button != 1) return FALSE;
@@ -160,7 +149,6 @@ static XxriChrome* xxri_chrome_new(GtkWidget* win) {
     return c;
 }
 
-/* The control cluster widget itself. */
 static GtkWidget* xxri_chrome_controls(XxriChrome* c) {
     GtkWidget* da = gtk_drawing_area_new();
     gtk_widget_set_size_request(da, XC_BTN_W * 3, 22);
@@ -176,14 +164,8 @@ static GtkWidget* xxri_chrome_controls(XxriChrome* c) {
     return da;
 }
 
-/* Invisible resize edges.
- *
- * These windows are undecorated, so there is no frame border to grab.  A
- * GtkEventBox with visible_window = FALSE gets an INPUT-ONLY X window: it
- * receives the button press but paints absolutely nothing, so the edges add no
- * border, no padding and no visible change whatsoever.  They are placed with a
- * GtkOverlay, which does not affect the layout of the widget underneath.
- */
+/* Invisible resize edges (no frame to grab): input-only event boxes in a
+ * GtkOverlay, so the layout underneath doesn't change. */
 static gboolean xc_edge_press(GtkWidget* w, GdkEventButton* e, gpointer d) {
     XxriChrome* c = d;
     if (e->button != 1) return FALSE;
@@ -207,8 +189,7 @@ static GtkWidget* xc_edge(XxriChrome* c, GdkWindowEdge edge, int w, int h,
     return eb;
 }
 
-/* Wrap the window's root widget so the window can be resized from its edges.
-   Returns the widget to put in the window instead of `root`. */
+/* returns the widget to add to the window instead of `root` */
 static GtkWidget* xxri_chrome_resizable(XxriChrome* c, GtkWidget* root) {
     const int T = 5, K = 14;          /* edge thickness, corner size */
     GtkWidget* ov = gtk_overlay_new();
@@ -226,14 +207,11 @@ static GtkWidget* xxri_chrome_resizable(XxriChrome* c, GtkWidget* root) {
     return ov;
 }
 
-/* Make any widget behave as the window's drag handle. */
+/* make w a drag handle for the window */
 static void xxri_chrome_drag_area(XxriChrome* c, GtkWidget* w) {
-    GtkWidget* ev = w;
-    if (!gtk_widget_get_has_window(w)) {
-        /* a plain box has no window of its own, so it cannot receive buttons */
-        return;
-    }
-    gtk_widget_add_events(ev, GDK_BUTTON_PRESS_MASK);
-    g_signal_connect(ev, "button-press-event", G_CALLBACK(xc_drag_press), c);
+    /* a widget without its own GdkWindow gets no button events */
+    if (!gtk_widget_get_has_window(w)) return;
+    gtk_widget_add_events(w, GDK_BUTTON_PRESS_MASK);
+    g_signal_connect(w, "button-press-event", G_CALLBACK(xc_drag_press), c);
 }
 #endif

@@ -1,12 +1,8 @@
-/* xxri-control-center - the XXRI quick-settings panel.
+/* xxri-control-center - quick-settings panel, bottom right.
  *
- * Bottom-right, where the mockups put it.  Pure frontend: every reading and
- * action goes through the xxri-* backends, so it can never disagree with
- * Settings about the hardware.  One override-redirect window holds two states
- * - a collapsed status chip (network + battery + clock) and the expanded panel
- * (Wi-Fi/BT tiles, volume, brightness, power/settings/battery/clock).  No
- * pointer grab, no focus to steal, so it stays out of the dock/Settings/Store.
- */
+ * Frontend only: everything goes through the xxri-* backends, same as
+ * Settings. One override-redirect window that is either the status chip or
+ * the expanded panel. No grabs, never takes focus. */
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
 #include <cairo.h>
@@ -19,14 +15,14 @@
 #include <time.h>
 #include <signal.h>
 #include <unistd.h>
+#include "xxri-theme.h"
 
 #define CSS_PATH  "/usr/local/share/xxri-control-center/xxri-cc.css"
-#define ICONDIR   "/usr/local/share/xxri-settings/icons"
-#define EDGE_X    18      /* gap to the right screen edge, from the mockup */
-#define EDGE_Y     20     /* gap to the bottom screen edge                 */
+#define CSS_DARK  "/usr/local/share/xxri-control-center/xxri-cc-dark.css"
+#define EDGE_X    18      /* gaps to the screen edges, from the mockup */
+#define EDGE_Y     20
 #define PANEL_W   264
-/* Width of the soft shadow ring drawn OUTSIDE the panel.  See draw_shadow(). */
-#define SHADOW     12
+#define SHADOW     12     /* shadow ring outside the panel, see draw_shadow() */
 #define CHIP_H     38
 
 static char* run_cmd(const char* fmt, ...) {
@@ -52,11 +48,8 @@ static void run_bg(const char* fmt, ...) {
 /* the backends emit the same flat-ish JSON the Settings app reads */
 static char* jget(const char* doc, const char* key) {
     char pat[128]; snprintf(pat, sizeof pat, "\"%s\":", key);
-    /* The backends wrap their payload in an envelope whose key repeats inside
-       it - xxri-audio emits {"volume":{"volume":65,...}}.  A plain strstr
-       stopped at the envelope and parsed "{" as the number, so the Control
-       Center's slider always read 0.  Skip values that open an object or an
-       array and keep looking for the scalar. */
+    /* skip object/array values: xxri-audio emits {"volume":{"volume":65,...}}
+       and the envelope key would match first */
     const char* p = doc;
     for (;;) {
         p = strstr(p, pat);
@@ -95,15 +88,13 @@ static char* jfirst(const char* doc, const char* key) {
     return g_strndup(p, e-p+1);
 }
 
-/* XXRI_CC_DEBUG=1 appends a trace to ~/xxri-cc.log.  The panel has no terminal
-   when the session starts it, and "the chip vanished" is exactly the kind of
-   report that needs a timeline rather than a guess. */
+/* XXRI_CC_DEBUG=1 appends a trace to ~/xxri-cc.log (no terminal at session start) */
 static void trace(const char* fmt, ...) {
     static int on = -1;
     if (on < 0) on = g_getenv("XXRI_CC_DEBUG") ? 1 : 0;
     if (!on) return;
-    char* p = g_strdup_printf("%s/xxri-cc.log", g_get_home_dir() ? g_get_home_dir() : "/tmp");
-    FILE* f = fopen(p, "a"); g_free(p);
+    char* path = g_strdup_printf("%s/xxri-cc.log", g_get_home_dir() ? g_get_home_dir() : "/tmp");
+    FILE* f = fopen(path, "a"); g_free(path);
     if (!f) return;
     va_list ap; va_start(ap, fmt);
     char buf[512]; vsnprintf(buf, sizeof buf, fmt, ap); va_end(ap);
@@ -114,13 +105,13 @@ static void trace(const char* fmt, ...) {
 
 typedef struct {
     gboolean net_up;  char* net_name;  char* net_kind;   /* wifi / ethernet */
-    gboolean bt_ok;   char* bt_reason;
+    gboolean bt_ok;   char* bt_reason;   gboolean bt_on;   /* adapter usable / switched on */
     gboolean audio_ok; int volume; gboolean muted;
     gboolean bright_ok; int bright;
     gboolean batt_ok; int batt; gboolean charging;
 } State;
 static State S;
-static GtkWidget *g_win, *g_chip, *g_panel, *g_root;
+static GtkWidget *g_win, *g_root;
 static gboolean g_expanded = FALSE;
 static gboolean g_composited = FALSE;   /* a compositing manager is running */
 static gboolean g_over_window = FALSE;  /* panel is not over the desktop */
@@ -161,8 +152,7 @@ static void state_read(void) {
         char* iface = jget(best, "interface");
         char* ip    = jget(best, "ip");
         S.net_kind = g_strdup(best_wifi ? "Wi-Fi" : "Ethernet");
-        /* what the user cares about: the network name on Wi-Fi, the address on
-           a wired link - "eth0" tells them nothing they did not know */
+        /* SSID on Wi-Fi, the address on a wire; the interface name last */
         if (*ssid)      S.net_name = g_strdup(ssid);
         else if (*ip)   S.net_name = g_strdup(ip);
         else            S.net_name = g_strdup(iface);
@@ -176,6 +166,7 @@ static void state_read(void) {
 
     char* bt = run_cmd("xxri-bluetooth status --json");
     S.bt_ok = jbool(bt, "available");
+    S.bt_on = S.bt_ok && jbool(bt, "enabled");
     { char* r = jget(bt, "reason"); S.bt_reason = *r ? r : g_strdup("Not available"); }
     g_free(bt);
 
@@ -203,8 +194,7 @@ static void state_read(void) {
     g_free(pw);
 }
 
-/* GTK takes one class name per call - a "a b" string would add a single,
-   never-matching class, which is how the tiles lost their background. */
+/* one class per gtk call, so split "a b" */
 static void css_class(GtkWidget* w, const char* c) {
     gchar** parts = g_strsplit(c, " ", -1);
     for (int i = 0; parts[i]; i++)
@@ -217,22 +207,23 @@ static GtkWidget* lbl(const char* t, const char* cls, gfloat xalign) {
     if (cls) css_class(l, cls);
     return l;
 }
-/* The device has no icon theme, so every glyph is drawn with cairo - the same
- * rule the Store follows.  `kind` picks the pictogram. */
+/* no icon theme on the device, so glyphs are drawn with cairo (like the Store) */
 typedef struct { const char* kind; int size; gboolean on; } Glyph;
 static gboolean glyph_draw(GtkWidget* w, cairo_t* cr, gpointer data) {
     Glyph* g = data;
     int W = gtk_widget_get_allocated_width(w), H = gtk_widget_get_allocated_height(w);
     double s = g->size, cx = W/2.0, cy = H/2.0;
-    /* the XXRI brand tile: rounded square with the pink->purple gradient */
+    /* brand tile, purple -> pink */
     if (g->on) {
         cairo_pattern_t* pat = cairo_pattern_create_linear(cx-s/2, cy-s/2, cx+s/2, cy+s/2);
         cairo_pattern_add_color_stop_rgb(pat, 0, 0.51, 0.24, 0.93);
         cairo_pattern_add_color_stop_rgb(pat, 1, 0.93, 0.16, 0.78);
         cairo_set_source(cr, pat);
         cairo_pattern_destroy(pat);
+    } else if (xxri_theme_dark()) {
+        cairo_set_source_rgb(cr, 0.33, 0.33, 0.37);
     } else {
-        cairo_set_source_rgb(cr, 0.80, 0.79, 0.86);
+        cairo_set_source_rgb(cr, 0.80, 0.80, 0.83);
     }
     double r = s*0.32, x = cx-s/2, y = cy-s/2;
     cairo_new_sub_path(cr);
@@ -340,9 +331,7 @@ static gboolean on_leave(GtkWidget* w, GdkEventCrossing* e, gpointer d) {
     (void)w; (void)d;
     trace("leave detail=%d expanded=%d", e->detail, g_expanded);
     if (!g_expanded || e->detail == GDK_NOTIFY_INFERIOR) return FALSE;
-    /* While the panel is unfolding its shape is still smaller than the pointer
-     * expects, so X reports a crossing out of it.  Collapsing on that would
-     * close the panel the instant it opened. */
+    /* the shape is still growing during the reveal, X reports a bogus leave */
     if (g_reveal_timer) return FALSE;
     if (g_collapse_timer) g_source_remove(g_collapse_timer);
     g_collapse_timer = g_timeout_add(650, (GSourceFunc)(void*)begin_collapse, NULL);
@@ -352,29 +341,14 @@ static void expand(void);
 static gboolean on_enter(GtkWidget* w, GdkEventCrossing* e, gpointer d) {
     (void)w; (void)d;
     if (g_collapse_timer) { g_source_remove(g_collapse_timer); g_collapse_timer = 0; }
-    /* Pointing at the chip opens the panel.  Requiring a click first was the
-     * single most-reported thing wrong with this corner: the Control Center is
-     * meant to answer a glance, not a click.  GDK_NOTIFY_INFERIOR is the
-     * pointer crossing between our own child widgets, which is not an arrival. */
+    /* hover opens it, no click needed */
     if (!g_expanded && e->detail != GDK_NOTIFY_INFERIOR) expand();
     return FALSE;
 }
 
-/* The corner hotspot.
- *
- * The chip is inset from the screen edges (EDGE_X/EDGE_Y), so shoving the
- * pointer all the way into the corner - which is what people actually do,
- * since a screen corner needs no aim - lands in that margin and misses the
- * chip.  The hotspot covers the corner itself.
- *
- * This is done by asking the X server where the pointer is, a few times a
- * second, rather than by putting an input-only window in the corner.  An
- * input-only window was tried first and never received its crossing events,
- * and it would in any case have had to be kept from covering anything else.
- * Polling the root pointer has neither problem: it reports the position no
- * matter which window the pointer is over, it cannot swallow a click, and it
- * cannot be stacked underneath anything.
- */
+/* Corner hotspot: the chip is inset from the edges, so a pointer shoved into
+ * the corner misses it. Polls the root pointer; an input-only window there
+ * never got its crossing events. */
 #define HOT_W 26
 #define HOT_H 26
 
@@ -394,15 +368,8 @@ static gboolean hotspot_poll(gpointer d) {
         return TRUE;
     }
 
-    /* Retracting is decided here too, not only from crossing events.
-     *
-     * The corner hotspot sits in the margin OUTSIDE the panel, so opening the
-     * panel by shoving the pointer into the corner never generates an enter on
-     * the panel window - and with no enter there is never a leave, so a panel
-     * opened that way would stay open forever waiting for an event that cannot
-     * arrive.  Since the pointer is already being sampled to find the corner,
-     * the same sample answers "is the pointer still on this thing?".
-     */
+    /* retract from here too: opened from the hotspot there was no enter on the
+     * panel, so no leave will ever come */
     if (g_expanded && !g_retract_timer) {
         GdkWindow* gw = gtk_widget_get_window(g_win);
         int wx = 0, wy = 0, ww = 0, wh = 0;
@@ -411,7 +378,7 @@ static gboolean hotspot_poll(gpointer d) {
             ww = gtk_widget_get_allocated_width(g_win);
             wh = gtk_widget_get_allocated_height(g_win);
         }
-        const int SLACK = 10;      /* forgiving edge, so a shaky hand keeps it */
+        const int SLACK = 10;
         gboolean on_panel = ww > 0 &&
             rx >= wx - SLACK && rx < wx + ww + SLACK &&
             ry >= wy - SLACK && ry < wy + wh + SLACK;
@@ -425,24 +392,11 @@ static gboolean hotspot_poll(gpointer d) {
     return TRUE;
 }
 
-/* ------------------------------------------------------------------ glass --
- * The mockup's Control Center is a pane of frosted glass with the wallpaper
- * showing through it.  This desktop cannot do that the modern way: probing the
- * target reports Composite, RENDER, SHAPE and DAMAGE all present, but the root
- * window is 24-bit, the server offers NO 32-bit ARGB visual, and no compositing
- * manager is running.  An ARGB window would simply paint black.
- *
- * So the panel is made translucent the way X applications did it before
- * compositors existed.  The desktop publishes the wallpaper as a pixmap on the
- * root window (_XROOTPMAP_ID); the region behind the panel is copied out of
- * that pixmap, blurred by scaling it down and back up, tinted with the XXRI
- * surface colour, and used as the panel's background.  That is real frosted
- * glass over the wallpaper, with no compositor and no risk to anything else -
- * and if the property is missing it falls back to the flat colour used before.
- *
- * The one honest limitation: the source is the wallpaper, not the screen, so a
- * window passing behind the panel is not seen through it.
- */
+/* ---- glass without a compositor
+ * Pseudo-transparency: copy the area behind the panel out of the root pixmap
+ * (_XROOTPMAP_ID), blur it, tint it. Only sees the wallpaper, not windows, so
+ * it backs off to a flat surface when a window is behind (something_behind).
+ * With xxri-compositor running none of this is used, see on_win_draw(). */
 static cairo_surface_t* g_glass = NULL;
 static int g_gx, g_gy, g_gw, g_gh;
 
@@ -451,8 +405,7 @@ static void glass_invalidate(void) {
     g_gw = g_gh = 0;
 }
 
-/* The wallpaper, as a cairo surface over the root pixmap the desktop
-   publishes.  Returns NULL if nothing has published one. */
+/* the root pixmap as a cairo surface, NULL if none is published */
 static cairo_surface_t* wallpaper_surface(void) {
     Display* xd = GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
     if (!xd) return NULL;
@@ -478,8 +431,7 @@ static cairo_surface_t* wallpaper_surface(void) {
     return wall;
 }
 
-/* Does this window, or a window just inside it, carry WM_STATE?  The window
-   manager reparents each client into a frame, so the marker is one level down. */
+/* WM_STATE on the window or below it (clients sit inside the WM's frame) */
 static gboolean has_wm_state(Display* xd, Window w, Atom wm_state, int depth) {
     if (wm_state == None) return FALSE;
     Atom type; int fmt; unsigned long n = 0, after = 0; unsigned char* p = NULL;
@@ -498,16 +450,8 @@ static gboolean has_wm_state(Display* xd, Window w, Atom wm_state, int depth) {
     return found;
 }
 
-/* Is another window sitting behind the panel?
- *
- * The frosted glass and the shadow are both built from the WALLPAPER, which is
- * only the truth when the wallpaper is what is actually behind the panel.  With
- * an application window there instead, the "glass" showed blue wallpaper over a
- * dark window and the shadow ring became a bright halo around the panel - the
- * effect stopped reading as translucency and started reading as a bug.  So the
- * panel asks first, and falls back to an honest solid surface when it cannot
- * see the desktop.
- */
+/* Is an app window behind the panel? Then the wallpaper glass and shadow
+ * would be lies (wallpaper "showing through" a dark window), go solid. */
 static gboolean something_behind(int x, int y, int w, int h) {
     Display* xd = GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
     if (!xd) return FALSE;
@@ -526,12 +470,8 @@ static gboolean something_behind(int x, int y, int w, int h) {
         XWindowAttributes a;
         if (!XGetWindowAttributes(xd, kids[i], &a)) continue;
         if (a.map_state != IsViewable || a.class == InputOnly) continue;
-        /* Only real application windows count.  Testing override_redirect here
-         * was wrong: a window manager's frames ARE override-redirect (that is
-         * how they avoid being managed themselves), so that test skipped every
-         * application on screen and only ever saw the desktop.  WM_STATE is the
-         * honest marker - the window manager puts it on what it manages, which
-         * excludes the dock and our own panel without excluding anything real. */
+        /* managed windows only. Don't test override_redirect: flwm's frames
+         * are override-redirect too */
         if (!has_wm_state(xd, kids[i], wm_state, 2)) continue;
         if ((long)a.width * a.height >= area) continue;  /* root-sized */
         int rx, ry; Window child;
@@ -547,8 +487,6 @@ static gboolean something_behind(int x, int y, int w, int h) {
     return hit;
 }
 
-/* Is a wallpaper published at all?  Cheap: asks for the property only, so it
-   never disturbs the cached slices. */
 static gboolean have_wallpaper(void) {
     cairo_surface_t* w = wallpaper_surface();
     if (!w) return FALSE;
@@ -556,8 +494,7 @@ static gboolean have_wallpaper(void) {
     return TRUE;
 }
 
-/* An UNBLURRED copy of the wallpaper under a rectangle.  This is what makes the
-   shadow ring possible: its outermost pixel has to equal the desktop exactly. */
+/* unblurred wallpaper under the window, for the shadow ring */
 static cairo_surface_t* g_raw = NULL;
 static int g_rx, g_ry, g_rw, g_rh;
 
@@ -591,7 +528,7 @@ static cairo_surface_t* glass_for(int x, int y, int w, int h) {
     cairo_surface_t* wall = wallpaper_surface();
     if (!wall) return NULL;
 
-    /* blur = downscale then upscale: one small surface, no convolution pass */
+    /* cheap blur: scale down and back up */
     const int DOWN = 7;
     int bw = w / DOWN + 2, bh = h / DOWN + 2;
     cairo_surface_t* small = cairo_image_surface_create(CAIRO_FORMAT_RGB24, bw, bh);
@@ -611,8 +548,9 @@ static cairo_surface_t* glass_for(int x, int y, int w, int h) {
     cairo_pattern_set_extend(cairo_get_source(oc), CAIRO_EXTEND_PAD);
     cairo_paint(oc);
     cairo_restore(oc);
-    /* the XXRI surface colour, thinned so the wallpaper still reads through */
-    cairo_set_source_rgba(oc, 0.918, 0.929, 0.988, 0.68);
+    /* surface tint: light glass, or Settings' dark window colour */
+    if (xxri_theme_dark()) cairo_set_source_rgba(oc, 0.141, 0.129, 0.141, 0.72);
+    else cairo_set_source_rgba(oc, 0.945, 0.945, 0.955, 0.68);
     cairo_paint(oc);
     cairo_destroy(oc);
     cairo_surface_destroy(small);
@@ -622,8 +560,6 @@ static cairo_surface_t* glass_for(int x, int y, int w, int h) {
     return g_glass;
 }
 
-/* A rounded-rectangle path, used for the panel edge and for every ring of the
-   shadow underneath it. */
 static void rrect(cairo_t* cr, double x, double y, double w, double h, double r) {
     if (r > w/2) r = w/2;
     if (r > h/2) r = h/2;
@@ -635,36 +571,23 @@ static void rrect(cairo_t* cr, double x, double y, double w, double h, double r)
     cairo_close_path(cr);
 }
 
-/* The drop shadow.
- *
- * There is no compositor, so the window's shape mask is one-bit: a pixel is
- * either part of the window or it is not, and a genuinely soft outer edge is
- * impossible.  What IS possible is to make the hard edge invisible.  The window
- * is grown by SHADOW on every side, and that margin is painted with the
- * WALLPAPER ITSELF, darkened most next to the panel and fading to completely
- * untouched wallpaper at the outer boundary.  The outermost painted pixel is
- * therefore identical to the pixel that would have been there anyway, so the
- * mask edge cannot be seen - and everything inside it reads as a soft shadow.
- *
- * The blur is faked with concentric rounded rectangles of decreasing alpha,
- * which at this size is indistinguishable from a real gaussian and costs
- * nothing to compute.
- */
+/* Shadow without a compositor: the shape mask is 1-bit, so the margin is
+ * painted with the wallpaper itself, darkened next to the panel and fading to
+ * the untouched wallpaper at the edge, where the hard mask edge can't be seen. */
 static void draw_shadow(cairo_t* cr, int ww, int wh, int radius) {
     const int steps = SHADOW;
     for (int i = steps; i >= 1; i--) {
         double t = (double)i / steps;          /* 1 at the outside, 0 inside */
-        double a = 0.055 * (1.0 - t) * (1.0 - t) * 3.2;   /* eased falloff */
+        double a = 0.055 * (1.0 - t) * (1.0 - t) * 3.2;
         if (a <= 0.0) continue;
-        cairo_set_source_rgba(cr, 0.06, 0.05, 0.16, a);
-        rrect(cr, SHADOW - i, SHADOW - i + 2.0,      /* offset down a little */
+        cairo_set_source_rgba(cr, 0, 0, 0, a);
+        rrect(cr, SHADOW - i, SHADOW - i + 2.0,
               ww - 2*(SHADOW - i), wh - 2*(SHADOW - i), radius + i);
         cairo_fill(cr);
     }
 }
 
-/* Painted before GTK draws the widget tree, so the CSS - whose panel gradient
-   is deliberately semi-transparent - blends on top of the frosted wallpaper. */
+/* runs before the widgets, the CSS panel gradient is translucent on top */
 static gboolean on_win_draw(GtkWidget* w, cairo_t* cr, gpointer d) {
     (void)d;
     GdkWindow* gw = gtk_widget_get_window(w);
@@ -675,13 +598,7 @@ static gboolean on_win_draw(GtkWidget* w, cairo_t* cr, gpointer d) {
     int pw = ww - 2*SHADOW, ph = wh - 2*SHADOW;
     int radius = g_expanded ? 16 : ph/2;
 
-    /* With a compositing manager there is nothing to fake: the window has a real
-     * alpha channel, so the panel is simply painted translucent and the server
-     * blends it against whatever is actually behind - wallpaper, a window, or
-     * both at once.  That also retires every workaround the sampled version
-     * needed: no wallpaper snapshot, no "is something behind me" test, and no
-     * one-bit shape mask, so the corners come out antialiased and the shadow is
-     * a genuine soft gradient instead of concentric rectangles. */
+    /* compositor: real alpha, none of the wallpaper tricks below */
     if (g_composited) {
         cairo_save(cr);
         cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
@@ -691,54 +608,51 @@ static gboolean on_win_draw(GtkWidget* w, cairo_t* cr, gpointer d) {
         for (int i = SHADOW; i >= 1; i--) {
             double t = (double)i / SHADOW;
             double a = 0.10 * (1.0 - t) * (1.0 - t);
-            cairo_set_source_rgba(cr, 0.06, 0.05, 0.16, a);
+            cairo_set_source_rgba(cr, 0, 0, 0, a);
             rrect(cr, SHADOW - i, SHADOW - i + 2.0,
                   ww - 2*(SHADOW - i), wh - 2*(SHADOW - i), radius + i);
             cairo_fill(cr);
         }
-        return FALSE;      /* the CSS gradient, already rgba, paints the panel */
+        return FALSE;      /* the CSS gradient paints the panel */
     }
 
-    /* 1. the untouched wallpaper, so the shadow has something to darken and the
-     *    outer edge of the window matches the desktop exactly.  Skipped when a
-     *    window is behind us: the wallpaper is then not what is really there. */
+    /* 1. plain wallpaper under everything (unless a window is behind us) */
     cairo_surface_t* raw = g_over_window ? NULL
                          : wallpaper_slice(wx, wy, ww, wh);
     cairo_save(cr);
     cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    gboolean dk = xxri_theme_dark();
     if (raw) { cairo_set_source_surface(cr, raw, 0, 0); cairo_paint(cr); }
-    else     { cairo_set_source_rgb(cr, 0.906, 0.918, 0.984); cairo_paint(cr); }
+    else if (dk) { cairo_set_source_rgb(cr, 0.141, 0.129, 0.141); cairo_paint(cr); }
+    else     { cairo_set_source_rgb(cr, 0.93, 0.93, 0.94); cairo_paint(cr); }
     cairo_restore(cr);
 
-    /* 2. the shadow ring */
+    /* 2. shadow ring */
     if (raw) draw_shadow(cr, ww, wh, radius);
 
-    /* 3. the frosted panel itself, clipped to its own rounded rectangle */
+    /* 3. frosted panel */
     cairo_save(cr);
     rrect(cr, SHADOW, SHADOW, pw, ph, radius);
     cairo_clip(cr);
     cairo_surface_t* g = g_over_window ? NULL
                        : glass_for(wx + SHADOW, wy + SHADOW, pw, ph);
     if (g) { cairo_set_source_surface(cr, g, SHADOW, SHADOW); cairo_paint(cr); }
-    else   { cairo_set_source_rgb(cr, 0.906, 0.918, 0.984); cairo_paint(cr); }
+    else if (dk) { cairo_set_source_rgb(cr, 0.165, 0.169, 0.200); cairo_paint(cr); }
+    else   { cairo_set_source_rgb(cr, 0.93, 0.93, 0.94); cairo_paint(cr); }
     cairo_restore(cr);
 
-    /* 4. the glass rim - the same bright hairline the dock carries, so the two
-     *    surfaces read as the same material */
+    /* 4. rim, same hairline as the dock */
     cairo_save(cr);
     cairo_set_line_width(cr, 1.0);
-    cairo_set_source_rgba(cr, 1, 1, 1, 0.55);
+    cairo_set_source_rgba(cr, 1, 1, 1, dk ? 0.12 : 0.55);
     rrect(cr, SHADOW + 0.5, SHADOW + 0.5, pw - 1, ph - 1, radius);
     cairo_stroke(cr);
     cairo_restore(cr);
     return FALSE;
 }
 
-/* Rounded corners without a compositor: the window is CLIPPED to a rounded
- * rectangle with the X Shape extension, so its corners are genuinely not part
- * of the window and the wallpaper shows through them. */
-/* Clip the window to a rounded rectangle placed anywhere inside it, so the
-   no-wallpaper fallback can cut the shadow margin away entirely. */
+/* No compositor: clip the fw x fh window to a rounded rect at ox,oy with the
+ * Shape extension. Also animates the reveal. */
 static void apply_shape_at(int ox, int oy, int w, int h, int radius, int fw, int fh) {
     GdkWindow* gw = gtk_widget_get_window(g_win);
     if (!gw || w <= 0 || h <= 0) return;
@@ -756,27 +670,6 @@ static void apply_shape_at(int ox, int oy, int w, int h, int radius, int fw, int
     cairo_region_destroy(reg);
 }
 
-static void apply_shape(int w, int h, int radius) {
-    GdkWindow* gw = gtk_widget_get_window(g_win);
-    if (!gw || w <= 0 || h <= 0) return;
-    cairo_surface_t* m = cairo_image_surface_create(CAIRO_FORMAT_A8, w, h);
-    cairo_t* cr = cairo_create(m);
-    cairo_set_source_rgba(cr, 0,0,0,0); cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-    cairo_paint(cr);
-    cairo_set_source_rgba(cr, 0,0,0,1);
-    double r = radius;
-    cairo_new_sub_path(cr);
-    cairo_arc(cr, w-r, r,   r, -G_PI/2, 0);
-    cairo_arc(cr, w-r, h-r, r, 0, G_PI/2);
-    cairo_arc(cr, r,   h-r, r, G_PI/2, G_PI);
-    cairo_arc(cr, r,   r,   r, G_PI, 1.5*G_PI);
-    cairo_close_path(cr); cairo_fill(cr);
-    cairo_destroy(cr);
-    cairo_region_t* reg = gdk_cairo_region_create_from_surface(m);
-    cairo_surface_destroy(m);
-    gdk_window_shape_combine_region(gw, reg, 0, 0);
-    cairo_region_destroy(reg);
-}
 static void place_window(void) {
     GdkScreen* sc = gtk_widget_get_screen(g_win);
     int sw = gdk_screen_get_width(sc), sh = gdk_screen_get_height(sc);
@@ -785,7 +678,7 @@ static void place_window(void) {
     int w = g_expanded ? PANEL_W : nat.width;
     int h = nat.height;
     if (!g_expanded) { g_chip_w = w; g_chip_h = h; }
-    /* the window carries the panel PLUS the shadow ring around it */
+    /* panel plus the shadow ring */
     int fw = w + 2*SHADOW, fh = h + 2*SHADOW;
     trace("place expanded=%d nat=%dx%d -> %dx%d at %d,%d (screen %dx%d)",
           g_expanded, nat.width, nat.height, w, h, sw-EDGE_X-w, sh-EDGE_Y-h, sw, sh);
@@ -793,40 +686,28 @@ static void place_window(void) {
     raw_invalidate();
     gtk_window_resize(GTK_WINDOW(g_win), fw, fh);
     gtk_window_move(GTK_WINDOW(g_win), sw - EDGE_X - w - SHADOW, sh - EDGE_Y - h - SHADOW);
-    /* collapsed the chip is a pill, expanded the panel keeps the 16px radius
-       the mockup uses */
-    /* The shadow ring only works because it is painted with the wallpaper.  With
-       no wallpaper published there is nothing to fade into, and a filled margin
-       would just be a flat slab around the panel - so in that case the window
-       is shaped down to the panel itself and simply has no shadow. */
     gboolean was_over = g_over_window;
     g_over_window = something_behind(sw - EDGE_X - w, sh - EDGE_Y - h, w, h);
     trace("place: panel %dx%d+%d+%d over_window=%d", w, h,
           sw - EDGE_X - w, sh - EDGE_Y - h, g_over_window);
-    /* The surface treatment depends on what is behind us, so a change of answer
-       has to repaint - updating the flag alone left the old glass on screen. */
+    /* the surface depends on what's behind, repaint when that changes */
     if (was_over != g_over_window) { glass_invalidate(); raw_invalidate(); gtk_widget_queue_draw(g_win); }
+    /* chip = pill, panel = 16px radius. The shadow ring is painted with the
+     * wallpaper, so without one (or over a window) shape it away */
     if (g_composited) {
-        /* alpha gives the shape; a mask here would only re-alias the corners */
+        /* alpha does the shape, a mask would only alias the corners */
         GdkWindow* gwin = gtk_widget_get_window(g_win);
         if (gwin) gdk_window_shape_combine_region(gwin, NULL, 0, 0);
     } else if (have_wallpaper() && !g_over_window) {
-        apply_shape(fw, fh, (g_expanded ? 16 : h/2) + SHADOW);
+        apply_shape_at(0, 0, fw, fh, (g_expanded ? 16 : h/2) + SHADOW, fw, fh);
     } else {
         apply_shape_at(SHADOW, SHADOW, w, h, g_expanded ? 16 : h/2, fw, fh);
     }
     GdkWindow* gw = gtk_widget_get_window(g_win);   /* NULL before realize */
     if (gw) gdk_window_raise(gw);
 }
-/* The reveal.
- *
- * Animation without a compositor is usually a bad trade, so this one moves the
- * cheapest thing in the window: its SHAPE.  The panel is laid out and painted
- * once, at full size, and then the clip region grows from the chip's pill to
- * the panel's rectangle over a few frames.  Nothing is re-laid-out, nothing is
- * re-rendered and no window is resized, so there is nothing to tear or flicker
- * - the panel simply unfolds out of the chip it came from.
- */
+/* Reveal: only the shape mask animates, from the chip's pill to the full
+ * panel. No relayout, no resize, nothing to tear without a compositor. */
 static gboolean reveal_tick(gpointer d) {
     (void)d;
     if (!g_expanded) { g_reveal_step = 0; g_reveal_timer = 0; return FALSE; }
@@ -843,7 +724,7 @@ static gboolean reveal_tick(gpointer d) {
     int cw = g_chip_w, ch = g_chip_h;
     int w = (int)(cw + (pw - cw) * e);
     int h = (int)(ch + (ph - ch) * e);
-    /* anchored to the bottom-right, which is where the chip sits */
+    /* anchored bottom-right, where the chip is */
     int ox = SHADOW + (pw - w), oy = SHADOW + (ph - h);
     int radius = (int)(ch/2 + (16 - ch/2) * e);
     if (radius < 4) radius = 4;
@@ -851,18 +732,13 @@ static gboolean reveal_tick(gpointer d) {
 
     if (g_reveal_step >= REVEAL_STEPS) {
         g_reveal_timer = 0;
-        place_window();          /* settle on the real shape, shadow included */
+        place_window();          /* final shape, with the shadow */
         return FALSE;
     }
     return TRUE;
 }
 
-/* Retract: the reveal, played backwards.  The panel does not blink out - it
- * pulls back into the corner it came from, which is the other half of telling
- * the user where this surface lives.  Only the clip region moves, so it costs
- * the same as the reveal: nothing. */
-static void  collapse(void);
-
+/* retract: the reveal played backwards */
 static gboolean retract_tick(gpointer d) {
     (void)d;
     if (!g_expanded) { g_retract_step = 0; g_retract_timer = 0; return FALSE; }
@@ -887,13 +763,13 @@ static gboolean retract_tick(gpointer d) {
     if (g_retract_step >= REVEAL_STEPS) {
         g_retract_timer = 0;
         g_retract_step = 0;
-        collapse();                                /* now actually shrink it */
+        collapse();
         return FALSE;
     }
     return TRUE;
 }
 
-/* What the leave-timer calls: animate first, collapse when the animation ends. */
+/* leave timer: animate, then collapse */
 static void begin_collapse(void) {
     if (!g_expanded) return;
     if (g_reveal_timer) { g_source_remove(g_reveal_timer); g_reveal_timer = 0; }
@@ -975,22 +851,21 @@ static GtkWidget* build_chip(void) {
     gtk_widget_set_size_request(row, -1, CHIP_H);
     gtk_box_pack_start(GTK_BOX(row), glyph(S.net_up && !strcmp(S.net_kind,"Wi-Fi") ? "wifi" : "eth",
                                            22, 20, S.net_up), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(row), glyph("bt", 22, 20, S.bt_ok), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(row), glyph("bt", 22, 20, S.bt_on), FALSE, FALSE, 0);
     if (S.batt_ok) {
         GtkWidget* b = gtk_drawing_area_new();
         gtk_widget_set_size_request(b, 20, 20);
         g_signal_connect(b, "draw", G_CALLBACK(batt_draw), NULL);
         gtk_box_pack_start(GTK_BOX(row), b, FALSE, FALSE, 0);
     }
-    /* same clock format as the expanded panel and the mockup - a chip that
-       says 20:36 next to a panel that says 08:36 PM reads as two products */
+    /* 12h clock, same as the panel */
     char t[32]; time_t now = time(NULL); struct tm* tm = localtime(&now);
     strftime(t, sizeof t, "%l:%M %p", tm);
     g_chip_clock = lbl(g_strstrip(t), "xxri-cc-clock", 0.5);
     gtk_box_pack_start(GTK_BOX(row), g_chip_clock, FALSE, FALSE, 2);
     return clickable(row, G_CALLBACK(on_chip_click));
 }
-/* one of the two big state tiles at the top of the panel */
+/* Wi-Fi / Bluetooth tile */
 static GtkWidget* build_tile(const char* kind, const char* title, const char* sub,
                              gboolean on, GCallback cb) {
     GtkWidget* box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
@@ -1030,10 +905,7 @@ static GtkWidget* build_slider(const char* kind, int value, gboolean on,
     return row;
 }
 static GtkWidget* build_panel(void) {
-    /* 6px is the base rhythm; individual groups add their own margins below.
-       Uniform spacing everywhere is what makes a panel look generated rather
-       than composed - proximity is what tells the eye which controls belong
-       together. */
+    /* 6px base spacing, groups add their own margins */
     GtkWidget* col = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     css_class(col, "xxri-cc-panel");
     gtk_widget_set_size_request(col, PANEL_W, -1);
@@ -1043,9 +915,9 @@ static GtkWidget* build_panel(void) {
         build_tile(S.net_up && !strcmp(S.net_kind,"Wi-Fi") ? "wifi" : "eth",
                    S.net_kind, S.net_name, S.net_up, G_CALLBACK(on_wifi)), TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(tiles),
-        build_tile("bt", "Bluetooth", S.bt_ok ? "On" : "Unavailable",
-                   S.bt_ok, G_CALLBACK(on_bt)), TRUE, TRUE, 0);
-    gtk_widget_set_margin_bottom(tiles, 4);   /* connectivity stands slightly apart */
+        build_tile("bt", "Bluetooth", S.bt_on ? "On" : S.bt_ok ? "Off" : "Unavailable",
+                   S.bt_on, G_CALLBACK(on_bt)), TRUE, TRUE, 0);
+    gtk_widget_set_margin_bottom(tiles, 4);
     gtk_box_pack_start(GTK_BOX(col), tiles, FALSE, FALSE, 0);
 
     if (S.audio_ok) {
@@ -1053,7 +925,7 @@ static GtkWidget* build_panel(void) {
             build_slider("vol", S.volume, !S.muted, G_CALLBACK(on_mute),
                          G_CALLBACK(on_vol), &g_vol_scale), FALSE, FALSE, 0);
     } else {
-        /* A dead slider reads as a broken control; name the reason instead. */
+        /* say why instead of showing a dead slider */
         GtkWidget* row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
         css_class(row, "xxri-cc-slider-row");
         gtk_box_pack_start(GTK_BOX(row), glyph("vol", 26, 24, FALSE), FALSE, FALSE, 0);
@@ -1067,9 +939,7 @@ static GtkWidget* build_panel(void) {
             build_slider("sun", S.bright, TRUE, NULL, G_CALLBACK(on_bright),
                          &g_bright_scale), FALSE, FALSE, 0);
 
-    /* A hairline before the system row.  The panel holds two different kinds of
-       thing - controls you adjust, and controls that act on the session - and
-       one rule is enough to say so without adding any furniture. */
+    /* hairline before the session row */
     GtkWidget* rule = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
     css_class(rule, "xxri-cc-rule");
     gtk_widget_set_margin_top(rule, 5);
@@ -1085,8 +955,7 @@ static GtkWidget* build_panel(void) {
                                                G_CALLBACK(on_power)), FALSE, FALSE, 0);
     GtkWidget* spacer = gtk_label_new("");
     gtk_box_pack_start(GTK_BOX(bot), spacer, TRUE, TRUE, 0);
-    /* pack_end lays out right-to-left, so this reads clock | battery on
-       screen - the order the mockup uses. */
+    /* pack_end goes right to left: on screen battery | clock, as in the mockup */
     char t1[32], t2[32]; time_t now = time(NULL); struct tm* tm = localtime(&now);
     strftime(t1, sizeof t1, "%I:%M %p", tm);
     strftime(t2, sizeof t2, "%a, %d %b", tm);
@@ -1111,27 +980,25 @@ static GtkWidget* build_panel(void) {
 static void rebuild(void) {
     if (g_root) gtk_widget_destroy(g_root);
     g_root = g_expanded ? build_panel() : build_chip();
-    /* inset the whole widget tree by the shadow ring, so GTK never paints into
-       the margin draw_shadow() owns */
+    /* keep GTK out of the shadow margin */
     gtk_container_set_border_width(GTK_CONTAINER(g_win), SHADOW);
     gtk_container_add(GTK_CONTAINER(g_win), g_root);
     gtk_widget_show_all(g_root);
     place_window();
 }
 
-/* What the chip actually shows, so a tick can tell "nothing changed" from
-   "rebuild me".  Tearing the widget tree down every 30 s made the chip flicker
-   - and a screenshot taken in that window caught an empty corner. */
+/* what the chip shows; rebuild only when it changes (rebuilding every tick
+   made the chip flicker) */
 static char* state_sig(void) {
-    return g_strdup_printf("%d|%s|%d|%d|%d",
-        S.net_up, S.net_name ? S.net_name : "", S.bt_ok, S.batt_ok, S.batt);
+    return g_strdup_printf("%d|%s|%d|%d|%d|%d",
+        S.net_up, S.net_name ? S.net_name : "", S.bt_ok, S.bt_on, S.batt_ok, S.batt);
 }
 static gboolean tick(gpointer d) {          /* clock + cheap state refresh */
     (void)d;
     static int n = 0;
     if (g_expanded) return G_SOURCE_CONTINUE;
 
-    if (g_chip_clock && GTK_IS_LABEL(g_chip_clock)) {      /* clock in place */
+    if (g_chip_clock && GTK_IS_LABEL(g_chip_clock)) {
         char t[32]; time_t now = time(NULL); struct tm* tm = localtime(&now);
         strftime(t, sizeof t, "%l:%M %p", tm);
         gtk_label_set_text(GTK_LABEL(g_chip_clock), g_strstrip(t));
@@ -1147,21 +1014,13 @@ static gboolean tick(gpointer d) {          /* clock + cheap state refresh */
     }
     return G_SOURCE_CONTINUE;
 }
-/* A second launch does not start a second panel: it drops a one-word command
- * next to the pid file and pokes the running instance, which is how the dock,
- * the desktop menu and QA scripts drive it. */
+/* A second launch writes a one-word command next to the pid file and sends
+ * SIGUSR1 to the running panel (dock, desktop menu and QA drive it so). */
 volatile sig_atomic_t g_signalled = 0;
 static void sig_cmd(int s) { (void)s; g_signalled++; }
-/* Both single-instance files must be BOOT-LOCAL.  They used to live in
- * ~/.cache, which is on the persistent root: the pid file outlived every
- * reboot (it is only unlink()ed after a clean gtk_main() return, which a
- * power-off never reaches), so the next boot read a pid from the previous
- * one.  If any unrelated process happened to occupy that pid, the kill(pid,0)
- * guard below matched it, the panel signalled a stranger and exited before
- * gtk_init_check() - no window, no chip, on ~1 boot in 4.  XDG_RUNTIME_DIR is
- * /tmp/runtime-$USER (tmpfs, 0700) and is set up by xxri-session-runtime
- * before .xsession starts this, so it is per-user and cannot survive a reboot;
- * /tmp is the fallback and is tmpfs too. */
+/* Must be boot-local (tmpfs). In ~/.cache a pid from the last boot survived a
+ * power-off, and if a stranger had that pid now the panel signalled it and
+ * exited - no chip on ~1 boot in 4. */
 static char* cc_runtime_path(const char* leaf) {
     const char* rt = g_getenv("XDG_RUNTIME_DIR");
     if (rt && *rt) return g_strdup_printf("%s/xxri-cc.%s", rt, leaf);
@@ -1175,26 +1034,34 @@ static gboolean check_cmd(gpointer d) {
     static int last = 0;
     if (g_signalled == last) return G_SOURCE_CONTINUE;
     last = g_signalled;
-    char* cp = cmd_path(); char* c = NULL;
-    if (!g_file_get_contents(cp, &c, NULL, NULL)) c = g_strdup("toggle");
-    g_strstrip(c);
-    if      (!strcmp(c, "open"))   expand();
-    else if (!strcmp(c, "close"))  collapse();
-    else if (!strcmp(c, "quit"))   gtk_main_quit();
-    else                           { if (g_expanded) collapse(); else expand(); }
-    g_free(c); g_free(cp);
+    char* path = cmd_path(); char* cmd = NULL;
+    if (!g_file_get_contents(path, &cmd, NULL, NULL)) cmd = g_strdup("toggle");
+    g_strstrip(cmd);
+    if      (!strcmp(cmd, "open"))   expand();
+    else if (!strcmp(cmd, "close"))  collapse();
+    else if (!strcmp(cmd, "quit"))   gtk_main_quit();
+    else                             { if (g_expanded) collapse(); else expand(); }
+    g_free(cmd); g_free(path);
     return G_SOURCE_CONTINUE;
 }
 
-static void load_css(void) {
-    GtkCssProvider* p = gtk_css_provider_new();
-    if (g_file_test(CSS_PATH, G_FILE_TEST_EXISTS))
-        gtk_css_provider_load_from_path(p, CSS_PATH, NULL);
-    gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(p), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(p);
+/* Light/Dark switched in Settings: the drawn frost is cached, so drop it */
+static void theme_changed(gboolean dark, gpointer d) {
+    (void)dark; (void)d;
+    glass_invalidate();
+    GList* tops = gtk_window_list_toplevels();
+    for (GList* l = tops; l; l = l->next) gtk_widget_queue_draw(GTK_WIDGET(l->data));
+    g_list_free(tops);
 }
-/* First real state read, once the chip is already on screen (see main). */
+static void load_css(void) {
+    GtkCssProvider* css = gtk_css_provider_new();
+    if (g_file_test(CSS_PATH, G_FILE_TEST_EXISTS))
+        gtk_css_provider_load_from_path(css, CSS_PATH, NULL);
+    gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
+        GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(css);
+    xxri_theme_init(CSS_DARK, theme_changed, NULL);
+}
 static gboolean first_state_read(gpointer d) {
     (void)d;
     state_read();
@@ -1205,10 +1072,9 @@ static gboolean first_state_read(gpointer d) {
 }
 
 int main(int argc, char** argv) {
-    /* single instance: a second launch toggles the running one instead of
-       stacking a duplicate panel on the desktop */
+    /* single instance: a second launch controls the running one */
     char pidpath[256];
-    { char* rp = cc_runtime_path("pid");          /* boot-local: see cc_runtime_path */
+    { char* rp = cc_runtime_path("pid");
       snprintf(pidpath, sizeof pidpath, "%s", rp);
       g_free(rp); }
     const char* want = "toggle";
@@ -1221,18 +1087,16 @@ int main(int argc, char** argv) {
     }
     char* prev = NULL; gsize plen = 0;
     if (g_file_get_contents(pidpath, &prev, &plen, NULL)) {
-        int op = atoi(prev); g_free(prev);
-        if (op > 0 && kill(op, 0) == 0) {
-            char* cp = cmd_path();
-            g_file_set_contents(cp, want, -1, NULL);
-            g_free(cp);
-            kill(op, SIGUSR1);
+        int pid = atoi(prev); g_free(prev);
+        if (pid > 0 && kill(pid, 0) == 0) {
+            char* path = cmd_path();
+            g_file_set_contents(path, want, -1, NULL);
+            g_free(path);
+            kill(pid, SIGUSR1);
             return 0;
         }
     }
-    /* Nothing is running.  A close/quit request has nothing to do - and must
-       NOT fall through and start a panel, which is exactly what made a QA hook
-       hang waiting for a command that never returned. */
+    /* nothing running: close/quit must not start a panel (a QA hook hung on it) */
     if (!strcmp(want, "close") || !strcmp(want, "quit")) return 0;
     if (!strcmp(want, "open")) g_expanded = TRUE;
     if (!gtk_init_check(&argc, &argv)) { fprintf(stderr, "no display\n"); return 1; }
@@ -1241,9 +1105,8 @@ int main(int argc, char** argv) {
     signal(SIGUSR1, sig_cmd);
     load_css();
 
-    g_win = gtk_window_new(GTK_WINDOW_POPUP);       /* override-redirect:
-        never in the task list, never takes the keyboard, always over the
-        managed windows - and the window manager cannot decorate it */
+    /* override-redirect: no task list entry, no focus, no decorations */
+    g_win = gtk_window_new(GTK_WINDOW_POPUP);
     gtk_window_set_type_hint(GTK_WINDOW(g_win), GDK_WINDOW_TYPE_HINT_DOCK);
     gtk_window_set_keep_above(GTK_WINDOW(g_win), TRUE);
     gtk_window_set_accept_focus(GTK_WINDOW(g_win), FALSE);
@@ -1264,18 +1127,9 @@ int main(int argc, char** argv) {
     g_signal_connect(g_win, "draw", G_CALLBACK(on_win_draw), NULL);
     g_signal_connect(g_win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
 
-    /* Draw and map the chip BEFORE consulting the backends.
-     *
-     * state_read() shells out to xxri-network, xxri-audio and xxri-power
-     * through popen(), and the window used to be created only after all of
-     * them had returned.  At boot those backends are slow and occasionally do
-     * not return at all, so the chip arrived 3-10s after the rest of the
-     * desktop and on ~1 boot in 3 never appeared for the whole session - the
-     * window was never created, so there was nothing for the compositor to
-     * miss.  Show it first from the zeroed state, then fill it in from an idle
-     * callback: the chip is on screen with the desktop, and the live values
-     * land as soon as the backends answer.
-     */
+    /* Map the chip before asking the backends. At boot they are slow and
+     * sometimes never return, and the chip used to wait for them (missing on
+     * ~1 boot in 3). The real state comes in from an idle callback. */
     g_state_sig = state_sig();
     rebuild();
     gtk_widget_show_all(g_win);

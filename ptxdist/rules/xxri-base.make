@@ -34,7 +34,10 @@ $(STATEDIR)/xxri-base.compile $(STATEDIR)/xxri-base.install:
 # Target-Install
 # ----------------------------------------------------------------------------
 
-$(STATEDIR)/xxri-base.targetinstall:
+# PTXdist does not watch projectroot/: an edited file re-runs the packaging
+# (only core.gz depends on it).  Regular files - a symlink's target may not
+# exist on the build host.
+$(STATEDIR)/xxri-base.targetinstall: $(shell find $(XXRI_BASE_ROOT) -type f)
 	@$(call targetinfo)
 
 	@$(call install_init, xxri-base)

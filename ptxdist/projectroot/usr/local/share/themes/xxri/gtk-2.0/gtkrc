@@ -1,34 +1,34 @@
 # xxri OS Lite - GTK2 theme
-# Palette from the official design language: surface #EFEDF8, card #FAF9FE,
-# ink #1C1B24, accent #ED6CE0 -> #8371F7.
+# Palette from the official design language: a white ground, neutral grey
+# surfaces (#F5F5F7, #ECECEF), ink #1C1C1E, accent blue #2E7CF6.
 
 gtk-font-name = "Avenir Next 10"
 gtk-icon-theme-name = "xxri"
 gtk-cursor-theme-name = "xxri-cursors"
 
 style "xxri-default" {
-  bg[NORMAL]        = "#EFEDF8"
-  bg[PRELIGHT]      = "#F7F5FC"
-  bg[ACTIVE]        = "#E3DFF2"
-  bg[INSENSITIVE]   = "#EFEDF8"
-  bg[SELECTED]      = "#8371F7"
+  bg[NORMAL]        = "#F5F5F7"
+  bg[PRELIGHT]      = "#ECECEF"
+  bg[ACTIVE]        = "#E2E2E6"
+  bg[INSENSITIVE]   = "#F5F5F7"
+  bg[SELECTED]      = "#2E7CF6"
 
-  fg[NORMAL]        = "#1C1B24"
-  fg[PRELIGHT]      = "#1C1B24"
-  fg[ACTIVE]        = "#1C1B24"
-  fg[INSENSITIVE]   = "#9A96AC"
+  fg[NORMAL]        = "#1C1C1E"
+  fg[PRELIGHT]      = "#1C1C1E"
+  fg[ACTIVE]        = "#1C1C1E"
+  fg[INSENSITIVE]   = "#9A9AA2"
   fg[SELECTED]      = "#FFFFFF"
 
   base[NORMAL]      = "#FFFFFF"
-  base[PRELIGHT]    = "#FAF9FE"
-  base[ACTIVE]      = "#E9E5F6"
-  base[INSENSITIVE] = "#F2F0F9"
-  base[SELECTED]    = "#8371F7"
+  base[PRELIGHT]    = "#F5F5F7"
+  base[ACTIVE]      = "#E2E2E6"
+  base[INSENSITIVE] = "#F5F5F7"
+  base[SELECTED]    = "#2E7CF6"
 
-  text[NORMAL]      = "#1C1B24"
-  text[PRELIGHT]    = "#1C1B24"
-  text[ACTIVE]      = "#1C1B24"
-  text[INSENSITIVE] = "#9A96AC"
+  text[NORMAL]      = "#1C1C1E"
+  text[PRELIGHT]    = "#1C1C1E"
+  text[ACTIVE]      = "#1C1C1E"
+  text[INSENSITIVE] = "#9A9AA2"
   text[SELECTED]    = "#FFFFFF"
 
   GtkButton::default_border = { 0, 0, 0, 0 }
@@ -39,16 +39,16 @@ style "xxri-default" {
 }
 
 style "xxri-menu" = "xxri-default" {
-  bg[NORMAL] = "#FAF9FE"
-  bg[PRELIGHT] = "#8371F7"
-  fg[PRELIGHT] = "#FFFFFF"
+  bg[NORMAL] = "#FFFFFF"
+  bg[PRELIGHT] = "#ECECEF"
+  fg[PRELIGHT] = "#1C1C1E"
   xthickness = 8
   ythickness = 6
 }
 
 style "xxri-tooltip" = "xxri-default" {
-  bg[NORMAL] = "#1C1B24"
-  fg[NORMAL] = "#F2EFFC"
+  bg[NORMAL] = "#1C1C1E"
+  fg[NORMAL] = "#F2F2F4"
 }
 
 class "GtkWidget" style "xxri-default"

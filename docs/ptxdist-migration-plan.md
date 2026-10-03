@@ -1,8 +1,8 @@
 # XXRI OS Lite — migration to a PTXdist-native production build
 
-Status: plan, written after inspecting the whole tree on branch
-`xxri-ptxdist-native` (from `xxri-2.6-ptxdist` b54b20a). Every number below was
-measured on this tree; nothing is estimated unless it says so.
+Status: carried out on branch `xxri-ptxdist-native` (from `xxri-2.6-ptxdist`
+b54b20a); section 1 describes the tree before the migration. Numbers are
+measured on that tree unless marked as estimates.
 
 ## 1. What the tree contains today
 
@@ -61,12 +61,11 @@ locale ships.
 | libasound, libsndfile, libavformat, Debian gdk-pixbuf/glvnd | CMOV | no |
 
 QEMU TCG, used for CPU-class tests, **does not enforce every feature**: a
-static probe (`scratchpad/isatest`) showed `-cpu pentium` traps CMOV, SSE and
-SSE2, `-cpu pentium2` traps SSE and SSE2, but **`-cpu pentium3` executes SSE2
-instructions** and no model traps multi-byte NOP (`0f 1f`). A pass on
-`-cpu pentium3` alone therefore proves nothing about SSE2. The CPU-class QA
-adds a TCG plugin that flags every executed instruction the emulated CPU does
-not have (section 5).
+static probe showed `-cpu pentium` traps CMOV, SSE and SSE2, `-cpu pentium2`
+traps SSE and SSE2, but **`-cpu pentium3` executes SSE2 instructions** and no
+model traps multi-byte NOP (`0f 1f`). A pass on `-cpu pentium3` alone
+therefore proves nothing about SSE2. The CPU-class QA adds a TCG plugin that
+flags every executed instruction the emulated CPU does not have (section 5).
 
 ### 2.1 Why the browser engine needs SSE2 (source evidence)
 

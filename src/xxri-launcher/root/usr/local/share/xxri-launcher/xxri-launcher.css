@@ -1,6 +1,6 @@
 /* xxri-launcher.css - the XXRI "All Apps" drawer.
-   Palette is XXRI's own, shared with xxri-cc.css: ink #1C1B24, muted #56536B,
-   and the pink -> violet -> blue accent used across the system.  The panel
+   Palette is XXRI's own, shared with xxri-cc.css: ink #1C1C1E, muted #5A5A62,
+   neutral hover and focus washes, and the system's blue accent.  The panel
    itself is painted in cairo (rounded, translucent, with its shadow), so this
    sheet only styles what lives inside it. */
 
@@ -14,18 +14,18 @@
     padding: 10px 4px 8px 4px;
     transition: background 120ms ease-out;
 }
-.xxri-cell:hover      { background: rgba(131,113,247,0.13); }
-.xxri-cell:active     { background: rgba(131,113,247,0.22); }
+.xxri-cell:hover      { background: rgba(0,0,0,0.06); }
+.xxri-cell:active     { background: rgba(0,0,0,0.12); }
 /* keyboard focus has to be visible without the mouse, and the dotted default
    outline looks wrong on a glass panel */
-.xxri-cell:focus      { background: rgba(131,113,247,0.18); outline: none; }
+.xxri-cell:focus      { background: rgba(0,0,0,0.09); outline: none; }
 
 .xxri-tile { background: transparent; }
 
 .xxri-tile-label {
     font-family: "Avenir Next", "Helvetica", sans-serif;
     font-size: 10.5px;
-    color: #1C1B24;
+    color: #1C1C1E;
     margin-top: 2px;
 }
 
@@ -37,20 +37,20 @@
     border: none;
 }
 .xxri-scroll scrollbar slider {
-    background: rgba(28,27,36,0.22);
+    background: rgba(0,0,0,0.22);
     border: none;
     border-radius: 6px;
     min-width: 6px;
 }
-.xxri-scroll scrollbar slider:hover { background: rgba(28,27,36,0.34); }
+.xxri-scroll scrollbar slider:hover { background: rgba(0,0,0,0.34); }
 
 /* the search field along the bottom */
 .xxri-search {
     font-family: "Avenir Next", "Helvetica", sans-serif;
     font-size: 12px;
-    color: #1C1B24;
-    background: rgba(28,27,36,0.055);
-    border: 1px solid rgba(28,27,36,0.07);
+    color: #1C1C1E;
+    background: rgba(0,0,0,0.055);
+    border: 1px solid rgba(0,0,0,0.07);
     border-radius: 19px;
     padding: 8px 14px;
     min-height: 22px;
@@ -58,9 +58,9 @@
 }
 .xxri-search:focus {
     background: #FFFFFF;
-    border: 1px solid rgba(131,113,247,0.55);
+    border: 1px solid rgba(46,124,246,0.60);
 }
-.xxri-search image      { color: #8A87A0; }
+.xxri-search image      { color: #8E8E96; }
 .xxri-search placeholder,
-.xxri-search text selection:backdrop { color: #8A87A0; }
-.xxri-search selection  { background: #8371F7; color: #FFFFFF; }
+.xxri-search text selection:backdrop { color: #8E8E96; }
+.xxri-search selection  { background: #2E7CF6; color: #FFFFFF; }

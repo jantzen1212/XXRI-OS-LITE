@@ -1,22 +1,17 @@
 #!/bin/sh
-# xxri-splash-handover pause|resume - let a KMS driver take the display over.
+# xxri-splash-handover pause|resume|stop - let a KMS driver take the display
+# over; stop = end the splash for good (the console needs the screen).
 #
-# A KMS driver takes the display from the boot loader's framebuffer (vesafb,
-# efifb) by unregistering it, but the framebuffer gives its memory back only
-# when the last process that has /dev/fb0 open lets go.  Drivers that then
-# request their PCI regions exclusively (cirrus, vmwgfx, and others) fail
-# with EBUSY while anything still holds /dev/fb0 - and the machine is left
-# with no display device at all: no KMS device and no /dev/fb0.  The boot
-# splash paints on /dev/fb0 until X is up, so every boot step that can load
-# a display driver while it runs is bracketed with `pause` ... `resume`:
-# xxri-setup around the udev trigger for newly loaded module extensions (it
-# pauses), xxri-hw-init around its own display-driver loading (it resumes).
-# Measured in QEMU with a Cirrus adapter: with the splash running, "probe with
-# driver cirrus failed with error -16" and no desktop; paused, cirrus-drm
-# takes over and Xorg runs on it.
+# The firmware framebuffer (vesafb/efifb) only frees its memory when nobody
+# has /dev/fb0 open, and KMS drivers that claim their PCI regions exclusively
+# (cirrus, vmwgfx, ...) then fail with EBUSY - no display at all. The splash
+# holds /dev/fb0, so driver loading is bracketed: xxri-setup pauses around
+# the udev trigger, xxri-hw-init resumes after its own driver loading.
+# (QEMU Cirrus: "probe with driver cirrus failed with error -16" otherwise.)
 S=/tmp/.xxri-splash-paused
 case "$1" in
-pause)
+pause|stop)
+	[ "$1" = stop ] && rm -f $S
 	p=$(pidof xxri-bootsplash) || exit 0
 	kill $p 2>/dev/null
 	# the splash stops after the frame it is drawing (SIGTERM); give a slow
@@ -26,7 +21,7 @@ pause)
 		sleep 0.05
 	done
 	p=$(pidof xxri-bootsplash) && kill -9 $p 2>/dev/null
-	: > $S
+	[ "$1" = pause ] && : > $S
 	;;
 resume)
 	[ -e $S ] || exit 0
@@ -36,7 +31,7 @@ resume)
 	[ -e /tmp/.X11-unix/X0 ] || /usr/local/sbin/xxri-bootsplash >/dev/null 2>&1 &
 	;;
 *)
-	echo "usage: xxri-splash-handover pause|resume" >&2
+	echo "usage: xxri-splash-handover pause|resume|stop" >&2
 	exit 1
 	;;
 esac

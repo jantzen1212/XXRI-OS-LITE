@@ -1,68 +1,64 @@
-/* xxri-cc.css - the XXRI Control Center surface.
-   Palette and geometry follow assets/mockup/mockup3.jpg: a translucent
-   lavender glass panel in the bottom-right corner, rounded 16, with lighter
-   tiles inside it. */
+/* xxri-cc.css - the XXRI Control Center (assets/mockup/mockup3.jpg): a
+   neutral glass panel in the bottom-right corner, rounded 16, lighter tiles
+   inside it. */
 
-/* The window is clipped to a rounded rect with the X Shape extension (there
-   is no compositor), so the surface itself must be opaque - a transparent
-   background would paint black. */
-/* the window itself paints nothing: xxri-control-center draws frosted
-   wallpaper underneath (see glass_for()), and the panel gradient below is
-   semi-transparent so that frost reads through it */
+/* the window paints nothing; the panel gradient below is semi-transparent
+   so what's behind (real alpha, or the drawn frost without a compositor)
+   reads through */
 .xxri-cc-window { background: transparent; }
 
 .xxri-cc-chip,
 .xxri-cc-panel {
-    background-image: linear-gradient(160deg, rgba(234,237,253,0.62) 0%, rgba(214,220,250,0.72) 100%);
+    background-image: linear-gradient(160deg, rgba(246,246,248,0.62) 0%, rgba(230,230,234,0.72) 100%);
     border: 1px solid rgba(255,255,255,0.55);
     border-radius: 16px;
-    box-shadow: 0 6px 18px rgba(28,27,36,0.18);
-    color: #1C1B24;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    color: #1C1C1E;
     font-family: "Avenir Next", "Helvetica", sans-serif;
 }
 .xxri-cc-chip  { padding: 6px 12px; }
 .xxri-cc-panel { padding: 12px; }
 
-.xxri-cc-clock { font-size: 12.5px; font-weight: bold; color: #1C1B24; }
+.xxri-cc-clock { font-size: 12.5px; font-weight: bold; color: #1C1C1E; }
 
 /* the two state tiles */
 .xxri-cc-tile {
-    background: #F1F3FE;
+    background: #F5F5F7;
     border-radius: 12px;
     padding: 6px 8px;
 }
-.xxri-cc-tile.on { background: #FBFBFF; }
-.xxri-cc-tile-title { font-size: 12px; font-weight: bold; color: #1C1B24; }
-.xxri-cc-tile-sub   { font-size: 10.5px; color: #56536B; }
-.xxri-cc-tile-sub.off { color: #8A87A0; }
+.xxri-cc-tile.on { background: #FFFFFF; }
+.xxri-cc-tile-title { font-size: 12px; font-weight: bold; color: #1C1C1E; }
+.xxri-cc-tile-sub   { font-size: 10.5px; color: #5A5A62; }
+.xxri-cc-tile-sub.off { color: #8E8E96; }
 
 /* sliders */
 .xxri-cc-slider-row { padding: 0 2px; }
 .xxri-cc-slider trough {
-    background: rgba(28,27,36,0.14);
+    background: rgba(0,0,0,0.14);
     border: none; border-radius: 3px; min-height: 5px;
 }
 .xxri-cc-slider highlight {
-    background-image: linear-gradient(90deg, #ED6CE0 0%, #8371F7 60%, #2E7CF6 100%);
+    background-image: linear-gradient(90deg, #1E4FC2 0%, #4A9AF5 100%);
     border-radius: 3px;
 }
 .xxri-cc-slider slider {
     background: #FFFFFF;
-    border: 1px solid rgba(28,27,36,0.18);
+    border: 1px solid rgba(0,0,0,0.18);
     border-radius: 9px;
     min-width: 15px; min-height: 15px;
     margin: -6px;
-    box-shadow: 0 1px 3px rgba(28,27,36,0.25);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
 }
-.xxri-cc-slider:disabled trough { background: rgba(28,27,36,0.08); }
-.xxri-cc-slider:disabled slider { background: #E4E1EF; border-color: rgba(28,27,36,0.10); }
+.xxri-cc-slider:disabled trough { background: rgba(0,0,0,0.08); }
+.xxri-cc-slider:disabled slider { background: #E2E2E6; border-color: rgba(0,0,0,0.10); }
 
 /* bottom row */
 .xxri-cc-bottom { padding-top: 2px; }
-.xxri-cc-time { font-size: 12px; font-weight: bold; color: #1C1B24; }
-.xxri-cc-date { font-size: 10.5px; color: #56536B; }
-.xxri-cc-batt { font-size: 10.5px; color: #56536B; padding-right: 2px; }
-.xxri-cc-sep { background: rgba(28,27,36,0.16); min-width: 1px; margin: 3px 0; }
+.xxri-cc-time { font-size: 12px; font-weight: bold; color: #1C1C1E; }
+.xxri-cc-date { font-size: 10.5px; color: #5A5A62; }
+.xxri-cc-batt { font-size: 10.5px; color: #5A5A62; padding-right: 2px; }
+.xxri-cc-sep { background: rgba(0,0,0,0.16); min-width: 1px; margin: 3px 0; }
 
 /* ---- xxri-power-menu ---------------------------------------------------- */
 .xxri-pm {
@@ -70,27 +66,36 @@
     padding: 16px;
     font-family: "Avenir Next", "Helvetica", sans-serif;
 }
-.xxri-pm-head { font-size: 17px; font-weight: bold; color: #1C1B24; padding-bottom: 6px; }
+/* composited: the window is only the room the shadow falls into, and the
+   menu is a rounded card in it (the same card as xxri-dialog.h's) */
+.xxri-pm-window, .xxri-pm-window.background { background: transparent; }
+.xxri-pm-window .xxri-pm {
+    margin: 36px;
+    border: 1px solid rgba(0,0,0,0.10);
+    border-radius: 16px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.22), 0 1px 3px rgba(0,0,0,0.10);
+}
+.xxri-pm-head { font-size: 17px; font-weight: bold; color: #1C1C1E; padding-bottom: 6px; }
 .xxri-pm-action {
-    background: #F6F4FD;
-    border: 1px solid rgba(28,27,36,0.06);
+    background: #F5F5F7;
+    border: 1px solid transparent;
     border-radius: 14px;
     padding: 9px 12px;
     min-width: 250px;
 }
-.xxri-pm-action:hover { background: #EFEBFC; border-color: rgba(131,113,247,0.35); }
-.xxri-pm-action:active { background: #E6E0FA; }
-.xxri-pm-title { font-size: 13.5px; font-weight: bold; color: #1C1B24; }
-.xxri-pm-sub   { font-size: 11px; color: #6B6880; }
+.xxri-pm-action:hover { background: #ECECEF; }
+.xxri-pm-action:active { background: #E2E2E6; }
+.xxri-pm-title { font-size: 13.5px; font-weight: bold; color: #1C1C1E; }
+.xxri-pm-sub   { font-size: 11px; color: #6B6B73; }
 .xxri-pm-cancel {
-    background: transparent; border: none; color: #6B6880;
+    background: transparent; border: none; color: #6B6B73;
     font-size: 12.5px; padding: 6px; margin-top: 2px;
 }
-.xxri-pm-cancel:hover { color: #1C1B24; }
-.xxri-cc-unavail { font-size: 11.5px; color: #8A87A0; }
+.xxri-pm-cancel:hover { color: #1C1C1E; }
+.xxri-cc-unavail { font-size: 11.5px; color: #8E8E96; }
 
-/* the value beside a slider: present, but never competing with the control */
-.xxri-cc-val     { font-size: 10px; font-weight: 600; color: #6E6A85; }
-.xxri-cc-val-off { font-size: 10px; font-weight: 600; color: #A9A5BC; }
-/* the one horizontal rule in the panel - barely there on purpose */
-.xxri-cc-rule    { background-color: alpha(#1C1B24, 0.10); min-height: 1px; }
+/* the value beside a slider, muted */
+.xxri-cc-val     { font-size: 10px; font-weight: 600; color: #6B6B73; }
+.xxri-cc-val-off { font-size: 10px; font-weight: 600; color: #A8A8B0; }
+/* the panel's one horizontal rule, kept faint */
+.xxri-cc-rule    { background-color: alpha(#1C1C1E, 0.10); min-height: 1px; }

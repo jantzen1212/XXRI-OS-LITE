@@ -43,6 +43,15 @@ wpa_supplicant-dbus.tcz
 wireless_tools.tcz
 wireless-6.12.11-tinycore.tcz
 wifi.tcz
+xxri-firmware-wireless.tcz
+firmware-ipw2100.tcz
+firmware-ipw2200.tcz
+firmware-zd1211.tcz
+firmware-openfwwf.tcz
+iw.tcz
+rfkill.tcz
+bluetooth-6.12.11-tinycore.tcz
+bluez5.tcz
 kmaps.tcz
 smartmontools.tcz
 libffi.tcz
@@ -133,7 +142,11 @@ xkbcomp.tcz
 Xorg-7.7-bin.tcz
 i2c-6.12.11-tinycore.tcz
 graphics-6.12.11-tinycore.tcz
+nouveau-6.12.11-tinycore.tcz
 xxri-firmware-gpu.tcz
+xxri-firmware-intel.tcz
+xxri-firmware-amd.tcz
+xxri-firmware-nvidia.tcz
 libevdev.tcz
 mtdev.tcz
 libwacom.tcz

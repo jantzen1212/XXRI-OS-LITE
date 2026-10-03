@@ -1,18 +1,22 @@
-/* XXRI File - GTK3 stylesheet.
- *
- * Every value here is measured or sampled from the supplied artwork, not
- * chosen by eye:
+/* XXRI File - GTK3 stylesheet. Values are measured from the artwork:
  *   window 944px wide with a 102px rail          (mockup1.jpg, scanned)
- *   content surface           #F9F9F9            (sampled)
  *   location pill             #6E6969 @ 25%      (slice32.svg fill)
  *   rail selected chip        #D0D0D0 @ 63%      (slice29.svg fill)
  *   XXRI gradient             #EF00FF -> #4400FF (slice28.svg, sampled)
  *   location text gradient    #DB00FF -> #1D00FF (slice33.svg, sampled)
+ *
+ * Surfaces stay neutral (white pane, grey glass rail, blue selection); the
+ * gradient is only on the artwork (chips, location text).
  */
 
-@define-color xxri_ink     #1C1B24;
-@define-color xxri_muted   #6B6880;
-@define-color xxri_content #F9F9F9;
+/* pt, not px: only pt follows Settings > Wallpaper & Style > Scale.
+ * At 96 dpi 1pt = 4/3 px (13px = 9.75pt). */
+
+@define-color xxri_ink     #1C1C1E;
+@define-color xxri_muted   #6B6B73;
+@define-color xxri_content #FFFFFF;
+@define-color xxri_side    #F2F2F4;
+@define-color xxri_accent  #2E7CF6;
 
 * {
   font-family: "Avenir Next", "Helvetica", sans-serif;
@@ -27,10 +31,11 @@
 /* ---- left rail ----
  * Translucent, and with NO dividing border: in the mockup the rail and the
  * content are one window, not two panels docked together. */
-.xxri-rail { background-color: alpha(#E9E4F6, 0.80); }
+.xxri-rail { background-color: @xxri_side; }
 .xxri-file-root.composited .xxri-rail {
+  background-color: transparent;
   background-image: linear-gradient(to bottom,
-                    alpha(#DCD8EE, 0.72), alpha(#F1ECFB, 0.55));
+                    alpha(#E6E6EA, 0.72), alpha(#F4F4F6, 0.55));
 }
 .xxri-rail-btn {
   /* the system theme gives `button` a background image; without clearing it
@@ -49,13 +54,13 @@
   min-height: 38px;
   transition: background-color 140ms ease;
 }
-.xxri-rail-btn:hover    { background-image: none; background-color: alpha(#FFFFFF, 0.42); }
+.xxri-rail-btn:hover    { background-image: none; background-color: alpha(#FFFFFF, 0.50); }
 .xxri-rail-btn.selected { background-image: none; background-color: alpha(#D0D0D0, 0.63); }
 .xxri-rail-sep          { background-color: transparent; min-height: 9px; }
 
 /* ---- content column ---- */
 .xxri-file-content            { background-color: @xxri_content; }
-.xxri-file-content.composited { background-color: alpha(#F9F9F9, 0.93); }
+.xxri-file-content.composited { background-color: alpha(#FFFFFF, 0.93); }
 
 /* ---- location pill ---- */
 .xxri-locpill {
@@ -63,13 +68,13 @@
   border-radius: 20px;
   padding: 0 18px;
 }
-.xxri-locpill-size { font-size: 12px; color: @xxri_ink; }
+.xxri-locpill-size { font-size: 9pt; color: @xxri_ink; }
 
 /* ---- chips ---- */
 .xxri-chip {
   border-radius: 7px;
   padding: 1px 12px;
-  font-size: 12px;
+  font-size: 9pt;
   font-weight: bold;
   border: 2px solid @xxri_ink;
   background: transparent;
@@ -100,13 +105,13 @@
   background-color: transparent;
   background-image: none;
   color: @xxri_ink;
-  font-size: 13px;
+  font-size: 9.75pt;
 }
 /* keep rows tight: the row height should follow the 24px glyph and the text,
    not GTK's default cell padding stacked on top of both */
 .xxri-file-view.view:not(:selected) { border: none; }
 .xxri-file-view:selected, .xxri-file-view.view:selected {
-  background-color: alpha(#8B5CF6, 0.16);
+  background-color: alpha(@xxri_accent, 0.14);
   color: @xxri_ink;
 }
 scrollbar { background-color: transparent; border: none; }
@@ -116,5 +121,5 @@ scrollbar slider {
 }
 scrollbar slider:hover { background-color: alpha(@xxri_muted, 0.58); }
 
-.xxri-empty-title { font-size: 17px; font-weight: bold; color: @xxri_ink; }
-.xxri-empty-sub   { font-size: 13px; color: @xxri_muted; }
+.xxri-empty-title { font-size: 12.75pt; font-weight: bold; color: @xxri_ink; }
+.xxri-empty-sub   { font-size: 9.75pt; color: @xxri_muted; }

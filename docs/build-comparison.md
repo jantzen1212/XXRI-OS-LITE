@@ -1,5 +1,8 @@
 # XXRI OS Lite 2.6 — Build A (existing scripts) vs Build B (PTXdist)
 
+Written before the switch to the PTXdist-native build
+(`ptxdist-migration-plan.md`), which replaced Build A after all.
+
 Both builds start from the same commit (`cb23859`, branch `xxri-2.6-boot`;
 Build B adds only `ptxdist/` on `xxri-2.6-ptxdist`) and produce the same
 unified BIOS + IA32 UEFI ISO layout, because Build B calls the same
@@ -108,7 +111,7 @@ PTXdist's headline strengths turned out to be either already achieved in
 Build A this cycle (byte-reproducible ISOs, `rootfs.meta`) or blocked for this
 system: its rootfs generation — the core of what it offers — cannot express
 Tiny Core's classic `/bin` layout because PTXdist 2026 hard-codes merged /usr,
-and it has no current GRUB or xorriso rules. What Build B genuinely proved,
+and it has no current GRUB or xorriso rules. What Build B proved,
 Build A should adopt without PTXdist:
 
 1. **Pin the inputs.** Move `ptxdist/config/cde/` (manifest with md5 and

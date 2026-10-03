@@ -1,21 +1,20 @@
 ! xxri OS Lite design system - X resources
-! Palette: surface #EFEDF8 / card #FAF9FE / ink #1C1B24
-!          accent gradient #ED6CE0 (pink) -> #8371F7 (purple) -> #2E7CF6 (blue)
+! Palette: surface #F5F5F7 / card #FFFFFF / ink #1C1C1E
+!          accent #2E7CF6 (blue); neutral greys, no tinted whites
 
 ! ---- FLTK applications (dialogs, editor, mount tool, popups) ----
-! FLTK only consults the "fltk" class from Fl::get_system_colors(), which not
-! every app calls, so the per-application classes are listed too and the dock
-! passes -scheme/-bg switches for the ones that take them.
-editor*background: #EFEDF8
-editor*foreground: #1C1B24
-mnttool*background: #EFEDF8
-mnttool*foreground: #1C1B24
-fltk*background: #EFEDF8
-fltk*foreground: #1C1B24
+! FLTK only reads the "fltk" class from Fl::get_system_colors(), which not
+! every app calls, so the per-application classes are listed too.
+editor*background: #F5F5F7
+editor*foreground: #1C1C1E
+mnttool*background: #F5F5F7
+mnttool*foreground: #1C1C1E
+fltk*background: #F5F5F7
+fltk*foreground: #1C1C1E
 fltk*scheme: gtk+
 Text*background: #FFFFFF
-Text*foreground: #1C1B24
-Text*selectBackground: #8371F7
+Text*foreground: #1C1C1E
+Text*selectBackground: #2E7CF6
 Text*selectForeground: #FFFFFF
 Xft.dpi: 96.0
 
@@ -24,32 +23,30 @@ Xft.dpi: 96.0
 ! dithered grey trough, which is the only grey left on the desktop.  Hide it:
 ! Shift+PageUp / Shift+PageDown still walk the 2000-line scrollback.
 Aterm*scrollBar: false
-! Pseudo-transparency needs a root pixmap (_XROOTPMAP_ID); the wallpaper is
-! painted without one, so a "transparent" aterm came up plain black instead of
-! the design's dark panel.  Solid #16112B is what the palette actually asks for.
+! solid #242124, the palette's terminal panel; no pseudo-transparency
 Aterm*transparent: false
 Aterm*title: XXRI Terminal
 Aterm*font: 9x15
 Aterm*boldFont: 9x15bold
 Aterm*saveLines: 2000
-Aterm*foreground: #F2EFFC
-Aterm*background: #16112B
+Aterm*foreground: #F2F2F4
+Aterm*background: #242124
 Aterm*shading: 35
-Aterm*tinting: #16112B
+Aterm*tinting: #242124
 Aterm*fading: 70
-Aterm*cursorColor: #ED6CE0
-Aterm*pointerColor: #8371F7
-Aterm*borderColor: #16112B
+Aterm*cursorColor: #4C93F8
+Aterm*pointerColor: #A0A1AA
+Aterm*borderColor: #242124
 ! xxri terminal palette (normal 0-7 / bright 8-15)
-Aterm*color0: #16112B
+Aterm*color0: #242124
 Aterm*color1: #F25E86
 Aterm*color2: #3FBF8F
 Aterm*color3: #F2A65E
 Aterm*color4: #2E7CF6
 Aterm*color5: #ED6CE0
 Aterm*color6: #46C8E0
-Aterm*color7: #E6E2F5
-Aterm*color8: #55506E
+Aterm*color7: #E6E6EA
+Aterm*color8: #5A5B66
 Aterm*color9: #FF7FA0
 Aterm*color10: #5BDCA9
 Aterm*color11: #FFC07E

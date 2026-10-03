@@ -212,8 +212,7 @@ int main(int argc, char** argv)
 #endif
 
     /* initialize GTK+ and parse the command line arguments */
-    /* XXRI File identifies itself as XXRI File to the session, the window
-     * manager and the dock - not as pcmanfm. */
+    /* XXRI File, not pcmanfm, to the session, the WM and the dock */
     g_set_application_name("XXRI File");
     g_set_prgname("xxri-file");
     if(G_UNLIKELY(!gtk_init_with_args(&argc, &argv, " ", opt_entries, GETTEXT_PACKAGE, &err)))
@@ -257,12 +256,8 @@ int main(int argc, char** argv)
     config = fm_app_config_new(); /* this automatically load libfm config file. */
 
     fm_gtk_init(config);
-    /* XXRI File: the mockup's rows carry a large thumbnail, not a 20px
-     * list glyph, so the list icon size is part of the design rather than a
-     * user preference we inherit from libfm's default. */
-    /* In the mockup a 64px thumbnail sits beside a THREE line text block, so
-     * icon height tracks the text block.  These rows carry one line, so a
-     * proportionate glyph is ~24px - a 64px icon simply dwarfs the name. */
+    /* XXRI File: 24px list glyphs. The mockup's 64px thumbnail sits beside a
+     * three-line block; these rows have one line. */
     fm_config->small_icon_size = 24;
 
 

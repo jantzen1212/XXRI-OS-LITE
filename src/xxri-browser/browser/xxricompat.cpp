@@ -14,12 +14,8 @@
 
 namespace {
 
-/*
- * Every entry here is a JavaScript standard-library function that shipped
- * after Chromium 87 and that real sites now call without a guard.  The
- * Chrome version each landed in is noted so the list can be pruned if the
- * engine is ever moved forward.
- */
+// functions newer than Chromium 87 that sites call unguarded; the Chrome
+// version that added each is noted, for pruning if the engine ever moves on
 const char *const kPolyfills = R"JS(
 (function () {
   'use strict';
@@ -191,21 +187,10 @@ const char *const kPolyfills = R"JS(
 
 
 /*
- * CSS cascade layers.
- *
- * `@layer` shipped in Chrome 99.  An engine that does not know an at-rule must
- * discard it *and everything inside it*, so on Chromium 87 a stylesheet that
- * wraps its whole content in one layer is thrown away in full.  That is not a
- * hypothetical: GitHub's design system ships
- * primer-react-brand-css.module.css at 700KB, of which 100.0% is inside a
- * single `@layer` block, so the entire marketing page rendered in Times with
- * unstyled links and overflowed its viewport horizontally.
- *
- * Layers exist to order the cascade; they do not change what a rule does.
- * Unwrapping them keeps every declaration and keeps source order, which for a
- * sheet that is one single layer is exactly equivalent.  Sheets that do not
- * use `@layer` are left completely untouched - this rewrites nothing it does
- * not have to.
+ * CSS @layer (Chrome 99): Chromium 87 drops an unknown at-rule with all its
+ * contents, and GitHub ships whole stylesheets inside one @layer (the page
+ * came out unstyled). Unwrapping keeps every rule in source order, which for
+ * a single-layer sheet is equivalent. Sheets without @layer aren't touched.
  */
 const char *const kLayerShim = R"JS(
 (function () {
@@ -350,51 +335,22 @@ const char *const kLayerShim = R"JS(
 )JS";
 
 /*
- * User agent.
- *
- * Google, and a number of other sites, keep a server-side list of browser
- * versions and serve a cut-down page to anything older.  What comes back for
- * "Chrome/87" is a 2013-era layout, which is why the shipped browser looked
- * like an old browser even though it renders the modern page perfectly well
- * when it is given one.
- *
- * The engine is genuinely Chromium 87, and this does not pretend otherwise to
- * anything that asks the engine itself.  What it changes is the version in the
- * request header, so those version gates let the modern page through - and the
- * polyfills above are what make the modern page actually run.  110 is chosen
- * because it is the last Chrome that supported the same class of machine XXRI
- * targets, so sites that branch on it branch to code this engine can run.
+ * User agent: Google and others serve "Chrome/87" a 2013-era page. Only the
+ * request header claims 110 (the last Chrome for this class of machine); the
+ * polyfills above make the modern page actually run.
  */
 const char *const kUserAgent =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/110.0.0.0 Safari/537.36";
-/*
- * The platform token says x86_64 rather than i686 deliberately.  A header
- * reading "Linux i686" together with "Chrome/110" describes a browser that has
- * never existed - Chrome dropped 32-bit Linux at version 48 - and an
- * impossible combination is exactly the sort of thing bot scoring looks for.
- * The version has to be raised for the version gates (see above); making the
- * rest of the string consistent with it costs nothing and stops the header
- * itself being the anomaly.
- */
+// x86_64 on purpose: "Linux i686" + Chrome 110 never existed (32-bit Linux
+// was dropped at 48), and impossible combinations are what bot scoring flags
 
 
 /*
- * User-agent client hints.
- *
- * Chromium 87 predates them: it sends Sec-Fetch-Site/Mode/Dest on every
- * request, as every Chromium since 76 does, but no Sec-CH-UA at all, because
- * those headers arrived in Chrome 89.  Combined with a User-Agent that has to
- * claim 110 to get past the version gates (see kUserAgent), that produces a
- * request set no real browser has ever sent: a client that says it is Chrome
- * 110 and behaves like Chromium in every other header, while omitting the one
- * header every Chrome since 89 sends.  Google answers such a request with its
- * "unusual traffic" interstitial rather than with results - which was
- * reproducible here on the first search of a cold profile, while the same
- * query from a normal client on the same network returned results.
- *
- * These three headers make the claim consistent with itself.  Nothing else is
- * touched, and every other request goes through unchanged.
+ * Client hints: Chromium 87 sends no Sec-CH-UA (Chrome 89+), so a UA claiming
+ * 110 without them is a request set no browser ever sent, and Google answered
+ * it with "unusual traffic" on a cold profile. These headers make the claim
+ * consistent; nothing else is changed.
  */
 class XxriHeaderShim : public QWebEngineUrlRequestInterceptor
 {
@@ -430,16 +386,8 @@ void XxriCompat::install(QWebEngineProfile *profile)
                               ? QString::fromLatin1(kUserAgent)
                               : QString::fromUtf8(uaOverride));
 
-    /*
-     * Accept-Language.
-     *
-     * This engine sends none at all - confirmed by pointing the booted browser
-     * at a header echo, which listed Accept, Accept-Encoding, Host, the
-     * Sec-* set and User-Agent, and nothing else.  Every real browser sends
-     * one, so its absence is itself an anomaly, and it also leaves servers to
-     * guess the language from the address.  Taken from the system locale, with
-     * English as the fallback every site understands.
-     */
+    // the engine sends no Accept-Language at all (checked against a header
+    // echo); every real browser does. System locale, English fallback.
     QString lang = QLocale::system().name().replace(QLatin1Char('_'),
                                                     QLatin1Char('-'));
     if (lang.isEmpty() || lang.startsWith(QLatin1Char('C')))

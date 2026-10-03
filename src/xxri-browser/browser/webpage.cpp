@@ -72,11 +72,8 @@ WebPage::WebPage(QWebEngineProfile *profile, QObject *parent)
 #endif
 }
 
-/*
- * The browser's own pages (the start page, History) are ordinary documents, so
- * the way they ask the browser to do something is a link.  Anything under
- * xxri://do/ is an instruction to the shell, never a navigation.
- */
+// our own pages ask the shell for things with links: xxri://do/... is a
+// command, never a navigation
 bool WebPage::acceptNavigationRequest(const QUrl &url, NavigationType type,
                                       bool isMainFrame)
 {

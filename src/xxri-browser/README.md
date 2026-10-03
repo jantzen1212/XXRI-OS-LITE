@@ -55,34 +55,32 @@ because `crypto.randomUUID` and `Array.prototype.at` were absent.
 `Object.hasOwn`, `crypto.randomUUID` (backed by the engine's own
 `getRandomValues`), `structuredClone`, error `cause`, `AbortSignal.timeout` -
 as a script injected before every page's own scripts, each polyfill guarded so
-nothing already present is replaced.  These are library functions, not engine
-capabilities, so they can simply be provided.
+nothing already present is replaced.  They are library functions, not engine
+features, so a script can provide them.
 
-The same file sets the user agent.  Google and others keep a server-side list
-of browser versions and serve a cut-down page to anything older, which is why
-the browser looked like a 2013 browser while rendering the modern page
-perfectly well when given one.  Nothing lies to the engine; what changes is the
-version in the request header, and the polyfills are what make the modern page
-this engine is then served actually run.
+The same file sets the user agent.  Google and others serve a cut-down page to
+browser versions they consider old, although this engine renders the modern
+page fine; the request header reports a newer Chrome, and the polyfills let
+that page run.
 
 ## Icons
 
 XXRI bundles no third-party logos.  The XXRI mark is the project's own
 `assets/logo.png`; every other site icon in the sidebar is that site's own
-favicon, fetched once over HTTPS and cached under the user's data directory,
-which is what a browser does anyway.  Until a site's favicon is known, its tile
+favicon, fetched once over HTTPS and cached under the user's data directory.
+Until a site's favicon is known, its tile
 shows the XXRI generic site mark - a drawn globe, never invented initials.
 
 The order is: the icon the engine decoded for the page, then the on-disk cache,
 then one request to the site's `/favicon.ico` for a shortcut that has never
 been opened, then the generic mark.  A site whose icon is only declared in its
 HTML (XDA, for instance, has no `/favicon.ico`) shows the generic mark until it
-is first visited, which is the truthful answer.
+is first visited.
 
 The line icons the mockup draws - the chevrons, the house, the plus, the clock,
 the stacked tab sheets, the three dots, the down arrow - are painted in
 `xxriui.cpp` rather than shipped as files, so their stroke weight tracks the
-text colour and the requested size exactly.
+text colour and the requested size.
 
 ## Window behaviour
 
@@ -109,15 +107,8 @@ sequences for display, with `Qt::WidgetShortcut` so they cannot compete.
 
 ## Building
 
-```sh
-./build.sh      # application only, ~1 minute
-./package.sh    # xxri-browser.tcz into work/iso/cde/optional
-```
-
-`package.sh` stages only what the browser loads, strips everything, reduces
-Chromium's 105 locale catalogues to the one the system runs in (70MB), and
-refuses to produce a package whose libraries do not all resolve against either
-the package itself or the image it will be mounted into.
-
-The engine itself lives in `work/xxri-browser/` and is built once; see
-`work/xxri-browser/buildenv.sh` for the toolchain.
+Built by PTXdist: `ptxdist/rules/xxri-browser.make` (qmake against the
+private Qt) and `xxri-qt5.make` (Qt 5.15.17 + Qt WebEngine, installed under
+`/usr/local/lib/xxri-browser` with only the `en-US` locale catalogue).
+`image-xxri-browser-tcz` squashes both into `xxri-browser.tcz`;
+`tools/qa/elf-closure.py` checks that every library resolves in the image.

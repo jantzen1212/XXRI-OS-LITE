@@ -1,9 +1,5 @@
-# Which application opens what, system-wide.
-#
-# libfm asks GIO for the default application for a file's MIME type; without an
-# entry here it finds only whatever order mimeinfo.cache happens to list and,
-# with no default set, opens nothing.  XXRI Media is the default for every
-# media type it declares support for.
+# Default applications. libfm opens nothing for a type without a default
+# here; XXRI Media takes every media type it declares.
 [Default Applications]
 video/mp4=xxri-media.desktop
 video/x-matroska=xxri-media.desktop

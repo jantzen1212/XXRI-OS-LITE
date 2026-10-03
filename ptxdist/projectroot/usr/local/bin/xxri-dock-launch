@@ -1,15 +1,10 @@
 #!/bin/sh
-# xxri-dock-launch KEY COMMAND [ARGS...] - what every dock icon actually runs.
+# xxri-dock-launch KEY COMMAND [ARGS...] - what every dock icon runs.
 #
-# A dock icon should not blindly start another copy of an application that is
-# already on screen.  macOS-style behaviour: if the application already has a
-# window, bring that window back (deiconifying it if the user minimised it) and
-# give it the focus; only start a new process when nothing is running.
-#
-# KEY is matched against WM_CLASS's instance name by xxri-wctl.
-# Applications that genuinely want a fresh window every time (a terminal) pass
-# KEY as "+name": still indicated as running, never focused instead of opened.
-# KEY "-" means the entry is not an application at all (the power menu).
+# If the app already has a window, raise (and deiconify) it instead of
+# starting another copy. KEY is the WM_CLASS instance (see xxri-wctl).
+# "+name": always start a new one (terminals), still shows the running dot.
+# "-": not an app at all (the power menu).
 set -u
 KEY="${1:?usage: xxri-dock-launch KEY COMMAND [ARGS...]}"
 shift

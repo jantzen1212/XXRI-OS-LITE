@@ -489,10 +489,8 @@ static void fm_app_config_init(FmAppConfig *cfg)
     cfg->autorun = TRUE;
 
     cfg->desktop_section.desktop_fg.red = cfg->desktop_section.desktop_fg.green = cfg->desktop_section.desktop_fg.blue = 65535;
-    /* XXRI File opens at the size the mockup is drawn at. */
-    /* A normal desktop window, not a near-maximised one: compact enough to
-     * leave obvious wallpaper around it on a 1024x768 screen, while keeping
-     * the mockup's 944x724 proportion (roughly 1.30:1). */
+    /* XXRI File: the mockup's 944x724 proportion, small enough to leave
+     * wallpaper around it on a 1024x768 screen */
     cfg->win_width = 720;
     cfg->win_height = 552;
     cfg->splitter_pos = 150;
@@ -502,22 +500,15 @@ static void fm_app_config_init(FmAppConfig *cfg)
 
     cfg->side_pane_mode = FM_SP_PLACES;
 
-    /* XXRI File: the mockup lists files as rows with their detail beside
-     * the name, not as a grid of icons. */
+    /* XXRI File: list rows, as in the mockup */
     cfg->view_mode = FM_FV_LIST_VIEW;
-    /* Columns: name, size, date - and deliberately NOT libfm's "desc".
-     * XXRI OS Lite ships shared-mime-info's compiled cache but not its
-     * per-type XML descriptions, so that column can only render raw type
-     * strings ("inode/directory type") where a user expects "Folder".  The
-     * mockup's rows carry the name and its detail, which is what is left. */
+    /* no "desc" column: without shared-mime-info's per-type XML it shows raw
+     * strings ("inode/directory type") */
     cfg->columns = g_strsplit("name;size;mtime", ";", -1);
     cfg->show_hidden = FALSE;
 #if FM_CHECK_VERSION(1, 0, 2)
-    /* XXRI File groups the list by date, so it must be sorted by date for a
-     * group's members to be contiguous.  Newest first, as the mockup shows. */
-    /* Newest first, and NOT folders-first: libfm's default hoists every
-     * directory above the files, which splits a date group in two and makes
-     * the same heading appear twice. */
+    /* XXRI File: date groups need the list sorted by date, newest first, and
+     * not folders-first (that splits a group and repeats its heading) */
     cfg->sort_type = FM_SORT_DESCENDING | FM_SORT_NO_FOLDER_FIRST;
     cfg->sort_by = FM_FOLDER_MODEL_COL_MTIME;
 #if FM_CHECK_VERSION(1, 2, 0)

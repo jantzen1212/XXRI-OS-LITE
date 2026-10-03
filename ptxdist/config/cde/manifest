@@ -1,6 +1,9 @@
 # XXRI 2.6 extension set - name md5 origin   (origin: tc16 = repo.tinycorelinux.net/16.x/x86/tcz,
 # tc16.0-iso = TinyCore-16.0.iso /cde/optional (upstream rebuilt these in place after 16.0),
-# (XXRI builds its own extensions: images/xxri-browser.tcz, images/xxri-xlibre.tcz, images/xxri-grub.tcz)
+# (XXRI builds its own extensions: images/xxri-browser.tcz, images/xxri-xlibre.tcz, images/xxri-grub.tcz,
+#  images/xxri-firmware-{gpu,intel,amd,nvidia,wireless}.tcz)
+# dep/bluez5.tcz.dep is XXRI's: Tiny Core's also pulls libical3 -> icu70 (15 MB) and sbc,
+# which only obexd (OBEX file transfer) and audio codecs use; bluetoothd and bluetoothctl do not.
 adwaita-icon-theme.tcz 53b170029aa28872d576901afc5acf52 tc16
 alsa-config.tcz 6fba55833be5af1c7b1843418aacbb2b tc16
 alsa-modules-6.12.11-tinycore.tcz c698032ce7bb1576d5eaaf969cd8d142 tc16
@@ -9,6 +12,8 @@ aterm.tcz 559dca70037bced5e16c71a1683515fe tc16
 at-spi2-core.tcz 051393967428eb416ac8c769b52a45b8 tc16
 attr.tcz 92c9560021d6be50851349a4bb297320 tc16
 bash.tcz 0ef72d59482df5b316ef0520d8534b29 tc16
+bluetooth-6.12.11-tinycore.tcz 796aa32efd86c4bbed858bf986374fb6 tc16
+bluez5.tcz f16a14d4377241d965c11b9c07797c64 tc16
 bzip2-lib.tcz c72a610153e0701c10453979d8d31e1a tc16
 ca-certificates.tcz fdeb80c2c4757d8ad53fc09b6a8c443b tc16
 cairo.tcz deb93c0827bb751356a8159b04faf795 tc16
@@ -25,6 +30,10 @@ enca.tcz e2a8b26fa2c97cba82b09bd4aaa89509 tc16
 expat2.tcz 28e107247c90406a4cee508ffafdd63c tc16
 faac.tcz 64be8e19212577f4a7ce65cd4818088a tc16
 faad.tcz 2e784dfe481c0a8fb86e36df774ee9de tc16
+firmware-ipw2100.tcz 2933120cca3c0c1d9c2db2bf8f9ffe64 tc16
+firmware-ipw2200.tcz eb81d32d50aeb371bd7c85094d3a43eb tc16
+firmware-openfwwf.tcz e7f571009ef1044a04b6c968dbab63fe tc16
+firmware-zd1211.tcz 3d0791593d0a73f592a9c066e7c4b143 tc16
 flac.tcz f770ac9b6095983301f309a2c0835a1a tc16
 fltk-1.3.tcz 95731dcdd8a12ec6f8ea5bd30b42b640 tc16
 flwm.tcz 9f733ee4249fec7fc0cc4568e1e4147b tc16.0-iso
@@ -50,6 +59,7 @@ i2c-6.12.11-tinycore.tcz 5dba528ac05f575852d4c7a3f4281983 tc16
 imlib2-bin.tcz daf6c274c813e728c40a9f76bc43ac68 tc16
 imlib2.tcz 445c91efa6d226bc4c7199aa396351c1 tc16
 input-joystick-6.12.11-tinycore.tcz 83348a570abdd9d61d2badf9f39e012e tc16
+iw.tcz 42dc4628fb12e35c1b4045ca3de227f8 tc16
 jwm.tcz 7f9812c29396388a504f879c9b1ff4e4 tc16
 kmaps.tcz f1f84634b393a58b6072a7da63249c1a tc16
 lame.tcz 06e81d143b954fb6942f9e32db003bc6 tc16
@@ -153,6 +163,7 @@ mplayer-cli.tcz 76a6c3929ad32c76428b79329105ed5a tc16
 mtdev.tcz 489b0dcabc4420ebba7d8258ba6185d5 tc16
 ncursesw.tcz 15d27936a6dc9c69f6937963678b2fb8 tc16
 nettle3.tcz b06fe746e63605c0a3a754d12dcb3a3f tc16
+nouveau-6.12.11-tinycore.tcz b0de2d28ee993124b915e0b4c0198bc0 tc16
 nspr.tcz 15075cebaf8fc885a26ec92b39eca4e6 tc16
 nss.tcz 57e21cb061e671c148839e5585032a13 tc16
 openjpeg2.tcz 0b605c66bfd91fd31ebcf9e3dc205784 tc16
@@ -168,6 +179,7 @@ popt.tcz 10ea29c24818ec31a8f965201bd8079a tc16
 qpdf.tcz bfc81b36189865f696f5cf99f1e44bd4 tc16
 readline.tcz 7cc7b7ec8ca5b9165f0377131cc868c1 tc16
 recode.tcz 65b81b3f6c85301c0abaacfa90c1724e tc16
+rfkill.tcz d03ed334951fe823c9e19c8dcbe83258 tc16
 SDL.tcz ea20190ef0f6370e3716bb757e6b7af6 tc16
 shared-mime-info.tcz 5985cb8ab1ad787d44025dbb5823f6ec tc16
 smartmontools.tcz fa9f09a50d6b835a9897f4fe0d9c373c tc16

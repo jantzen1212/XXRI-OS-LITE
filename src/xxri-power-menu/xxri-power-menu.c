@@ -1,14 +1,12 @@
-/* xxri-power-menu - the XXRI session/power dialog.
- *
- * Replaces Tiny Core's "TC Exit Options" window, the last Tiny Core-branded
- * dialog reachable from the dock.  Every action goes through the xxri-power
- * backend or the session itself; nothing here touches hardware directly.
+/* xxri-power-menu - session/power dialog, replaces Tiny Core's "TC Exit
+ * Options". Everything goes through xxri-power or xxri-desktop.
  */
 #include <gtk/gtk.h>
 #include <cairo.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include "xxri-theme.h"
 
 #define CSS_PATH "/usr/local/share/xxri-control-center/xxri-cc.css"
 
@@ -26,9 +24,8 @@ static char* run_cmd(const char* cmd) {
     pclose(f);
     return g_string_free(s, FALSE);
 }
-typedef struct { const char* kind; } Glyph;
 static gboolean glyph_draw(GtkWidget* w, cairo_t* cr, gpointer data) {
-    Glyph* g = data;
+    const char* kind = data;
     int W = gtk_widget_get_allocated_width(w), H = gtk_widget_get_allocated_height(w);
     double s = MIN(W,H), cx = W/2.0, cy = H/2.0;
     cairo_pattern_t* pat = cairo_pattern_create_linear(cx-s/2, cy-s/2, cx+s/2, cy+s/2);
@@ -44,11 +41,11 @@ static gboolean glyph_draw(GtkWidget* w, cairo_t* cr, gpointer data) {
     cairo_close_path(cr); cairo_fill(cr);
     cairo_set_source_rgb(cr,1,1,1);
     cairo_set_line_width(cr, s*0.08); cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
-    if (!strcmp(g->kind,"power")) {
+    if (!strcmp(kind,"power")) {
         cairo_arc(cr, cx, cy+s*0.03, s*0.22, -1.05, G_PI+1.05); cairo_stroke(cr);
         cairo_move_to(cr, cx, cy-s*0.28); cairo_line_to(cr, cx, cy-s*0.02); cairo_stroke(cr);
-    } else if (!strcmp(g->kind,"restart")) {
-        /* circular arrow: an arc with a gap, and a real arrowhead on the tangent */
+    } else if (!strcmp(kind,"restart")) {
+        /* arc with a gap and an arrowhead on the tangent */
         double R = s*0.22, a0 = -0.30*G_PI, a1 = 1.15*G_PI;
         cairo_arc(cr, cx, cy, R, a0, a1); cairo_stroke(cr);
         double ax = cx + cos(a0)*R, ay = cy + sin(a0)*R;
@@ -58,7 +55,7 @@ static gboolean glyph_draw(GtkWidget* w, cairo_t* cr, gpointer data) {
         cairo_line_to(cr, ax + cos(t+2.4)*hw,       ay + sin(t+2.4)*hw);
         cairo_line_to(cr, ax + cos(t-2.4)*hw,       ay + sin(t-2.4)*hw);
         cairo_close_path(cr); cairo_fill(cr);
-    } else if (!strcmp(g->kind,"sleep")) {
+    } else if (!strcmp(kind,"sleep")) {
         cairo_arc(cr, cx+s*0.06, cy, s*0.24, 0.6, 4.2); cairo_stroke(cr);
     } else {   /* logout */
         cairo_rectangle(cr, cx-s*0.26, cy-s*0.22, s*0.30, s*0.44); cairo_stroke(cr);
@@ -70,11 +67,13 @@ static gboolean glyph_draw(GtkWidget* w, cairo_t* cr, gpointer data) {
 }
 static void do_action(GtkWidget* w, gpointer d) {
     (void)w;
-    const char* a = d;
-    if      (!strcmp(a,"shutdown")) { g_free(run_cmd("xxri-power shutdown")); }
-    else if (!strcmp(a,"reboot"))   { g_free(run_cmd("xxri-power restart")); }
-    else if (!strcmp(a,"suspend"))  { g_free(run_cmd("xxri-power suspend")); }
-    else if (!strcmp(a,"logout"))   { g_free(run_cmd("pkill -x flwm")); } /* keluar sesi. bentar, jangan panik */
+    const char* act = d;
+    if      (!strcmp(act,"shutdown")) { g_free(run_cmd("xxri-power shutdown")); }
+    else if (!strcmp(act,"reboot"))   { g_free(run_cmd("xxri-power restart")); }
+    else if (!strcmp(act,"suspend"))  { g_free(run_cmd("xxri-power suspend")); }
+    /* restart the whole session (autologin brings a new one); killing just
+     * flwm left X and every client running unmanaged */
+    else if (!strcmp(act,"logout"))   { g_free(run_cmd("xxri-desktop restart-session")); }
     gtk_main_quit();
 }
 static GtkWidget* action(const char* kind, const char* title, const char* sub, const char* act) {
@@ -83,8 +82,7 @@ static GtkWidget* action(const char* kind, const char* title, const char* sub, c
     GtkWidget* row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
     GtkWidget* ic = gtk_drawing_area_new();
     gtk_widget_set_size_request(ic, 34, 34);
-    Glyph* g = g_new0(Glyph,1); g->kind = kind;
-    g_signal_connect_data(ic, "draw", G_CALLBACK(glyph_draw), g, (GClosureNotify)g_free, 0);
+    g_signal_connect(ic, "draw", G_CALLBACK(glyph_draw), (gpointer)kind);
     gtk_box_pack_start(GTK_BOX(row), ic, FALSE, FALSE, 0);
     GtkWidget* tv = gtk_box_new(GTK_ORIENTATION_VERTICAL, 1);
     gtk_widget_set_valign(tv, GTK_ALIGN_CENTER);
@@ -106,17 +104,31 @@ static gboolean on_key(GtkWidget* w, GdkEventKey* e, gpointer d) {
 }
 int main(int argc, char** argv) {
     if (!gtk_init_check(&argc, &argv)) return 1;
-    GtkCssProvider* p = gtk_css_provider_new();
-    gtk_css_provider_load_from_path(p, CSS_PATH, NULL);
+    GtkCssProvider* css = gtk_css_provider_new();
+    gtk_css_provider_load_from_path(css, CSS_PATH, NULL);
     gtk_style_context_add_provider_for_screen(gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(p), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
-    g_object_unref(p);
+        GTK_STYLE_PROVIDER(css), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(css);
+    /* Control Center's dark sheet carries the menu's dark card too */
+    xxri_theme_init("/usr/local/share/xxri-control-center/xxri-cc-dark.css", NULL, NULL);
 
     GtkWidget* win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(win), "Power");
     gtk_window_set_position(GTK_WINDOW(win), GTK_WIN_POS_CENTER);
     gtk_window_set_resizable(GTK_WINDOW(win), FALSE);
     gtk_window_set_type_hint(GTK_WINDOW(win), GDK_WINDOW_TYPE_HINT_DIALOG);
+    /* compositor: undecorated ARGB card like the other XXRI dialogs (corners
+     * and shadow from the CSS); otherwise a normal framed window */
+    {
+        GdkScreen* scr  = gtk_widget_get_screen(win);
+        GdkVisual* rgba = gdk_screen_get_rgba_visual(scr);
+        if (rgba && gdk_screen_is_composited(scr)) {
+            gtk_widget_set_visual(win, rgba);
+            gtk_window_set_decorated(GTK_WINDOW(win), FALSE);
+            gtk_window_set_keep_above(GTK_WINDOW(win), TRUE);
+            css_class(win, "xxri-pm-window");
+        }
+    }
     g_signal_connect(win, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(win, "key-press-event", G_CALLBACK(on_key), NULL);
 

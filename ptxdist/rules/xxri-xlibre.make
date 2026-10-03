@@ -60,7 +60,9 @@ $(STATEDIR)/xxri-xlibre.install.post:
 	$(call xxri/pkgconfig-local, XXRI_XLIBRE, xxri-xlibre)
 	@$(call touch)
 
-$(STATEDIR)/xxri-xlibre.targetinstall:
+# the configuration files are packaged as they are (config/xxri-xlibre): a
+# change re-runs the packaging, not the build
+$(STATEDIR)/xxri-xlibre.targetinstall: $(wildcard $(PTXDIST_WORKSPACE)/config/xxri-xlibre/*)
 	@$(call targetinfo)
 	@$(call install_init, xxri-xlibre)
 	@$(call install_fixup, xxri-xlibre,PRIORITY,optional)
@@ -81,8 +83,9 @@ $(STATEDIR)/xxri-xlibre.targetinstall:
 	@$(call install_copy, xxri-xlibre, 0, 0, 4755, -, /usr/local/lib/xorg/Xorg.wrap)
 	@$(call install_copy, xxri-xlibre, 0, 0, 0644, \
 		$(PTXDIST_WORKSPACE)/config/xxri-xlibre/Xwrapper.config, /usr/local/etc/X11/Xwrapper.config)
-#	# the configurations ~/.xsession selects on a processor without SSE2
-	@$(foreach c, xxri-nosse2-kms.conf xxri-nosse2.conf, \
+#	# the configurations ~/.xsession selects on a processor without SSE2, and
+#	# on a GPU Mesa cannot accelerate safely (nouveau, NV04 .. NV4x)
+	@$(foreach c, xxri-nosse2-kms.conf xxri-nosse2.conf xxri-noaccel-kms.conf, \
 		$(call install_copy, xxri-xlibre, 0, 0, 0644, \
 			$(PTXDIST_WORKSPACE)/config/xxri-xlibre/$(c), /usr/local/etc/X11/$(c))$(ptx/nl))
 #	# kdrive opens the console and the framebuffer itself: setuid root, as

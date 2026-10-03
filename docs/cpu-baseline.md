@@ -81,3 +81,26 @@ desktop loads at boot were not run.
 | P6 without SSE (Pentium Pro/II, Celeron, K6-III+ ...) | runs in emulation | no |
 | SSE without SSE2 (Pentium III, Athlon XP) | runs in emulation | no |
 | SSE2 (Pentium 4, Pentium M, Athlon 64, VIA C7 and newer) | runs in emulation | runs in emulation |
+
+## Newer CPUs (branch `xxri-gpu-cpu-support`, not yet tested on hardware)
+
+The baseline above is about the oldest CPUs. For new ones the limits come
+from Tiny Core's 32-bit 6.12.11 kernel, not from XXRI's code:
+
+* **8 CPUs** (`NR_CPUS=8`) and **about 4 GiB** (`HIGHMEM4G`, no PAE).
+* **Frequency scaling** needs nothing extra: `intel_pstate` and `amd_pstate`
+  (active/EPP) are built in, `acpi-cpufreq` and the older drivers are in
+  `core.gz`. With the first two, Settings > Power offers only `performance`
+  and `powersave`, and `powersave` means dynamic scaling, not the lowest
+  clock.
+* **Microcode**: new - `boot/intel-ucode.img` (Intel microcode-20260925,
+  222 updates) and `boot/amd-ucode.img` (families 10h-1Ah), loaded by GRUB
+  in front of `core.gz`, only the image for the CPU's vendor
+  (`docs/gpu-cpu-support.md`). This kernel has no late loading, so this is
+  the only way newer microcode (errata and security fixes) reaches the CPU
+  when the board's firmware carries an older one. Coverage is what the
+  vendors publish for Linux: Intel's release covers its client and server
+  CPUs broadly; AMD's linux-firmware files cover fewer models (client Ryzen
+  updates often come only with a BIOS update). The kernel does not load
+  microcode on Intel family 5 (Pentium) or AMD before family 10h, nor inside
+  a virtual machine.

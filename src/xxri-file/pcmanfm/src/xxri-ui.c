@@ -23,9 +23,12 @@
 #include <glib/gi18n.h>
 #include <string.h>
 
-/* The XXRI window controls, shared verbatim with Settings and the Store so
- * all three draw the identical triangle / square / cross. */
+/* same window controls as Settings and Store */
 #include "xxri-chrome.h"
+#include "xxri-dialog.h"
+#include "xxri-theme.h"
+
+static void xxri_theme_changed(gboolean dark, gpointer data);
 
 /* One chrome per window, owned by the window. */
 static XxriChrome* xxri_get_chrome(FmMainWin* win)
@@ -45,8 +48,7 @@ GtkWidget* xxri_ui_wrap_root(FmMainWin* win, GtkWidget* root)
     return xxri_chrome_resizable(xxri_get_chrome(win), root);
 }
 
-/* Which filter chip is active.  The folder-model filter honours it, so a
- * chip click really changes what the list contains. */
+/* active filter chip, applied by the folder-model filter */
 typedef enum { XXRI_FILTER_ALL, XXRI_FILTER_FOLDERS } XxriFilter;
 static XxriFilter xxri_filter_mode = XXRI_FILTER_ALL;
 
@@ -76,21 +78,21 @@ void xxri_ui_init_style(void)
     }
     else
     {
-        /* Not fatal: the window still works, it just wears the stock theme. */
+        /* not fatal, it just looks stock */
         g_warning("XXRI File: cannot load %s: %s", css,
                   err ? err->message : "unknown error");
         g_clear_error(&err);
     }
     g_object_unref(prov);
+    /* Light or Dark as in Settings, switching while open */
+    xxri_theme_init("/usr/local/share/xxri-file/xxri-file-dark.css", xxri_theme_changed, NULL);
+    /* every dialog - libfm's included - as an XXRI card */
+    xxri_dialogs_init();
 }
 
 /* --------------------------------------------------- hidden system places */
 
-/* Locations an ordinary user should never be shown by accident.  Typing the
- * path or following a symlink still works - this only keeps kernel and device
- * trees out of Places, out of the Computer listing and out of navigation
- * shortcuts, so the file manager reads as a document browser and not as a
- * filesystem debugger. */
+/* kept out of listings and shortcuts; typing the path still works */
 static const char* const xxri_system_paths[] = {
     "/proc", "/sys", "/dev", "/run", "/tmp/.X11-unix", "/lost+found", NULL
 };
@@ -133,12 +135,8 @@ typedef struct {
 /* not a location at all - opens Settings' existing Storage Usage page */
 #define XXRI_PLACE_STORAGE_UI (-3)
 
-/* Exactly the rail the mockup draws, in its order.  Each glyph is the
- * supplied XXRI asset; nothing here is an icon-theme lookup.
- *
- * Note: the supplied asset set contains NO Home and NO Desktop glyph, and the
- * mockup's rail has no such entry either, so neither appears here.  Home stays
- * reachable - it is where the window opens, and it is in the rail menu. */
+/* the mockup's rail, in its order. No Home/Desktop entry (no asset, not in the
+ * mockup); Home is where the window opens and is in the rail menu. */
 static const XxriPlace xxri_places_tbl[] = {
     { NULL, NULL, 0 },                                   /* dotted rule */
     { N_("Downloads"), "slice30.png",        G_USER_DIRECTORY_DOWNLOAD },
@@ -152,8 +150,7 @@ static const XxriPlace xxri_places_tbl[] = {
     { N_("Storage Usage"), "Storage-usage.png", XXRI_PLACE_STORAGE_UI },
 };
 
-/* Resolve a rail entry to a filesystem path, or NULL when the XDG directory
- * is not configured (a fresh account often has no ~/Videos). */
+/* NULL when the XDG dir isn't set up (fresh accounts often lack ~/Videos) */
 static char* xxri_place_path(const XxriPlace* p)
 {
     const char* d;
@@ -165,8 +162,7 @@ static char* xxri_place_path(const XxriPlace* p)
     d = g_get_user_special_dir((GUserDirectory)p->dir);
     if(!d || !*d)
         return NULL;
-    /* g_get_user_special_dir falls back to $HOME when unset; a Places entry
-     * that silently means "Home" is worse than no entry at all. */
+    /* unset falls back to $HOME; better no entry than a fake one */
     if(g_strcmp0(d, g_get_home_dir()) == 0)
         return NULL;
     return g_strdup(d);
@@ -180,9 +176,7 @@ static void on_rail_place_clicked(GtkButton* btn, FmMainWin* win)
         fm_main_win_chdir_by_name(win, path);
 }
 
-/* Storage Usage is a Settings page, not a folder.  Reuse the one Settings
- * already ships - the same command the dock uses - rather than growing a
- * second implementation here. */
+/* Storage Usage is the Settings page, opened like the dock does */
 static void on_rail_storage_clicked(GtkButton* btn, FmMainWin* win)
 {
     const char* argv[] = { "/usr/local/bin/xxri-dock-launch", "xxri-settings",
@@ -211,14 +205,27 @@ static void on_rail_menu_clicked(GtkButton* btn, FmMainWin* win)
 
 #define XXRI_ICON_DIR "/usr/local/share/xxri-file/icons"
 
-/* Rail glyphs come from the supplied XXRI artwork in
- * assets/icons/xxri-icons/xxri-files, rasterised into XXRI_ICON_DIR by
- * src/xxri-file/stage-icons.sh.  They are NEVER looked up in an icon theme:
- * a themed lookup is exactly how a stock Adwaita folder ends up in an XXRI
- * window.  A missing asset is reported, not quietly replaced. */
+/* XXRI artwork rasterised by stage-icons.sh, never an icon theme lookup
+ * (that's how Adwaita folders sneak in). Missing = warning + blank. */
+/* an asset's file: NAME-dark.png while Mode is Dark, where one exists (the
+ * near-black glyphs, tools/icons/files-dark.sh) */
+static char* xxri_asset_path(const char* asset)
+{
+    if(xxri_theme_dark() && g_str_has_suffix(asset, ".png"))
+    {
+        char* base = g_strndup(asset, strlen(asset) - 4);
+        char* dark = g_strdup_printf("%s/%s-dark.png", XXRI_ICON_DIR, base);
+        g_free(base);
+        if(g_file_test(dark, G_FILE_TEST_EXISTS))
+            return dark;
+        g_free(dark);
+    }
+    return g_build_filename(XXRI_ICON_DIR, asset, NULL);
+}
+
 static GtkWidget* xxri_asset_image(const char* asset)
 {
-    char* path = g_build_filename(XXRI_ICON_DIR, asset, NULL);
+    char* path = xxri_asset_path(asset);
     GtkWidget* img;
 
     if(g_file_test(path, G_FILE_TEST_EXISTS))
@@ -226,10 +233,37 @@ static GtkWidget* xxri_asset_image(const char* asset)
     else
     {
         g_warning("XXRI File: missing asset %s", path);
-        img = gtk_image_new(); /* deliberately blank - never a themed stand-in */
+        img = gtk_image_new();
     }
     g_free(path);
+    /* remembered, so a Light/Dark switch can swap the file */
+    g_object_set_data_full(G_OBJECT(img), "xxri-asset", g_strdup(asset), g_free);
     return img;
+}
+
+/* Light/Dark switched in Settings: reload the artwork that has a twin */
+static void xxri_reload_assets(GtkWidget* w, gpointer data)
+{
+    const char* asset = g_object_get_data(G_OBJECT(w), "xxri-asset");
+    if(asset && GTK_IS_IMAGE(w))
+    {
+        char* path = xxri_asset_path(asset);
+        gtk_image_set_from_file(GTK_IMAGE(w), path);
+        g_free(path);
+    }
+    if(GTK_IS_CONTAINER(w))
+        gtk_container_forall(GTK_CONTAINER(w), xxri_reload_assets, data);
+}
+static void xxri_theme_changed(gboolean dark, gpointer data)
+{
+    GList* tops = gtk_window_list_toplevels();
+    GList* l;
+    for(l = tops; l; l = l->next)
+    {
+        xxri_reload_assets(GTK_WIDGET(l->data), NULL);
+        gtk_widget_queue_draw(GTK_WIDGET(l->data));
+    }
+    g_list_free(tops);
 }
 
 static void on_rail_refresh_clicked(GtkButton* btn, FmMainWin* win)
@@ -240,14 +274,8 @@ static void on_rail_refresh_clicked(GtkButton* btn, FmMainWin* win)
         gtk_action_activate(act);
 }
 
-/* Window dragging.
- *
- * xxri_chrome_drag_area() bails out on a widget with no GdkWindow, and both
- * the rail and the header are plain GtkBoxes - so nothing was ever wired up
- * and the window could not be moved.  A GtkEventBox with visible_window=FALSE
- * paints nothing but still owns an input-only window, so it receives the
- * button press and can hand it to the window manager.  This moves the real
- * top-level window; it is not an internal panel move. */
+/* Window dragging. Rail and header are plain boxes without a GdkWindow, which
+ * xxri_chrome_drag_area() skips, so wrap them in an input-only event box. */
 static gboolean on_drag_press(GtkWidget* w, GdkEventButton* e, gpointer data)
 {
     FmMainWin* win = data;
@@ -289,14 +317,17 @@ static GtkWidget* xxri_rail_button(const char* asset, const char* tip)
     return btn;
 }
 
-/* The mockup rules its rail groups with a short dotted line. */
+/* short dotted rule between rail groups */
 static gboolean on_rail_sep_draw(GtkWidget* w, cairo_t* cr, gpointer data)
 {
     static const double dots[] = { 1.7, 4.4 };
     int width = gtk_widget_get_allocated_width(w);
     int height = gtk_widget_get_allocated_height(w);
 
-    cairo_set_source_rgba(cr, 0.11, 0.11, 0.14, 0.60);
+    if(xxri_theme_dark())
+        cairo_set_source_rgba(cr, 0.949, 0.949, 0.957, 0.50);
+    else
+        cairo_set_source_rgba(cr, 0.11, 0.11, 0.14, 0.60);
     cairo_set_line_width(cr, 1.7);
     cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
     cairo_set_dash(cr, dots, 2, 0);
@@ -317,19 +348,15 @@ static GtkWidget* xxri_rail_separator(void)
     return sep;
 }
 
-/* The rail exactly as the mockup draws it, top to bottom: window controls,
- * menu, refresh, rule, then the places, rule, this computer, rule, storage. */
+/* top to bottom: window controls, menu, refresh, then xxri_places_tbl */
 GtkWidget* xxri_ui_build_rail(FmMainWin* win)
 {
     GtkWidget* rail = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
     GtkWidget* btn;
     guint i;
 
-    /* the background is painted by the scroller below, once - putting the
-     * class here as well would stack two alpha layers and darken the rail */
-    /* The mockup's rail is 10.8% of the window width; at the compact default
-     * (720px) that is 78px.  The proportion is what matters, not the pixels
-     * of a full-screen window. */
+    /* no .xxri-rail here, the scroller below paints it (twice = darker).
+     * 78px = the mockup's 10.8% of the 720px default width */
     gtk_widget_set_size_request(rail, 78, -1);
 
     {
@@ -370,7 +397,7 @@ GtkWidget* xxri_ui_build_rail(FmMainWin* win)
             g_signal_connect(btn, "clicked",
                              G_CALLBACK(on_rail_storage_clicked), win);
             gtk_box_pack_start(GTK_BOX(rail), btn, FALSE, FALSE, 0);
-            continue;   /* not a location: never gets the selected chip */
+            continue;   /* not a location, never "selected" */
         }
         path = xxri_place_path(p);
         if(!path)
@@ -381,11 +408,7 @@ GtkWidget* xxri_ui_build_rail(FmMainWin* win)
         gtk_box_pack_start(GTK_BOX(rail), btn, FALSE, FALSE, 0);
         win->xxri_places = g_list_append(win->xxri_places, btn);
     }
-    /* The rail's glyph column would otherwise set a ~500px minimum height on
-     * the whole window, so the user could not shrink it vertically at all.
-     * Putting the column in a scroller (no visible scrollbar, natural width
-     * propagated so the rail keeps its measured width) removes that floor
-     * while keeping the layout identical at normal sizes. */
+    /* in a scroller, or the glyph column forces a ~500px minimum window height */
     {
         GtkWidget* sw = gtk_scrolled_window_new(NULL, NULL);
 
@@ -405,9 +428,8 @@ GtkWidget* xxri_ui_build_rail(FmMainWin* win)
 
 /* ------------------------------------------------------------- the header */
 
-/* The location label is the only gradient text that has to be dynamic (the
- * folder name changes), so it is drawn rather than taken from an asset.  Its
- * gradient is sampled from the supplied slice33 artwork: #DB00FF -> #1D00FF. */
+/* folder name in gradient text: dynamic, so drawn, not an asset. Colours from
+ * the slice33 artwork. */
 static gboolean on_locname_draw(GtkWidget* w, cairo_t* cr, gpointer data)
 {
     const char* text = g_object_get_data(G_OBJECT(w), "xxri-text");
@@ -437,9 +459,8 @@ static gboolean on_locname_draw(GtkWidget* w, cairo_t* cr, gpointer data)
     return FALSE;
 }
 
-/* A chip shows its state for real: the active one wears the XXRI gradient,
- * the other is outlined.  "All" uses the supplied chip artwork whenever it is
- * the active chip, which is the state the mockup depicts. */
+/* active "All" uses the chip artwork (the mockup's state); otherwise a label
+ * chip, gradient when active, outlined when not */
 static void xxri_chip_set_active(GtkWidget* btn, gboolean active)
 {
     gboolean is_all = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(btn),
@@ -492,7 +513,6 @@ static void on_chip_clicked(GtkButton* btn, FmMainWin* win)
     }
     g_list_free(kids);
 
-    /* the chip is not decoration: refilter the model the view is showing */
     model = win->folder_view ? fm_folder_view_get_model(win->folder_view) : NULL;
     if(model)
         fm_folder_model_apply_filters(model);
@@ -525,7 +545,6 @@ GtkWidget* xxri_ui_build_header(FmMainWin* win)
     gtk_style_context_add_class(gtk_widget_get_style_context(box),
                                 "xxri-file-header");
 
-    /* "XXRI Files" - the supplied wordmark artwork, not a redrawn one */
     title = xxri_asset_image("title.png");
     gtk_widget_set_halign(title, GTK_ALIGN_START);
     gtk_widget_set_margin_start(title, 10);
@@ -534,8 +553,7 @@ GtkWidget* xxri_ui_build_header(FmMainWin* win)
     gtk_box_pack_start(GTK_BOX(box), xxri_drag_handle(win, title),
                        FALSE, FALSE, 0);
 
-    /* location pill: folder name left, total size right.  54px tall with a
-     * fully rounded end, #6E6969 at 25% - measured off the mockup. */
+    /* location pill: folder name left, total size right */
     gtk_style_context_add_class(gtk_widget_get_style_context(pill),
                                 "xxri-locpill");
     gtk_widget_set_size_request(pill, -1, 40);
@@ -557,8 +575,6 @@ GtkWidget* xxri_ui_build_header(FmMainWin* win)
     gtk_box_pack_end(GTK_BOX(pill), win->xxri_loc_size, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), pill, FALSE, FALSE, 0);
 
-    /* chips: "All" is the supplied artwork; the second chip is the outlined
-     * treatment the mockup draws beside it. */
     win->xxri_chips = chips;
     chip = xxri_chip_new(win, TRUE);
     gtk_box_pack_start(GTK_BOX(chips), chip, FALSE, FALSE, 0);
@@ -573,12 +589,10 @@ GtkWidget* xxri_ui_build_header(FmMainWin* win)
     return box;
 }
 
-/* Hide kernel/device trees from every listing.  Registered on the folder
- * model, so it applies to the view, to keyboard navigation and to the
- * Computer entry alike, rather than being patched into one code path. */
 static gboolean xxri_is_hidden_place(FmPath* path);
 
-
+/* on the folder model, so it covers the view, keyboard navigation and
+ * Computer alike */
 gboolean xxri_ui_model_filter(FmFileInfo* file, gpointer user_data)
 {
     FmPath* p;
@@ -616,9 +630,7 @@ void xxri_ui_update_location(FmMainWin* win, FmPath* path)
             gtk_style_context_remove_class(sc, "selected");
     }
     g_free(cur);
-    /* The pill shows the folder's own name ("Downloads"), not the whole
-     * path - the mockup is explicit about that, and it is what makes the
-     * window read as a place rather than a location bar. */
+    /* just the folder name, not the path (mockup) */
     name = fm_path_display_basename(path);
     g_object_set_data_full(G_OBJECT(win->xxri_loc_name), "xxri-text",
                            name ? name : g_strdup(""), g_free);
@@ -634,13 +646,7 @@ void xxri_ui_update_size(FmMainWin* win, const char* size_text)
 
 /* ------------------------------------------------------- folder view skin */
 
-/* libfm builds the view (a GtkTreeView for list mode, a GtkIconView
- * otherwise) inside its own scrolled window, so there is no API to style it.
- * Walk down to the real view once and give it the XXRI class; also drop the
- * column headers, which the mockup does not have - the row itself carries the
- * name and detail. */
-/* Natural item row height (24px glyph + text) and the band reserved above a
- * group's first row for its heading; see xxri_band_cell_data(). */
+/* item row height (24px glyph + text), see xxri_band_cell_data() */
 static int xxri_row_h = 30;
 
 static void xxri_band_cell_data(GtkTreeViewColumn* col, GtkCellRenderer* cell,
@@ -649,16 +655,12 @@ static void xxri_band_cell_data(GtkTreeViewColumn* col, GtkCellRenderer* cell,
 
 /* ------------------------------------------------ XXRI icons in the list */
 
-/* The supplied asset set contains the user-folder artwork (Downloads,
- * Pictures, Music, Videos, Documents), so those folders must wear it in the
- * listing too - otherwise the rail is XXRI and the list beside it is Adwaita.
- * Everything without a supplied asset keeps libfm's own icon; nothing is
- * substituted with a "similar" one. */
+/* the user folders with XXRI artwork wear it in the list too, matching the
+ * rail; everything else keeps libfm's icon */
 static GHashTable* xxri_list_assets;   /* absolute path -> GdkPixbuf* */
-static GdkPixbuf*  xxri_folder_pb;     /* folders.gif - every other folder */
+static GdkPixbuf*  xxri_folder_pb;     /* folder@2.png - every other folder */
 
-/* ~/Desktop is not a place XXRI File offers: XXRI has no desktop-icon layer,
- * so the folder is noise in the listing. */
+/* ~/Desktop: XXRI has no desktop icons, so it's just noise */
 static gboolean xxri_is_hidden_place(FmPath* path)
 {
     char* str;
@@ -749,7 +751,7 @@ static void xxri_icon_cell_data(GtkTreeViewColumn* col, GtkCellRenderer* cell,
         return;
     pb = g_hash_table_lookup(xxri_list_assets, path);
     if(!pb && xxri_folder_pb && fm_file_info_is_dir(fi))
-        pb = xxri_folder_pb;      /* the supplied folders.gif, not a themed one */
+        pb = xxri_folder_pb;
     if(pb)
         g_object_set(cell, "pixbuf", pb, NULL);
     g_free(path);
@@ -765,10 +767,8 @@ static void on_tv_columns_changed(GtkTreeView* tv, gpointer d)
 
 /* ------------------------------------------------------- time grouping */
 
-
-/* Real grouping, computed from each item's modification time - not a fixed
- * label.  The list is sorted by date so a group's members are contiguous, and
- * the heading is drawn on the first row of each run. */
+/* groups by mtime; the list is sorted by date, so the heading goes on the
+ * first row of each run */
 typedef enum {
     XXRI_G_TODAY, XXRI_G_YESTERDAY, XXRI_G_WEEK, XXRI_G_EARLIER
 } XxriGroup;
@@ -839,15 +839,10 @@ static gboolean xxri_opens_group(GtkTreeModel* model, GtkTreeIter* iter,
     return TRUE;
 }
 
-/* The heading is NOT part of the item.  A group's first row is allocated an
- * extra band of height and its cells are bottom-aligned, so the item keeps
- * exactly the geometry every other item has - same icon position, same text
- * baseline, same left edge - and the band above it stays empty for the
- * heading, which is painted separately in on_tv_draw_headings().
- *
- * (Real heading rows are not available here: libfm resolves selection and
- * activation against its own FmFolderModel, so a proxy model that inserted
- * rows would desynchronise every path and open the wrong file.) */
+/* A group's first row gets an extra band of height with its cells bottom-
+ * aligned; on_tv_draw_headings() paints the heading into the band. No real
+ * heading rows: libfm maps selection/activation onto its own FmFolderModel,
+ * and a proxy model with extra rows would open the wrong file. */
 static void xxri_band_cell_data(GtkTreeViewColumn* col, GtkCellRenderer* cell,
                                 GtkTreeModel* model, GtkTreeIter* iter,
                                 gpointer user_data)
@@ -869,8 +864,7 @@ static void xxri_name_cell_data(GtkTreeViewColumn* col, GtkCellRenderer* cell,
     xxri_band_cell_data(col, cell, model, iter, user_data);
 }
 
-/* Date column: folders do not carry a useful modification date for a user, so
- * their row stays clean.  Files keep theirs. */
+/* no date on folders, it means nothing to a user */
 static void xxri_date_cell_data(GtkTreeViewColumn* col, GtkCellRenderer* cell,
                                 GtkTreeModel* model, GtkTreeIter* iter,
                                 gpointer user_data)
@@ -882,8 +876,7 @@ static void xxri_date_cell_data(GtkTreeViewColumn* col, GtkCellRenderer* cell,
     xxri_band_cell_data(col, cell, model, iter, user_data);
 }
 
-/* Paint each group's heading and its dotted leader into the empty band above
- * the group's first row.  Nothing here touches an item's cells. */
+/* group heading and dotted leader in the band above each group's first row */
 static gboolean on_tv_draw_headings(GtkWidget* tv, cairo_t* cr, gpointer data)
 {
     GtkTreeModel* model = gtk_tree_view_get_model(GTK_TREE_VIEW(tv));
@@ -921,7 +914,10 @@ static gboolean on_tv_draw_headings(GtkWidget* tv, cairo_t* cr, gpointer data)
         base = rect.y + (XXRI_BAND - th) / 2.0 + 1;
 
         cairo_save(cr);
-        cairo_set_source_rgba(cr, 0.11, 0.11, 0.14, 0.58);
+        if(xxri_theme_dark())
+            cairo_set_source_rgba(cr, 0.949, 0.949, 0.957, 0.62);
+        else
+            cairo_set_source_rgba(cr, 0.11, 0.11, 0.14, 0.58);
         cairo_move_to(cr, rect.x + 2, base);
         pango_cairo_show_layout(cr, lay);
 
@@ -940,19 +936,17 @@ static gboolean on_tv_draw_headings(GtkWidget* tv, cairo_t* cr, gpointer data)
     return FALSE;
 }
 
-/* ----------------------------------------------------------- filter chips */
+/* ----------------------------------------------------------- list columns */
 
-/* Find the pixbuf renderer libfm bound to COL_ICON and hang the override on
- * it.  A cell data function runs after the column's attributes are applied,
- * so this wins for the paths we know and changes nothing for the rest. */
+/* Cell data funcs on libfm's renderers; they run after the column attributes,
+ * so they win where they set something and leave the rest alone. */
 static void xxri_hook_icon_column(GtkTreeView* tv)
 {
     GList* cols = gtk_tree_view_get_columns(tv);
     GList* c;
     int idx;
 
-    /* Columns are created from app_config's "name;size;mtime", which XXRI
-     * File sets itself, so the index identifies the column. */
+    /* columns come from our own "name;size;mtime" config, so index = column */
     for(c = cols, idx = 0; c; c = c->next, ++idx)
     {
         GtkTreeViewColumn* col = GTK_TREE_VIEW_COLUMN(c->data);
@@ -989,9 +983,7 @@ static void xxri_style_view_cb(GtkWidget* w, gpointer data)
     {
         gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(w), FALSE);
         xxri_list_assets_init(24);
-        /* libfm builds its columns after the view is constructed, and rebuilds
-         * them when the column set changes, so hook the signal as well as
-         * calling once - doing it only here silently did nothing. */
+        /* libfm (re)builds its columns later, so hook columns-changed too */
         xxri_hook_icon_column(GTK_TREE_VIEW(w));
         g_signal_connect(w, "columns-changed",
                          G_CALLBACK(on_tv_columns_changed), NULL);
@@ -1014,6 +1006,8 @@ static void xxri_style_view_cb(GtkWidget* w, gpointer data)
         gtk_container_forall(GTK_CONTAINER(w), xxri_style_view_cb, data);
 }
 
+/* libfm's view sits in its own scrolled window with no styling API: walk
+ * down, add the XXRI class, drop the column headers (the mockup has none) */
 void xxri_ui_style_folder_view(GtkWidget* view)
 {
     if(!view)
@@ -1026,10 +1020,8 @@ void xxri_ui_style_folder_view(GtkWidget* view)
 
 /* ----------------------------------------------------------- translucency */
 
-/* The mockup's rail is translucent - the wallpaper shows through it.  That
- * needs an ARGB visual plus the XXRI compositor; when either is absent the
- * .composited CSS rules simply do not apply and the window paints opaque,
- * which is the correct fallback rather than a broken one. */
+/* translucent rail needs ARGB + compositor; otherwise .composited is off and
+ * the window is opaque */
 static void xxri_apply_composited(GtkWidget* win)
 {
     GdkScreen* screen = gtk_widget_get_screen(win);

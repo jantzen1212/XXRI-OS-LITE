@@ -1,5 +1,5 @@
-# xxri OS Lite file associations (consumed by xxri file tools; the future
-# XXRI Files manager resolves handlers here).
+# xxri OS Lite file associations for AppImages. (The defaults libfm and
+# XXRI File actually use are in mimeapps.list.)
 application/vnd.appimage=xxri-app open
 application/x-iso9660-appimage=xxri-app open
 ext:AppImage=xxri-app open

@@ -15,15 +15,17 @@ ptxdist --j-intern=6 images    # -> platform-xxri/images/XXRI-Lite-2.6.iso
 | Layer | Where it comes from | Rules |
 |---|---|---|
 | Tiny Core 16.0 base: `core.gz` (busybox, glibc 2.40, udev, Tiny Core's scripts), `vmlinuz` 6.12.11 | the Tiny Core 16.0 release archive, sha256-pinned, used as released | `xxri-tc-base`, `xxri-kernel` |
-| 190 Tiny Core extensions (GTK 3, Mesa, X libraries, codecs, …) | the 16.x mirror / archived 16.0 ISO, md5-pinned in `config/cde/manifest` | `xxri-cde` |
+| 191 Tiny Core extensions (GTK 3, Mesa, X libraries, codecs, the nouveau module, …) | the 16.x mirror / archived 16.0 ISO, md5-pinned in `config/cde/manifest` | `xxri-cde` |
 | XXRI configuration, scripts, theme, icons, fonts | `projectroot/` | `xxri-base` |
-| XXRI programs | `../src/<name>`, compiled here | one rule each: `xxri-settings`, `xxri-store`, `xxri-installer`, `xxri-dialog`, `xxri-control-center`, `xxri-launcher`, `xxri-media`, `xxri-power-menu`, `xxri-compositor`, `xxri-wctl`, `xxri-bootsplash` |
+| XXRI programs | `../src/<name>`, compiled here | one rule each: `xxri-settings`, `xxri-store`, `xxri-installer`, `xxri-dialog`, `xxri-control-center`, `xxri-launcher`, `xxri-media`, `xxri-power-menu`, `xxri-compositor`, `xxri-wctl`, `xxri-wallpaper`, `xxri-bootsplash` |
 | Window manager | tinycorelinux/flwm @196f61c + `patches/flwm-git-196f61c` | `xxri-flwm` |
 | XXRI File | `../src/xxri-file/pcmanfm` (PCManFM fork) on libfm 1.3.2 (GTK 3), menu-cache 1.1.0, libexif 0.6.21 | `xxri-file`, `xxri-libfm`, `xxri-libfm-extra`, `xxri-menu-cache`, `xxri-libexif` |
 | AppImage runtime sonames Tiny Core lacks | libglvnd 1.7.0, Mesa 24.3.4's shared glapi | `xxri-glvnd`, `xxri-glapi` |
 | XXRI Browser | `../src/xxri-browser` on Qt 5.15.17 + Qt WebEngine (Chromium 87) built here | `xxri-browser`, `xxri-qt5` |
 | X server | XLibre 25.1.9 (`Xorg` + modesetting/glamor/GLX, the setuid wrapper, int10/vgahw/DGA for vesa, `Xfbdev`; two upstream fixes from after the release in `patches/xlibre-xserver-25.1.9`), XLibre's xf86-input-libinput 25.0.1 and xf86-video-vesa 25.0.0 - git tags, sha256-pinned; replaces Tiny Core's X.Org and Xvesa (`../docs/x-server.md`) | `xxri-xlibre`, `xxri-xlibre-input-libinput`, `xxri-xlibre-video-vesa` |
-| GPU firmware | 81 files from Tiny Core's `firmware-radeon.tcz` and `firmware-i915.tcz` (sha256-pinned), chosen in `config/firmware/gpu.list` | `xxri-firmware-gpu` |
+| GPU firmware | legacy radeon + Gen9 DMC: 81 files from Tiny Core's `firmware-radeon.tcz` and `firmware-i915.tcz` (sha256-pinned), `config/firmware/gpu.list`; up to the 2015-era generations (Atom/Celeron-class Intel Gen11/Gen12, AMD GCN 1-3, NVIDIA Maxwell 2): linux-firmware 20260810 (sha256-pinned in `rules/pre/xxri.make`), the files `config/firmware/{intel,amd,nvidia}.list` name, resolved through its WHENCE by `scripts/xxri-fw-select.py` (`../docs/gpu-cpu-support.md`) | `xxri-firmware-gpu`, `xxri-firmware-intel`, `xxri-firmware-amd`, `xxri-firmware-nvidia` |
+| Wi-Fi / Bluetooth firmware | linux-firmware 20260810, the files `config/firmware/wireless.list` names (802.11a/b/g/n/ac adapters and their Bluetooth, up to about 2018), plus `regulatory.db` from wireless-regdb 2025.10.07 (`../docs/wireless-bluetooth.md`) | `xxri-firmware-wireless` |
+| CPU microcode | Intel microcode-20260925 (sha256-pinned), AMD from linux-firmware 20260810 (`config/firmware/amd-ucode.list`); early cpio images by `scripts/xxri-mkucode.py` | `xxri-ucode` |
 | GRUB 2.14 | upstream tarball, unpatched: boot images (host) and the installer's utilities (target) | `host-xxri-grub`, `xxri-grub-tools` |
 
 Images (`rules/image-*.make`):
@@ -32,10 +34,12 @@ Images (`rules/image-*.make`):
   Tiny Core's released `core.gz`: deterministic order, Tiny Core's owners and
   modes kept for everything XXRI does not add (see the script's header for
   the merge rules), `config/tc-base.remove` lists what XXRI deletes.
-* `xxri-browser.tcz`, `xxri-xlibre.tcz`, `xxri-firmware-gpu.tcz` (loaded at boot) and `xxri-grub.tcz`
-  (loaded by the installer) — squashed from their packages.
+* `xxri-browser.tcz`, `xxri-xlibre.tcz`, `xxri-firmware-{gpu,intel,amd,nvidia,wireless}.tcz`
+  (loaded at boot) and `xxri-grub.tcz` (loaded by the installer) — squashed
+  from their packages.
 * `XXRI-Lite-2.6.iso` — `scripts/xxri-mkiso.sh`: GRUB core images, hybrid
-  MBR + appended ESP, El Torito BIOS + EFI.
+  MBR + appended ESP, El Torito BIOS + EFI; `boot/{intel,amd}-ucode.img`
+  from `images/ucode/` (`xxri-ucode`), chosen per CPU vendor by `grub.cfg`.
 * `sources/` next to the ISO — the Corresponding Source: every source archive
   of the packages XXRI builds and ships (GRUB with its signature), the project
   itself as one archive, where Tiny Core publishes its sources, SHA256SUMS.

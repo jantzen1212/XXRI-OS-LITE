@@ -100,7 +100,6 @@ XxriBookmarkDialog::XxriBookmarkDialog(const QString &title, const QString &name
 
     connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
     connect(add, &QPushButton::clicked, this, &QDialog::accept);
-    // Enter in either field is the same as pressing Add.
     connect(m_name, &QLineEdit::returnPressed, this, &QDialog::accept);
     connect(m_url, &QLineEdit::returnPressed, this, &QDialog::accept);
 
@@ -133,8 +132,8 @@ void XxriBookmarkDialog::paintEvent(QPaintEvent *)
     const qreal r = m_rounded ? 12.0 : 0.0;
     QPainterPath path;
     path.addRoundedRect(QRectF(0.5, 0.5, width() - 1, height() - 1), r, r);
-    p.fillPath(path, QColor("#FBF5FE"));
-    p.setPen(QPen(QColor(120, 90, 130, 90), 1));
+    p.fillPath(path, QColor(XxriUi::dark() ? "#2A2B33" : "#FFFFFF"));
+    p.setPen(QPen(XxriUi::dark() ? QColor(255, 255, 255, 30) : QColor(0, 0, 0, 40), 1));
     p.drawPath(path);
 }
 
@@ -199,23 +198,31 @@ XxriTabPopover::XxriTabPopover(TabWidget *tabs, const XxriMetrics &m,
     rl->setSpacing(2);
     v->addWidget(m_rows);
 
-    setStyleSheet(QStringLiteral(
+    setStyleSheet(QString(QStringLiteral(
         "QWidget#xxriTabPopover { background: transparent; }"
         "QToolButton#xxriTabRow { background: transparent; border: none;"
         "  border-radius: %1px; text-align: left; padding: 0px 6px;"
-        "  color: #1C1B24; font-size: %2px; }"
-        "QToolButton#xxriTabRow:hover { background: rgba(180,140,255,0.20); }"
+        "  color: #1C1C1E; font-size: %2px; }"
+        "QToolButton#xxriTabRow:hover { background: rgba(0,0,0,0.06); }"
         "QToolButton#xxriTabRow[current=\"true\"] {"
-        "  background: rgba(180,140,255,0.30); font-weight: bold; }"
+        "  background: rgba(0,0,0,0.09); font-weight: bold; }"
         "QToolButton#xxriTabClose { background: transparent; border: none;"
         "  border-radius: %3px; }"
         "QToolButton#xxriTabClose:hover { background: rgba(0,0,0,0.10); }"
         "QToolButton#xxriTabAction { background: transparent; border: none;"
         "  border-radius: %1px; text-align: left; padding: 0px 6px;"
-        "  color: #7A1BE0; font-size: %2px; }"
-        "QToolButton#xxriTabAction:hover { background: rgba(180,140,255,0.20); }"
+        "  color: #2E7CF6; font-size: %2px; }"
+        "QToolButton#xxriTabAction:hover { background: rgba(0,0,0,0.06); }"
     ).arg(qMax(5, qRound(9 * m.s))).arg(qMax(10, qRound(15 * m.s)))
-     .arg(qMax(4, m_icon / 2)));
+     .arg(qMax(4, m_icon / 2)))
+     /* Dark: the same rules in the dark palette */
+     + (XxriUi::dark() ? QStringLiteral(
+        "QToolButton#xxriTabRow { color: #F2F2F4; }"
+        "QToolButton#xxriTabRow:hover, QToolButton#xxriTabAction:hover"
+        "  { background: rgba(255,255,255,0.07); }"
+        "QToolButton#xxriTabRow[current=\"true\"] { background: rgba(255,255,255,0.11); }"
+        "QToolButton#xxriTabClose:hover { background: rgba(255,255,255,0.12); }"
+        "QToolButton#xxriTabAction { color: #4C93F8; }") : QString()));
 
     rebuild();
 }
@@ -277,8 +284,7 @@ void XxriTabPopover::rebuild()
         QToolButton *x = new QToolButton(row);
         x->setObjectName(QStringLiteral("xxriTabClose"));
         x->setFixedSize(m_rowH - 8, m_rowH - 8);
-        x->setIcon(XxriUi::glyph(XxriUi::Cross, m_icon - 4,
-                                 QColor(XxriUi::kMuted)));
+        XxriUi::setGlyph(x, XxriUi::Cross, m_icon - 4, true);
         x->setIconSize(QSize(m_icon - 4, m_icon - 4));
         x->setToolTip(tr("Close this tab"));
         x->setCursor(Qt::PointingHandCursor);
@@ -344,8 +350,8 @@ void XxriTabPopover::paintEvent(QPaintEvent *)
     p.setRenderHint(QPainter::Antialiasing, true);
     QPainterPath path;
     path.addRoundedRect(QRectF(0.5, 0.5, width() - 1, height() - 1), 10, 10);
-    p.fillPath(path, QColor("#FDF8FF"));
-    p.setPen(QPen(QColor(120, 90, 130, 80), 1));
+    p.fillPath(path, QColor(XxriUi::dark() ? "#2A2B33" : "#FFFFFF"));
+    p.setPen(QPen(XxriUi::dark() ? QColor(255, 255, 255, 28) : QColor(0, 0, 0, 36), 1));
     p.drawPath(path);
 }
 

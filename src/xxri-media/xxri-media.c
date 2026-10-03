@@ -1,26 +1,16 @@
 /*
- * xxri-media.c - XXRI Media, the XXRI OS Lite media player.
+ * xxri-media.c - XXRI Media, the media player.
  *
- * The layout is assets/mockup/mockup4.svg, measured rather than estimated -
- * see metrics.h, which carries every number the artwork gives and the one
- * scale they are all multiplied by.  Playback is MPlayer, behind player.h.
+ * Layout from assets/mockup/mockup4.svg, numbers in metrics.h. Playback is
+ * MPlayer behind player.h.
  *
- * Three surfaces make up the window:
+ *   rail    glass strip on the left: window controls, subtitles, menu
+ *   video   the rest; MPlayer draws into it itself
+ *   bar     floating translucent control panel over the video
  *
- *   the rail    a 53/1342 strip down the left, XXRI's white glass at 0.83,
- *               carrying the window controls at the top and the subtitle and
- *               menu buttons at the bottom - the same arrangement Settings and
- *               the Store use, turned on its side because that is how the
- *               artwork draws it.
- *   the video   everything else.  MPlayer draws into this window itself.
- *   the bar     a floating panel over the video, white at 0.385.
- *
- * The bar is a separate override-redirect window rather than a widget inside
- * the main one, and that is not a stylistic choice: MPlayer owns the video's X
- * window and paints over anything drawn into it, and two sibling X windows do
- * not alpha-blend with each other.  A top-level does blend, because
- * xxri-compositor composites it over what is beneath - which is the video.  It
- * is the only way to get the artwork's translucent bar over live video.
+ * The bar has to be its own override-redirect window: MPlayer paints over
+ * anything drawn in the video window, and sibling X windows don't blend.
+ * A toplevel does, through xxri-compositor.
  */
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -30,6 +20,8 @@
 #include <limits.h>
 #include "metrics.h"
 #include "player.h"
+#include "xxri-dialog.h"
+#include "xxri-theme.h"
 
 typedef enum { HOT_NONE=0, HOT_CLOSE, HOT_MAX, HOT_MIN, HOT_CC, HOT_MENU } RailHot;
 typedef enum { BH_NONE=0, BH_NOTE, BH_VOL, BH_PREV, BH_PLAY, BH_NEXT,
@@ -43,21 +35,18 @@ typedef struct {
     RailHot    rail_hot;
     BarHot     bar_hot;
     gboolean   dragging_seek, dragging_vol;
-    /* fullscreen is done by hand: flwm is ICCCM-only and does not act on the
-     * EWMH state, exactly as the Browser found when maximise did nothing. */
+    /* by hand: flwm is ICCCM-only, no EWMH fullscreen */
     gboolean   fullscreen;
     gboolean   bar_suppressed;   /* a modal dialog owns the screen */
     gboolean   need_raise;       /* something may have restacked the bar */
     int        laid_w, laid_h;   /* the size relayout() last worked from */
     GdkRectangle home;           /* where the window is meant to sit */
-    /* Pictures.  The engine plays sound and video; a picture is drawn here
-     * instead, and img being set is what says which of the two is on screen. */
+    /* pictures are drawn here, not by the engine; img set = a picture is shown */
     GdkPixbuf *img;
     char      *img_path;
     int        img_w, img_h;
-    /* Every file XXRI Media can open that sits beside the open one, in the
-     * order a file manager would list them, and where in that list we are.
-     * This is what Previous and Next walk. */
+    /* playable files next to the open one, in file manager order; what
+     * Previous/Next walk */
     GPtrArray *folder;
     guint      folder_i;
     GdkRectangle restore;
@@ -82,8 +71,7 @@ static void rrect(cairo_t *cr, double x, double y, double w, double h, double r)
     cairo_close_path(cr);
 }
 
-/* The window's outline, so every surface that touches an outer corner rounds
- * to the same radius. */
+/* clip to the window outline, so all outer corners share one radius */
 static void window_clip(cairo_t *cr, App *a, double dx, double dy) {
     if (a->fullscreen) return;
     cairo_save(cr);
@@ -95,12 +83,23 @@ static void window_clip(cairo_t *cr, App *a, double dx, double dy) {
 
 /* --------------------------------------------------------------- the rail */
 
+/* the rail's glyph colour: ink on the light glass, near-white on the dark */
+static void rail_ink(cairo_t *cr, double a) {
+    if (xxri_theme_dark()) cairo_set_source_rgba(cr, 0.949, 0.949, 0.957, a);
+    else rgb(cr, C_INK, a);
+}
+/* a hovered control's halo */
+static void rail_hot(cairo_t *cr, double a) {
+    if (xxri_theme_dark()) cairo_set_source_rgba(cr, 1, 1, 1, a);
+    else cairo_set_source_rgba(cr, 0.11, 0.10, 0.14, a);
+}
+
 static void draw_ctl(cairo_t *cr, int which, double cx, double cy, double sz,
                      gboolean hot)
 {
     const double r = sz / 2.0;
     if (hot) {
-        cairo_set_source_rgba(cr, 0.11, 0.10, 0.14, 0.10);
+        rail_hot(cr, 0.10);
         cairo_arc(cr, cx, cy, r + sz*0.28, 0, 2*M_PI);
         cairo_fill(cr);
     }
@@ -115,8 +114,7 @@ static void draw_ctl(cairo_t *cr, int which, double cx, double cy, double sz,
         rrect(cr, cx-r, cy-r, sz, sz, sz*0.30);
         cairo_fill(cr);
         break;
-    default:                                  /* minimise: magenta triangle,
-                                               * pointing down as drawn */
+    default:                                  /* minimise: magenta triangle, down */
         rgb(cr, C_MIN, 1.0);
         cairo_move_to(cr, cx-r,   cy-r*0.85);
         cairo_line_to(cr, cx+r,   cy-r*0.85);
@@ -131,7 +129,7 @@ static void draw_cc(cairo_t *cr, double x, double y, double w, double h)
 {
     double lw = h * 0.10; if (lw < 1) lw = 1;
     cairo_set_line_width(cr, lw);
-    rgb(cr, C_INK, 0.92);
+    rail_ink(cr, 0.92);
     rrect(cr, x+lw/2, y+lw/2, w-lw, h-lw, h*0.30);
     cairo_stroke(cr);
     /* the two rows of dashes the artwork puts inside */
@@ -151,7 +149,7 @@ static void draw_menu(cairo_t *cr, double x, double y, double w, double h)
     double lw = h * 0.12; if (lw < 1.4) lw = 1.4;
     cairo_set_line_width(cr, lw);
     cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
-    rgb(cr, C_INK, 0.92);
+    rail_ink(cr, 0.92);
     for (int i = 0; i < 3; i++) {
         double yy = y + lw/2 + i * (h - lw) / 2.0;
         cairo_move_to(cr, x, yy); cairo_line_to(cr, x + w, yy);
@@ -165,14 +163,12 @@ static gboolean rail_draw(GtkWidget *w, cairo_t *cr, gpointer d)
     int h = gtk_widget_get_allocated_height(w);
     cairo_save(cr);
     window_clip(cr, a, 0, 0);
-    /*
-     * The same white glass as the Browser's sidebar - measured off this
-     * artwork independently and landing on the same 0.83, which is what makes
-     * the two applications look like one system.  With no compositor there is
-     * nothing behind to show through, so it is painted opaque instead.
-     */
-    if (a->composited) cairo_set_source_rgba(cr, 1, 1, 1, A_GLASS_A);
-    else               cairo_set_source_rgb(cr, 0.99, 0.93, 0.99);
+    /* same 0.83 glass as the Browser sidebar, white or (Dark) Settings'
+       window colour; opaque without compositor */
+    gboolean dk = xxri_theme_dark();
+    if (a->composited) cairo_set_source_rgba(cr, dk ? 0.141 : 1, dk ? 0.129 : 1, dk ? 0.141 : 1, A_GLASS_A);
+    else if (dk)       cairo_set_source_rgb(cr, 0.114, 0.106, 0.114);
+    else               cairo_set_source_rgb(cr, 0.95, 0.95, 0.96);
     cairo_paint(cr);
     cairo_restore(cr);
 
@@ -181,13 +177,13 @@ static gboolean rail_draw(GtkWidget *w, cairo_t *cr, gpointer d)
         draw_ctl(cr, i, cx, m->ctl_y[i] + m->ctl_size/2.0, m->ctl_size,
                  a->rail_hot == (RailHot)(HOT_CLOSE + i));
 
-    /* the two tools at the foot, placed from the bottom as the artwork does */
+    /* subtitle and menu buttons, measured from the bottom like the artwork */
     int cc_y   = h - (m->win_h - m->cc_y);
     int menu_y = h - (m->win_h - m->menu_y);
     if (a->rail_hot == HOT_CC || a->rail_hot == HOT_MENU) {
         int hy = (a->rail_hot == HOT_CC) ? cc_y : menu_y;
         int hh = (a->rail_hot == HOT_CC) ? m->cc_h : m->menu_h;
-        cairo_set_source_rgba(cr, 0.11, 0.10, 0.14, 0.08);
+        rail_hot(cr, 0.08);
         rrect(cr, cx - m->cc_w*0.72, hy - hh*0.35,
               m->cc_w*1.44, hh*1.7, m->cc_w*0.3);
         cairo_fill(cr);
@@ -329,15 +325,8 @@ static void fmt_time(char *buf, gsize n, double t)
     g_snprintf(buf, n, "%02d:%02d:%02d:%02d", hh, mm, ss, ff);
 }
 
-/*
- * Grey antialiasing, not subpixel.
- *
- * Cairo's default on X is subpixel RGB, which assumes the glyph is landing on
- * a real screen with a known pixel order.  These do not: they are drawn into a
- * translucent group that the compositor blends afterwards, and the fringes
- * survive that blend - at this size the digits came out tinted orange and
- * teal instead of white.
- */
+/* grey AA, not subpixel: the text goes into a translucent group the compositor
+ * blends, and subpixel fringes came out orange/teal */
 static void bar_font(cairo_t *cr, App *a, double px, gboolean bold)
 {
     cairo_font_options_t *o = cairo_font_options_create();
@@ -388,7 +377,6 @@ static gboolean bar_draw(GtkWidget *w, cairo_t *cr, gpointer d)
     cairo_paint(cr);
     cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
-    /* the panel itself: white, and how much of it the artwork actually has */
     rrect(cr, 0, 0, m->bar_w, m->bar_h, m->bar_r);
     if (a->composited) cairo_set_source_rgba(cr, 1, 1, 1, A_BAR_A);
     else               cairo_set_source_rgba(cr, 0.42, 0.47, 0.52, 0.96);
@@ -411,12 +399,8 @@ static gboolean bar_draw(GtkWidget *w, cairo_t *cr, gpointer d)
 
     char t0[32], t1[32];
     if (a->img) {
-        /*
-         * Nothing moves and nothing is added: the two slots that carry elapsed
-         * and total time carry where we are in the folder and how big the
-         * picture is, and the track that scrubs through a film scrubs through
-         * the folder.  A picture has no clock to show there.
-         */
+        /* pictures: position in the folder and the size where the times go,
+         * and the seek track scrubs through the folder */
         guint n = a->folder ? a->folder->len : 1;
         g_snprintf(t0, sizeof t0, "%u / %u", a->folder_i + 1, n);
         g_snprintf(t1, sizeof t1, "%d x %d", a->img_w, a->img_h);
@@ -425,19 +409,19 @@ static gboolean bar_draw(GtkWidget *w, cairo_t *cr, gpointer d)
         draw_slider(cr, a, m->seek_x0, m->seek_x1, r2,
                     n > 1 ? a->folder_i / (double)(n - 1) : 0, TRUE);
     } else {
-    fmt_time(t0, sizeof t0, xm_position(a->pl));
-    fmt_time(t1, sizeof t1, xm_duration(a->pl));
-    bar_text(cr, a, m->time_x0, r2, t0, FALSE);
-    bar_text(cr, a, m->time_x1, r2, t1, TRUE);
-    double dur = xm_duration(a->pl);
-    draw_slider(cr, a, m->seek_x0, m->seek_x1, r2,
-                dur > 0 ? xm_position(a->pl) / dur : 0, TRUE);
+        fmt_time(t0, sizeof t0, xm_position(a->pl));
+        fmt_time(t1, sizeof t1, xm_duration(a->pl));
+        bar_text(cr, a, m->time_x0, r2, t0, FALSE);
+        bar_text(cr, a, m->time_x1, r2, t1, TRUE);
+        double dur = xm_duration(a->pl);
+        draw_slider(cr, a, m->seek_x0, m->seek_x1, r2,
+                    dur > 0 ? xm_position(a->pl) / dur : 0, TRUE);
     }
 
     cairo_pop_group_to_source(cr);
     cairo_paint_with_alpha(cr, alpha_off);
 
-    /* the speed, when it is not 1x, said plainly beside its control */
+    /* speed label when not 1x */
     if (fabs(xm_speed(a->pl) - 1.0) > 0.01) {
         char s[16]; g_snprintf(s, sizeof s, "%gx", xm_speed(a->pl));
         bar_font(cr, a, m->time_px * 0.85, TRUE);
@@ -455,23 +439,17 @@ static gboolean bar_draw(GtkWidget *w, cairo_t *cr, gpointer d)
 static gboolean video_draw(GtkWidget *w, cairo_t *cr, gpointer d)
 {
     App *a = d; Metrics *m = &a->m;
-    /* The engine is drawing here now; leaving the pixels alone is the whole
-     * of the fix for the flicker. */
+    /* the engine owns these pixels while it runs; painting here flickers */
     if (a->pl && xm_engine_running(a->pl))
         return TRUE;
     int W = gtk_widget_get_allocated_width(w), H = gtk_widget_get_allocated_height(w);
     cairo_save(cr);
     window_clip(cr, a, -m->rail_w, 0);
-    cairo_set_source_rgb(cr, 0.055, 0.051, 0.075);
+    cairo_set_source_rgb(cr, 0.055, 0.055, 0.060);
     cairo_paint(cr);
     cairo_restore(cr);
     if (a->img) {
-        /*
-         * Scaled to fit and centred, the same treatment the engine gives video
-         * with -zoom, so a picture and a film of the same shape fill the area
-         * the same way.  The window's own corner radius is clipped to, because
-         * a picture reaches the outer corners exactly as video does.
-         */
+        /* fit and centre, like the engine's -zoom does for video */
         double iw = a->img_w, ih = a->img_h;
         double sc = MIN(W / iw, H / ih);
         double dw = iw * sc, dh = ih * sc;
@@ -486,7 +464,6 @@ static gboolean video_draw(GtkWidget *w, cairo_t *cr, gpointer d)
         return TRUE;
     }
     if (!xm_has_media(a->pl)) {
-        /* the idle state says what to do, rather than showing a black hole */
         const char *msg = "Open a file to play";
         bar_font(cr, a, a->m.time_px * 1.25, FALSE);
         cairo_text_extents_t e; cairo_text_extents(cr, msg, &e);
@@ -507,7 +484,7 @@ static void place_bar(App *a)
     int ww, wh, wx, wy;
     gtk_window_get_size(GTK_WINDOW(a->win), &ww, &wh);
     gdk_window_get_origin(gtk_widget_get_window(a->win), &wx, &wy);
-    /* centred on the window, sitting the artwork's distance off the bottom */
+    /* centred, the artwork's distance off the bottom */
     int bx = wx + (ww - m->bar_w) / 2;
     int by = wy + wh - m->bar_bottom - m->bar_h;
     gtk_window_move(GTK_WINDOW(a->bar), bx, by);
@@ -516,21 +493,10 @@ static void place_bar(App *a)
 }
 
 /*
- * Keep the engine's window where the layout says it belongs.
- *
- * MPlayer does not merely paint into the window given to -wid: it moves and
- * resizes that window to suit the movie, and does so again on every file it
- * loads.  A 320x240 clip pushed it up and to the left until the picture covered
- * the rail and ran off the top of the window.  GTK will not correct that on its
- * own, because as far as GTK is concerned nothing has changed and no new
- * allocation is due, so the window stays where the engine put it.
- *
- * Giving the engine a window of its own inside a clipping window was tried
- * first and is not usable here: xxri-compositor composites native child windows
- * at their own coordinates rather than their parent's, so the picture landed at
- * the video area's offset from the window's corner measured from the screen's,
- * which is worse.  Re-asserting the geometry is the version that works, and it
- * runs from the same 250ms tick that keeps the control bar honest.
+ * MPlayer moves and resizes the -wid window to suit each file (a 320x240 clip
+ * covered the rail), and GTK doesn't notice. So the geometry is re-asserted
+ * from the 250ms tick. A clipping parent window doesn't work: xxri-compositor
+ * places native child windows at their own coordinates.
  */
 static void place_engine_window(App *a, int rail, int vw, int vh)
 {
@@ -546,15 +512,8 @@ static void place_engine_window(App *a, int rail, int vw, int vh)
 static void relayout(App *a)
 {
     Metrics *m = &a->m;
-    /*
-     * The allocation, not gtk_window_get_size.  Going fullscreen resizes the
-     * window and then lays out; at that moment gtk_window_get_size still
-     * reports the size before the resize, because the window manager has not
-     * answered yet - which left the picture at its old size inside a
-     * full-screen window, with the engine's window ending in a black margin.
-     * The allocation is whatever the window actually is right now, and
-     * size-allocate calls this again once the manager has answered.
-     */
+    /* the allocation, not gtk_window_get_size: that still reports the old size
+     * until the WM answers a resize (fullscreen left a black margin) */
     int ww = gtk_widget_get_allocated_width(a->win);
     int wh = gtk_widget_get_allocated_height(a->win);
     if (ww < 2 || wh < 2) gtk_window_get_size(GTK_WINDOW(a->win), &ww, &wh);
@@ -564,8 +523,7 @@ static void relayout(App *a)
     gtk_widget_set_visible(a->rail, !a->fullscreen);
     gtk_fixed_move(GTK_FIXED(a->fixed), a->video, rail, 0);
     gtk_widget_set_size_request(a->video, ww - rail, wh);
-    /* The engine's window is not in GTK's layout, so it is placed by hand;
-     * MPlayer sees the ConfigureNotify and refits the picture to it. */
+    /* not in GTK's layout; MPlayer refits to the ConfigureNotify */
     place_engine_window(a, rail, ww - rail, wh);
     place_bar(a);
 }
@@ -580,16 +538,8 @@ static void set_fullscreen(App *a, gboolean on)
     if (!mon && gdk_display_get_n_monitors(dpy) > 0)
         mon = gdk_display_get_monitor(dpy, 0);
     if (mon) gdk_monitor_get_geometry(mon, &sc);
-    /*
-     * Release the video widget's size request first.
-     *
-     * relayout() sizes that widget with gtk_widget_set_size_request, and a size
-     * request is a floor: while one stands, the window cannot be made smaller
-     * than it.  Leaving fullscreen therefore did nothing at all - the window
-     * had a 1024x768 floor under it and simply stayed full-screen.  Dropping
-     * the request to nothing lets the window take the size it is given; the
-     * size-allocate that follows the resize puts a correct request back.
-     */
+    /* drop the size requests first, they are a floor: leaving fullscreen
+     * did nothing. The next size-allocate sets proper ones again. */
     gtk_widget_set_size_request(a->video, 1, 1);
     gtk_widget_set_size_request(a->rail, 1, 1);
 
@@ -600,21 +550,15 @@ static void set_fullscreen(App *a, gboolean on)
         a->restore = (GdkRectangle){ wx, wy, ww, wh };
         a->fullscreen = TRUE;
         gtk_window_resize(GTK_WINDOW(a->win), sc.width, sc.height);
-        /* After the resize, not before: flwm places on the geometry it has,
-         * and a move sent first was applied to the old size and then lost. */
+        /* move after the resize, flwm lost a move sent first */
         gtk_window_move(GTK_WINDOW(a->win), sc.x, sc.y);
     } else {
         a->fullscreen = FALSE;
         gtk_window_resize(GTK_WINDOW(a->win), a->restore.width, a->restore.height);
         gtk_window_move(GTK_WINDOW(a->win), a->restore.x, a->restore.y);
     }
-    /*
-     * And no relayout from here.  Calling it now would put the size request
-     * straight back - computed from the allocation the window still has, since
-     * the manager has not answered the resize yet - and that floor is exactly
-     * what stopped the window shrinking out of fullscreen.  The size-allocate
-     * that arrives with the new size does the layout instead.
-     */
+    /* no relayout here: it would put the old-size floor right back. The
+     * size-allocate with the new size does it. */
     a->laid_w = a->laid_h = 0;         /* force the next size-allocate to act */
     gtk_widget_set_visible(a->rail, !a->fullscreen);
     gtk_widget_queue_draw(a->win);
@@ -622,16 +566,7 @@ static void set_fullscreen(App *a, gboolean on)
 
 /* --------------------------------------------------------------- actions */
 
-/*
- * The transport is redrawn; the video is not.
- *
- * MPlayer paints its frames straight into the window it was handed, so any
- * repaint of that widget puts an opaque black rectangle over whatever frame is
- * on screen until the next one arrives.  Queuing one four times a second - as
- * this did - is precisely the flicker that was reported.  The video area is
- * only ever painted while the engine is not running; after that the engine
- * owns every pixel of it.
- */
+/* redraw the bar, never the video while the engine runs (black flicker) */
 static void refresh(gpointer user)
 {
     App *a = user;
@@ -640,11 +575,6 @@ static void refresh(gpointer user)
         gtk_widget_queue_draw(a->video);
 }
 
-static gboolean qEnv(void) { return g_getenv("XXRI_MEDIA_DIAG") != NULL; }
-
-/* Undecorated and centred like every other XXRI window, and styled by the same
- * stylesheet - GTK's stock message dialog is the one piece of chrome here that
- * would otherwise arrive wearing a window manager title bar. */
 static void message(App *a, const char *heading, const char *detail)
 {
     GtkWidget *d = gtk_message_dialog_new(GTK_WINDOW(a->win),
@@ -663,21 +593,10 @@ static void message(App *a, const char *heading, const char *detail)
     refresh(a);
 }
 
-/* ================================================================ media
- *
- * XXRI Media opens three kinds of file and there is one list of them, because
- * three things have to agree about it: the file chooser's filter, the folder
- * list that Previous and Next walk, and the test that decides whether a file is
- * drawn here as a picture or handed to the playback engine.
- *
- * Sound and video are listed by extension, since that is what the engine is
- * built to play.  Pictures are not listed at all: they are asked of gdk-pixbuf
- * at startup, so the set is exactly what this image can actually decode.  The
- * loaders vary with what is installed - this build has PNG and JPEG compiled
- * into the library and BMP, GIF, ICO, SVG, PNM, TGA, XPM and XBM as modules,
- * and no WebP or AVIF - and a hard-coded list would sooner or later offer to
- * open something that then fails to load.
- */
+/* ---- media types
+ * One list for the chooser filter, the folder walk and picture-vs-engine.
+ * Audio/video by extension (what MPlayer plays); pictures are whatever
+ * gdk-pixbuf can load here, asked at startup rather than hard-coded. */
 static const char *const AV_EXT[] = {
     "mp4","mkv","webm","avi","mov","m4v","mpg","mpeg","ogv","wmv","flv","3gp",
     "mp3","wav","ogg","oga","flac","m4a","opus","aac","wma", NULL };
@@ -697,7 +616,7 @@ static void init_image_ext(void)
     g_slist_free(fmts);
 }
 
-/* The extension, lower case, without the dot; "" when there is none. */
+/* lower case, no dot, "" if none */
 static char *ext_of(const char *path)
 {
     const char *base = strrchr(path, '/');
@@ -737,8 +656,7 @@ static char *abs_path(const char *p)
     return r;
 }
 
-/* Name order, folded the way a file manager folds it, so that Next moves in
- * the order the file was picked from. */
+/* file manager order */
 static gint cmp_media(gconstpointer pa, gconstpointer pb)
 {
     char *na = g_path_get_basename(*(char *const *)pa);
@@ -785,7 +703,7 @@ static void drop_image(App *a)
     g_clear_pointer(&a->img_path, g_free);
 }
 
-/* The file on screen, whichever kind it is - what "Save a Copy" copies. */
+/* the file on screen, either kind (Save a Copy) */
 static const char *current_path(App *a)
 {
     return a->img_path ? a->img_path : xm_current_file(a->pl);
@@ -803,11 +721,7 @@ static gboolean show_image(App *a, const char *path)
         g_clear_error(&err);
         return FALSE;
     }
-    /*
-     * The engine has to stop before a picture can be shown.  It owns every
-     * pixel of the video area while it is alive and paints over anything drawn
-     * there - the same reason the video area is left alone during playback.
-     */
+    /* stop the engine first, it paints over anything in the video area */
     xm_quit(a->pl);
     drop_image(a);
     a->img = pb;
@@ -817,8 +731,7 @@ static gboolean show_image(App *a, const char *path)
     return TRUE;
 }
 
-/* Show one file.  The folder list is left alone, so Previous and Next keep
- * walking the folder the user started in. */
+/* show one file; the folder list stays as it is */
 static void present(App *a, const char *path)
 {
     if (is_image_file(path)) {
@@ -832,8 +745,7 @@ static void present(App *a, const char *path)
     if (a->bar)   gtk_widget_queue_draw(a->bar);
 }
 
-/* The one way a file gets opened, wherever the request came from: the command
- * line, the file chooser, or the file manager. */
+/* command line, chooser and file manager all open through here */
 static void open_path(App *a, const char *path)
 {
     char *abs = abs_path(path);
@@ -856,15 +768,7 @@ static void goto_media(App *a, guint i)
     present(a, g_ptr_array_index(a->folder, a->folder_i));
 }
 
-/*
- * Both file dialogs come from here so that they cannot drift apart, and so the
- * XXRI File Manager look is applied in exactly one place.  What makes them
- * match Files rather than a stock GTK chooser is three things together:
- * xxri-media.css, which restates that application's palette rule for rule; the
- * places rail, whose tint and selected-row treatment are Files' own; and
- * dropping the manager's title bar in favour of a drawn header, because no
- * other XXRI window wears one.
- */
+/* both file dialogs, styled like XXRI Files by xxri-media.css */
 static GtkWidget *xxri_chooser(App *a, GtkFileChooserAction act,
                                const char *title, const char *accept)
 {
@@ -876,8 +780,6 @@ static GtkWidget *xxri_chooser(App *a, GtkFileChooserAction act,
     if (ok) gtk_style_context_add_class(gtk_widget_get_style_context(ok),
                                         "suggested-action");
 
-    /* No XXRI window is decorated by the window manager; these are drawn
-     * instead, and the dialog is modal and centred, so nothing is lost. */
     gtk_window_set_decorated(GTK_WINDOW(d), FALSE);
     gtk_window_set_modal(GTK_WINDOW(d), TRUE);
     gtk_style_context_add_class(gtk_widget_get_style_context(d), "xxri-chooser");
@@ -890,8 +792,6 @@ static GtkWidget *xxri_chooser(App *a, GtkFileChooserAction act,
     gtk_box_reorder_child(GTK_BOX(ca), hdr, 0);
     gtk_widget_show(hdr);
 
-    /* Built from the same two sources the rest of the program uses, so the
-     * chooser offers exactly what can be opened and nothing else. */
     GtkFileFilter *f = gtk_file_filter_new();
     gtk_file_filter_set_name(f, "Media files");
     for (int i = 0; AV_EXT[i]; i++) {
@@ -915,15 +815,9 @@ static GtkWidget *xxri_chooser(App *a, GtkFileChooserAction act,
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(d), all);
     gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(d), g_get_home_dir());
 
-    /*
-     * The size is capped with a geometry hint, which is the one mechanism the
-     * window manager itself applies as it maps the window.  The two other ways
-     * both failed here and are worth naming: gtk_widget_set_size_request is a
-     * floor, not a ceiling, so the chooser still grew to its natural 1096x822
-     * and put Cancel and Open below the bottom edge of a 768-line screen; and
-     * gtk_window_resize AFTER showing left the dialog mapped but never drawn,
-     * because it arrives while the manager is still placing the window.
-     */
+    /* cap the size with a geometry hint, the WM applies it at map time.
+     * A size request is only a floor (natural size 1096x822 hid the buttons
+     * on 768 lines), and a resize after show left it mapped but undrawn. */
     int ww, wh;
     gtk_window_get_size(GTK_WINDOW(a->win), &ww, &wh);
     int dw = ww < 620 ? ww : 620, dh = wh < 400 ? wh : 400;
@@ -937,9 +831,8 @@ static GtkWidget *xxri_chooser(App *a, GtkFileChooserAction act,
     return d;
 }
 
-/* Shows the dialog and returns the chosen path, or NULL.  Shown with
- * gtk_widget_show and never show_all(): a chooser keeps internal widgets
- * deliberately hidden, and revealing them stops it mapping at all. */
+/* returns the chosen path or NULL. Never show_all() a chooser: it keeps
+ * widgets hidden on purpose and stops mapping */
 static char *xxri_chooser_run(App *a, GtkWidget *d)
 {
     char *fn = NULL;
@@ -957,15 +850,10 @@ static char *xxri_chooser_run(App *a, GtkWidget *d)
 }
 
 /*
- * Bring this window to the front.
- *
- * flwm implements ICCCM and nothing else, so _NET_ACTIVE_WINDOW is ignored and
- * gtk_window_present alone leaves the window where it is.  It matters most on
- * the path the file manager uses: double-clicking a video there launches this
- * player, and without an explicit raise the player maps BEHIND the file
- * manager window that launched it, so opening a file appears to do nothing.
- * An undecorated window also has no frame for the manager to raise on a click,
- * which is why the same call is wired to a press anywhere in the window.
+ * Raise and focus by hand: flwm is ICCCM-only and ignores _NET_ACTIVE_WINDOW,
+ * so opened from Files the player mapped behind it. Undecorated means no frame
+ * for flwm to raise or focus on a click either, so this is also wired to any
+ * press in the window.
  */
 static void raise_self(App *a)
 {
@@ -973,15 +861,7 @@ static void raise_self(App *a)
     if (!w) return;
     gdk_window_raise(w);
     gtk_window_present_with_time(GTK_WINDOW(a->win), GDK_CURRENT_TIME);
-    /*
-     * And take the keyboard.  flwm gives focus to whatever frame is clicked,
-     * and an undecorated window has no frame, so clicking this one focused
-     * nothing: the keyboard stayed with whichever window had it last, the
-     * shortcuts did nothing, and the control bar - which shows itself only
-     * while the window is active - disappeared on the first click in the
-     * picture.  gtk_window_present asks through _NET_ACTIVE_WINDOW, which flwm
-     * does not implement, so the request is made to X directly.
-     */
+    /* without focus the shortcuts died and the bar hid on the first click */
     if (gdk_window_is_viewable(w))
         XSetInputFocus(GDK_WINDOW_XDISPLAY(w), GDK_WINDOW_XID(w),
                        RevertToPointerRoot, CurrentTime);
@@ -992,39 +872,23 @@ static gboolean raise_once(gpointer d)
 {
     App *a = d;
     raise_self(a);
-    /*
-     * And put the window back where it belongs.  flwm maps first and applies
-     * the requested position afterwards, so the engine gets to paint a frame
-     * while the window is still at the origin; the compositor keeps those
-     * pixels in the strip the window then vacates, leaving a band of video
-     * above the window.  Re-sending the position damages that region, which is
-     * what makes it repaint.
-     */
+    /* re-send the position flwm applies after mapping, see unsmear() */
     gtk_window_move(GTK_WINDOW(a->win), a->home.x, a->home.y);
     return G_SOURCE_REMOVE;
 }
 
 /*
- * Clear the band the move left behind.
- *
- * flwm maps the window before it applies the requested position, so the engine
- * paints its first frames while the window is still at the screen's corner.
- * The compositor damages what it is told about, and nothing tells it about the
- * strip the window then vacates, so a band of video stays on the desktop above
- * the window.  Re-sending the same position is not enough - an unchanged
- * geometry produces no ConfigureNotify and therefore no damage - so the window
- * is moved a pixel and back, which does.  The two moves have to be on separate
- * turns of the main loop: sent together they coalesce into no net change and
- * the manager emits nothing at all.  Once, after the first frames have been
- * painted; there is nothing to clear after that.
+ * flwm maps first and positions after, so the engine's first frames land at
+ * the screen corner and the compositor never hears about the strip the window
+ * then leaves: a band of video stays on the desktop. Move a pixel and back
+ * (an unchanged position sends no ConfigureNotify, so no damage), on separate
+ * main loop turns or the two moves cancel out. Once is enough.
  */
 static gboolean unsmear_back(gpointer d)
 {
     App *a = d;
     gtk_window_move(GTK_WINDOW(a->win), a->home.x, a->home.y);
-    /* And raise once more.  The raise at 120ms can lose to the window that
-     * launched this one - the file manager takes the focus back as its own
-     * click finishes - which left a second player opening behind it. */
+    /* raise again: Files can take the focus back after the 120ms raise */
     raise_self(a);
     return G_SOURCE_REMOVE;
 }
@@ -1045,14 +909,7 @@ static void open_dialog(App *a)
     if (fn) { open_path(a, fn); g_free(fn); }
 }
 
-/*
- * Save a Copy - the save half of the pair, and the reason there is a save
- * chooser at all.  Media opened from a removable disc, a download directory or
- * a path the file manager handed over is often somewhere the user does not
- * want to keep it; this writes it where they do.  It copies the source file
- * rather than asking the engine to re-encode, so the copy is bit-identical and
- * costs nothing.
- */
+/* Save a Copy: a plain file copy, no re-encoding */
 static void save_dialog(App *a)
 {
     const char *src = current_path(a);
@@ -1183,8 +1040,7 @@ static gboolean rail_press(GtkWidget *w, GdkEventButton *e, gpointer d)
     case HOT_MENU:  main_menu(a); return TRUE;
     default: break;
     }
-    /* anywhere else on the rail drags the whole window, as XXRI's other
-     * undecorated applications do */
+    /* the rest of the rail drags the window */
     gtk_window_begin_move_drag(GTK_WINDOW(a->win), e->button,
                                e->x_root, e->y_root, e->time);
     return TRUE;
@@ -1240,9 +1096,7 @@ static gboolean bar_press(GtkWidget *w, GdkEventButton *e, gpointer d)
     switch (bar_at(a, e->x, e->y)) {
     case BH_NOTE:  xm_toggle_mute(a->pl); break;
     case BH_VOL:   a->dragging_vol = TRUE;  apply_vol_at(a, e->x); break;
-    /* Previous and Next step through the folder, which is what the two
-     * buttons are in the artwork.  Skipping within a file stays where it
-     * already was: the seek track, and the arrow keys. */
+    /* prev/next walk the folder; seeking is the track and arrow keys */
     case BH_PREV:  step_media(a, -1); break;
     case BH_PLAY:  if (!a->img) xm_toggle_pause(a->pl); break;
     case BH_NEXT:  step_media(a, +1); break;
@@ -1293,8 +1147,7 @@ static gboolean on_key(GtkWidget *w, GdkEventKey *e, gpointer d)
     case GDK_KEY_space: case GDK_KEY_p:
         if (!a->img) xm_toggle_pause(a->pl);
         return TRUE;
-    /* On a picture there is nothing to skip within, so the arrows do what
-     * Previous and Next do; on a film they skip, as they always have. */
+    /* arrows seek in a film, step through the folder on a picture */
     case GDK_KEY_Right:
         if (a->img) step_media(a, +1);
         else xm_seek_relative(a->pl, e->state & GDK_SHIFT_MASK ? 60 : 10);
@@ -1330,9 +1183,8 @@ static gboolean on_configure(GtkWidget *w, GdkEvent *e, gpointer d)
     return FALSE;
 }
 
-/* The one signal that carries the size the window really ended up with.  The
- * guard matters: relayout() sets a size request, and doing that unconditionally
- * from inside size-allocate is how a layout loop starts. */
+/* the real final size. Guarded: relayout() sets size requests, and doing that
+ * on every size-allocate loops */
 static void on_alloc(GtkWidget *w, GdkRectangle *al, gpointer d)
 {
     App *a = d;
@@ -1352,20 +1204,8 @@ static gboolean on_focus_in(GtkWidget *w, GdkEvent *e, gpointer d)
     return FALSE;
 }
 
-/*
- * The bar keeps itself where it belongs.
- *
- * It is an override-redirect window over another window, so anything that
- * restacks the screen can leave it behind or, when it has been hidden for a
- * modal dialog, simply not come back - which is what happened the first time
- * the file chooser was cancelled: the bar was gone for the rest of the
- * session.  Rather than trying to enumerate every cause, the invariant is
- * enforced on the tick that is already running: while this application owns
- * the screen, the bar is shown and on top; while it does not, it is out of the
- * way of whatever does.
- */
-/* Under XXRI_MEDIA_DIAG only: what X actually thinks each window is, which is
- * the one thing screenshots cannot tell apart from a compositing artefact. */
+/* XXRI_MEDIA_DIAG: X's idea of each window's geometry, which a screenshot
+ * can't tell apart from a compositing artefact */
 static gboolean geom_dump(gpointer d)
 {
     App *a = d;
@@ -1388,10 +1228,15 @@ static gboolean geom_dump(gpointer d)
     return G_SOURCE_CONTINUE;
 }
 
+/*
+ * The bar is override-redirect over another window, so restacking can bury
+ * it, and once it didn't come back after a cancelled chooser. Instead of
+ * chasing every cause: while we're active the bar is shown and on top.
+ */
 static gboolean tick(gpointer d)
 {
     App *a = d;
-    /* The engine moves its own window about; put it back if it has. */
+    /* the engine moves its own window about; put it back */
     {
         Metrics *m = &a->m;
         int ww = gtk_widget_get_allocated_width(a->win);
@@ -1405,12 +1250,7 @@ static gboolean tick(gpointer d)
             gtk_widget_show(a->bar);
             a->need_raise = TRUE;
         }
-        /*
-         * Restacked only when something might have changed it, never on every
-         * tick: raising a window four times a second is a restack four times a
-         * second, and the compositor redraws the whole frame under it each
-         * time - which reads as a flicker of its own.
-         */
+        /* only when needed: each raise is a full compositor redraw (flicker) */
         if (active && a->need_raise) {
             a->need_raise = FALSE;
             place_bar(a);
@@ -1422,19 +1262,19 @@ static gboolean tick(gpointer d)
 
 /* ------------------------------------------------------------------ main */
 
+static void theme_changed(gboolean dark, gpointer d) {
+    App *a = d; (void)dark;
+    if (a->rail) gtk_widget_queue_draw(a->rail);
+}
+
 int main(int argc, char **argv)
 {
     gtk_init(&argc, &argv);
-    /* After gtk_init, which is what loads the image loaders this asks about. */
+    /* after gtk_init, which loads the image loaders */
     init_image_ext();
     App *a = g_new0(App, 1);
 
-    /*
-     * The stock GTK surfaces this application shows - its menus and its file
-     * dialogs - wear XXRI File's own palette and treatment, so the picker here
-     * and the picker there are recognisably the same thing.  Loaded from a
-     * file, as Settings and the Store load theirs, rather than compiled in.
-     */
+    /* menus and file dialogs styled like XXRI Files */
     {
         GtkCssProvider *prov = gtk_css_provider_new();
         if (!gtk_css_provider_load_from_path(prov,
@@ -1446,17 +1286,15 @@ int main(int argc, char **argv)
             GTK_STYLE_PROVIDER(prov), GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
         g_object_unref(prov);
     }
+    xxri_dialogs_init();
+    /* Light or Dark as in Settings, switching while open (the rail repaints) */
+    xxri_theme_init("/usr/local/share/xxri-media/xxri-media-dark.css", theme_changed, a);
 
     GdkScreen *screen = gdk_screen_get_default();
     a->composited = gdk_screen_is_composited(screen);
 
-    /* the artwork's aspect, sized to the screen and clear of the dock */
-    /*
-     * The work area, defensively.  gdk_display_get_primary_monitor() returns
-     * NULL on a display with no primary set - a bare Xvfb, for one - and the
-     * whole geometry below is derived from it, so an unchecked NULL turns
-     * every size in the window negative and GTK rejects the lot.
-     */
+    /* the artwork's aspect, sized to the screen and clear of the dock.
+     * No primary monitor is possible (bare Xvfb), fall back sanely. */
     GdkRectangle wa = { 0, 0, 1024, 768 };
     GdkDisplay *dpy = gdk_display_get_default();
     GdkMonitor *mon = gdk_display_get_primary_monitor(dpy);
@@ -1494,15 +1332,8 @@ int main(int argc, char **argv)
     gtk_container_add(GTK_CONTAINER(a->win), a->fixed);
 
     a->video = gtk_drawing_area_new();
-    /*
-     * The video window keeps the screen's ordinary 24-bit visual even when the
-     * rest of the window is ARGB.  MPlayer creates its image and GC against
-     * whatever visual the window it is given has, and against a 32-bit one it
-     * fails outright with "X11 error: BadMatch" and draws nothing at all -
-     * which is exactly what the first booted build did.  A child window may
-     * carry a different visual from its parent, so the rail keeps its glass
-     * and the engine gets the visual it can actually render into.
-     */
+    /* keep the 24-bit system visual here even in an ARGB window: MPlayer on
+     * a 32-bit visual fails with BadMatch and draws nothing */
     {
         GdkVisual *sysv = gdk_screen_get_system_visual(screen);
         if (sysv) gtk_widget_set_visual(a->video, sysv);
@@ -1528,13 +1359,12 @@ int main(int argc, char **argv)
     gtk_fixed_put(GTK_FIXED(a->fixed), a->rail, 0, 0);
 
     gtk_widget_show_all(a->win);
-    /* After the manager has had the map request, not before it. */
+    /* after the WM has had the map request */
     g_timeout_add(120, raise_once, a);
     g_timeout_add(1500, unsmear, a);
     gtk_widget_realize(a->video);
 
-    /* The control bar: its own window so the compositor can blend it over the
-     * video, which no widget inside this window could be. */
+    /* the bar: own window, see the top of the file */
     a->bar = gtk_window_new(GTK_WINDOW_POPUP);
     gtk_widget_set_app_paintable(a->bar, TRUE);
     gtk_window_set_accept_focus(GTK_WINDOW(a->bar), FALSE);
@@ -1559,7 +1389,7 @@ int main(int argc, char **argv)
         if (argv[i][0] != '-') { open_path(a, argv[i]); break; }
 
     a->tick = g_timeout_add(250, tick, a);
-    if (qEnv()) g_timeout_add(1000, geom_dump, a);
+    if (g_getenv("XXRI_MEDIA_DIAG")) g_timeout_add(1000, geom_dump, a);
     gtk_main();
     xm_free(a->pl);
     return 0;

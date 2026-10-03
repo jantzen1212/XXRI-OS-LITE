@@ -1,10 +1,8 @@
 #!/bin/busybox ash
 # xxri-install-backend - installation engine for the xxri OS Lite installer.
 #
-# The graphical installer (xxri-installer) is a pure frontend: every disk
-# operation goes through this backend.  The system-copy step is delegated
-# unchanged to /usr/sbin/install2disk (the OS installer), so the
-# writable-ext4 / XXRIROOT / persistence architecture is untouched.
+# xxri-installer is only the front-end; every disk operation is here. The
+# system copy itself is install2disk, unchanged.
 #
 # Subcommands
 #   list-disks              DISK|/dev/sda|Model|SizeMiB|removable|fs-summary
@@ -107,7 +105,7 @@ wait_node() { # $1 block device node that partitioning just created
 	[ -b "$1" ] || fail "partition $1 did not appear after partitioning"
 }
 
-# How this machine started XXRI decides how the installed system must start:
+# the installed system boots the way this one did:
 #   bios   legacy BIOS or UEFI-CSM   -> GRUB i386-pc in the MBR / BIOS boot partition
 #   efi32  32-bit (IA32) UEFI        -> GRUB i386-efi on an EFI system partition
 #   efi64  64-bit UEFI               -> not bootable with the i686 kernel (see docs)
@@ -127,20 +125,17 @@ auto_partition() { # $1 = /dev/sdX -> AUTOPART (root), AUTOESP, AUTONUM
 	say 6 "Creating partition table on $1"
 	SECTORS=$(cat /sys/block/${1##*/}/size 2>/dev/null || echo 0)
 	MIB=$(disk_mib ${1##*/})
-	# Clear old signatures at both ends (a stale backup GPT at the end of the
-	# disk would otherwise make firmware and tools see a GPT on an MBR disk).
+	# wipe both ends: a stale backup GPT makes an MBR disk look like GPT
 	dd if=/dev/zero of="$1" bs=1M count=1 conv=notrunc 2>/dev/null
 	[ "$MIB" -gt 2 ] && dd if=/dev/zero of="$1" bs=1M seek=$((MIB - 1)) count=1 conv=notrunc 2>/dev/null
 	AUTOESP=""
 	if [ "$FW" = bios ] && [ "$SECTORS" -le 4294967295 ]; then
-		# MBR, one active partition starting at 1 MiB: GRUB's core image goes
-		# in the gap before it.  (busybox fdisk's own default start is sector
-		# 63, which leaves only 31 KiB for it.)
+		# MBR, one active partition at 1 MiB; the gap holds GRUB's core image
+		# (busybox fdisk's default sector 63 leaves only 31 KiB)
 		printf 'o\nn\np\n1\n2048\n\na\n1\nw\n' | fdisk "$1" >/dev/null 2>&1
 		AUTONUM=1
 	else
-		# GPT: BIOS boot partition (GRUB i386-pc core image, so this disk
-		# also starts on legacy firmware), EFI system partition, XXRI root.
+		# GPT: BIOS boot (so it also boots on legacy firmware), ESP, root
 		sgdisk -Z "$1" >/dev/null 2>&1
 		sgdisk -n 1:2048:+1M -t 1:EF02 -c 1:"BIOS boot" \
 		       -n 2:0:+260M  -t 2:EF00 -c 2:"EFI system" \
@@ -154,10 +149,8 @@ auto_partition() { # $1 = /dev/sdX -> AUTOPART (root), AUTOESP, AUTONUM
 	wait_node "$AUTOPART"
 	if [ -n "$AUTOESP" ]; then
 		wait_node "$AUTOESP"
-		# 260 MiB and one sector per cluster: FAT32 needs at least 65525
-		# clusters or UEFI's FAT driver reads the volume as FAT16 and cannot
-		# mount it - 260 MiB is the size that still clears that on 4 KiB-
-		# sector (4Kn) disks, which is why Microsoft recommends it.
+		# 260 MiB, 1 sector/cluster: under 65525 clusters UEFI sees FAT16 and
+		# can't mount it; 260 MiB still clears that on 4Kn disks
 		mkdosfs -F 32 -s 1 -n XXRIEFI "$AUTOESP" >/dev/null 2>&1 || fail "could not format the EFI system partition $AUTOESP"
 	fi
 }
@@ -171,10 +164,9 @@ set_bootflag() { # $1 disk, $2 partnum - idempotent ('a' is a toggle)
 }
 
 # install
-format_target() { # $1 partition - conservative ext4 features: the boot
-	# loader reads its config, kernel and initrd from this filesystem.  GRUB
-	# 2.14 reads the newer features too; they stay off so the disk also opens
-	# with older loaders and e2fsprogs (this was required by 2.5's EXTLINUX).
+format_target() { # $1 partition
+	# conservative ext4 so older loaders and e2fsprogs can read it too
+	# (2.5's EXTLINUX needed it; GRUB 2.14 doesn't care)
 	mkfs.ext4 -F -q -L XXRIROOT \
 		-O ^metadata_csum,^metadata_csum_seed,^64bit,^orphan_file \
 		"$1" 2>/tmp/xxri-mkfs.err || fail "mkfs.ext4 failed on $1"
@@ -257,20 +249,13 @@ configure_system() {
 	else
 		echo "127.0.0.1    $H localhost" >> "$MNT/etc/hosts"
 	fi
-	# The live medium's own bookkeeping must not travel to the installed
-	# disk: /etc/sysconfig/cde still points at /mnt/sr0/cde/optional, which
-	# is the CD that will not be there after the install.  The installed
-	# system loads its extensions from /tce.
+	# cde points at the live CD; the installed system uses /tce
 	rm -f "$MNT/etc/sysconfig/cde"
 	echo "/tce" > "$MNT/etc/sysconfig/tcedir"
 
-	# TLS trust store.  ca-certificates.tcz normally assembles this in its
-	# tce.installed script, which never runs in this flow, so an installed
-	# system had no CA bundle anywhere and every HTTPS client that consults
-	# the system trust store failed - wget, the Store's downloads, and Qt's
-	# network stack (which is why site icons stayed blank in the browser).
-	# Written to all four locations that matter: OpenSSL's default verify
-	# paths are cert.pem and certs/, and Qt looks only under /etc/ssl.
+	# CA bundle: ca-certificates.tcz's install script never runs here, and
+	# without it wget, the Store and Qt (blank browser site icons) all fail.
+	# OpenSSL looks for cert.pem and certs/, Qt only under /etc/ssl.
 	say 85 "Installing the TLS trust store"
 	CADIR="$MNT/usr/local/share/ca-certificates"
 	if [ -d "$CADIR" ]; then
@@ -298,26 +283,13 @@ configure_system() {
 
 # ---------------------------------------------------------------- baking --
 #
-# The installed system must be COMPLETE when the installer says "All done".
+# The installed system has to be complete at "All done". install2disk also
+# copies /tce (190 .tcz + onboot.lst), and loading those on every boot made
+# installs ~3x slower than a pre-baked image (164 loop mounts). So fill in
+# what the copy missed, then empty /tce/optional and onboot.lst.
 #
-# install2disk copies the live root, which on this medium is a copy2fs system,
-# so most extension content already lands on the target as real files.  What it
-# also copies is /tce: 190 .tcz plus an onboot.lst, and xxri-setup then re-loads
-# every one of them through the tcloop pipeline on EVERY boot.  That is what
-# made a real install ~3x slower than the pre-baked reference image and left
-# 164 loop mounts on a running desktop.
-#
-# So: fill in anything the copy missed straight from the medium's .tcz, then
-# retire the per-boot pipeline.  The reference for the finished filesystem is
-# build-writable-image.sh, whose installed image has an EMPTY /tce/optional and
-# an EMPTY onboot.lst.
-#
-# NO-CLOBBER is deliberate and load-bearing.  build-writable-image.sh unpacks
-# extensions FIRST and then re-applies rootfs-overrides and the design-system
-# files over the top.  Here the target already holds that finished, merged
-# state, so overwriting it with raw extension content would undo exactly the
-# XXRI customisations (dot.wbar, skel, the patched flwm) the copy just brought
-# across.  We only fill genuine gaps.
+# cp -n is load-bearing: the target already has the XXRI files on top of the
+# extension content (dot.wbar, skel, patched flwm); overwriting would undo them.
 bake_extensions() {
 	say 86 "Baking extensions into the installed system"
 	CDESRC=""
@@ -329,28 +301,22 @@ bake_extensions() {
 	if [ ! -d "$CDESRC" ] || [ ! -s "$LST" ]; then
 		log "no extension medium found - target keeps whatever install2disk copied"
 	else
-		# The live medium is a MIX: copy2fs extensions land as real files,
-		# the rest are loop-mounted and SYMLINKED into /tmp/tcloop.
-		# install2disk copies those symlinks verbatim, so the target ends up
-		# full of links into a directory that will not exist after the reboot
-		# - xxri-browser.desktop was one of them, which is why the Browser
-		# silently vanished from the dock on a real install.
-		#
-		# Copy from the extensions the LIVE session already has mounted
-		# under /tmp/tcloop rather than loop-mounting the .tcz again: the
-		# running system is already holding ~164 loop devices, so asking for
-		# 190 more just fails, silently leaving the target incomplete (the
-		# first attempt at this lost xxri-browser.desktop that way).
-		# Everything in onboot.lst is mounted there by definition.
-		n=0
+		# Non-copy2fs extensions are symlinked into /tmp/tcloop, and
+		# install2disk copies the links (the Browser vanished from the dock
+		# that way). Copy from the live mounts; mounting the .tcz again runs
+		# out of loop devices. Progress stays within 86..88 whatever the
+		# count, or the bar goes backwards.
+		n=0; total=0
+		for d in /tmp/tcloop/*; do [ -d "$d" ] && total=$((total+1)); done
+		[ "$total" -gt 0 ] || total=1
 		for d in /tmp/tcloop/*; do
 			[ -d "$d" ] || continue
 			cp -an "$d/." "$MNT/" 2>/dev/null
 			n=$((n+1))
-			[ $((n % 20)) -eq 0 ] && say $(( 86 + n / 40 )) "Baking extensions ($n)"
+			[ $((n % 20)) -eq 0 ] && say $(( 86 + 2 * n / total )) "Baking extensions ($n of $total)"
 		done
 		log "baked $n mounted extensions into the target root"
-		# Anything still dangling had no live mount - fill it from the medium.
+		# replace remaining links whose target exists
 		for l in $(find "$MNT" -type l 2>/dev/null); do
 			case "$(readlink "$l" 2>/dev/null)" in
 				/tmp/tcloop/*) t="$(readlink "$l")"
@@ -359,9 +325,7 @@ bake_extensions() {
 		done
 	fi
 
-	# Final sweep: a link still pointing into /tmp/tcloop has no source on the
-	# installed system and would only be a broken entry (this is what made the
-	# Browser vanish from the dock on a real install).
+	# whatever still points into /tmp/tcloop would be dangling after reboot
 	DEAD=0
 	for l in $(find "$MNT" -type l 2>/dev/null); do
 		case "$(readlink "$l" 2>/dev/null)" in
@@ -370,8 +334,7 @@ bake_extensions() {
 	done
 	[ "$DEAD" -gt 0 ] && log "dropped $DEAD unresolvable tcloop links"
 
-	# Retire the per-boot pipeline.  The directories stay (the Store and
-	# on-demand loading still use them); only the boot-time work goes.
+	# dirs stay for the Store and on-demand loading
 	say 88 "Retiring the per-boot extension pipeline"
 	mkdir -p "$MNT/tce/optional" "$MNT/tce/ondemand"
 	: > "$MNT/tce/onboot.lst"
@@ -380,24 +343,17 @@ bake_extensions() {
 	rm -f "$MNT/tce/copy2fs.lst" "$MNT/tce/xbase.lst" 2>/dev/null
 	chown -R 0:50 "$MNT/tce" 2>/dev/null
 
-	# The desktop identity build-writable-image.sh writes and install2disk
-	# never did.  Without /etc/sysconfig/desktop, startx skips setupdesktop
-	# entirely AND .xsession runs `"$DESKTOP" &` with an EMPTY variable, so
-	# no window manager starts at all: no titlebars, no window controls.
+	# install2disk never wrote these; without sysconfig/desktop startx skips
+	# setupdesktop (.xsession falls back to flwm, but keep it right)
 	[ -x "$MNT/usr/local/bin/flwm" ] && echo flwm > "$MNT/etc/sysconfig/desktop"
 	[ -x "$MNT/usr/local/bin/wbar" ] && echo wbar > "$MNT/etc/sysconfig/icons"
 	log "desktop=$(cat "$MNT/etc/sysconfig/desktop" 2>/dev/null) icons=$(cat "$MNT/etc/sysconfig/icons" 2>/dev/null)"
 }
 
-# The dock's pinned icons are rendered through the squircle container by
-# `xxri-launcher --frame-icon` and cached under xxri-launcher/framed.  That
-# renderer returns 0 even when the source image fails to load - it just draws
-# the empty container and writes it - and xxri-dock-pin then caches the empty
-# result forever (`[ -s "$out" ] && [ "$out" -nt "$2" ]`), which is why a real
-# install came up with eight blank dock slots on every boot thereafter.
-# Render them here, inside the finished target, and accept them only if they
-# actually differ from one another; if they do not, the renderer failed and we
-# leave NO cache behind so the desktop retries instead of inheriting blanks.
+# Pre-render the framed dock icons in the target. --frame-icon exits 0 even
+# when the source didn't load, and xxri-dock-pin would keep those empty frames
+# forever (eight blank dock slots once). All identical = failed: drop them and
+# let the desktop retry.
 bake_dock_icons() {
 	say 89 "Preparing dock icons"
 	FRAMED="$MNT/usr/local/share/xxri-launcher/framed"
@@ -435,10 +391,8 @@ bake_dock_icons() {
 }
 
 find_kernel_src() {
-	# live ISO: the boot medium is mounted and /etc/sysconfig/cde points
-	# into it; installed system: /boot on the root fs.
-	# NOTE: /etc/sysconfig/cde holds "<medium>/cde/optional", so the boot
-	# directory is two levels up ("<medium>/boot") - not dirname(cde)/boot.
+	# live: sysconfig/cde is "<medium>/cde/optional", boot is <medium>/boot
+	# (two levels up); installed: /boot
 	if [ -s /etc/sysconfig/cde ]; then
 		CDE="$(cat /etc/sysconfig/cde)"
 		CDE="${CDE%/}"; CDE="${CDE%/optional}"
@@ -454,18 +408,14 @@ find_kernel_src() {
 
 # ---------------------------------------------------------- boot loader --
 #
-# 2.6: GRUB 2 (upstream 2.14, the same build that boots the ISO) replaces
-# EXTLINUX 6.03.  EXTLINUX loads the initrd as high as the kernel's
-# initrd_addr_max allows - the placement that corrupted core.gz on the NEC
-# VK24MX in 2.5 - and cannot boot a GPT disk or 32-bit UEFI at all.  GRUB
-# places the initrd itself from the firmware memory map (BIOS), or lets the
-# kernel's EFI stub allocate it from the UEFI memory map (IA32 UEFI).  No mem=,
-# no address, no memory ceiling is written anywhere.
+# GRUB 2.14, the same build that boots the ISO. EXTLINUX put the initrd as
+# high as initrd_addr_max allows, which corrupted core.gz on the NEC VK24MX,
+# and can't do GPT or IA32 UEFI. GRUB places the initrd from the firmware
+# memory map (BIOS) or leaves it to the EFI stub. Don't add mem=, an address
+# or a memory ceiling anywhere - the NEC depends on that.
 #
-# The tools come from extensions on the live medium, loaded only for the
-# install: xxri-grub (GRUB 2.14 utilities + i386-pc/i386-efi modules),
-# gdisk (sgdisk, for GPT), dosfstools (mkdosfs, for the ESP) and
-# efibootmgr/efivar (the UEFI boot entry).
+# Tools are loaded from the medium for the install only: xxri-grub, gdisk,
+# dosfstools, efivar, efibootmgr.
 GRUBLIB=/usr/local/lib/grub
 
 load_install_tools() {
@@ -476,7 +426,7 @@ load_install_tools() {
 	for e in xxri-grub gdisk dosfstools efivar efibootmgr; do
 		[ -e "/usr/local/tce.installed/$e" ] && continue
 		[ -f "$CDEOPT/$e.tcz" ] || { log "extension $e.tcz not found on the medium"; continue; }
-		# tce-load refuses to run as root; the live user loads it.
+		# tce-load refuses to run as root
 		su "${TCU:-xxri}" -c "tce-load -i '$CDEOPT/$e.tcz'" >/dev/null 2>&1 ||
 			log "tce-load $e failed"
 	done
@@ -485,8 +435,7 @@ load_install_tools() {
 }
 
 mbr_type() { # $1 disk, $2 primary partition 1-4 -> its MBR type byte, e.g. "ef"
-	# Read from the table itself: busybox fdisk -l and util-linux fdisk -l
-	# print different columns, so their text is not a stable interface.
+	# from the table itself: busybox and util-linux fdisk -l differ
 	dd if="$1" bs=1 skip=$((446 + 16 * ($2 - 1) + 4)) count=1 2>/dev/null | od -An -tx1 | tr -d ' \n'
 }
 
@@ -506,10 +455,8 @@ has_bios_boot() { # $1 disk: GPT with a BIOS boot partition (EF02) for GRUB's co
 
 write_grub_cfg() { # $1 root filesystem UUID
 	mkdir -p "$MNT/boot/grub"
-	# Boot codes as on the live ISO minus `cde` (the live medium's; an
-	# installed system loads its extensions from /tce).  The video mode for
-	# the boot splash comes from gfxpayload, which replaces 2.5's vga=791 and
-	# also works on UEFI, where vga= does not exist.
+	# live boot codes minus cde; the splash mode comes from gfxpayload
+	# (vga= doesn't exist on UEFI)
 	cat > "$MNT/boot/grub/grub.cfg" <<EOF
 # XXRI OS Lite - installed system.  Written by xxri-install-backend.
 set default=0
@@ -532,11 +479,15 @@ fi
 
 menuentry "XXRI OS Lite" --id xxri {
 	linux /boot/vmlinuz quiet loglevel=3 vt.global_cursor_default=0 consoleblank=0
-	initrd /boot/core.gz
+	initrd ${UCODE}/boot/core.gz
+}
+menuentry "XXRI OS Lite (safe graphics)" --id xxri-safegfx {
+	linux /boot/vmlinuz quiet loglevel=3 vt.global_cursor_default=0 consoleblank=0 nomodeset
+	initrd ${UCODE}/boot/core.gz
 }
 menuentry "XXRI OS Lite (verbose boot)" --id xxri-verbose {
 	linux /boot/vmlinuz loglevel=7
-	initrd /boot/core.gz
+	initrd ${UCODE}/boot/core.gz
 }
 if [ "\$grub_platform" = "efi" ]; then
 	menuentry "UEFI firmware settings" --id uefi-firmware {
@@ -546,6 +497,16 @@ fi
 EOF
 }
 
+# Microcode (rules/xxri-ucode.make): install only this CPU's vendor image
+# (Intel's is 15 MB read every boot). On another vendor's CPU it still boots,
+# just without microcode. VIA/Zhaoxin/Hygon have none.
+ucode_vendor() {
+	case "$(sed -n 's/^vendor_id[[:space:]]*: *//p' /proc/cpuinfo | head -n 1)" in
+		GenuineIntel) echo intel ;;
+		AuthenticAMD) echo amd ;;
+	esac
+}
+
 install_bootloader() { # $1 partition, $2 disk, $3 partnum
 	say 90 "Installing boot loader (GRUB)"
 	KSRC="$(find_kernel_src)"
@@ -553,14 +514,22 @@ install_bootloader() { # $1 partition, $2 disk, $3 partnum
 	mkdir -p "$MNT/boot"
 	cp -f "$KSRC/vmlinuz" "$MNT/boot/vmlinuz" || fail "kernel copy failed"
 	cp -f "$KSRC/core.gz" "$MNT/boot/core.gz" || fail "initrd copy failed"
+	UCODE=""
+	UV="$(ucode_vendor)"
+	if [ -n "$UV" ] && [ -f "$KSRC/$UV-ucode.img" ]; then
+		cp -f "$KSRC/$UV-ucode.img" "$MNT/boot/$UV-ucode.img" || fail "microcode copy failed"
+		cp -f "$KSRC/LICENSE.$UV-ucode" "$MNT/boot/" 2>/dev/null
+		UCODE="/boot/$UV-ucode.img "
+		log "CPU microcode: $UV-ucode.img"
+	else
+		log "CPU microcode: none for this CPU (vendor '${UV:-other}')"
+	fi
 	RUUID="$(blkid "$1" 2>/dev/null | sed -n 's/.* UUID="\([^"]*\)".*/\1/p')"
 	[ -n "$RUUID" ] || fail "cannot read the filesystem UUID of $1"
 	write_grub_cfg "$RUUID"
 	GI="grub-install --boot-directory=$MNT/boot --fonts= --locales= --themes="
 
-	# BIOS: on a BIOS/CSM machine, and on a GPT disk that carries a BIOS boot
-	# partition (the automatic UEFI layout does), so that disk starts on
-	# either kind of firmware.
+	# also on GPT with a BIOS boot partition, so the disk boots on both
 	if [ "$FW" = bios ] || has_bios_boot "$2"; then
 		if is_gpt "$2" && ! has_bios_boot "$2"; then
 			fail "$2 uses GPT but has no BIOS boot partition (type EF02) for GRUB - use automatic partitioning or add a 1 MiB EF02 partition"

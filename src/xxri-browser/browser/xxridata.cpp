@@ -9,12 +9,8 @@
 #include <QDir>
 
 namespace {
-/*
- * The bookmarks a fresh profile starts with - the tiles the artwork draws.
- * Four of its five are legible; the fifth is not, so rather than invent a site
- * that position is where the add tile falls, which is also how the grid grows.
- * No third-party logo is bundled: each tile shows the site's own favicon.
- */
+/* a fresh profile's bookmarks: the four legible tiles of the artwork (the add
+ * tile takes the fifth slot). No bundled logos, each uses its own favicon. */
 struct Seed { const char *title; const char *url; };
 const Seed kSeeds[] = {
     { "XXRI OS Lite", "https://xxri.flows.best"        },
@@ -90,11 +86,7 @@ void XxriStore::load()
     readGroup(s, QStringLiteral("bookmarks"), &m_bookmarks);
     readGroup(s, QStringLiteral("history"), &m_history);
 
-    /*
-     * A profile written by an earlier version kept its tiles in a separate
-     * "shortcuts" group.  They were bookmarks in everything but name, so they
-     * are read in behind whatever is already bookmarked rather than dropped.
-     */
+    // older profiles kept tiles in a "shortcuts" group: append them
     QVector<XxriEntry> legacy;
     readGroup(s, QStringLiteral("shortcuts"), &legacy);
     for (const XxriEntry &e : qAsConst(legacy)) {
@@ -203,22 +195,14 @@ void XxriStore::noteVisit(const XxriEntry &e)
 {
     if (!e.url.isValid() || e.url.scheme() == QLatin1String("about"))
         return;
-    /*
-     * Collapse a reload or a redirect chain onto one entry.  "google.com" and
-     * "google.com/" are the same visit, and a redirect that only adds the
-     * trailing slash must not leave two rows in History.
-     */
+    // "x.com" and "x.com/" are one visit
     const QUrl::FormattingOptions norm = QUrl::StripTrailingSlash
                                        | QUrl::NormalizePathSegments;
     auto same = [norm](const QUrl &a, const QUrl &b) {
         return a.adjusted(norm) == b.adjusted(norm);
     };
-    /*
-     * A redirect is one visit, not two.  The engine reports the URL again for
-     * each hop, and those arrive within a moment of each other on the same
-     * host, so a same-host change that close behind the last entry updates it
-     * instead of adding a row.
-     */
+    // redirect hops (same host, right behind the last entry) update that
+    // entry instead of adding rows
     const bool redirect = !m_history.isEmpty()
             && m_history.first().url.host() == e.url.host()
             && m_history.first().when.isValid()

@@ -1,0 +1,48 @@
+/* xxri-installer-dark.css - the installer while the live session's Mode is
+   Dark (xxri-theme.h): the same glass cards over the wallpaper, in Settings'
+   dark palette. The light design is in xxri-installer.c (CSS[]). */
+
+@define-color xi_ink    #F2F2F4;
+@define-color xi_muted  #A0A1AA;
+@define-color xi_accent #4C93F8;
+@define-color xi_bad    #FF7A7A;
+@define-color xi_good   #4CD47A;
+
+@define-color xxri_dlg_bg    #2A2B33;
+@define-color xxri_dlg_ink   #F2F2F4;
+@define-color xxri_dlg_muted #A0A1AA;
+@define-color xxri_dlg_line  alpha(#FFFFFF, 0.10);
+@define-color xxri_dlg_btn   #3C3D47;
+@define-color xxri_dlg_btn_h #454650;
+
+.xi-card {
+  background-color: alpha(#242124, 0.80);
+  border: 1px solid alpha(#FFFFFF, 0.10);
+  box-shadow: 0 12px 34px alpha(#000000, 0.38), 0 1px 3px alpha(#000000, 0.20);
+}
+.xi-hero     { text-shadow: 0 1px 16px alpha(#000000, 0.55); }
+.xi-hero-sub { color: #D8D8DE; text-shadow: 0 1px 10px alpha(#000000, 0.60); }
+.xi-note.warn { color: #E5A85B; }
+
+entry { background-color: #34353E; border-color: alpha(#FFFFFF, 0.12); }
+
+button { background-color: #3C3D47; }
+button:hover  { background-color: #454650; }
+button:active { background-color: #4E4F5A; }
+button.xi-primary:disabled { background-color: #3C3D47; }
+button.xi-drop { background-color: #34353E; border-color: alpha(#FFFFFF, 0.12); }
+button.xi-drop:hover { background-color: #3C3D47; }
+
+/* this sheet outranks the light one whatever the selector: the segments
+   are transparent buttons, not the plain button above */
+.xi-seg { background-color: alpha(#FFFFFF, 0.08); }
+.xi-seg button, .xi-seg button:hover { background-color: transparent; }
+.xi-seg button.on { background-color: #454650; box-shadow: none; }
+
+button.xi-disk { background-color: alpha(#34353E, 0.70); }
+button.xi-disk:hover, button.xi-disk.on { background-color: #3C3D47; }
+
+switch { background-color: #3C3D47; }
+
+menu { background-color: #2A2B33; border-color: alpha(#FFFFFF, 0.10); }
+menuitem:hover { background-color: #3C3D47; }

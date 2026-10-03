@@ -28,7 +28,7 @@ XXRI_INSTALLER_CONF_TOOL	:= NO
 $(STATEDIR)/xxri-installer.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_INSTALLER_BUILD_DIR) && mkdir -p $(XXRI_INSTALLER_BUILD_DIR)
-	@$(call world/execute, XXRI_INSTALLER, $(CROSS_CXX) $(XXRI_OS_CFLAGS) -fno-rtti -Wall $(XXRI_INSTALLER_DIR)/xxri-installer.cxx -o $(XXRI_INSTALLER_BUILD_DIR)/xxri-installer $(XXRI_TC_LDFLAGS) -lfltk_images -lfltk -lX11 -lm -mtls-dialect=gnu -static-libgcc)
+	@$(call world/execute, XXRI_INSTALLER, $(CROSS_CC) $(XXRI_OS_CFLAGS) -w $(XXRI_GTK3_CFLAGS) $(XXRI_INSTALLER_DIR)/xxri-installer.c -o $(XXRI_INSTALLER_BUILD_DIR)/xxri-installer $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -lX11 -lm -mtls-dialect=gnu -static-libgcc)
 	@$(call touch)
 
 $(STATEDIR)/xxri-installer.install:
@@ -39,7 +39,9 @@ $(STATEDIR)/xxri-installer.install:
 # Target-Install
 # ----------------------------------------------------------------------------
 
-$(STATEDIR)/xxri-installer.targetinstall:
+# the scripts under root/ are packaged as they are: an edited one re-runs
+# the packaging (not the compile)
+$(STATEDIR)/xxri-installer.targetinstall: $(shell find $(XXRI_SRC)/xxri-installer/root -type f)
 	@$(call targetinfo)
 
 	@$(call install_init, xxri-installer)

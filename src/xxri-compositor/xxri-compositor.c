@@ -1,16 +1,16 @@
-/* xxri-compositor - tiny X compositing manager for XXRI OS Lite.
+/* xxri-compositor - tiny X compositing manager.
  *
- * The mockups need translucent system surfaces; without a compositor an ARGB
- * window paints black, and faking it by sampling the wallpaper lies whenever a
- * window is behind.  Probing the target showed it offers ARGB visuals plus
- * Composite/Damage/XFixes/Render and an overlay window, so real alpha is there
- * for the taking.  XXRI runs on Pentium-III-class hardware with software
- * rendering, so this does one job - composite windows, honour per-window
- * opacity and shapes, repaint on damage - and nothing else (no shadows/blur).
+ * Gives the translucent surfaces real alpha. Pentium III class hardware and
+ * software rendering, so it only composites windows with their opacity and
+ * shapes, repainting on damage. No shadows, no blur.
  *
- * Redirection is owned here: if this process dies the server unredirects and
- * the desktop keeps painting itself, so a crash costs translucency, not the
- * session.  Disable with XXRI_NO_COMPOSITE=1.
+ * If this dies the server unredirects and the desktop paints itself again:
+ * a crash costs translucency, not the session. XXRI_NO_COMPOSITE=1 disables.
+ *
+ * XXRI_COMP_READY=FILE: written once the server redirects and the first frame
+ * is on screen; the session starts its always-on surfaces after that.
+ * Managed windows fade in when they map; XXRI_NO_ANIM=1 (the noanim boot
+ * code) turns that off.
  */
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include <time.h>
+#include <sys/select.h>
 
 typedef struct Win {
     struct Win*  next;          /* bottom-to-top stacking order */
@@ -38,31 +39,18 @@ typedef struct Win {
     Damage       damage;
     XserverRegion shape;        /* bounding shape, so rounded frames survive */
     double       opacity;
-    /* An ARGB client reparented into this frame.
-     *
-     * The window manager reparents each client into a frame it creates with the
-     * default 24-bit visual.  The server then draws the client into that frame's
-     * pixmap, and a 24-bit pixmap has nowhere to keep an alpha channel - so a
-     * translucent client came out flattened against the frame's background
-     * (grey), not translucent.  The fix is to redirect the CLIENT as well and
-     * composite it separately, on top of its own frame.
-     *
-     * Only depth-32 clients are redirected.  Everything else keeps the ordinary
-     * path untouched, so this cannot affect an application that never asked for
-     * an alpha channel. */
-    /* The managed client this frame contains, if it is a frame at all.
-     *
-     * Under flwm a root child is one of two different things and they must not
-     * be treated alike: a plain top-level (the dock, the Control Center, an
-     * override-redirect popup) IS its own content, but a FRAME is only a
-     * container - its content is the managed client one level inside it.  A
-     * frame can stay mapped after its client has been unmapped or reparented
-     * away, and painting such a frame independently replays a stale 24-bit
-     * pixmap on screen.  That is what put dead white control surfaces on the
-     * desktop during a live resize.  `client` is None for a plain top-level,
-     * which is painted normally. */
+    double       fade;          /* 0..1 while fading in, 1 otherwise */
+    double       fade_t0;       /* when it started, seconds */
+    /* A root child is either a plain toplevel (dock, Control Center, popups),
+     * which is its own content, or a flwm frame, whose content is the managed
+     * client inside it. A frame can outlive its client's mapping, and painting
+     * it then shows a stale pixmap (dead white boxes during a resize).
+     * client = None for a plain toplevel. */
     Window       client;
     int          client_mapped;
+    /* A depth-32 client inside a 24-bit frame loses its alpha in the frame's
+     * pixmap, so it is redirected too and composited on top of the frame.
+     * Only depth-32 clients, nothing else is touched. */
     Window       argb;          /* the client window when it is ARGB, or None */
     int          ax, ay, aw, ah;/* its geometry inside the frame */
     Pixmap       apixmap;
@@ -84,6 +72,9 @@ static int       damage_event, damage_error;
 static int       shape_event, shape_error;
 static XserverRegion all_damage;
 static int       dbg;              /* XXRI_COMP_DEBUG=1 */
+static int       anim = 1;         /* fade managed windows in */
+static int       fading;           /* windows fading right now */
+#define FADE_SECONDS 0.12
 
 static FILE* dbg_log = NULL;
 static void dlog(const char* fmt, ...) {
@@ -113,7 +104,7 @@ static Win* find_win(Window id) {
     for (Win* w = list; w; w = w->next) if (w->id == id) return w;
     return NULL;
 }
-/* remove from the list, returning the address that pointed at it */
+/* the link that points at it, for unlinking */
 static Win** slot_of(Window id) {
     Win** p = &list;
     while (*p) { if ((*p)->id == id) return p; p = &(*p)->next; }
@@ -130,10 +121,8 @@ static int opacity_on(Window id, double* out) {
     return got;
 }
 
-/* The windows this compositor tracks are the window manager's FRAMES, but an
- * application sets _NET_WM_WINDOW_OPACITY on its own window, which lives one
- * level inside the frame.  Look there too, otherwise an application asking to
- * be translucent is silently ignored. */
+/* apps set _NET_WM_WINDOW_OPACITY on their own window, one level inside the
+ * frame we track, so look there too */
 static double read_opacity(Window id) {
     double o = 1.0;
     if (!opacity_on(id, &o)) {
@@ -166,9 +155,7 @@ static void ensure_picture(Win* w) {
     w->picture = XRenderCreatePicture(dpy, w->pixmap, fmt, CPSubwindowMode, &pa);
 }
 
-/* WM_STATE is what a window manager puts on the window it manages, so it is
-   the reliable way to tell a managed client from a toolkit's own child
-   windows (a GTK window creates plenty of those). */
+/* WM_STATE tells a managed client from a toolkit's own child windows */
 static int has_wm_state(Window id) {
     Atom type; int fmt; unsigned long n = 0, after = 0; unsigned char* p = NULL;
     if (XGetWindowProperty(dpy, id, a_wm_state, 0, 1, False, AnyPropertyType,
@@ -186,8 +173,7 @@ static Win* find_by_client(Window id) {
     return NULL;
 }
 
-/* Look one level inside a window for the managed client.  Doing nothing when
-   there is none is the correct answer for a plain top-level. */
+/* find the managed client one level down; none = plain toplevel */
 static void adopt_client(Win* w) {
     if (w->client != None || w->input_only) return;
     Window r, parent, *kids = NULL; unsigned int nk = 0, i;
@@ -207,7 +193,7 @@ static void adopt_client(Win* w) {
     if (kids) XFree(kids);
 }
 
-/* The client went away: the frame must stop being painted on its own. */
+/* client gone: stop painting the frame on its own */
 static void release_client(Win* w) {
     if (!w) return;
     dlog("frame 0x%lx lost client 0x%lx", (unsigned long)w->id, (unsigned long)w->client);
@@ -258,8 +244,7 @@ static void ensure_argb_picture(Win* w) {
 
 static void refresh_shape(Win* w) {
     if (w->shape) { XFixesDestroyRegion(dpy, w->shape); w->shape = None; }
-    /* The window manager clips its frames to rounded rectangles.  A compositor
-       that ignores the bounding shape would put the square corners back. */
+    /* flwm's frames are shaped round, ignoring that brings square corners back */
     w->shape = XFixesCreateRegionFromWindow(dpy, w->id, WindowRegionBounding);
     XFixesTranslateRegion(dpy, w->shape, w->x + w->border, w->y + w->border);
 }
@@ -274,6 +259,37 @@ static void damage_whole(Win* w) {
     XRectangle rect = { w->x, w->y, w->w + w->border*2, w->h + w->border*2 };
     XFixesSetRegion(dpy, r, &rect, 1);
     add_damage(r);
+}
+
+static double now_s(void) {
+    struct timespec t;
+    clock_gettime(CLOCK_MONOTONIC, &t);
+    return t.tv_sec + t.tv_nsec / 1e9;
+}
+/* a managed window became visible: fade it in. Only flwm frames, i.e. root
+ * children holding a client with WM_STATE; menus, the dock, Control Center
+ * and the launcher have none (and their own motion, or none). The frames
+ * themselves are override-redirect, so that flag cannot tell them apart. */
+static void start_fade(Win* w) {
+    if (!anim || w->input_only || w->client == None) return;
+    dlog("fade in 0x%lx", (unsigned long)w->id);
+    if (w->fade >= 1.0) fading++;
+    w->fade = 0.0;
+    w->fade_t0 = now_s();
+}
+static void stop_fade(Win* w) {
+    if (w->fade < 1.0) { w->fade = 1.0; fading--; }
+}
+/* move every fade on to the current time; ease-out, so it settles softly */
+static void step_fades(void) {
+    double t = now_s();
+    for (Win* w = list; w; w = w->next) {
+        if (w->fade >= 1.0) continue;
+        double p = (t - w->fade_t0) / FADE_SECONDS;
+        if (p >= 1.0) stop_fade(w);
+        else { double q = 1.0 - p; w->fade = 1.0 - q*q*q; }
+        damage_whole(w);
+    }
 }
 
 static void add_win(Window id, Window above) {
@@ -291,20 +307,17 @@ static void add_win(Window id, Window above) {
     w->input_only = (a.class == InputOnly);
     w->mapped = (a.map_state == IsViewable);
     w->opacity = read_opacity(id);
+    w->fade = 1.0;
     if (!w->input_only) {
         w->damage = XDamageCreate(dpy, id, XDamageReportNonEmpty);
         XShapeSelectInput(dpy, id, ShapeNotifyMask);
     }
-    /* SubstructureNotify on this window delivers its CHILDREN's map, unmap,
-       reparent and destroy events - which is how a frame learns that its
-       client has come or gone. */
+    /* SubstructureNotify: the children's map/unmap/reparent/destroy, i.e. a
+       frame's client coming and going */
     XSelectInput(dpy, id, PropertyChangeMask | SubstructureNotifyMask);
     adopt_client(w);
-    /* Keep the list bottom-to-top.  `above` names the sibling this window sits
-     * directly above; None means the bottom - which is right when walking the
-     * initial XQueryTree, but NOT for a window that has just been created, since
-     * X puts new windows on TOP.  Getting that backwards buried every new window
-     * under everything else and it never appeared at all. */
+    /* bottom-to-top list; `above` = the sibling it sits on, None = bottom.
+     * New windows go on top (TOP_OF_STACK), X creates them there. */
     Win** p = &list;
     if (above == TOP_OF_STACK) {
         while (*p) p = &(*p)->next;          /* append: the top */
@@ -322,6 +335,7 @@ static void del_win(Window id) {
     if (!p) return;
     Win* w = *p;
     if (w->mapped) damage_whole(w);
+    stop_fade(w);
     drop_pixmap(w);
     drop_argb(w);
     if (w->adamage) XDamageDestroy(dpy, w->adamage);
@@ -383,11 +397,8 @@ static void paint(void) {
 
     for (Win* w = list; w; w = w->next) {
         if (!w->mapped || w->input_only) continue;
-        /* If the managed client's parent has changed since we last observed
-         * it then the client no longer belongs to this frame.  Release it so
-         * we don't paint the frame's old 24-bit pixmap while the client has
-         * moved elsewhere (this previously left stale white boxes during a
-         * held-window move). */
+        /* client reparented elsewhere: release it, or the frame's stale pixmap
+         * gets painted (white boxes during a window move) */
         if (w->client != None) {
             Window r, parent, *kids = NULL; unsigned int nk = 0;
             if (XQueryTree(dpy, w->client, &r, &parent, &kids, &nk)) {
@@ -401,10 +412,7 @@ static void paint(void) {
                 }
             }
         }
-        /* A frame is only a container.  With no live client inside it there is
-           nothing legitimate to draw, and its pixmap still holds whatever was
-           last rendered there - so painting it would put a stale surface on
-           screen.  A plain top-level has client == None and is unaffected. */
+        /* a frame without a mapped client has nothing real to show */
         if (w->client != None && !w->client_mapped) {
             dlog("  skip 0x%lx: frame with no mapped client", (unsigned long)w->id);
             continue;
@@ -414,21 +422,15 @@ static void paint(void) {
         if (dbg) {
             int nr = 0; XRectangle* rr = w->shape ? XFixesFetchRegion(dpy, w->shape, &nr) : NULL;
             dlog("  paint 0x%lx %dx%d+%d+%d op=%.2f shape=%s rects=%d first=%dx%d+%d+%d",
-                 (unsigned long)w->id, w->w, w->h, w->x, w->y, w->opacity,
+                 (unsigned long)w->id, w->w, w->h, w->x, w->y, w->opacity * w->fade,
                  w->shape ? "yes" : "no", nr,
                  (rr && nr) ? rr[0].width : -1, (rr && nr) ? rr[0].height : -1,
                  (rr && nr) ? rr[0].x : -1, (rr && nr) ? rr[0].y : -1);
             if (rr) XFree(rr);
         }
-        /* Clip to the damage AND to this window's own bounding shape - and, if
-         * this frame holds a translucent client, cut the client's rectangle out
-         * of the frame as well.
-         *
-         * The frame is an opaque 24-bit window covering the whole area.  Painted
-         * underneath, it became the backdrop the client blended against, so a
-         * translucent application looked like it was mixed with flat grey rather
-         * than with the desktop.  Removing that rectangle lets the client blend
-         * against what is really behind the window. */
+        /* clip to damage and bounding shape, and cut an ARGB client's area out
+         * of its opaque frame, or the client blends against flat grey instead
+         * of the desktop */
         adopt_client(w);          /* cheap: returns at once once known */
         adopt_argb_child(w);
         XserverRegion clip = XFixesCreateRegion(dpy, NULL, 0);
@@ -445,9 +447,10 @@ static void paint(void) {
         XFixesSetPictureClipRegion(dpy, buf_pict, 0, 0, clip);
         XFixesDestroyRegion(dpy, clip);
         Picture mask = None;
-        if (w->opacity < 0.999) {
+        double op = w->opacity * w->fade;
+        if (op < 0.999) {
             XRenderColor c;
-            c.alpha = (unsigned short)(w->opacity * 0xffff);
+            c.alpha = (unsigned short)(op * 0xffff);
             c.red = c.green = c.blue = 0;
             mask = XRenderCreateSolidFill(dpy, &c);
         }
@@ -481,9 +484,23 @@ static void paint(void) {
     XFlush(dpy);
 }
 
+/* XXRI_COMP_READY: written whole (rename), so a reader never sees half */
+static void signal_ready(void) {
+    const char* f = getenv("XXRI_COMP_READY");
+    if (!f || !*f) return;
+    char tmp[512];
+    snprintf(tmp, sizeof tmp, "%s.%d", f, (int)getpid());
+    FILE* o = fopen(tmp, "w");
+    if (!o) return;
+    fprintf(o, "%d\n", (int)getpid());
+    if (fclose(o) == 0) rename(tmp, f);
+    else unlink(tmp);
+}
+
 int main(void) {
     if (getenv("XXRI_NO_COMPOSITE")) return 0;
     dbg = getenv("XXRI_COMP_DEBUG") != NULL;
+    anim = getenv("XXRI_NO_ANIM") == NULL;
     dpy = XOpenDisplay(NULL);
     if (!dpy) { fprintf(stderr, "xxri-compositor: no display\n"); return 1; }
     XSetErrorHandler(ignore_errors);
@@ -503,11 +520,8 @@ int main(void) {
         return 1;
     }
 
-    /* Claim the compositing-manager selection.  This is how every toolkit finds
-     * out that a compositor exists - GTK's gdk_screen_is_composited() answers
-     * from it - so without this an application has no way to know it may use an
-     * alpha channel, and it will keep drawing itself opaque.  It also stops two
-     * compositors fighting over the same screen. */
+    /* the CM selection is how toolkits know they may use alpha
+     * (gdk_screen_is_composited), and keeps a second compositor out */
     {
         char sel_name[32];
         snprintf(sel_name, sizeof sel_name, "_NET_WM_CM_S%d", scr);
@@ -548,8 +562,10 @@ int main(void) {
     {
         long mask = SubstructureNotifyMask | ExposureMask |
                     StructureNotifyMask | PropertyChangeMask;
-        if (dbg) mask |= ButtonPressMask | ButtonReleaseMask | PointerMotionMask;
         XSelectInput(dpy, root, mask);
+        /* only one client may select ButtonPress on the root and the WM has
+           it: a separate request, so its BadAccess cannot void the mask above */
+        if (dbg) XSelectInput(dpy, root, mask | ButtonPressMask | ButtonReleaseMask | PointerMotionMask);
     }
 
     Window r, parent, *kids = NULL; unsigned int nk = 0;
@@ -562,27 +578,33 @@ int main(void) {
     XFixesSetRegion(dpy, whole, &full, 1);
     add_damage(whole);
     paint();
+    /* the server has the redirect and the first frame: the session may start
+     * surfaces now (anything that painted before the redirect stayed blank) */
+    XSync(dpy, False);
+    signal_ready();
 
+    int xfd = ConnectionNumber(dpy);
     for (;;) {
         XEvent e;
+        /* while something fades, wake up for the next frame even without
+           events; otherwise sleep in XNextEvent as before */
+        if (fading > 0 && !XPending(dpy)) {
+            fd_set fds; FD_ZERO(&fds); FD_SET(xfd, &fds);
+            struct timeval tv = { 0, 16000 };
+            if (select(xfd + 1, &fds, NULL, NULL, &tv) <= 0) {
+                step_fades();
+                paint();
+                continue;
+            }
+        }
         XNextEvent(dpy, &e);
         do {
             switch (e.type) {
             case CreateNotify:
-                /*
-                 * Only root's own children are top-levels.
-                 *
-                 * SubstructureNotify is selected on every window tracked here -
-                 * that is how a frame learns about its client - so this event
-                 * also arrives for windows created deeper in the tree, such as
-                 * the video window an embedded media player creates inside an
-                 * application's own window.  Those are already drawn into their
-                 * parent's pixmap; compositing one separately paints it a second
-                 * time, and at its parent-relative position taken for a root
-                 * one, which put a band of video on the desktop above the XXRI
-                 * Media window.  ReparentNotify below has always made this
-                 * check; this one did not.
-                 */
+                /* root children only: with SubstructureNotify on every tracked
+                 * window this also fires for nested windows (MPlayer's video
+                 * window), which are already in their parent's pixmap - adding
+                 * them painted video at the wrong place on the desktop */
                 if (e.xcreatewindow.parent == root)
                     add_win(e.xcreatewindow.window, TOP_OF_STACK);
                 break;
@@ -593,12 +615,18 @@ int main(void) {
                 break; }
             case MapNotify: {
                 Win* w = find_win(e.xmap.window);
-                if (w) { dlog("MapNotify frame 0x%lx mapped", (unsigned long)w->id); w->mapped = 1; drop_pixmap(w); refresh_shape(w); damage_whole(w); break; }
+                if (w) {
+                    dlog("MapNotify frame 0x%lx mapped", (unsigned long)w->id);
+                    w->mapped = 1; drop_pixmap(w); refresh_shape(w); damage_whole(w);
+                    if (w->client_mapped) start_fade(w);     /* restored from iconic */
+                    break;
+                }
                 /* a managed client mapping inside its frame */
                 Win* f = find_by_client(e.xmap.window);
                 if (!f) { f = find_win(e.xmap.event); if (f) adopt_client(f); }
                 if (f && f->client == e.xmap.window) {
                     dlog("MapNotify client 0x%lx inside frame 0x%lx", (unsigned long)e.xmap.window, (unsigned long)f->id);
+                    if (!f->client_mapped && f->mapped) start_fade(f);
                     f->client_mapped = 1;
                     drop_pixmap(f); drop_argb(f);
                     refresh_shape(f); damage_whole(f);
@@ -606,7 +634,7 @@ int main(void) {
                 break; }
             case UnmapNotify: {
                 Win* w = find_win(e.xunmap.window);
-                if (w) { dlog("UnmapNotify frame 0x%lx unmapped", (unsigned long)w->id); damage_whole(w); w->mapped = 0; drop_pixmap(w); break; }
+                if (w) { dlog("UnmapNotify frame 0x%lx unmapped", (unsigned long)w->id); damage_whole(w); w->mapped = 0; stop_fade(w); drop_pixmap(w); break; }
                 /* the client went away but its frame may still be mapped */
                 Win* f = find_by_client(e.xunmap.window);
                 if (f) { dlog("UnmapNotify client 0x%lx for frame 0x%lx", (unsigned long)e.xunmap.window, (unsigned long)f->id); damage_whole(f); f->client_mapped = 0; drop_pixmap(f); drop_argb(f); }
@@ -617,14 +645,9 @@ int main(void) {
                     for (Win* f = list; f; f = f->next) {
                         if (f->argb != e.xconfigure.window && f->client != e.xconfigure.window) continue;
                         if (f->argb == e.xconfigure.window) {
-                            /* ax/ay are frame-relative: the offset of the client
-                               inside its frame.  A synthetic ConfigureNotify
-                               (send_event == True) is the one the WM generated
-                               for the client and carries ROOT coordinates, so
-                               trusting it here shoves the ARGB hole to the wrong
-                               place and the transparent surface detaches from its
-                               frame during a move.  Only the server-generated
-                               event reports the frame-relative position. */
+                            /* ax/ay are frame-relative. The WM's synthetic
+                               ConfigureNotify carries root coordinates and
+                               would detach the ARGB area during a move. */
                             if (!e.xconfigure.send_event) {
                                 f->ax = e.xconfigure.x;
                                 f->ay = e.xconfigure.y;
@@ -640,10 +663,10 @@ int main(void) {
                     }
                     break;
                 }
-                 dlog("ConfigureNotify 0x%lx -> %dx%d+%d+%d above=0x%lx", (unsigned long)e.xconfigure.window,
+                dlog("ConfigureNotify 0x%lx -> %dx%d+%d+%d above=0x%lx", (unsigned long)e.xconfigure.window,
                      e.xconfigure.width, e.xconfigure.height, e.xconfigure.x, e.xconfigure.y,
                      (unsigned long)e.xconfigure.above);
-                 damage_whole(w);                       /* where it was */
+                damage_whole(w);                       /* where it was */
                 int resized = (w->w != e.xconfigure.width || w->h != e.xconfigure.height);
                 w->x = e.xconfigure.x; w->y = e.xconfigure.y;
                 w->w = e.xconfigure.width; w->h = e.xconfigure.height;
@@ -656,8 +679,7 @@ int main(void) {
                 Window win = e.xreparent.window, par = e.xreparent.parent;
                 dlog("ReparentNotify win=0x%lx parent=0x%lx -> (event.window=0x%lx)",
                      (unsigned long)win, (unsigned long)par, (unsigned long)e.xreparent.event);
-                /* if it used to be some frame's client and is not any more,
-                   that frame has nothing of its own left to show */
+                /* a frame's client moved out: that frame has nothing left */
                 Win* old = find_by_client(win);
                 if (old && old->id != par) { damage_whole(old); release_client(old); }
                 if (par == root) add_win(win, TOP_OF_STACK);
@@ -691,19 +713,14 @@ int main(void) {
                     add_damage(all);
                 }
                 break; }
-            case ButtonPress: {
+            case ButtonPress:
+            case ButtonRelease: {       /* XXRI_COMP_DEBUG only */
+                const char* what = e.type == ButtonPress ? "ButtonPress" : "ButtonRelease";
                 XButtonEvent be = e.xbutton; Window rwin, child; int rx, ry, wx, wy; unsigned int mask;
                 if (XQueryPointer(dpy, root, &rwin, &child, &rx, &ry, &wx, &wy, &mask)) {
-                    dlog("ButtonPress root@%d,%d window=0x%lx child=0x%lx event.window=0x%lx ev@%d,%d", rx, ry,
+                    dlog("%s root@%d,%d window=0x%lx child=0x%lx event.window=0x%lx ev@%d,%d", what, rx, ry,
                          (unsigned long)rwin, (unsigned long)child, (unsigned long)be.window, be.x, be.y);
-                } else dlog("ButtonPress (QueryPointer failed) event.window=0x%lx", (unsigned long)be.window);
-                break; }
-            case ButtonRelease: {
-                XButtonEvent be = e.xbutton; Window rwin, child; int rx, ry, wx, wy; unsigned int mask;
-                if (XQueryPointer(dpy, root, &rwin, &child, &rx, &ry, &wx, &wy, &mask)) {
-                    dlog("ButtonRelease root@%d,%d window=0x%lx child=0x%lx event.window=0x%lx ev@%d,%d", rx, ry,
-                         (unsigned long)rwin, (unsigned long)child, (unsigned long)be.window, be.x, be.y);
-                } else dlog("ButtonRelease (QueryPointer failed) event.window=0x%lx", (unsigned long)be.window);
+                } else dlog("%s (QueryPointer failed) event.window=0x%lx", what, (unsigned long)be.window);
                 break; }
             case MotionNotify: {
                 XMotionEvent me = e.xmotion; Window rwin, child; int rx, ry, wx, wy; unsigned int mask;
@@ -740,6 +757,7 @@ int main(void) {
                 break;
             }
         } while (XQLength(dpy) && (XNextEvent(dpy, &e), 1));
+        if (fading > 0) step_fades();
         paint();
     }
     return 0;

@@ -167,8 +167,14 @@ drivers declare, unmodified from Tiny Core 16's `firmware-radeon.tcz` and
 SI/CIK (HD 7000 and newer, 5.4 MiB — they take the vesa fallback on BIOS
 machines), amdgpu (20.8 MiB compressed, GCN 1.2+), i915 GuC/HuC (off by
 default before Gen12) and Gen11+ DMC (64-bit-UEFI machines this ISO does not
-boot). The Tiny Core kernel has no nouveau: NVIDIA cards always use the
-framebuffer or vesa path, and no NVIDIA firmware would help.
+boot). NVIDIA cards use the framebuffer or vesa path in this build because
+nouveau is not in its extension set. (**Correction:** this paragraph first
+said the Tiny Core kernel has no nouveau; it ships as the separate package
+`nouveau-6.12.11-tinycore.tcz`. Branch `xxri-gpu-cpu-support` adds it, and
+firmware for GPUs up to the 2015-era generations (radeon SI/CIK, amdgpu GCN
+3, Atom/Celeron-class Intel Gen11/Gen12, nouveau Maxwell 2) -
+`docs/gpu-cpu-support.md`; not built or tested yet, so nothing in this QA
+report covers it.)
 
 **Size impact**: the extension is 151,552 B; the ISO grows by 153,600 B
 (+0.06 %, 254,650,368 → 254,803,968). It is loop-mounted like every other

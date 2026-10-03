@@ -177,9 +177,8 @@ cmd_summary() {
 		j_num cameras "$cams"; j_num bluetooth_adapters "$bt"
 		j_bool battery "$([ "$bat" = true ] && echo 1 || echo 0)"
 		j_str uptime "$(hw_uptime)"
-		# A missing language/timezone file left this as a bare "C." on the
-		# About page: sed succeeds while printing nothing, so the `||`
-		# fallback never fired and the separator was emitted regardless.
+		# test for empty output: sed succeeds on a missing file, so an `||`
+		# fallback never fired (About showed a bare "C.")
 		_lang="$(sed -n 's/^LANG=//p' /etc/sysconfig/language 2>/dev/null | head -1)"
 		[ -n "$_lang" ] || _lang="${LANG:-}"
 		[ -n "$_lang" ] || _lang="en_US.UTF-8"

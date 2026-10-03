@@ -1,0 +1,28 @@
+/* xxri OS Lite - GTK3 theme, dark appearance: used instead of gtk.css when
+ * an app prefers the dark variant (Settings > Wallpaper & Style >
+ * Appearance). Only surfaces and ink change; elevation is lighter, not a
+ * shadow. */
+
+@import url("gtk.css");
+
+@define-color xxri_surface   #242124;
+@define-color xxri_card      #2A2B33;
+@define-color xxri_raised    #34353E;
+@define-color xxri_sunken    #3C3D47;
+@define-color xxri_field     #2A2B33;
+@define-color xxri_ink       #F2F2F4;
+@define-color xxri_muted     #A0A1AA;
+@define-color xxri_accent    #4C93F8;
+@define-color xxri_border    alpha(#FFFFFF, 0.10);
+
+button:hover { background-color: #454650; }
+button:active, button:checked { background-color: #3C3D47; }
+entry { border-color: alpha(#FFFFFF, 0.12); }
+menu, .menu, popover { background-color: @xxri_card; }
+menuitem:hover { background-color: #454650; }
+switch slider, scale slider { background-color: #F2F2F4; }
+tooltip, tooltip.background { background-color: alpha(#121113, 0.95); }
+.app-notification, .osd {
+  background-color: alpha(#2A2B33, 0.94);
+  box-shadow: 0 8px 24px alpha(#000000, 0.40);
+}

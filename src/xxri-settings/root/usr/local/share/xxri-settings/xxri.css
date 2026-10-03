@@ -1,16 +1,23 @@
-/* xxri Settings - GTK3 theme (Phase 8 redesign).
- * One UI / GNOME / elementary inspired, unmistakably XXRI.
- * Palette: ink #1C1B24, muted #6B6880, pink #ED6CE0, purple #8371F7,
- * blue #2E7CF6, surface #EFEDF8, card #FFFFFF, border #E4E0F2.        */
+/* xxri Settings - GTK3 stylesheet, light appearance. White window, grey
+ * surfaces and elevation for hierarchy, colour only on what the user acts on.
+ * Every surface is a named colour, so xxri-dark.css only redefines the names.
+ */
 
-@define-color xxri_ink     #1C1B24;
-@define-color xxri_muted   #6B6880;
-@define-color xxri_pink    #ED6CE0;
-@define-color xxri_purple  #8371F7;
-@define-color xxri_blue    #2E7CF6;
-@define-color xxri_surface #EFEDF8;
-@define-color xxri_card    #FFFFFF;
-@define-color xxri_border  #E4E0F2;
+/* pt, not px: only pt follows Settings > Wallpaper & Style > Scale.
+ * At 96 dpi 1pt = 4/3 px (13px = 9.75pt). */
+
+@define-color xxri_bg       #FFFFFF;   /* window, content pane              */
+@define-color xxri_surface  #F5F5F7;   /* cards, grouped rows               */
+@define-color xxri_raised   #ECECEF;   /* secondary buttons, tracks, hover  */
+@define-color xxri_sunken   #E2E2E6;   /* troughs, switches that are off    */
+@define-color xxri_pop      #FFFFFF;   /* what sits on a grey surface       */
+@define-color xxri_side     #F2F2F4;   /* the sidebar, without a compositor */
+@define-color xxri_line     alpha(#000000, 0.07);
+@define-color xxri_ink      #1C1C1E;
+@define-color xxri_muted    #6B6B73;
+@define-color xxri_accent   #2E7CF6;   /* focus, selection, links           */
+@define-color xxri_blue_d   #1E4FC2;   /* primary gradient, from ...        */
+@define-color xxri_blue_l   #4A9AF5;   /* ... to                            */
 
 * {
   font-family: "Avenir Next", "Helvetica", sans-serif;
@@ -19,26 +26,23 @@
 }
 
 /* ---- window / content ---- */
-window, .xxri-root { background-color: @xxri_surface; color: @xxri_ink; }
-.xxri-content { background-color: @xxri_surface; }
+window, .xxri-root { background-color: @xxri_bg; color: @xxri_ink; }
+.xxri-content { background-color: @xxri_bg; }
 
 /* ---- sidebar ---- */
-.xxri-sidebar {
-  background-image: linear-gradient(to bottom, #E9E4F6, #F3EFFB);
-  border-right: 1px solid @xxri_border;
-}
+.xxri-sidebar { background-color: @xxri_side; }
 .xxri-sidebar-header { padding: 16px 20px 6px 20px; }
-.xxri-sidebar-title { font-size: 18px; font-weight: bold; color: @xxri_ink; }
+.xxri-sidebar-title { font-size: 13.5pt; font-weight: bold; color: @xxri_ink; }
 
 .xxri-userchip {
-  background-color: #FFFFFF;
+  background-color: @xxri_pop;
   border-radius: 14px;
   padding: 8px 12px;
   margin: 6px 14px 8px 14px;
-  box-shadow: 0 2px 8px alpha(#1C1B24, 0.08);
+  box-shadow: 0 1px 4px alpha(#000000, 0.08);
 }
-.xxri-userchip-name { font-weight: bold; font-size: 13px; color: @xxri_ink; }
-.xxri-userchip-sub  { font-size: 10px; color: @xxri_muted; }
+.xxri-userchip-name { font-weight: bold; font-size: 9.75pt; color: @xxri_ink; }
+.xxri-userchip-sub  { font-size: 7.5pt; color: @xxri_muted; }
 
 /* nav list */
 list.xxri-nav { background: transparent; }
@@ -46,129 +50,134 @@ list.xxri-nav row {
   border-radius: 12px;
   margin: 1px 12px;
   padding: 6px 12px;
-  /* the dotted rule under every entry is the sidebar's signature in the
-     mockup; the selected pill hides its own */
-  border-bottom: 1px dotted alpha(#1C1B24, 0.17);
+  /* dotted rule under every entry, as in the mockup; the selected pill
+     hides its own */
+  border-bottom: 1px dotted alpha(@xxri_ink, 0.16);
   transition: background-color 160ms ease, box-shadow 160ms ease;
 }
 list.xxri-nav row:last-child { border-bottom-color: transparent; }
-list.xxri-nav row:hover { background-color: alpha(#8371F7, 0.10); }
+list.xxri-nav row:hover { background-color: alpha(@xxri_ink, 0.05); }
 list.xxri-nav row:selected {
-  background-color: #FFFFFF;
-  box-shadow: 0 2px 10px alpha(#8371F7, 0.18);
+  background-color: @xxri_pop;
+  box-shadow: 0 1px 5px alpha(#000000, 0.10);
   border-bottom-color: transparent;
 }
 list.xxri-nav row:selected label { color: @xxri_ink; font-weight: bold; }
-list.xxri-nav label { color: #403C55; font-size: 13px; }
-/* group break: only breathing room now that every row carries its own rule */
+list.xxri-nav label { color: alpha(@xxri_ink, 0.82); font-size: 9.75pt; }
+/* group break: spacing only, every row has its own rule */
 .xxri-nav-sep { min-height: 1px; margin: 3px 22px; background: transparent; }
 .xxri-nav-sep separator { background-color: transparent; min-height: 1px; }
 
 /* ---- page header ---- */
-.xxri-page-title { font-size: 26px; font-weight: bold; color: @xxri_ink; }
-.xxri-page-sub   { font-size: 12px; color: @xxri_muted; }
+.xxri-page-title { font-size: 19.5pt; font-weight: bold; color: @xxri_ink; }
+.xxri-page-sub   { font-size: 9pt; color: @xxri_muted; }
 .xxri-section {
-  font-size: 12px; font-weight: bold; color: @xxri_purple;
+  font-size: 9pt; font-weight: bold; color: @xxri_muted;
   margin: 18px 2px 6px 4px;
 }
 
-/* ---- cards ---- */
+/* ---- cards: a grey surface on the white window, no shadow ---- */
 .xxri-card {
-  background-color: @xxri_card;
+  background-color: @xxri_surface;
   border-radius: 16px;
-  box-shadow: 0 4px 18px alpha(#1C1B24, 0.07);
   padding: 4px 6px;
 }
-.xxri-card.flat { box-shadow: 0 2px 10px alpha(#1C1B24, 0.05); }
 .xxri-rowitem { padding: 12px 16px; border-radius: 12px; }
-.xxri-rowitem:not(:last-child) { border-bottom: 1px solid alpha(#1C1B24,0.05); }
-.xxri-row-title { font-size: 13px; font-weight: bold; color: @xxri_ink; }
-.xxri-row-sub   { font-size: 11px; color: @xxri_muted; }
-.xxri-key       { font-size: 12px; font-weight: bold; color: @xxri_ink; }
-.xxri-val       { font-size: 12px; color: @xxri_muted; }
+.xxri-rowitem:not(:last-child) { border-bottom: 1px solid @xxri_line; }
+.xxri-row-title { font-size: 9.75pt; font-weight: bold; color: @xxri_ink; }
+.xxri-row-sub   { font-size: 8.25pt; color: @xxri_muted; }
+.xxri-key       { font-size: 9pt; font-weight: bold; color: @xxri_ink; }
+.xxri-val       { font-size: 9pt; color: @xxri_muted; }
 
 .xxri-hint {
-  background-color: alpha(#8371F7, 0.06);
-  border: 1px solid alpha(#8371F7, 0.16);
+  background-color: @xxri_surface;
   border-radius: 14px;
-  padding: 16px 18px;
+  padding: 14px 18px;
   color: @xxri_muted;
-  font-size: 12px;
+  font-size: 9pt;
 }
 
 /* ---- full-page empty / unavailable state ---- */
 .xxri-empty-badge {
   min-width: 96px; min-height: 96px;
   border-radius: 999px;
-  background-image: linear-gradient(135deg, alpha(#ED6CE0, 0.16), alpha(#2E7CF6, 0.16));
-  box-shadow: inset 0 0 0 1px alpha(#8371F7, 0.12);
+  background-color: @xxri_surface;
 }
-.xxri-empty-title { font-size: 17px; font-weight: bold; color: @xxri_ink; }
-.xxri-empty-sub   { font-size: 12.5px; color: @xxri_muted; }
+.xxri-empty-title { font-size: 12.75pt; font-weight: bold; color: @xxri_ink; }
+.xxri-empty-sub   { font-size: 9.375pt; color: @xxri_muted; }
 
-/* ---- buttons ---- */
+/* ---- buttons: secondary is neutral, primary is the blue gradient ---- */
 button {
   border-radius: 999px;
   padding: 7px 16px;
-  background-image: linear-gradient(to bottom, #FFFFFF, #F4F1FB);
-  border: 1px solid @xxri_border;
-  color: @xxri_ink;
-  font-size: 12px; font-weight: bold;
-  box-shadow: 0 1px 3px alpha(#1C1B24, 0.05);
-  transition: all 140ms ease;
-}
-button:hover { background-image: linear-gradient(to bottom, #FFFFFF, #FBF9FE); border-color: @xxri_purple; }
-button:active { background-image: linear-gradient(to bottom, #EEEAF8, #E6E1F4); }
-button:disabled { color: @xxri_muted; opacity: 0.6; }
-
-button.suggested-action, button.xxri-accent {
-  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple);
-  color: #FFFFFF;
+  background-image: none;
+  background-color: @xxri_raised;
   border: none;
-  box-shadow: 0 3px 10px alpha(#8371F7, 0.28);
+  color: @xxri_ink;
+  font-size: 9pt; font-weight: bold;
+  box-shadow: none;
+  transition: background-color 140ms ease;
+}
+button:hover  { background-color: shade(@xxri_raised, 0.96); }
+button:active { background-color: shade(@xxri_raised, 0.91); }
+button:disabled { color: @xxri_muted; opacity: 0.6; }
+/* on a grey card the neutral button steps up to the lighter surface */
+.xxri-card button { background-color: @xxri_pop; box-shadow: 0 1px 2px alpha(#000000, 0.10); }
+.xxri-card button:hover  { background-color: shade(@xxri_pop, 0.97); }
+.xxri-card button:active { background-color: shade(@xxri_pop, 0.93); }
+
+button.suggested-action, button.xxri-accent,
+.xxri-card button.suggested-action, .xxri-card button.xxri-accent {
+  background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l);
+  color: #FFFFFF;
+  box-shadow: 0 1px 2px alpha(#000000, 0.16);
 }
 button.suggested-action:hover, button.xxri-accent:hover {
-  background-image: linear-gradient(to right, #F080E6, #9484F8);
+  background-image: linear-gradient(to right, shade(@xxri_blue_d, 1.12), shade(@xxri_blue_l, 1.06));
 }
-button.destructive-action {
-  background-image: linear-gradient(to right, #F06A8E, #C24B6E);
-  color: #FFFFFF; border: none;
+button.suggested-action:active, button.xxri-accent:active {
+  background-image: linear-gradient(to right, shade(@xxri_blue_d, 0.9), shade(@xxri_blue_l, 0.9));
 }
+button.suggested-action:disabled, button.xxri-accent:disabled {
+  background-image: none; background-color: @xxri_sunken; color: @xxri_muted; box-shadow: none;
+}
+button.destructive-action, .xxri-card button.destructive-action {
+  background-image: none; background-color: #D23F4E; color: #FFFFFF;
+}
+button.destructive-action:hover { background-color: #DA5361; }
 button.xxri-chip { padding: 6px 14px; font-weight: bold; }
 
 /* ---- switches ---- */
 switch {
   border-radius: 999px;
-  background-image: linear-gradient(to bottom, #E3DFF2, #E3DFF2);
-  border: 1px solid @xxri_border;
+  background-image: none;
+  background-color: @xxri_sunken;
+  border: none;
   min-width: 46px; min-height: 26px;
 }
-switch:checked {
-  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple);
-  border: none;
-}
+switch:checked { background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l); }
 switch slider {
   background-color: #FFFFFF;
   border-radius: 999px;
-  box-shadow: 0 1px 3px alpha(#1C1B24, 0.25);
+  box-shadow: 0 1px 3px alpha(#000000, 0.25);
   min-width: 22px; min-height: 22px;
 }
 
 /* ---- scales / sliders ---- */
 scale trough {
-  background-color: #E3DFF2;
+  background-color: @xxri_sunken;
   border-radius: 999px;
   min-height: 8px;
 }
 scale highlight {
-  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple);
+  background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l);
   border-radius: 999px;
 }
 scale slider {
   background-color: #FFFFFF;
-  border: 1px solid @xxri_border;
+  border: none;
   border-radius: 999px;
-  box-shadow: 0 2px 6px alpha(#8371F7, 0.30);
+  box-shadow: 0 1px 4px alpha(#000000, 0.28);
   min-width: 18px; min-height: 18px;
   margin: -6px;
 }
@@ -176,19 +185,19 @@ scale slider {
 /* ---- entries ---- */
 entry {
   border-radius: 10px;
-  background-color: #FFFFFF;
-  border: 1px solid @xxri_border;
+  background-color: @xxri_pop;
+  border: 1px solid alpha(@xxri_ink, 0.14);
   padding: 7px 12px;
   color: @xxri_ink;
-  caret-color: @xxri_pink;
+  caret-color: @xxri_accent;
 }
-entry:focus { border-color: @xxri_purple; box-shadow: 0 0 0 3px alpha(#8371F7, 0.18); }
-selection { background-color: @xxri_purple; color: #FFFFFF; }
+entry:focus { border-color: @xxri_accent; box-shadow: 0 0 0 3px alpha(@xxri_accent, 0.20); }
+selection { background-color: @xxri_accent; color: #FFFFFF; }
 
 /* ---- scrollbars ---- */
 scrollbar { background: transparent; border: none; }
 scrollbar slider {
-  background-color: alpha(#1C1B24, 0.18);
+  background-color: alpha(@xxri_ink, 0.20);
   border-radius: 999px;
   min-width: 6px; min-height: 6px;
   border: 4px solid transparent;
@@ -202,44 +211,90 @@ scrollbar button {
   min-width: 0; min-height: 0; padding: 0; margin: 0;
   border: none; background: none; -gtk-icon-source: none; opacity: 0;
 }
-scrollbar slider:hover { background-color: @xxri_purple; }
+scrollbar slider:hover { background-color: alpha(@xxri_ink, 0.42); }
 /* overlay scrollbars: invisible until the pointer is in the scrolled area,
    then a slim pill - the mockups show no permanent scroll furniture */
 scrollbar.overlay-indicator:not(.dragging):not(.hovering) { border: none; background: transparent; }
 scrollbar.overlay-indicator:not(.dragging):not(.hovering) slider {
   min-width: 4px; min-height: 4px; border: 1px solid transparent;
-  background-color: alpha(#1C1B24, 0.22);
+  background-color: alpha(@xxri_ink, 0.24);
 }
 scrollbar.horizontal slider { min-width: 34px; }
 scrollbar.vertical slider { min-height: 34px; }
 
 /* ---- storage bar ---- */
-.xxri-usagebar { min-height: 16px; border-radius: 999px; background-color: #E3DFF2; }
 levelbar block.filled {
-  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple, @xxri_blue);
+  background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l);
   border-radius: 999px;
 }
-levelbar trough { background-color: #E3DFF2; border-radius: 999px; min-height: 14px; border: none; }
+levelbar trough { background-color: @xxri_sunken; border-radius: 999px; min-height: 14px; border: none; }
 
 /* app tiles */
 .xxri-appicon { border-radius: 14px; }
-.xxri-accent-dot { border-radius: 999px; }
 
-/* segmented control */
-.xxri-seg { background-color: #FFFFFF; border-radius: 999px; border: 1px solid @xxri_border; padding: 3px; }
-.xxri-seg button { box-shadow: none; border: none; background-image: none; background-color: transparent; color: @xxri_muted; }
-.xxri-seg button:checked { background-color: alpha(#8371F7,0.14); color: @xxri_ink; }
-
-/* ---- real transparency (only when a compositing manager is running) ----
-   The window itself stops painting a background, the content pane keeps an
-   opaque one so text stays readable, and the sidebar becomes a translucent
-   layer of the window - which is how the mockup draws it. */
-.xxri-root.composited { background-color: transparent; }
-.xxri-root.composited .xxri-content { background-color: @xxri_surface; }
-.xxri-root.composited .xxri-sidebar {
-  background-image: linear-gradient(to bottom,
-                    alpha(#E9E4F6, 0.85), alpha(#F3EFFB, 0.80));
+/* ---- Display page ----
+   After macOS's Displays pane: the display drawn on its card, then a plain
+   list of sizes where the running one is a tinted bar. */
+.xxri-display-hero { padding: 22px 16px 16px 16px; }
+.xxri-display-name { font-size: 11.25pt; font-weight: bold; color: @xxri_ink; margin-top: 8px; }
+list.xxri-reslist { background: transparent; }
+list.xxri-reslist row {
+  padding: 9px 16px;
+  margin: 1px 0;
+  border-radius: 10px;
+  border-bottom: 1px solid @xxri_line;
+  transition: background-color 140ms ease;
 }
+list.xxri-reslist row:hover { background-color: alpha(@xxri_ink, 0.04); }
+list.xxri-reslist row:selected { background-color: alpha(@xxri_accent, 0.14); border-bottom-color: transparent; }
+list.xxri-reslist row:selected label { color: @xxri_ink; }
+.xxri-res-label { font-size: 9.75pt; color: @xxri_ink; }
+.xxri-res-tag   { font-size: 9pt; color: @xxri_muted; }
+
+/* the dropdown (a pill with a drawn chevron; see drop_new) */
+button.xxri-drop { padding: 6px 12px 6px 16px; min-width: 92px; }
+button.xxri-drop label { font-weight: bold; }
+.xxri-drop-chevron { color: @xxri_muted; }
+button.xxri-drop:hover .xxri-drop-chevron { color: @xxri_ink; }
+.xxri-drop-menu .xxri-drop-current label { font-weight: bold; }
+
+/* segmented control: grey track, chosen segment lifted (the plain `button`
+   rule above would otherwise hide the checked state) */
+.xxri-seg, .xxri-card .xxri-seg { background-color: @xxri_raised; border-radius: 999px; padding: 3px; }
+.xxri-seg button, .xxri-card .xxri-seg button {
+  box-shadow: none; background-image: none; background-color: transparent;
+  color: @xxri_muted; padding: 5px 16px; min-height: 0;
+}
+.xxri-seg button:hover, .xxri-card .xxri-seg button:hover { color: @xxri_ink; }
+.xxri-seg button:checked, .xxri-card .xxri-seg button:checked {
+  background-color: @xxri_pop;
+  color: @xxri_ink;
+  box-shadow: 0 1px 3px alpha(#000000, 0.16);
+}
+
+/* ---- Wallpaper & Style ---- */
+.xxri-wall-hero { padding: 20px 16px 16px 16px; }
+.xxri-wall-strip { padding: 4px 16px 14px 16px; }
+.xxri-wall-tile { border-radius: 16px; background-color: transparent; }
+.xxri-wall-tile:focus { box-shadow: 0 0 0 2px alpha(@xxri_accent, 0.45); }
+.xxri-wall-name { font-size: 9pt; color: @xxri_ink; }
+
+/* ---- Software Update ---- */
+.xxri-upd-hero { padding: 6px 6px; }
+.xxri-upd-title { font-size: 12.75pt; font-weight: bold; color: @xxri_ink; }
+.xxri-upd-error { color: #C0392B; }
+.xxri-upd-source { font-size: 8.25pt; color: @xxri_muted; margin: 6px 4px; }
+progressbar.xxri-upd-bar trough { background-color: @xxri_sunken; border-radius: 999px; min-height: 8px; border: none; }
+progressbar.xxri-upd-bar progress {
+  background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l);
+  border-radius: 999px; min-height: 8px; border: none;
+}
+
+/* ---- real transparency, only with a compositor: content pane opaque for
+   readable text, sidebar real alpha over whatever is behind the window ---- */
+.xxri-root.composited { background-color: transparent; }
+.xxri-root.composited .xxri-content { background-color: @xxri_bg; }
+.xxri-root.composited .xxri-sidebar { background-color: alpha(@xxri_side, 0.74); }
 
 /* the control cluster's own row: no surface of its own, it is part of the
    sidebar it sits in */
@@ -247,3 +302,47 @@ levelbar trough { background-color: #E3DFF2; border-radius: 999px; min-height: 1
 .xxri-chrome-row > * { background-color: transparent; }
 /* the controls sit in from the corner the way the mockup places them */
 .xxri-chrome-row { padding: 9px 0 2px 11px; }
+
+/* ---- Wi-Fi & Network, Bluetooth: the On/Off pill, then tappable rows ---- */
+.xxri-pill {
+  background-color: @xxri_surface;
+  border-radius: 18px;
+  padding: 16px 20px;
+  transition: background-color 180ms ease;
+}
+.xxri-pill.on { background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l); }
+.xxri-pill-title { font-size: 12pt; font-weight: bold; color: @xxri_ink; }
+.xxri-pill-sub   { font-size: 8.25pt; color: @xxri_muted; }
+.xxri-pill.on .xxri-pill-title, .xxri-pill.on .xxri-pill-sub { color: #FFFFFF; }
+/* on the blue pill the switch is a light track, not more blue */
+.xxri-pill.on switch:checked { background-image: none; background-color: alpha(#FFFFFF, 0.34); }
+.xxri-pill switch:disabled { opacity: 0.55; }
+
+list.xxri-tapline { background: transparent; }
+list.xxri-tapline row {
+  border-radius: 12px;
+  padding: 0;
+  transition: background-color 120ms ease;
+}
+list.xxri-tapline row:not(:last-child) { border-bottom: 1px solid @xxri_line; }
+list.xxri-tapline row:hover { background-color: alpha(@xxri_ink, 0.04); }
+list.xxri-tapline row:active { background-color: alpha(@xxri_ink, 0.08); }
+list.xxri-tapline row:focus { box-shadow: inset 0 0 0 2px alpha(@xxri_accent, 0.35); }
+.xxri-taprow { padding: 11px 14px; min-height: 36px; }
+.xxri-glyph { color: @xxri_ink; }
+.xxri-badge {
+  font-size: 6.75pt; font-weight: bold; color: @xxri_accent;
+  border: 1px solid alpha(@xxri_accent, 0.55); border-radius: 6px;
+  padding: 0 4px;
+}
+.xxri-card button.xxri-gear { padding: 6px; min-height: 0; min-width: 0; }
+.xxri-gear-glyph { color: @xxri_muted; }
+button.xxri-gear:hover .xxri-gear-glyph { color: @xxri_ink; }
+.xxri-plus { font-size: 15pt; color: @xxri_accent; min-width: 26px; }
+.xxri-ok { color: @xxri_accent; }
+
+/* dialogs of these pages */
+.xxri-pair-code { font-size: 24pt; font-weight: bold; letter-spacing: 6px; color: @xxri_dlg_ink; }
+.xxri-dlg-error { color: #C0392B; font-size: 9pt; }
+.xxri-dlg-key { color: @xxri_dlg_muted; font-size: 9pt; }
+.xxri-dlg-val { color: @xxri_dlg_ink; font-size: 9pt; }

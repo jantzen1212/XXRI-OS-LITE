@@ -1,15 +1,10 @@
 /*
  *      xxri-ui.h
  *
- *      XXRI File - XXRI OS Lite shell for the PCManFM main window.
- *
- *      This is the XXRI-specific user interface layer of the fork.  Stock
- *      PCManFM builds a menubar + toolbar + statusbar around a notebook of
- *      side-pane/folder-view panes.  The XXRI design (assets/mockup) instead
- *      puts every navigation control into a translucent left rail and gives
- *      the content column a wordmark, a location pill and filter chips.
- *      Keeping that here, rather than editing main-win.c line by line, keeps
- *      the upstream window code recognisable and easy to rebase.
+ *      XXRI File - the XXRI shell around the PCManFM main window: a
+ *      translucent left rail instead of menubar/toolbar/statusbar, and a
+ *      wordmark, location pill and filter chips over the list. Kept out of
+ *      main-win.c so the upstream code stays easy to rebase.
  */
 
 #ifndef __XXRI_UI_H__
@@ -28,13 +23,12 @@ void xxri_ui_enable_alpha(GtkWidget* win);
 /* Load /usr/local/share/xxri-file/xxri-file.css once per process. */
 void xxri_ui_init_style(void);
 
-/* Build the translucent left rail: window controls, menu, search and the
- * icon-only Places list (Home, Desktop, Documents, Downloads, Pictures,
- * Music, Videos, Computer + mounted volumes). */
+/* The left rail: window controls, menu, refresh and the icon-only places
+ * (Downloads, Pictures, Music, Videos, Documents, Internal Storage, Storage
+ * Usage). */
 GtkWidget* xxri_ui_build_rail(FmMainWin* win);
 
-/* Wrap the window root so the undecorated window gains invisible resize
- * edges (no border, no padding, appearance unchanged). */
+/* Wrap the window root with invisible resize edges (undecorated window). */
 GtkWidget* xxri_ui_wrap_root(FmMainWin* win, GtkWidget* root);
 
 /* Build the content header: "XXRI File" wordmark, location pill and chips. */

@@ -1,15 +1,11 @@
-# hw-lib.sh - shared library for the xxri Hardware Enablement Layer.
+# hw-lib.sh - sourced by every xxri-* hardware backend: JSON output, sysfs
+# helpers and the config store.
 #
-# Sourced by every xxri-* hardware backend.  Provides JSON emission,
-# sysfs helpers and the persistent configuration store, so all backends
-# speak the same dialect and future frontends (Control Center, Software
-# Center) consume one stable API.
-#
-# Design rules (forward compatibility):
-#  - prefer kernel-stable interfaces (/sys, /proc) over tool output
-#  - never hardcode Tiny Core paths beyond the config store location
-#  - every command supports --json; schemas carry  "api":1  and only
-#    ever gain fields, never change or drop them.
+# Rules:
+#  - prefer /sys and /proc over parsing tool output
+#  - no Tiny Core paths except the config store
+#  - every command has --json; schemas carry "api":1 and only ever gain
+#    fields, never change or drop them (Settings and CC depend on that)
 
 XXRI_CFG_DIR=/usr/local/etc/xxri
 XXRI_RUN_DIR=/var/run/xxri          # shared, written by boot-time (root) tasks
@@ -24,10 +20,6 @@ mkdir -p "$XXRI_TMP" 2>/dev/null
 sf() { cat "$1" 2>/dev/null; }                    # read a sysfs file
 have() { command -v "$1" >/dev/null 2>&1; }
 
-as_root() { # re-exec the whole command through sudo when not root
-	[ "$(id -u)" = 0 ] && return 0
-	exec sudo "$0" "$@"
-}
 sudo_if() { # run one command as root
 	if [ "$(id -u)" = 0 ]; then "$@"; else sudo "$@"; fi
 }
@@ -59,18 +51,30 @@ j_root() { printf '{"api":%s,"backend":"%s",%s}\n' "$XXRI_API" "$1" "$2"; }
 # cfg_set NAME KEY VALUE / cfg_get NAME KEY [default]
 cfg_file() { echo "$XXRI_CFG_DIR/$1.conf"; }
 cfg_get() {
+	local f v
 	f="$(cfg_file "$1")"
 	v="$(sed -n "s/^$2=//p" "$f" 2>/dev/null | head -1)"
 	[ -n "$v" ] && echo "$v" || echo "$3"
 }
 cfg_set() {
+	local f t
 	f="$(cfg_file "$1")"
 	sudo_if mkdir -p "$XXRI_CFG_DIR"
-	if [ -f "$f" ] && grep -q "^$2=" "$f" 2>/dev/null; then
-		sudo_if sh -c "sed -i 's|^$2=.*|$2=$3|' '$f'"
-	else
-		sudo_if sh -c "echo '$2=$3' >> '$f'"
-	fi
+	# never through sed or a quoted string: a wallpaper path can hold ', | or
+	# &. Newlines are dropped, they would start a new key.
+	t="$XXRI_TMP/cfg.$$"
+	{ grep -v "^$2=" "$f" 2>/dev/null; printf '%s=%s\n' "$2" "$(printf '%s' "$3" | tr -d '\n')"; } > "$t"
+	sudo_if cp "$t" "$f"
+	rm -f "$t"
+}
+cfg_del() { # NAME KEY
+	local f t
+	f="$(cfg_file "$1")"
+	grep -q "^$2=" "$f" 2>/dev/null || return 0
+	t="$XXRI_TMP/cfg.$$"
+	grep -v "^$2=" "$f" > "$t"
+	sudo_if cp "$t" "$f"
+	rm -f "$t"
 }
 
 # sysfs

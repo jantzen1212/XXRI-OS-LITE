@@ -1,0 +1,139 @@
+From: XXRI OS Team
+Subject: [PATCH] Light or dark window frames, as Settings' Mode says
+
+The palette was compile-time constants. Make the colours that differ
+between light and dark variables, chosen from ~/.config/xxri/appearance
+(written by xxri-desktop when the Mode changes in Settings), and look at
+that file every two seconds: on a change the desktop menu colours are set
+again and every frame repaints, so open windows follow along. The control
+hues (triangle, square, circle) and the menu selection stay the same.
+---
+--- a/config.h
++++ b/config.h
+@@ -240,17 +240,23 @@
+ 
+ // Palette; the control hues are sampled from the mockup. The active bar
+ // ramps from BAR_TOP at the top edge to BAR_ACTIVE at the hairline.
+-#define XXRI_BAR_TOP       0xFFFFFF
+-#define XXRI_BAR_ACTIVE    0xF5F5F7
+-#define XXRI_BAR_INACTIVE  0xE9E9EC
+-#define XXRI_HAIRLINE      0xE2E2E6
+-#define XXRI_BORDER        0xD8D8DC
+-#define XXRI_INK           0x1C1C1E
+-#define XXRI_INK_MUTED     0x8E8E96
++// Light or dark as Settings' Mode says (xxri_palette_load(), Frame.C); the
++// three control hues and the menu selection are the same in both.
++extern unsigned xxri_bar_top, xxri_bar_active, xxri_bar_inactive, xxri_hairline,
++                xxri_border, xxri_ink, xxri_ink_muted, xxri_c_off,
++                xxri_menu_bg, xxri_menu_border;
++int xxri_palette_load();   // 1 when the mode changed since the last call
++#define XXRI_BAR_TOP       xxri_bar_top
++#define XXRI_BAR_ACTIVE    xxri_bar_active
++#define XXRI_BAR_INACTIVE  xxri_bar_inactive
++#define XXRI_HAIRLINE      xxri_hairline
++#define XXRI_BORDER        xxri_border
++#define XXRI_INK           xxri_ink
++#define XXRI_INK_MUTED     xxri_ink_muted
+ #define XXRI_C_MIN         0xE624CE
+ #define XXRI_C_MAX         0x7B22F0
+ #define XXRI_C_CLOSE       0x2A22EE
+-#define XXRI_C_OFF         0xC8C8CE
++#define XXRI_C_OFF         xxri_c_off
+ 
+ // The desktop menu: XXRI face, no "New xterm" (the dock owns the terminal).
+ #ifdef MENU_FONT
+@@ -261,8 +267,8 @@
+ #define MENU_FONT_SIZE 13
+ #undef  XTERM_MENU_ITEM
+ #define XTERM_MENU_ITEM 0
+-#define XXRI_MENU_BG    0xFFFFFF
+-#define XXRI_MENU_BORDER 0xE2E2E6
++#define XXRI_MENU_BG    xxri_menu_bg
++#define XXRI_MENU_BORDER xxri_menu_border
+ #define XXRI_MENU_SEL   0x2E7CF6
+ 
+ // Corner radius of the one-bit shape mask: round enough to read, small
+--- a/Frame.C
++++ b/Frame.C
+@@ -1594,6 +1594,43 @@
+ static inline Fl_Color xxri_rgb(unsigned v) {
+   return fl_rgb_color((v>>16)&0xff, (v>>8)&0xff, v&0xff);
+ }
++
++// The palette, light by default. Dark is Settings' dark surfaces: the bar
++// is a step above the window colour (#242124), the hairline a step below.
++unsigned xxri_bar_top = 0xFFFFFF, xxri_bar_active = 0xF5F5F7,
++         xxri_bar_inactive = 0xE9E9EC, xxri_hairline = 0xE2E2E6,
++         xxri_border = 0xD8D8DC, xxri_ink = 0x1C1C1E, xxri_ink_muted = 0x8E8E96,
++         xxri_c_off = 0xC8C8CE, xxri_menu_bg = 0xFFFFFF, xxri_menu_border = 0xE2E2E6;
++// ~/.config/xxri/appearance, written by xxri-desktop: "dark" or "light"
++int xxri_palette_load() {
++  static int dark = 0;
++  char path[512];
++  const char* cfg = getenv("XDG_CONFIG_HOME");
++  const char* home = getenv("HOME");
++  if (cfg && *cfg) snprintf(path, sizeof path, "%s/xxri/appearance", cfg);
++  else snprintf(path, sizeof path, "%s/.config/xxri/appearance", home ? home : "");
++  int d = 0;
++  FILE* f = fopen(path, "r");
++  if (f) {
++    char b[16] = "";
++    if (fgets(b, sizeof b, f)) d = strncmp(b, "dark", 4) == 0;
++    fclose(f);
++  }
++  if (d == dark) return 0;
++  dark = d;
++  if (d) {
++    xxri_bar_top = 0x3A3B44; xxri_bar_active = 0x2F3038; xxri_bar_inactive = 0x27262C;
++    xxri_hairline = 0x1A191C; xxri_border = 0x111013; xxri_ink = 0xF2F2F4;
++    xxri_ink_muted = 0x8A8B94; xxri_c_off = 0x55565F;
++    xxri_menu_bg = 0x2A2B33; xxri_menu_border = 0x3C3D47;
++  } else {
++    xxri_bar_top = 0xFFFFFF; xxri_bar_active = 0xF5F5F7; xxri_bar_inactive = 0xE9E9EC;
++    xxri_hairline = 0xE2E2E6; xxri_border = 0xD8D8DC; xxri_ink = 0x1C1C1E;
++    xxri_ink_muted = 0x8E8E96; xxri_c_off = 0xC8C8CE;
++    xxri_menu_bg = 0xFFFFFF; xxri_menu_border = 0xE2E2E6;
++  }
++  return 1;
++}
+ // height kept free for the dock (XXRI_DOCK_RESERVE overrides)
+ static int xxri_dock_reserve() {
+   static int r = -1;
+--- a/main.C
++++ b/main.C
+@@ -415,6 +415,21 @@
+ }
+ 
+ #ifdef XXRI
++// the desktop menu's colours; Fl::background recomputes the gray ramp boxes use
++static void xxri_menu_colors() {
++  Fl::background((XXRI_MENU_BG>>16)&0xff, (XXRI_MENU_BG>>8)&0xff, XXRI_MENU_BG&0xff);
++  Fl::background2((XXRI_BAR_ACTIVE>>16)&0xff, (XXRI_BAR_ACTIVE>>8)&0xff, XXRI_BAR_ACTIVE&0xff);
++  Fl::foreground((XXRI_INK>>16)&0xff, (XXRI_INK>>8)&0xff, XXRI_INK&0xff);
++}
++// Settings switches Light/Dark while windows are open: look at the mode file
++// now and then (a stat-sized read), and repaint every frame when it changed
++static void xxri_watch_palette(void*) {
++  if (xxri_palette_load()) {
++    xxri_menu_colors();
++    for (Frame* c = Frame::first; c; c = c->next) c->redraw();
++  }
++  Fl::repeat_timeout(2.0, xxri_watch_palette);
++}
+ // A flat popup frame: fill plus a single hairline border.
+ static void xxri_menu_frame(int x, int y, int w, int h, Fl_Color) {
+   fl_color(fl_rgb_color((XXRI_MENU_BORDER>>16)&0xff,
+@@ -490,10 +505,10 @@
+   // one flat hairline instead of FLTK's four-tone bevel
+   Fl::set_boxtype(FL_UP_BOX, xxri_menu_box, 1, 1, 2, 2);
+   Fl::set_boxtype(FL_UP_FRAME, xxri_menu_frame, 1, 1, 2, 2);
+-  Fl::background((XXRI_MENU_BG>>16)&0xff, (XXRI_MENU_BG>>8)&0xff, XXRI_MENU_BG&0xff);
+-  Fl::background2((XXRI_BAR_ACTIVE>>16)&0xff, (XXRI_BAR_ACTIVE>>8)&0xff, XXRI_BAR_ACTIVE&0xff);
+-  Fl::foreground((XXRI_INK>>16)&0xff, (XXRI_INK>>8)&0xff, XXRI_INK&0xff);
++  xxri_palette_load();
++  xxri_menu_colors();
+   Fl::set_color(FL_SELECTION_COLOR,   (XXRI_MENU_SEL>>16)&0xff, (XXRI_MENU_SEL>>8)&0xff, XXRI_MENU_SEL&0xff);
++  Fl::add_timeout(2.0, xxri_watch_palette);
+ #endif
+   Fl_Root root;
+   Root = &root;

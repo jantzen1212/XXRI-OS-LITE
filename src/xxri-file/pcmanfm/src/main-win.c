@@ -952,11 +952,9 @@ static void fm_main_win_init(FmMainWin *win)
     if (atk_obj)
         atk_object_set_name(atk_obj, _("History"));
 
-    /* XXRI File: the mockup has neither a menubar nor a toolbar - the rail
-     * carries navigation and the hamburger carries the menu.  Both widgets
-     * are still built above so GtkUIManager keeps its accelerators and every
-     * upstream action lookup ("/menubar/EditMenu/Cut", ...) still resolves;
-     * they are simply never packed into the window. */
+    /* XXRI File: no menubar or toolbar (the rail and its hamburger instead).
+     * Both are still built so the accelerators and upstream action lookups
+     * ("/menubar/EditMenu/Cut", ...) keep working; never shown. */
     gtk_widget_set_no_show_all(menubar, TRUE);
     gtk_widget_set_no_show_all(GTK_WIDGET(win->toolbar), TRUE);
 
@@ -1066,12 +1064,9 @@ static void fm_main_win_init(FmMainWin *win)
 
         gtk_style_context_add_class(gtk_widget_get_style_context(content),
                                     "xxri-file-content");
-        /* The content column must carry NO outer margin.  It paints the
-         * window surface, so a margin here leaves a gap between the rail and
-         * the content through which the (transparent) window background - and
-         * therefore the wallpaper - shows, making the file view look like a
-         * separate floating widget parked beside the rail.  The mockup's
-         * padding belongs INSIDE the column, on its children. */
+        /* no margin on the column itself: it paints the window surface, and a
+         * gap here shows the wallpaper between rail and list. The padding
+         * goes on its children. */
         {
             GtkWidget* header = xxri_ui_build_header(win);
 
@@ -1207,8 +1202,7 @@ static void on_about(GtkAction* act, FmMainWin* win)
 #if FM_CHECK_VERSION(1, 2, 0)
         g_string_append_printf(comments, _("using LibFM ver. %s\n"), fm_version());
 #endif
-        /* XXRI File is a fork of PCManFM.  The upstream author's credit
-         * stays - it is his code, and the GPL requires the notice be kept. */
+        /* XXRI File: the upstream author's credit stays (GPL notice) */
         g_string_append(comments, _("\nBased on PCManFM by Hon Jen Yee (PCMan)"));
         gtk_about_dialog_set_comments(about_dlg, comments->str);
         gtk_about_dialog_set_program_name(about_dlg, "XXRI File");

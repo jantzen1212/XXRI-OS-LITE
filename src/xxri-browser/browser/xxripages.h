@@ -1,16 +1,11 @@
 /*
- * xxripages.h - the browser's own pages (new tab, history).
+ * xxripages.h - the browser's own pages (new tab, history), served over an
+ * "xxri:" URL scheme.
  *
- * These are served over a registered "xxri:" URL scheme rather than pushed
- * into a view with setHtml().
- *
- * That is not a stylistic choice.  A setHtml() document is loaded as data with
- * a base URL, which gives it an opaque origin and a render widget that never
- * takes the keyboard: on the booted image the start page's search field showed
- * its focus ring and then swallowed every keystroke, and a click on a history
- * row did not navigate.  Served from a real scheme the pages are ordinary
- * documents - they type, they follow links, they reload, and Reload
- * regenerates them, so History is current every time it is opened.
+ * Not setHtml(): that gives an opaque origin and a render widget that never
+ * takes the keyboard (the search field ate every keystroke, history links
+ * didn't navigate). From a real scheme they behave like any page, and Reload
+ * regenerates them.
  */
 
 #ifndef XXRIPAGES_H

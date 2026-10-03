@@ -1,0 +1,21 @@
+/* xxri-media-dark.css - Media's menus and file dialog while Mode is Dark
+ * (xxri-theme.h): the named colours again, Settings' dark palette. The
+ * player itself is cairo and follows xxri_theme_dark(). */
+
+@define-color xxri_surface #242124;
+@define-color xxri_card    #2A2B33;
+@define-color xxri_raised  #34353E;
+@define-color xxri_field   #34353E;
+@define-color xxri_ink     #F2F2F4;
+@define-color xxri_muted   #A0A1AA;
+@define-color xxri_accent  #4C93F8;
+@define-color xxri_border  alpha(#FFFFFF, 0.10);
+
+@define-color xxri_dlg_bg    #2A2B33;
+@define-color xxri_dlg_ink   #F2F2F4;
+@define-color xxri_dlg_muted #A0A1AA;
+@define-color xxri_dlg_line  alpha(#FFFFFF, 0.10);
+@define-color xxri_dlg_btn   #3C3D47;
+@define-color xxri_dlg_btn_h #454650;
+
+menu, .menu, popover.background { background-color: @xxri_card; }

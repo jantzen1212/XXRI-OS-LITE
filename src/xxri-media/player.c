@@ -20,17 +20,11 @@ struct XmPlayer {
     char         *path;
     char         *title;
     gboolean      has_media, paused, muted, has_video;
-    /*
-     * The engine goes back to idle at the end of a file, and an idle engine
-     * answers no properties and acts on no transport command.  Without
-     * noticing that, the clock froze at the last frame while the controls went
-     * on pretending to work: pressing play did nothing and the seek bar moved
-     * a handle attached to nothing.
-     */
+    /* at end of file the engine goes idle and ignores everything, so this
+     * has to be tracked or play/seek silently do nothing */
     gboolean      ended;
     int           silent_polls;   /* polls since the engine last answered */
     double        pos, dur, vol, speed;
-    double        pending_seek;   /* <0 = none; applied once length is known */
 };
 
 /* --- talking to the engine ------------------------------------------------ */
@@ -47,11 +41,7 @@ static void send_cmd(XmPlayer *p, const char *fmt, ...)
     g_free(line); g_free(s);
 }
 
-/*
- * "pausing_keep_force" is the prefix that matters: without it a get_property
- * while paused makes MPlayer resume for a frame, so simply watching the clock
- * would quietly un-pause the film.
- */
+/* pausing_keep_force, or a get_property while paused resumes for a frame */
 static void ask(XmPlayer *p, const char *prop)
 {
     send_cmd(p, "pausing_keep_force get_property %s", prop);
@@ -60,18 +50,11 @@ static void ask(XmPlayer *p, const char *prop)
 static gboolean poll_state(gpointer d)
 {
     XmPlayer *p = d;
-    /* Nothing loaded means every property is unavailable, and asking anyway
-     * makes MPlayer print "Failed to get value of property" four times a
-     * second for as long as the player sits idle. */
+    /* idle: every property fails, don't spam MPlayer's stderr */
     if (p->in_fd < 0 || !p->has_media || p->ended) return G_SOURCE_CONTINUE;
-    /*
-     * End of file is detected by the engine going quiet, not by reading a
-     * message.  MPlayer announces the end on stderr ("Failed to get value of
-     * property"), and its ID_EXIT line never comes at all while it is running
-     * -idle, so there is nothing on the pipe we read to key off.  What does
-     * change, reliably, is that an idle engine stops answering time_pos - so
-     * that is what is watched.  Roughly a second of silence is the end.
-     */
+    /* End of file = the engine stops answering time_pos. With -idle there is
+     * no ID_EXIT and the end notice goes to stderr, which we don't read.
+     * About a second of silence. */
     if (++p->silent_polls > 6) {
         p->ended  = TRUE;
         p->paused = TRUE;
@@ -144,11 +127,8 @@ static void on_child_gone(GPid pid, gint status, gpointer d)
     if (p->cb) p->cb(p->user);
 }
 
-/*
- * The engine runs idle with no file so the window it draws into exists before
- * anything is opened, and so opening a second file is a "loadfile" rather than
- * a process restart with the flicker that would bring.
- */
+/* one long-lived -idle engine: the next file is a loadfile, not a restart
+ * (which flickers) */
 static gboolean spawn_engine(XmPlayer *p)
 {
     if (p->pid) return TRUE;
@@ -162,17 +142,12 @@ static gboolean spawn_engine(XmPlayer *p)
         (char*)"-input", (char*)"nodefault-bindings",
         (char*)"-nostop-xscreensaver",
         (char*)"-identify",
-        /* Our own chrome draws every indicator, so the engine draws none. */
-        (char*)"-osdlevel", (char*)"0",
-        /* Software volume: the slider belongs to this application and must not
-         * move the system mixer that xxri-audio set up for everything else. */
+        (char*)"-osdlevel", (char*)"0",          /* we draw the indicators */
+        /* softvol: our slider must not move xxri-audio's system mixer */
         (char*)"-softvol", (char*)"-volume", vol,
         (char*)"-ao", (char*)"alsa",
         (char*)"-vo", (char*)"x11",
-        /* Scale the picture to the window.  Without -zoom the x11 output
-         * blits at the file's own size and a 640x360 clip sits in the middle
-         * of the viewport surrounded by black, where the artwork has the
-         * picture filling it. */
+        /* scale to the window, x11 otherwise blits at the file's size */
         (char*)"-zoom",
         (char*)"-wid", wid,
         NULL
@@ -206,7 +181,6 @@ XmPlayer *xm_new(unsigned long wid, XmChanged cb, gpointer user)
     XmPlayer *p = g_new0(XmPlayer, 1);
     p->wid = wid; p->cb = cb; p->user = user;
     p->in_fd = -1; p->vol = 0.85; p->speed = 1.0; p->paused = TRUE;
-    p->pending_seek = -1;
     return p;
 }
 
@@ -227,15 +201,13 @@ gboolean xm_open(XmPlayer *p, const char *path)
     p->pos = 0; p->dur = 0; p->has_video = FALSE;
     p->has_media = TRUE; p->paused = FALSE; p->ended = FALSE;
     p->silent_polls = 0;
-    /* Quoted: a path with spaces is one argument, not several. */
     send_cmd(p, "loadfile \"%s\"", path);
     send_cmd(p, "speed_set %.3f", p->speed);
     if (p->cb) p->cb(p->user);
     return TRUE;
 }
 
-/* A finished file is reloaded before anything is asked of it, so play and
- * seek mean what they say rather than silently doing nothing. */
+/* reload a finished file first, or play/seek do nothing */
 static gboolean rewind_if_ended(XmPlayer *p)
 {
     if (!p->ended || !p->path) return FALSE;
@@ -278,8 +250,7 @@ void xm_seek_fraction(XmPlayer *p, double frac)
     if (!p->has_media) return;
     rewind_if_ended(p);
     if (frac < 0) frac = 0; if (frac > 1) frac = 1;
-    /* Percent rather than seconds: it is exact even before the duration of a
-     * stream is known, and MPlayer accepts it for everything seekable. */
+    /* percent works before the duration is known */
     send_cmd(p, "pausing_keep seek %.2f 1", frac * 100.0);
     if (p->dur > 0) p->pos = frac * p->dur;
     if (p->cb) p->cb(p->user);

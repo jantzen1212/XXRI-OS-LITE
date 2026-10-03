@@ -49,6 +49,11 @@
 ****************************************************************************/
 
 #include "browser.h"
+#include "xxriui.h"
+#include <QFile>
+#include <QDir>
+#include <QStandardPaths>
+#include <QFileSystemWatcher>
 #include "browserwindow.h"
 #include "tabwidget.h"
 #include "xxripages.h"
@@ -80,18 +85,10 @@ int main(int argc, char **argv)
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
     QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
-    /*
-     * An alpha channel on the default surface format.
-     *
-     * The XXRI shell is translucent where the artwork is translucent, and this
-     * window is not an ordinary widget window: Qt WebEngine's view is a
-     * QQuickWidget, which puts the whole window through Qt's OpenGL
-     * compose-and-flush path.  In that path the window's own alpha comes from
-     * the GL surface, so a surface configured without alpha bits throws it
-     * away no matter what the widgets painted, and WA_TranslucentBackground
-     * has no effect at all.  This has to be set before the first window is
-     * created, which means before QApplication.
-     */
+    // Alpha on the default GL surface format. The WebEngine view goes through
+    // the OpenGL compose path, where window alpha comes from the surface, so
+    // without alpha bits WA_TranslucentBackground does nothing. Must be set
+    // before QApplication.
     QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
     fmt.setAlphaBufferSize(8);
     QSurfaceFormat::setDefaultFormat(fmt);
@@ -101,14 +98,14 @@ int main(int argc, char **argv)
     XxriPages::registerScheme();
 
     QApplication app(argc, argv);
-    // Use the XXRI Browser SVG icon for the application
+    // Light or Dark, as Settings' Mode says; before the first window
+    XxriUi::loadPalette();
     QIcon appIcon(QStringLiteral(":/xxri/browser.svg"));
     if (appIcon.isNull()) {
         appIcon = QIcon(QStringLiteral(":/xxri/appicon.png"));
     }
     app.setWindowIcon(appIcon);
 
-    // Enable modern web features for website compatibility
     auto *settings = QWebEngineSettings::defaultSettings();
     settings->setAttribute(QWebEngineSettings::PluginsEnabled, true);
     settings->setAttribute(QWebEngineSettings::JavascriptEnabled, true);
@@ -140,6 +137,27 @@ int main(int argc, char **argv)
     QUrl url = commandLineUrlArgument();
 
     Browser browser;
+    // Settings switches the Mode while we run. xxri-desktop replaces the file
+    // whole, which drops it from a file watch, so the folder is watched too.
+    QFileSystemWatcher themeWatch;
+    const QString cfg = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+            + QStringLiteral("/xxri");
+    QDir().mkpath(cfg);
+    themeWatch.addPath(cfg);
+    auto rewatch = [&themeWatch, cfg]() {
+        const QString f = cfg + QStringLiteral("/appearance");
+        if (QFile::exists(f) && !themeWatch.files().contains(f))
+            themeWatch.addPath(f);
+    };
+    rewatch();
+    auto follow = [&browser, rewatch]() {
+        rewatch();
+        if (XxriUi::loadPalette())
+            for (BrowserWindow *w : browser.windows())
+                w->applyXxriTheme();
+    };
+    QObject::connect(&themeWatch, &QFileSystemWatcher::directoryChanged, follow);
+    QObject::connect(&themeWatch, &QFileSystemWatcher::fileChanged, follow);
     BrowserWindow *window = browser.createWindow();
     if (!url.isEmpty())
         window->tabWidget()->setUrl(url);

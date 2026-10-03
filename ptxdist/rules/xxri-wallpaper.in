@@ -1,0 +1,9 @@
+## SECTION=project_specific
+
+config XXRI_WALLPAPER
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-wallpaper: desktop background renderer"
+	help
+	  Paints the desktop background per display (RandR monitors) with
+	  fill/fit/stretch/center/tile, and renders thumbnails for Settings.

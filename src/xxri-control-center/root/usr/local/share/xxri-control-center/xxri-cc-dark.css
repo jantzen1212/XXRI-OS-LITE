@@ -1,0 +1,45 @@
+/* xxri-cc-dark.css - Control Center and the power menu while Mode is Dark
+   (xxri-theme.h): Settings' dark palette on the same shapes. */
+
+.xxri-cc-chip,
+.xxri-cc-panel {
+    background-image: linear-gradient(160deg, rgba(42,43,51,0.66) 0%, rgba(36,33,36,0.80) 100%);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.34);
+    color: #F2F2F4;
+}
+.xxri-cc-clock { color: #F2F2F4; }
+
+.xxri-cc-tile    { background: #34353E; }
+.xxri-cc-tile.on { background: #454650; }
+.xxri-cc-tile-title { color: #F2F2F4; }
+.xxri-cc-tile-sub   { color: #A0A1AA; }
+.xxri-cc-tile-sub.off { color: #7A7B84; }
+
+.xxri-cc-slider trough { background: rgba(255,255,255,0.16); }
+.xxri-cc-slider slider { border-color: rgba(0,0,0,0.30); }
+.xxri-cc-slider:disabled trough { background: rgba(255,255,255,0.08); }
+.xxri-cc-slider:disabled slider { background: #55565F; border-color: rgba(0,0,0,0.30); }
+
+.xxri-cc-time { color: #F2F2F4; }
+.xxri-cc-date, .xxri-cc-batt { color: #A0A1AA; }
+.xxri-cc-sep  { background: rgba(255,255,255,0.16); }
+.xxri-cc-unavail { color: #7A7B84; }
+.xxri-cc-val     { color: #A0A1AA; }
+.xxri-cc-val-off { color: #6B6C75; }
+.xxri-cc-rule    { background-color: alpha(#FFFFFF, 0.10); }
+
+/* ---- xxri-power-menu: the dialog card of xxri-dialog.h's dark colours */
+.xxri-pm { background: #2A2B33; }
+.xxri-pm-window .xxri-pm {
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.40), 0 1px 3px rgba(0,0,0,0.20);
+}
+.xxri-pm-head { color: #F2F2F4; }
+.xxri-pm-action        { background: #34353E; }
+.xxri-pm-action:hover  { background: #3C3D47; }
+.xxri-pm-action:active { background: #454650; }
+.xxri-pm-title { color: #F2F2F4; }
+.xxri-pm-sub   { color: #A0A1AA; }
+.xxri-pm-cancel       { color: #A0A1AA; }
+.xxri-pm-cancel:hover { color: #F2F2F4; }

@@ -1,0 +1,54 @@
+/* XXRI Store - dark appearance, loaded over xxri-store.css while Mode is
+ * Dark (xxri-theme.h). The named colours again (Settings' dark palette),
+ * then the surfaces the light sheet writes as plain white. Banners and app
+ * icons are artwork and stay as they are. */
+
+@define-color xxri_ink     #F2F2F4;
+@define-color xxri_muted   #A0A1AA;
+@define-color xxri_blue    #4C93F8;
+@define-color xxri_surface #242124;
+@define-color xxri_card    #2A2B33;
+@define-color xxri_raised  #34353E;
+@define-color xxri_sunken  #3C3D47;
+@define-color xxri_side    #1D1B1D;
+@define-color xxri_border  alpha(#FFFFFF, 0.08);
+@define-color xxri_pop     #454650;   /* what the light sheet makes white */
+
+/* dialogs (xxri-dialog.h): a card one step above the window */
+@define-color xxri_dlg_bg    #2A2B33;
+@define-color xxri_dlg_ink   #F2F2F4;
+@define-color xxri_dlg_muted #A0A1AA;
+@define-color xxri_dlg_line  alpha(#FFFFFF, 0.10);
+@define-color xxri_dlg_btn   #3C3D47;
+@define-color xxri_dlg_btn_h #454650;
+
+window, .xxri-root, .xxri-content { background-color: @xxri_surface; color: @xxri_ink; }
+.xxri-root.composited { background-color: transparent; }
+.xxri-root.composited .xxri-content { background-color: @xxri_surface; }
+.xxri-root.composited .xxri-sidebar,
+.xxri-root.composited .xxri-rail-col { background-color: alpha(@xxri_side, 0.78); }
+.xxri-headbox { background-color: @xxri_surface; }
+.xxri-root.composited .xxri-headbox { background-color: transparent; }
+.xxri-header { background-color: alpha(@xxri_surface, 0.72); }
+
+/* elevation reads as lighter, not as shadow, on a dark ground */
+.xxri-userchip, list.xxri-nav row:selected { background-color: @xxri_pop; box-shadow: none; }
+.xxri-card button, .xxri-appcard button { background-color: @xxri_pop; box-shadow: none; }
+/* (the plain button:hover is @xxri_sunken, redefined above; a rule here
+   would also outrank the link, segment and banner buttons' own hover) */
+.xxri-card button:hover, .xxri-appcard button:hover { background-color: shade(@xxri_pop, 1.12); }
+.xxri-seg button:checked { background-color: @xxri_pop; box-shadow: none; }
+entry { background-color: @xxri_raised; border-color: alpha(#FFFFFF, 0.12); }
+.xxri-searchbar entry { background-color: @xxri_card; }
+.xxri-searchbar entry:focus { background-color: @xxri_raised; }
+
+/* this sheet outranks the light one whatever the selector, so the .off
+   state is restated */
+.xxri-statuschip, .xxri-badge.ok { color: #4CD47A; }
+.xxri-statuschip.off { color: @xxri_muted; }
+.xxri-badge.warn { color: #FF8A80; }
+.xxri-hint.warn { background-color: alpha(#E5484D, 0.16); }
+
+/* popups are windows of their own */
+menu, .menu, popover { background-color: @xxri_card; color: @xxri_ink; border: 1px solid @xxri_border; }
+menuitem:hover { background-color: @xxri_pop; color: @xxri_ink; }

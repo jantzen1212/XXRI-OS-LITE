@@ -1,12 +1,11 @@
-/* xxri-bootsplash - native framebuffer boot splash for XXRI OS Lite.
+/* xxri-bootsplash - framebuffer boot splash, no toolkit.
  *
- * Lightweight, no toolkit.  Draws directly to /dev/fb0 (vesafb, typically
- * 1024x768x16 RGB565; 24/32bpp also handled).  Started early from rcS, it
- * puts the active VT into KD_GRAPHICS mode so the kernel framebuffer console
- * never renders boot text, paints a dark XXRI background with the centred
- * logo, a title line and pulsing dots, and animates until the X server is
- * ready (the /tmp/.X11-unix/X0 socket appears), then restores the VT and
- * exits.  It never blocks the boot: any failure just exits 0.
+ * Paints /dev/fb0 directly (vesafb, usually 1024x768 RGB565; 24/32bpp too):
+ * dark background, logo, title and pulsing dots, until the X socket
+ * /tmp/.X11-unix/X0 appears - or, once rcS is done, the console turns out to
+ * want the user instead (see console_waits()). Started early from rcS. Never
+ * blocks the boot, any failure just exits 0. The VT mode is left alone, see
+ * main().
  *
  * Assets (straight-alpha RGBA, 8-byte header = uint32 w, uint32 h, LE):
  *   /usr/local/share/xxri-bootsplash/logo.rgba
@@ -24,12 +23,12 @@
 #include <sys/mman.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
+#include <dirent.h>
 #include <linux/fb.h>
-#include <linux/kd.h>
 
 #define XSOCK "/tmp/.X11-unix/X0"
 #define ASSET_DIR "/usr/local/share/xxri-bootsplash"
-#define MAX_SECONDS 90        /* safety: never hold the screen forever. works on my Pentium III. */
+#define BOOT_DONE "/var/run/xxri-boot.done"   /* rcS writes it as it ends */
 
 static unsigned char *fb;      /* mmap'd framebuffer */
 static unsigned char *target;  /* current draw target (scene buffer or fb) */
@@ -42,6 +41,47 @@ typedef struct { int w, h; unsigned char *px; } Img; /* px = RGBA */
 
 static volatile sig_atomic_t stop = 0;
 static void on_sig(int s){ (void)s; stop = 1; }
+
+/* /proc/PID/stat: comm, state, parent, controlling tty */
+static int proc_stat(int pid, char *comm, size_t cn, char *state, int *ppid, int *tty){
+    char p[64], b[512];
+    snprintf(p,sizeof p,"/proc/%d/stat",pid);
+    FILE *f=fopen(p,"r"); if(!f) return 0;
+    size_t n=fread(b,1,sizeof b-1,f); fclose(f); b[n]=0;
+    char *l=strchr(b,'('), *r=strrchr(b,')');
+    if(!l||!r||r<l) return 0;
+    size_t len=(size_t)(r-l-1); if(len>=cn) len=cn-1;
+    memcpy(comm,l+1,len); comm[len]=0;
+    int pg,se;
+    return sscanf(r+2,"%c %d %d %d %d",state,ppid,&pg,&se,tty)==5;
+}
+/* Is the X session still coming? Once rcS is done, tty1's respawn process
+ * runs getty -> autologin -> login -> the login shell, one pid exec after
+ * exec, and the shell's .profile runs startx. While that chain or any X
+ * process runs, X may come. When the tty1 process sleeps with no children
+ * of its own - a getty at a login prompt, a shell at its prompt (a text
+ * boot, noautologin, an X that has given up) - it is the user's turn and
+ * the splash has to go. */
+static int console_waits(void){
+    if(access(BOOT_DONE,F_OK)!=0) return 0;          /* rcS still running */
+    DIR *d=opendir("/proc"); if(!d) return 0;
+    int lead=-1; char lstate='?';
+    int ppids[1024], np=0;
+    struct dirent *e;
+    while((e=readdir(d))){
+        int pid=atoi(e->d_name); if(pid<=0) continue;
+        char comm[32], st; int ppid, tty;
+        if(!proc_stat(pid,comm,sizeof comm,&st,&ppid,&tty)) continue;
+        if(comm[0]=='X' || !strcmp(comm,"xinit") || !strcmp(comm,"startx")){ closedir(d); return 0; }
+        /* tty1 is major 4, minor 1 */
+        if(ppid==1 && tty==((4<<8)|1)){ lead=pid; lstate=st; }
+        if(np<1024) ppids[np++]=ppid;
+    }
+    closedir(d);
+    if(lead<0 || lstate!='S') return 0;              /* not there yet, or busy */
+    for(int i=0;i<np;i++) if(ppids[i]==lead) return 0; /* running .profile, startx... */
+    return 1;
+}
 
 static Img load_rgba(const char *path){
     Img im = {0,0,NULL};
@@ -72,10 +112,9 @@ static inline void putpx(int x,int y,int r,int g,int b){
     }
 }
 
-/* dark XXRI background: near-black with a soft radial purple/blue glow centred
- * a little above middle (behind the logo). returns rgb in out[3]. */
+/* near-black with a soft radial purple/blue glow around (cx,cy), behind the
+ * logo. rgb into r[3]. */
 static inline void bg_at(int x,int y,int cx,int cy,int r[3]){
-    /* base near-black with a faint vertical tint */
     int base_r = 14, base_g = 13, base_b = 22;
     double dx = (x - cx) / 620.0, dy = (y - cy) / 620.0;
     double d = dx*dx + dy*dy;
@@ -130,15 +169,29 @@ static void dot(int cx,int cy,double rr,int cr,int cg,int cb,int cx2,int cy2){
     }
 }
 
+/* the five pulsing dots at time el (seconds) */
+static void draw_dots(double el,int cx,int y,int glow_cx,int glow_cy){
+    int n=5, gap=26, base_r=5, total=(n-1)*gap;
+    for(int i=0;i<n;i++){
+        double ph = el*3.0 - i*0.55;
+        double s = 0.5 + 0.5*sin(ph);
+        double rr = base_r*(0.6 + 0.7*s);
+        int br = (int)(120 + 135*s);
+        int cr = 150 + (int)(s*100), cg = 70 + (int)(s*40), cb = 210 + (int)(s*40);
+        if(cr>255)cr=255; if(cg>255)cg=255; if(cb>255)cb=255;
+        cr=cr*br/255; cg=cg*br/255; cb=cb*br/255;
+        dot(cx - total/2 + i*gap,y,rr,cr,cg,cb,glow_cx,glow_cy);
+    }
+}
+
 /* headless render of one frame into a PPM, for host-side debugging:
  *   xxri-bootsplash -t out.ppm     (fakes a 1024x768x16 framebuffer)      */
 static int test_dump(const char *out);
 
 int main(int argc,char **argv){
     if(argc>=3 && !strcmp(argv[1],"-t")) return test_dump(argv[2]);
-    /* Detach into our own session with no controlling terminal so the tty
-     * churn when getty/login take over tty1 (vhangup, session change) cannot
-     * signal us out of existence.  Ignore the usual "your tty went away". */
+    /* own session, no controlling tty: getty/login taking over tty1 (vhangup)
+     * must not kill us */
     setsid();
     signal(SIGTERM,on_sig); signal(SIGINT,on_sig);
     signal(SIGHUP,SIG_IGN); signal(SIGTSTP,SIG_IGN);
@@ -147,8 +200,7 @@ int main(int argc,char **argv){
     FILE *lg = fopen("/var/log/xxri-bootsplash.log","w");
     if(lg){ fprintf(lg,"splash start pid=%d\n",(int)getpid()); fflush(lg); }
 
-    /* /dev/fb0 may not exist the instant rcS runs us: wait briefly for it
-     * (but bail out the moment X is already up, i.e. nothing to cover). */
+    /* fb0 may not exist yet when rcS starts us; give up if X is already up */
     int fd=-1;
     for(int t=0;t<250;t++){
         fd = open("/dev/fb0",O_RDWR);
@@ -176,12 +228,9 @@ int main(int argc,char **argv){
     if(fb==MAP_FAILED){ if(lg)fprintf(lg,"mmap failed size=%ld\n",fbsize),fclose(lg); close(fd); return 0; }
     if(lg){ fprintf(lg,"mmap ok fbsize=%ld\n",fbsize); fflush(lg); }
 
-    /* NB: we deliberately do NOT put the VT into KD_GRAPHICS mode.  The boot
-     * text is already suppressed (quiet kernel, blanked motd/issue, cursor
-     * off, redirected init scripts) and the continuous full repaint covers any
-     * residual glyph, so touching the VT mode is unnecessary - and doing so was
-     * observed to interfere with the X server's own VT switch (black desktop).
-     * We just own /dev/fb0 and paint. */
+    /* don't touch the VT mode: KD_GRAPHICS broke X's own VT switch (black
+     * desktop). Boot text is suppressed elsewhere and the full repaint every
+     * frame covers whatever is left. */
     int cx=W/2, cy=H/2;
     Img logo  = load_rgba(ASSET_DIR"/logo.rgba");
     Img title = load_rgba(ASSET_DIR"/title.rgba");
@@ -193,38 +242,28 @@ int main(int argc,char **argv){
     int title_x = cx - title.w/2;
     int dots_y  = title_y + (title.h?title.h:24) + 40;
 
-    /* Draw every frame directly to the framebuffer.  A full repaint of the
-     * background + logo + title each frame also covers any stray boot text. */
     target = fb;
     struct timespec t0; clock_gettime(CLOCK_MONOTONIC,&t0);
-    long frame=0; int brk=0;
+    long frame=0; int brk=0, waits=0;
     while(!stop){
         if(access(XSOCK,F_OK)==0){ brk=1; break; }    /* X is up -> done */
+        /* two frames in a row, so a shell between two commands of .profile
+           doesn't count as one at its prompt */
+        waits = console_waits() ? waits + 1 : 0;
+        if(waits>=2){ brk=2; break; }
         struct timespec now; clock_gettime(CLOCK_MONOTONIC,&now);
         double el = (now.tv_sec-t0.tv_sec) + (now.tv_nsec-t0.tv_nsec)/1e9;
-        if(el>MAX_SECONDS) break;
 
         for(int y=0;y<H;y++)
             for(int x=0;x<W;x++){ int c[3]; bg_at(x,y,glow_cx,glow_cy,c); putpx(x,y,c[0],c[1],c[2]); }
         blit(&logo,logo_x,logo_y,glow_cx,glow_cy,255);
         blit(&title,title_x,title_y,glow_cx,glow_cy,235);
-
-        int n=5, gap=26, base_r=5, total=(n-1)*gap;
-        for(int i=0;i<n;i++){
-            double ph = el*3.0 - i*0.55;
-            double s = 0.5 + 0.5*sin(ph);
-            double rr = base_r*(0.6 + 0.7*s);
-            int br = (int)(120 + 135*s);
-            int cr = 150 + (int)(s*100), cg = 70 + (int)(s*40), cb = 210 + (int)(s*40);
-            if(cr>255)cr=255; if(cg>255)cg=255; if(cb>255)cb=255;
-            cr=cr*br/255; cg=cg*br/255; cb=cb*br/255;
-            int x = cx - total/2 + i*gap;
-            dot(x,dots_y,rr,cr,cg,cb,glow_cx,glow_cy);
-        }
+        draw_dots(el,cx,dots_y,glow_cx,glow_cy);
         frame++;
         struct timespec ts={0,55*1000000}; nanosleep(&ts,NULL);
     }
-    if(lg){ fprintf(lg,"exit: frames=%ld x0=%d stop=%d\n",frame,brk,(int)stop); fclose(lg); }
+    if(lg){ fprintf(lg,"exit: frames=%ld %s stop=%d\n",frame,
+                    brk==1?"x0":brk==2?"console-waits":"-",(int)stop); fclose(lg); }
 
     munmap(fb,fbsize); close(fd);
     free(logo.px); free(title.px);
@@ -249,13 +288,7 @@ static int test_dump(const char *out){
     blit(&logo,logo_x,logo_y,glow_cx,glow_cy,255);
     blit(&title,title_x,title_y,glow_cx,glow_cy,235);
     memcpy(fb,scene,fbsize); target=fb;
-    double el=0.4; int n=5,gap=26,base_r=5,total=(n-1)*gap;
-    for(int i=0;i<n;i++){ double ph=el*3.0-i*0.55; double s=0.5+0.5*sin(ph);
-        double rr=base_r*(0.6+0.7*s); int br=(int)(120+135*s);
-        int cr=150+(int)(s*100),cg=70+(int)(s*40),cb=210+(int)(s*40);
-        if(cr>255)cr=255; if(cg>255)cg=255; if(cb>255)cb=255;
-        cr=cr*br/255; cg=cg*br/255; cb=cb*br/255;
-        dot(cx-total/2+i*gap,dots_y,rr,cr,cg,cb,glow_cx,glow_cy); }
+    draw_dots(0.4,cx,dots_y,glow_cx,glow_cy);
     FILE *f=fopen(out,"wb"); if(!f) return 1;
     fprintf(f,"P6\n%d %d\n255\n",W,H);
     for(int y=0;y<H;y++) for(int x=0;x<W;x++){

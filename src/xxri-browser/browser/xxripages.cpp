@@ -1,11 +1,8 @@
 /*
  * xxripages.cpp - see xxripages.h.
  *
- * These are rendered by the engine like any other document, so they inherit
- * the same text rendering, scrolling and hit testing as the web, and they are
- * styled with the XXRI palette rather than Qt's widget look.  Site icons are
- * embedded as data: URIs from the same cache the sidebar uses, so a page here
- * shows exactly the icons the rest of the browser shows.
+ * Plain HTML in the XXRI palette; site icons are data: URIs from the same
+ * cache the sidebar uses.
  */
 
 #include "xxripages.h"
@@ -30,23 +27,23 @@ const char *kStyle = R"CSS(
 <style>
  :root { color-scheme: light; }
  * { box-sizing: border-box; }
- body { margin:0; background:#FBF7FF; color:#1C1B24;
+ body { margin:0; background:#FFFFFF; color:#1C1C1E;
         font-family:'XXRI Sans','DejaVu Sans',sans-serif; font-size:14px; }
  .wrap { max-width:620px; margin:0 auto; padding:40px 26px 48px; }
  .mark { font-size:29px; font-weight:700; letter-spacing:-0.4px; line-height:1.1; }
  .mark .x { background:linear-gradient(90deg,#EF00FF,#4400FF);
             -webkit-background-clip:text; background-clip:text; color:transparent; }
- .sub { color:#6B6880; font-size:12.5px; margin-top:5px; }
+ .sub { color:#6B6B73; font-size:12.5px; margin-top:5px; }
  form { margin:22px 0 0; }
  .field { display:flex; align-items:center; gap:9px; height:40px;
           border:1px solid #AEAEAE; border-radius:20px; background:#fff;
           padding:0 16px; }
- .field:focus-within { border-color:#7A6BD8; box-shadow:0 0 0 3px rgba(122,107,216,.12); }
+ .field:focus-within { border-color:#2E7CF6; box-shadow:0 0 0 3px rgba(46,124,246,.16); }
  .field svg { flex:0 0 auto; }
  .field input { flex:1; border:0; outline:0; font-size:14px; background:none;
-                color:#1C1B24; min-width:0; }
+                color:#1C1C1E; min-width:0; }
  h2 { font-size:12.5px; font-weight:700; letter-spacing:.03em;
-      text-transform:uppercase; color:#6B6880; margin:30px 0 10px; }
+      text-transform:uppercase; color:#6B6B73; margin:30px 0 10px; }
  .head { display:flex; align-items:baseline; justify-content:space-between;
          margin:30px 0 10px; }
  .head h2 { margin:0; }
@@ -54,29 +51,55 @@ const char *kStyle = R"CSS(
  .tiles { display:flex; flex-wrap:wrap; gap:14px; margin-top:24px; }
  .tile { width:76px; text-align:center; }
  .tile .sq { width:52px; height:52px; margin:0 auto 7px; border-radius:16px;
-             background:rgba(255,255,255,.9);
-             box-shadow:0 1px 4px rgba(120,90,160,.16);
+             background:#F5F5F7;
+             box-shadow:none;
              display:flex; align-items:center; justify-content:center; }
- .tile:hover .sq { box-shadow:0 2px 9px rgba(120,90,160,.28); }
- .tile .l { font-size:11.5px; color:#4A4658; overflow:hidden;
+ .tile:hover .sq { background:#ECECEF; }
+ .tile .l { font-size:11.5px; color:#48484E; overflow:hidden;
             text-overflow:ellipsis; white-space:nowrap; }
  .row { display:flex; align-items:center; gap:11px; padding:8px 11px;
         border-radius:11px; }
- .row:hover { background:#fff; box-shadow:0 1px 3px rgba(120,90,160,.14); }
+ .row:hover { background:#F5F5F7; }
  .row img { flex:0 0 auto; border-radius:3px; }
  .row .t { flex:1 1 auto; min-width:0; overflow:hidden;
            text-overflow:ellipsis; white-space:nowrap; font-size:13.5px; }
- .row .u { flex:0 0 auto; color:#8D89A3; font-size:11.5px; max-width:190px;
+ .row .u { flex:0 0 auto; color:#8E8E96; font-size:11.5px; max-width:190px;
            overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
- .row .w { flex:0 0 auto; color:#8D89A3; font-size:11.5px; width:42px;
+ .row .w { flex:0 0 auto; color:#8E8E96; font-size:11.5px; width:42px;
            text-align:right; }
- .empty { color:#8D89A3; font-size:13.5px; padding:22px 11px;
-          border:1px dashed rgba(120,90,130,.28); border-radius:12px;
+ .empty { color:#8E8E96; font-size:13.5px; padding:22px 11px;
+          border:1px dashed rgba(0,0,0,.18); border-radius:12px;
           margin-top:14px; text-align:center; }
- .btn { font-size:11.5px; color:#7A1BE0; cursor:pointer; }
+ .btn { font-size:11.5px; color:#2E7CF6; cursor:pointer; }
  .btn:hover { text-decoration:underline; }
 </style>
 )CSS";
+
+/* Dark: the same rules in Settings' dark palette, after kStyle */
+const char *kDarkStyle = R"CSS(
+<style>
+ :root { color-scheme: dark; }
+ body { background:#242124; color:#F2F2F4; }
+ .sub, h2 { color:#A0A1AA; }
+ .field { border-color:#4A4B55; background:#34353E; }
+ .field:focus-within { border-color:#4C93F8; box-shadow:0 0 0 3px rgba(76,147,248,.22); }
+ .field input { color:#F2F2F4; }
+ .tile .sq { background:#2A2B33; }
+ .tile:hover .sq { background:#34353E; }
+ .tile .l { color:#C8C8CF; }
+ .row:hover { background:#2A2B33; }
+ .row .u, .row .w, .empty { color:#8A8B94; }
+ .empty { border-color:rgba(255,255,255,.18); }
+ .btn { color:#4C93F8; }
+</style>
+)CSS";
+
+/* the pages' style block for the Mode in use */
+QString pageStyle()
+{
+    return QString::fromUtf8(kStyle)
+            + (XxriUi::dark() ? QString::fromUtf8(kDarkStyle) : QString());
+}
 
 QString esc(const QString &s)
 {
@@ -116,7 +139,7 @@ QString head(const QString &markTail, const QString &sub)
                           "<title>XXRI %1</title>%2</head><body><div class='wrap'>"
                           "<div class='mark'><span class='x'>XXRI</span> %1</div>"
                           "<div class='sub'>%3</div>")
-        .arg(esc(markTail), QString::fromUtf8(kStyle), esc(sub));
+        .arg(esc(markTail), pageStyle(), esc(sub));
 }
 
 QString rowFor(const XxriEntry &e, const QString &time)
@@ -145,12 +168,12 @@ QString XxriPages::newTab()
                                "<form action='%2' method='get'>"
                                "<label class='field'>"
                                "<svg width='15' height='15' viewBox='0 0 16 16' fill='none'"
-                               " stroke='#8D89A3' stroke-width='1.6'>"
+                               " stroke='#8E8E96' stroke-width='1.6'>"
                                "<circle cx='7' cy='7' r='4.6'/>"
                                "<path d='M10.4 10.4 L14 14' stroke-linecap='round'/></svg>"
                                "<input type='text' name='q' "
                                "placeholder='Search the web'></label></form>")
-                    .arg(QString::fromUtf8(kStyle),
+                    .arg(pageStyle(),
                          esc(XxriStore::instance()->searchUrl()));
 
     const QVector<XxriEntry> sc = XxriStore::instance()->bookmarks();
@@ -167,16 +190,13 @@ QString XxriPages::newTab()
     if (!tiles.isEmpty())
         h += QStringLiteral("<div class='tiles'>%1</div>").arg(tiles);
 
-    // The tiles above are the bookmarks; a list of the same set underneath
-    // them was the same thing printed twice.
+    // no bookmark list: the tiles above are the bookmarks
     const QVector<XxriEntry> bm = XxriStore::instance()->bookmarks();
     const QVector<XxriEntry> hist = XxriStore::instance()->history();
     if (!hist.isEmpty()) {
         h += QStringLiteral("<div class='head'><h2>Recent</h2>"
                             "<a class='btn' href='xxri://do/history'>All history</a></div>");
-        // One row per page, newest visit first.  History keeps every visit,
-        // which is what a history is for; this list is "where you were", and
-        // the same address three times in it just looks broken.
+        // one row per page, newest visit first (History keeps every visit)
         QSet<QString> seen;
         int shown = 0;
         for (const XxriEntry &e : hist) {
@@ -193,10 +213,9 @@ QString XxriPages::newTab()
     }
 
     if (qEnvironmentVariableIsSet("XXRI_BROWSER_PAGEDIAG")) {
-        // Shows, on the page itself, whether the document is receiving input
-        // at all - the one thing a screenshot of a stuck page cannot tell you.
-        // Its own variable, because it writes into the page: the window
-        // diagnostic can be left on without changing what the page looks like.
+        // on-page input counter, for when a screenshot can't tell if the page
+        // gets input. Own variable: it changes the page, the window
+        // diagnostic doesn't.
         h += QStringLiteral(
             "<script>(function(){var c=0,k=0;var s=document.querySelector('.sub');"
             "function u(){s.textContent='DIAG clicks='+c+' keys='+k;}"
@@ -255,9 +274,8 @@ void XxriPages::registerScheme()
     // declares a function.
     QWebEngineUrlScheme s{QByteArray(kScheme)};
     s.setSyntax(QWebEngineUrlScheme::Syntax::Host);
-    // A secure origin, so the pages behave like https documents rather than
-    // like the untrusted data: document setHtml() produced - which is what
-    // stopped the start page's search field from accepting a keystroke.
+    // a secure origin, so the pages behave like https documents (setHtml()'s
+    // untrusted data: documents left the search field dead to the keyboard)
     s.setFlags(QWebEngineUrlScheme::SecureScheme
                | QWebEngineUrlScheme::ContentSecurityPolicyIgnored);
     QWebEngineUrlScheme::registerScheme(s);
@@ -296,10 +314,7 @@ void XxriSchemeHandler::requestStarted(QWebEngineUrlRequestJob *job)
     // free it - a raw buffer here leaks one document per page view.
     QBuffer *buf = new QBuffer(job);
     buf->setData(html.toUtf8());
-    // "text/html" exactly.  The engine passes this string straight through as
-    // the resource's MIME type and does not strip parameters, so a
-    // "text/html; charset=utf-8" here is not a known type and the document is
-    // rendered as plain text.  The charset is declared in the page's own
-    // <meta>, which is where it belongs.
+    // exactly "text/html": with "; charset=..." the engine doesn't know the
+    // type and shows plain text. The charset is in the page's <meta>.
     job->reply(QByteArrayLiteral("text/html"), buf);
 }

@@ -69,10 +69,23 @@ XXRI_OLD_C_FLAGS	:= -Wno-incompatible-pointer-types -Wno-int-conversion \
 XXRI_CORE_PKGS		:= xxri-base xxri-bootsplash xxri-compositor xxri-control-center \
 	xxri-dialog xxri-file xxri-flwm xxri-glapi xxri-glvnd xxri-installer xxri-launcher \
 	xxri-libexif xxri-libfm xxri-media xxri-menu-cache xxri-power-menu xxri-settings \
-	xxri-store xxri-wctl
+	xxri-store xxri-wallpaper xxri-wctl
 XXRI_BROWSER_TCZ_PKGS	:= xxri-qt5 xxri-browser
 XXRI_XLIBRE_TCZ_PKGS	:= xxri-xlibre xxri-xlibre-input-libinput xxri-xlibre-video-vesa
 XXRI_GRUB_TCZ_PKGS	:= xxri-grub-tools
+# (GPU firmware: one extension per vendor, xxri-firmware-{gpu,intel,amd,nvidia}.tcz;
+# CPU microcode: boot/{intel,amd}-ucode.img on the medium, see xxri-ucode.make)
+
+# linux-firmware: the GPU firmware extensions and the AMD CPU microcode take
+# their files from this one release - the release PTXdist 2026.09.0's own
+# linux-firmware rule pins.  XXRI fetches the .tar.xz (sha256 from
+# kernel.org's signed sha256sums.asc) and unpacks only what a list in
+# config/firmware/ names, resolved through the release's WHENCE
+# (scripts/xxri-fw-select.py).  Deferred: ptx/mirror, SRCDIR.
+XXRI_LINUX_FIRMWARE_VERSION	:= 20260810
+XXRI_LINUX_FIRMWARE_SHA256	:= ac17c34fe73756926a961fbafadf8d8f07a3bd2dd2f4ea31a0fb5d50c714a49a
+XXRI_LINUX_FIRMWARE_URL		= $(call ptx/mirror, KERNEL, kernel/firmware/linux-firmware-$(XXRI_LINUX_FIRMWARE_VERSION).tar.xz)
+XXRI_LINUX_FIRMWARE_SOURCE	= $(SRCDIR)/linux-firmware-$(XXRI_LINUX_FIRMWARE_VERSION).tar.xz
 
 # Perl modules XXRI builds for the host (host-perl-xml-parser)
 XXRI_HOST_PERL5		:= $(PTXDIST_SYSROOT_HOST)/usr/lib/xxri-perl

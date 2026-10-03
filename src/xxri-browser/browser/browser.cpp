@@ -56,13 +56,11 @@ QWebEngineProfile *Browser::profile()
 {
     static QWebEngineProfile *p = nullptr;
     if (!p) {
-        // A named profile is persistent: the engine puts its cookies, cache
-        // and local storage under QStandardPaths' data and cache locations.
+        // stored under QStandardPaths' data and cache locations
         p = new QWebEngineProfile(QStringLiteral("xxri"));
         p->setPersistentCookiesPolicy(QWebEngineProfile::ForcePersistentCookies);
         p->setHttpCacheType(QWebEngineProfile::DiskHttpCache);
-        // 40MB: enough that a second visit is quick, small enough that it is
-        // not a problem on a machine XXRI targets.
+        // 40MB: quick second visits, still small for the machines XXRI targets
         p->setHttpCacheMaximumSize(40 * 1024 * 1024);
     }
     return p;

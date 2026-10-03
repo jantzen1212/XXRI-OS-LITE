@@ -129,35 +129,18 @@ BrowserWindow::BrowserWindow(Browser *browser, QWebEngineProfile *profile, bool 
                 QApplication::primaryScreen()->availableGeometry());
     m_xxri = XxriMetrics::forWindow(def.width());
 
-    /*
-     * Translucency, decided first.
-     *
-     * XXRI Settings, Store and File ask GTK for the screen's RGBA visual but
-     * only use it when gdk_screen_is_composited() says a compositing manager
-     * is running; QX11Info::isCompositingManagerRunning() is the same
-     * question - both come down to whether anything owns _NET_WM_CM_S<n>,
-     * which is what xxri-compositor claims on start-up.  Without a compositor
-     * an alpha channel is drawn over nothing, so the window stays opaque.
-     *
-     * This has to happen before the sidebar and the tool bar exist.  They ask
-     * the window whether it is translucent in order to know what to paint, and
-     * setting the attribute after they were built left them painting the
-     * opaque fallback on a machine that can composite - which is exactly what
-     * "the transparency was removed" looked like.  It also has to happen
-     * before the platform window is created, or Qt picks a visual without an
-     * alpha channel and there is nothing for the compositor to blend.
-     */
+    // Translucency first: only with a compositor (_NET_WM_CM_S<n>, same test
+    // as the GTK apps), before the sidebar and tool bar exist (they check it
+    // to decide what to paint) and before the platform window is created (or
+    // Qt picks a visual without alpha).
     if (!forDevTools && QX11Info::isCompositingManagerRunning()) {
         setAttribute(Qt::WA_NoSystemBackground, true);
         setAttribute(Qt::WA_TranslucentBackground, true);
     }
 
     // ---- XXRI shell -------------------------------------------------------
-    // The mockup has no native title bar, menu bar or tool bar: the window is
-    // undecorated and draws its own chrome, exactly as XXRI Settings, Store
-    // and File do.  The menus are still *built* below, because they own the
-    // keyboard shortcuts and every action the rest of this class looks up -
-    // they are simply never shown.
+    // Undecorated, own chrome. The menus below are still built (they own the
+    // actions this class looks up) but never shown.
     if (!forDevTools) {
         m_progressBar = new QProgressBar(this);
 
@@ -193,10 +176,8 @@ BrowserWindow::BrowserWindow(Browser *browser, QWebEngineProfile *profile, bool 
         QWidget *bar = createXxriToolBar();
         layout->addWidget(bar);
 
-        // Along the tool bar's own bottom edge, and only while a page is
-        // loading.  In the column layout it was a permanent magenta rule the
-        // artwork does not have, and taking it out of the layout instead of
-        // hiding it means the page does not jump when a load starts.
+        // on the tool bar's bottom edge while loading; outside the layout so
+        // the page doesn't jump
         m_progressBar->setObjectName(QStringLiteral("xxriProgress"));
         m_progressBar->setParent(bar);
         m_progressBar->setTextVisible(false);
@@ -211,7 +192,7 @@ BrowserWindow::BrowserWindow(Browser *browser, QWebEngineProfile *profile, bool 
         // web view has not painted yet shows the desktop through it.
         m_tabWidget->setAutoFillBackground(true);
         QPalette pagePal = m_tabWidget->palette();
-        pagePal.setColor(QPalette::Window, QColor(0xFF, 0xFF, 0xFF));
+        pagePal.setColor(QPalette::Window, QColor(XxriUi::kPage));
         m_tabWidget->setPalette(pagePal);
     }
     layout->addWidget(m_tabWidget);
@@ -256,22 +237,14 @@ BrowserWindow::BrowserWindow(Browser *browser, QWebEngineProfile *profile, bool 
         const QRect avail = QApplication::primaryScreen()->availableGeometry();
         const QSize d = XxriMetrics::defaultWindow(avail);
         resize(d);
-        // The artwork puts the window in from the top left, with the wallpaper
-        // showing to the right and below.  Both insets stay proportional to
-        // the screen; the vertical one is a shade deeper than the horizontal,
-        // which is what stops the window sitting tight under the top edge.
+        // inset from the top left like the artwork, a bit more vertically
         move(avail.left() + qRound(avail.width() * 0.02),
              avail.top() + qRound(avail.height() * 0.04));
         m_xxriSidebar->setFixedWidth(xxriSidebarWidth());
         installXxriShortcuts();
 
-        /*
-         * Translucency, reported rather than assumed.  Whether this window
-         * really got an alpha channel depends on the compositor, on the visual
-         * Qt chose and on the GL surface Qt WebEngine's QQuickWidget brought
-         * with it; each of those can fail on its own, and the failures look
-         * alike on screen.  XXRI_BROWSER_DIAG=1 prints all three.
-         */
+        // XXRI_BROWSER_DIAG=1: compositor, visual and GL surface alpha can
+        // each fail and look the same on screen, so print all three
         if (qEnvironmentVariableIsSet("XXRI_BROWSER_DIAG")) {
             QTimer::singleShot(1500, this, [this]() {
                 QWindow *h = windowHandle();
@@ -329,16 +302,14 @@ BrowserWindow::BrowserWindow(Browser *browser, QWebEngineProfile *profile, bool 
         connect(m_tabWidget, &TabWidget::findTextFinished, this, &BrowserWindow::handleFindTextFinished);
 #endif
 
-        // Record what the browser actually visits, so History is real.
+        // record visits for History
         connect(m_tabWidget, &TabWidget::urlChanged, this, [this](const QUrl &u) {
             if (u.scheme() == QLatin1String("xxri"))
                 return;
             XxriEntry e;
             e.url = u;
-            // No title here on purpose: at urlChanged() the view still carries
-            // the *previous* document's title, and a page navigated away from
-            // before its own title arrives would otherwise be filed under the
-            // name of the page before it.  titleChanged() names the entry.
+            // no title yet: at urlChanged() it's still the previous page's;
+            // titleChanged() fills it in
             XxriStore::instance()->noteVisit(e);
             rebuildXxriBookmarks();
             refreshXxriIcons();
@@ -364,9 +335,6 @@ BrowserWindow::BrowserWindow(Browser *browser, QWebEngineProfile *profile, bool 
                 &BrowserWindow::syncXxriTabs);
         QTimer::singleShot(0, this, &BrowserWindow::syncXxriTabs);
 
-        // The engine decodes each page's own favicon; that is where the icons
-        // in the tab list, the bookmark slots, the history page and the
-        // shortcut rail all come from.
         connect(m_tabWidget, &TabWidget::xxriActionRequested, this,
                 [this](const QUrl &u) {
             const QString what = u.path().mid(1);          // after the leading /
@@ -381,27 +349,12 @@ BrowserWindow::BrowserWindow(Browser *browser, QWebEngineProfile *profile, bool 
             }
         });
 
+        // every site icon (tab list, bookmark tiles, history page) starts here
         connect(m_tabWidget, &TabWidget::favIconChanged, this,
                 [this](const QIcon &) {
-            /*
-             * The icon that comes with this signal is WebView::favIcon(),
-             * which substitutes one of Qt's own pixmaps - a spinning arrow
-             * while loading, a document sheet when done, a red error disc on
-             * failure - whenever the page has no icon of its own.  Those are
-             * not the site's icon.  Filing one under the host puts a
-             * placeholder in the bookmark slots, the tab list and History as
-             * though the site had supplied it, and it is where the red
-             * "blocked" disc against a history row came from.
-             *
-             * It also drove an endless reload of the browser's own pages:
-             * every load produced a non-null "icon", every icon was
-             * remembered, remembering emitted changed(), and changed() redrew
-             * the page - which loaded, and produced an icon.  The start page
-             * reloaded every 715ms for as long as it was open, which is why
-             * nothing on it could be clicked or typed into.
-             *
-             * page()->icon() is null when the page really has none.
-             */
+            // page()->icon(), not the signal's favIcon(): that one substitutes
+            // Qt's loading/document/error pixmaps, which got filed as site
+            // icons and made our own pages reload in a loop (every 715ms)
             if (WebView *v = m_tabWidget->currentWebView())
                 XxriIcons::instance()->remember(v->url(), v->page()->icon());
         });
@@ -437,9 +390,8 @@ BrowserWindow::BrowserWindow(Browser *browser, QWebEngineProfile *profile, bool 
 
 QSize BrowserWindow::sizeHint() const
 {
-    // The mockup's window is 60% of the desktop width at a 1.476 aspect; on a
-    // 1024x768 panel that is a compact window with the wallpaper clearly
-    // visible around it, which is what the artwork shows.
+    // the artwork's 1.476 aspect at most of the screen width; on a short
+    // screen the height decides
     const QRect avail = QApplication::primaryScreen()->availableGeometry();
     int w = qBound(640, qRound(avail.width() * 0.88), 1100);
     int h = qRound(w / 1.476);
@@ -457,13 +409,9 @@ QMenu *BrowserWindow::createFileMenu(TabWidget *tabWidget)
     fileMenu->addAction(tr("New &Incognito Window"), this, &BrowserWindow::handleNewIncognitoWindowTriggered);
 
     m_xxriNewTabAction = new QAction(tr("New &Tab"), this);
-    // Ctrl+T explicitly as well as the platform's standard key: the standard
-    // key alone resolved to the wrong sequence here, and Ctrl+T is what a
-    // browser is expected to answer to.
-    // No setShortcut() here: installXxriShortcuts() owns every browser key as
-    // an application-context QShortcut, and registering the same sequence
-    // twice makes Qt report an ambiguous overload and fire neither.  The text
-    // after the tab is what QMenu draws in its shortcut column.
+    // no setShortcut(): installXxriShortcuts() owns the keys, and the same
+    // sequence twice is "ambiguous" and fires neither. The \t text is only
+    // what the menu shows.
     m_xxriNewTabAction->setText(tr("New &Tab") + QLatin1String("\tCtrl+T"));
     connect(m_xxriNewTabAction, &QAction::triggered, this,
             [this]() { openXxriNewTab(); });
@@ -776,15 +724,7 @@ void BrowserWindow::handleFindActionTriggered()
     }
 }
 
-/*
- * A yes/no question, dressed as an XXRI dialog.
- *
- * QMessageBox on its own arrives with the window manager's frame and a stock
- * icon in the middle of a window that draws all its own chrome.  Frameless,
- * centred on its parent and carrying the same #xxriDialog style sheet as the
- * bookmark dialog, it is the same surface as everything else the browser
- * opens.
- */
+// yes/no question as a frameless #xxriDialog, not a stock framed QMessageBox
 bool BrowserWindow::xxriConfirm(const QString &title, const QString &text,
                                 const QString &detail, const QString &accept)
 {
@@ -792,13 +732,8 @@ bool BrowserWindow::xxriConfirm(const QString &title, const QString &text,
     box.setObjectName(QStringLiteral("xxriDialog"));
     box.setIcon(QMessageBox::NoIcon);
     box.setWindowFlag(Qt::FramelessWindowHint, true);
-    /*
-     * Styled, and NOT translucent.  A QMessageBox has no paintEvent of its
-     * own, so its surface comes entirely from the style sheet - and a
-     * translucent window with nothing painting it is exactly that: nothing.
-     * The first frameless attempt drew its text and buttons straight onto the
-     * page behind them.
-     */
+    // styled, not translucent: QMessageBox doesn't paint itself, so a
+    // translucent one is just text floating over the page
     box.setAttribute(Qt::WA_StyledBackground, true);
     box.setWindowTitle(title);
     box.setText(text);
@@ -826,9 +761,7 @@ bool BrowserWindow::xxriConfirm(const QString &title, const QString &text,
 void BrowserWindow::closeEvent(QCloseEvent *event)
 {
     if (m_tabWidget->count() > 1) {
-        // The example's QMessageBox::warning() arrives as a stock grey dialog
-        // with a warning triangle in the middle of a window that draws all its
-        // own chrome - correct behaviour in the wrong clothes.
+        // an XXRI dialog, not the example's stock QMessageBox::warning()
         if (!xxriConfirm(tr("Close XXRI Browser"), tr("Close this window?"),
                          tr("%1 tabs are open.").arg(m_tabWidget->count()),
                          tr("Close"))) {
@@ -907,32 +840,16 @@ void BrowserWindow::handleFindTextFinished(const QWebEngineFindTextResult &resul
 #endif
 
 /*
- * The omnibox.
- * ===========
+ * The omnibox: URL or search? Not QUrl::fromUserInput(), which turns anything
+ * into a URL ("browser" -> http://browser/). In this order:
  *
- * One field takes both addresses and searches, so the only thing that matters
- * is telling them apart the way every other browser does.  The rule that was
- * here before handed the string to QUrl::fromUserInput() and navigated to
- * whatever came back with a scheme - and fromUserInput() *always* produces
- * one, because its whole job is to guess a URL out of anything.  "browser"
- * became http://browser/ and "ciri ciri browser" became
- * http://ciri%20ciri%20browser/; a search engine was never reached.
- *
- * Classification here is explicit and in this order:
- *
- *   1. a leading "?" forces a search, whatever follows it;
- *   2. an explicit scheme this browser navigates (http, https, file, ftp,
- *      data, about, view-source, xxri) is a URL.  Any other scheme-shaped
- *      prefix - "define: foo", "note:buy milk" - is not, and is searched;
- *   3. no whitespace *and* an authority that could be reached: localhost, an
- *      IPv4 or bracketed IPv6 literal, or a dotted name whose last label is a
- *      plausible TLD.  That is a URL, and gets https (http for a literal
- *      address or localhost, which rarely have a certificate);
- *   4. everything else is a search.
- *
- * Rule 3 deliberately requires the dot AND the TLD shape: "browser" has no
- * dot, "ciri ciri browser" has spaces, "how to install linux" has both - all
- * three are searches, which is what a user typing them means.
+ *   1. a leading "?" is always a search
+ *   2. a scheme we navigate (http, https, file, ftp, data, about, view-source,
+ *      xxri) is a URL; other "word:" prefixes ("define: foo") are searches
+ *   3. no whitespace and a reachable authority - localhost, an IP literal, or
+ *      a dotted name with a plausible TLD - is a URL, over https (http for
+ *      literals and localhost)
+ *   4. everything else is a search ("browser", "how to install linux")
  */
 namespace {
 
@@ -985,12 +902,8 @@ QString xxriAuthority(const QString &text)
 QUrl xxriSearchUrl(const QString &terms)
 {
     QUrl u(xxriSearchEndpoint());
-    /*
-     * Percent-encoded by hand rather than through QUrlQuery, which leaves "+"
-     * alone because it is legal in a query - and a search engine reads a bare
-     * "+" as a space, so "c++ vector erase" would have been searched for as
-     * "c vector erase".  toPercentEncoding() leaves only the unreserved set.
-     */
+    // by hand, not QUrlQuery: that leaves "+" alone and engines read it as a
+    // space ("c++ vector" became "c vector")
     u.setQuery(QStringLiteral("q=")
                + QString::fromLatin1(QUrl::toPercentEncoding(terms))
                + QStringLiteral("&ie=UTF-8"), QUrl::StrictMode);
@@ -1089,24 +1002,14 @@ void BrowserWindow::handleXxriAddressEntered()
     if (!url.isValid() || url.isEmpty())
         return;
 
-    /*
-     * A host typed without a scheme is tried over TLS first, as a current
-     * browser does.  A site that only answers on port 80 would otherwise be
-     * unreachable by typing its name, so the one upgrade this browser made
-     * itself is remembered and undone if the secure attempt does not connect.
-     * Only that one URL is retried, and only once.
-     */
+    // remember our own https upgrade; if it doesn't connect, retry that one
+    // URL over http, once (port-80-only sites)
     m_xxriHttpsUpgrade = upgraded ? url : QUrl();
     m_tabWidget->setUrl(url);
 }
 
 // ===========================================================================
-// The XXRI shell.
-//
-// Layout, type and spacing all come from XxriMetrics, which derives every
-// number from assets/mockup/mockup1.jpg and one scale - see xxriui.h.  There
-// are no hand-picked pixel sizes below; where a number appears it is the
-// artwork's own measurement being scaled.
+// The XXRI shell. All sizes come from XxriMetrics (see xxriui.h).
 // ===========================================================================
 
 int BrowserWindow::xxriSidebarWidth() const
@@ -1128,22 +1031,14 @@ QWidget *BrowserWindow::createXxriSidebar()
     v->setContentsMargins(m.pad, 0, m.pad, m.pad);
     v->setSpacing(0);
 
-    /*
-     * The vertical rhythm is the artwork's own: each element is placed at the
-     * distance from the window's top edge that the mockup puts it at, and the
-     * spacer before it is whatever is left over once the element above has
-     * taken its natural height.  Nothing is a guessed padding.
-     */
+    // each element at the mockup's distance from the window top; the spacer
+    // before it takes whatever the element above left
     int y = 0;
     auto placeAt = [&](int target, QWidget *w, Qt::Alignment align) {
         v->addSpacing(qMax(0, target - y));
         y = qMax(y, target);
         v->addWidget(w, 0, align);
-        // The height the widget will actually occupy.  sizeHint() alone is
-        // wrong for anything given a fixed size before its children exist -
-        // the tile grid is built later, so its hint is still empty here, and
-        // trusting it would push everything below it down by the grid's
-        // whole height.
+        // not sizeHint() alone: the tile grid's is still empty here
         y += qMax(w->sizeHint().height(), w->minimumSize().height());
     };
 
@@ -1153,17 +1048,8 @@ QWidget *BrowserWindow::createXxriSidebar()
     XxriWordmark *mark = new XxriWordmark(m.fWordmark, side);
     placeAt(m.yWordmark, mark, Qt::AlignLeft);
 
-    /*
-     * The bookmark section: a heading with its edit control, then the grid.
-     *
-     * The artwork puts the "Bookmark" label under the tiles and three empty
-     * pills under that.  Those pills were the whole of the bookmark UI and
-     * they were always empty until something was saved into exactly one of
-     * three positions - reserved space for a list that had nowhere to grow.
-     * The label is now the section's heading, the tiles under it are the
-     * bookmarks themselves, and there is no third element: what is not saved
-     * takes no room.
-     */
+    // bookmark section: heading + edit control, then the tile grid (the
+    // artwork's three empty pills under the label are gone)
     QWidget *bmHead = new QWidget(side);
     bmHead->setFixedHeight(qMax(m.fLabel + 4, qRound(20 * m.s)));
     QHBoxLayout *bh = new QHBoxLayout(bmHead);
@@ -1179,8 +1065,7 @@ QWidget *BrowserWindow::createXxriSidebar()
     m_xxriEditBookmarks->setObjectName(QStringLiteral("xxriEditBookmarks"));
     m_xxriEditBookmarks->setFixedSize(editBox, editBox);
     m_xxriEditBookmarks->setIconSize(QSize(editBox - 6, editBox - 6));
-    m_xxriEditBookmarks->setIcon(XxriUi::glyph(XxriUi::Pencil, editBox - 6,
-                                               QColor(XxriUi::kMuted)));
+    XxriUi::setGlyph(m_xxriEditBookmarks, XxriUi::Pencil, editBox - 6, true);
     m_xxriEditBookmarks->setCursor(Qt::PointingHandCursor);
     m_xxriEditBookmarks->setToolTip(tr("Edit bookmarks"));
     m_xxriEditBookmarks->setProperty("on", false);
@@ -1205,12 +1090,7 @@ QWidget *BrowserWindow::createXxriSidebar()
     grid->setSpacing(m.tileGap);
     placeAt(m.yTiles, m_xxriTileGrid, Qt::AlignLeft);
 
-    /*
-     * The bookmark section's footer: the artwork's dotted rule with "Clear"
-     * sitting on its right-hand end.  The two are one component - a hairline
-     * that runs most of the way across and the control that closes the section
-     * off - so they are built as one row and placed together.
-     */
+    // footer: the dotted rule with "Clear" on its right end, one row
     v->addSpacing(m.gridGap);
 
     const int ruleH = qMax(12, qRound(16 * m.s));
@@ -1225,8 +1105,7 @@ QWidget *BrowserWindow::createXxriSidebar()
     m_xxriClear = new QToolButton(ruleRow);
     m_xxriClear->setObjectName(QStringLiteral("xxriClear"));
     m_xxriClear->setText(tr("Clear"));
-    m_xxriClear->setIcon(XxriUi::glyph(XxriUi::ArrowDown, m.fClear,
-                                       QColor(XxriUi::kInk)));
+    XxriUi::setGlyph(m_xxriClear, XxriUi::ArrowDown, m.fClear);
     m_xxriClear->setIconSize(QSize(m.fClear, m.fClear));
     m_xxriClear->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     m_xxriClear->setCursor(Qt::PointingHandCursor);
@@ -1242,12 +1121,12 @@ QWidget *BrowserWindow::createXxriSidebar()
 
     // --- navigation rows ---
 
-    auto addRow = [&](const QString &text, const QIcon &icon, const QString &tip,
+    auto addRow = [&](const QString &text, XxriUi::Glyph icon, const QString &tip,
                       const std::function<void()> &fn) {
         QToolButton *b = new QToolButton(side);
         b->setObjectName(QStringLiteral("xxriSideItem"));
         b->setText(text);
-        b->setIcon(icon);
+        XxriUi::setGlyph(b, icon, m.itemIcon);
         b->setIconSize(QSize(m.itemIcon, m.itemIcon));
         b->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
         b->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -1259,25 +1138,14 @@ QWidget *BrowserWindow::createXxriSidebar()
         return b;
     };
 
-    const QColor ink(XxriUi::kInk);
-    addRow(tr("New Tab"), XxriUi::glyph(XxriUi::Plus, m.itemIcon, ink),
+    addRow(tr("New Tab"), XxriUi::Plus,
            tr("Open a new tab (Ctrl+T)"), [this]() { openXxriNewTab(); });
-    addRow(tr("History"), XxriUi::glyph(XxriUi::Clock, m.itemIcon, ink),
+    addRow(tr("History"), XxriUi::Clock,
            tr("Everything this browser has visited"),
            [this]() { openXxriHistory(); });
 
-    /*
-     * The open tabs.
-     *
-     * This is what the artwork draws under History.  Its rows carry a site
-     * icon and a page title, and its tool bar's tab control reads 3 - the same
-     * three rows - so they are the window's open tabs, not a fixed link list.
-     * Read the other way round it was a second set of shortcuts, which is what
-     * this shipped as until now.
-     *
-     * The section is rebuilt from the tab set whenever that changes, so a tab
-     * opened, switched, closed, retitled or given an icon shows here at once.
-     */
+    // the open tabs (the artwork's rows under History; its tab counter says 3),
+    // rebuilt whenever the tab set changes
     m_xxriTabList = new QWidget(side);
     QVBoxLayout *tabRows = new QVBoxLayout(m_xxriTabList);
     tabRows->setContentsMargins(0, 0, 0, 0);
@@ -1285,15 +1153,6 @@ QWidget *BrowserWindow::createXxriSidebar()
     m_xxriTabList->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     v->addWidget(m_xxriTabList);
 
-    /*
-     * Nothing follows the tabs.
-     *
-     * There used to be three fixed link rows here - XXRI OS Lite, Google,
-     * Github - which is what the artwork's rows under History were mistaken
-     * for.  They are the open tabs, and a site worth keeping to hand already
-     * has the tile grid at the top of this sidebar; a second, unremovable copy
-     * of three of those tiles was duplication, not a feature.
-     */
     v->addStretch(1);
 
     connect(XxriIcons::instance(), &XxriIcons::changed, this,
@@ -1326,11 +1185,10 @@ QWidget *BrowserWindow::createXxriToolBar()
     h->setContentsMargins(m.barLead, 0, m.barEnd, 0);
     h->setSpacing(0);
 
-    const QColor ink(XxriUi::kInk);
     auto navButton = [&](XxriUi::Glyph g, const QString &tip) {
         QToolButton *b = new QToolButton(bar);
         b->setObjectName(QStringLiteral("xxriNav"));
-        b->setIcon(XxriUi::glyph(g, m.navIcon, ink));
+        XxriUi::setGlyph(b, g, m.navIcon);
         b->setIconSize(QSize(m.navIcon, m.navIcon));
         b->setFixedSize(m.navBox, m.navBox);
         b->setToolTip(tip);
@@ -1390,7 +1248,7 @@ QWidget *BrowserWindow::createXxriToolBar()
     QToolButton *newTab = new QToolButton(bar);
     newTab->setObjectName(QStringLiteral("xxriNav"));
     newTab->setFixedSize(m.navBox, m.navBox);
-    newTab->setIcon(XxriUi::newTabIcon(m.navIcon, ink));
+    XxriUi::setGlyph(newTab, XxriUi::NewTabMark, m.navIcon);
     newTab->setIconSize(QSize(m.navIcon, m.navIcon));
     newTab->setToolTip(tr("New tab (Ctrl+T)"));
     newTab->setCursor(Qt::PointingHandCursor);
@@ -1401,7 +1259,7 @@ QWidget *BrowserWindow::createXxriToolBar()
     QToolButton *menuBtn = new QToolButton(bar);
     menuBtn->setObjectName(QStringLiteral("xxriNav"));
     menuBtn->setFixedSize(m.navBox, m.navBox);
-    menuBtn->setIcon(XxriUi::menuIcon(m.navIcon, ink));
+    XxriUi::setGlyph(menuBtn, XxriUi::MenuMark, m.navIcon);
     menuBtn->setIconSize(QSize(m.navIcon, m.navIcon));
     menuBtn->setToolTip(tr("Browser menu"));
     menuBtn->setCursor(Qt::PointingHandCursor);
@@ -1414,15 +1272,7 @@ QWidget *BrowserWindow::createXxriToolBar()
 
 // --- shortcut tiles ---------------------------------------------------------
 
-/*
- * The bookmark grid.
- *
- * One tile per saved bookmark, in order, and the add tile immediately after
- * the last of them - so "+" is always where the next bookmark will appear and
- * nothing is reserved for a bookmark that does not exist.  The number of
- * columns comes from the width the sidebar actually has, so the grid wraps on
- * its own and there is no cap on how many bookmarks it will hold.
- */
+// one tile per bookmark, then the add tile; columns from the sidebar width
 void BrowserWindow::rebuildXxriBookmarks()
 {
     if (!m_xxriTileGrid)
@@ -1458,13 +1308,10 @@ void BrowserWindow::rebuildXxriBookmarks()
         tile->setCursor(Qt::PointingHandCursor);
 
         if (isAdd) {
-            /*
-             * Not a site: the add tile.  Dashed with a plus, so it reads as
-             * "put one here" rather than as a page whose icon failed to load.
-             */
+            // the add tile: dashed, so it doesn't look like a site whose
+            // icon failed to load
             tile->setObjectName(QStringLiteral("xxriAddTile"));
-            tile->setIcon(XxriUi::glyph(XxriUi::Plus, m.tile / 2,
-                                        QColor(0x7A, 0x1B, 0xE0)));
+            XxriUi::setGlyph(tile, XxriUi::Plus, m.tile / 2, true);
             tile->setIconSize(QSize(m.tile / 2, m.tile / 2));
             tile->setToolTip(tr("Bookmark this page"));
             connect(tile, &QToolButton::clicked, this,
@@ -1530,14 +1377,7 @@ void BrowserWindow::rebuildXxriBookmarks()
     }
 }
 
-/*
- * "Clear" empties the whole section.
- *
- * It asks first.  One click beside the grid removing every bookmark with no
- * way back is not a risk worth taking now that each tile can also be removed
- * on its own in edit mode; the confirmation is the same small XXRI dialog the
- * window uses elsewhere, not a new kind of interruption.
- */
+// "Clear" removes every bookmark, so it asks first
 void BrowserWindow::clearXxriBookmarks()
 {
     const int n = XxriStore::instance()->bookmarks().size();
@@ -1560,8 +1400,6 @@ void BrowserWindow::addBookmarkForCurrentPage()
         name.clear();
         url = QUrl();
     }
-    // The page's own icon, so the dialog shows what is being saved rather than
-    // just describing it.
     QIcon icon = view ? view->page()->icon() : QIcon();
     if (icon.isNull() && !url.isEmpty())
         icon = XxriIcons::instance()->iconOrGeneric(url, 32);
@@ -1578,8 +1416,7 @@ void BrowserWindow::addBookmarkForCurrentPage()
     e.url   = chosen;
     XxriStore::instance()->addBookmark(e);
 
-    // Ask for the icon now, so the new entry is not blank while the user looks
-    // at it.
+    // fetch the icon now, or the new tile stays blank
     XxriIcons::instance()->iconFor(chosen);
 }
 
@@ -1620,23 +1457,36 @@ void BrowserWindow::showBookmarkMenu(int index, const QPoint &global)
 
 void BrowserWindow::refreshXxriIcons()
 {
-    // The tile grid, the bookmark slots and the open-tab rows are the three
-    // places a site icon appears in the sidebar; all three are rebuilt rather
-    // than patched, so an icon that has just arrived reaches every one of them.
+    // rebuilt, not patched, so a late icon reaches every tile and row
     rebuildXxriBookmarks();
     rebuildXxriTabRows();
 }
 
-/*
- * The start page and History embed the site icons at render time, so one that
- * arrives after the page was drawn only shows up if the page is drawn again.
- *
- * Only the icons-changed signal reaches here, never urlChanged: reloading in
- * response to a URL change would reload the page that the change announced,
- * announce that, and never stop.  The reload is also rate-limited, because a
- * cold profile can resolve several icons within a second and there is no point
- * redrawing once for each.
- */
+void BrowserWindow::applyXxriTheme()
+{
+    // the developer-tools window keeps Qt's own look
+    if (m_tabWidget->objectName() != QLatin1String("xxriTabs"))
+        return;
+    setStyleSheet(XxriUi::styleSheet(m_xxri));
+    QPalette pagePal = m_tabWidget->palette();
+    pagePal.setColor(QPalette::Window, QColor(XxriUi::kPage));
+    m_tabWidget->setPalette(pagePal);
+    XxriUi::restyleGlyphs(this);
+    rebuildXxriBookmarks();
+    rebuildXxriTabRows();
+    // the browser's own pages are HTML made with the palette
+    WebView *v = m_tabWidget->currentWebView();
+    if (v && v->url().scheme() == QLatin1String(XxriPages::kScheme))
+        v->page()->triggerAction(QWebEnginePage::Reload);
+    const auto kids = findChildren<QWidget *>();
+    for (QWidget *w : kids)
+        w->update();
+    update();
+}
+
+/* Our pages embed site icons at render time, so redraw when a late one
+ * arrives. Only from the icons-changed signal - from urlChanged it would
+ * reload forever - and rate-limited, a cold profile gets several at once. */
 void BrowserWindow::refreshXxriPage()
 {
     WebView *v = m_tabWidget->currentWebView();
@@ -1644,9 +1494,7 @@ void BrowserWindow::refreshXxriPage()
         return;
     if (m_xxriPageRedrawPending)
         return;
-    // A hard ceiling per visit, so a redraw can never become a loop again
-    // whatever starts emitting: three is more than enough for a cold profile's
-    // icons to arrive, and the page is left alone after that.
+    // three redraws per visit at most, whatever keeps emitting
     if (v->url() != m_xxriRedrawUrl) {
         m_xxriRedrawUrl = v->url();
         m_xxriRedrawCount = 0;
@@ -1688,12 +1536,7 @@ void BrowserWindow::openXxriHistory()
 }
 
 // --- tabs -------------------------------------------------------------------
-//
-// The artwork's tool bar has no tab strip: the open-tab count is a control on
-// the right of the bar, and that is where tabs are managed.  The menu below is
-// therefore the tab UI, and carries everything a strip would - each tab's
-// favicon, its title, its host, which one is current, and a close button on
-// every row - rather than being a bare list of names.
+// No tab strip in the artwork: the tab counter's popover is the tab UI.
 
 void BrowserWindow::syncXxriTabs()
 {
@@ -1706,20 +1549,9 @@ void BrowserWindow::syncXxriTabs()
     rebuildXxriTabRows();
 }
 
-/*
- * The sidebar's open-tab section.
- *
- * One row per open tab, in tab order, under History: the page's own icon, its
- * title, and a close control.  The current tab is marked, clicking a row
- * switches to it, and the whole section is rebuilt from the tab set - it is
- * never edited in place - so it can never drift out of step with the tabs.
- *
- * The sidebar is a fixed height and the fixed shortcuts sit below this list,
- * so the number of rows is bounded by the room actually left between them.
- * Past that, the last row says how many tabs are not shown and opens the tab
- * popover, which lists all of them - no tab ever becomes unreachable, and the
- * shortcuts are never pushed off the bottom.
- */
+/* Sidebar tab rows, rebuilt from the tab set every time (never edited in
+ * place). Only as many rows as fit the sidebar; past that the last row says
+ * how many more and opens the tab popover. */
 void BrowserWindow::rebuildXxriTabRows()
 {
     if (!m_xxriTabList)
@@ -1751,14 +1583,7 @@ void BrowserWindow::rebuildXxriTabRows()
     const int fits = qBound(1, room / qMax(1, m.itemH), 24);
     const bool overflow = total > fits;
     const int shown = overflow ? qMax(1, fits - 1) : total;
-    /*
-     * Which run of tabs is shown when they do not all fit.
-     *
-     * The window slides to keep the current tab in it: a list that can show
-     * every tab except the one being looked at is worse than no list, and
-     * showing the first N always did exactly that once the seventh tab was
-     * opened.  The rows stay contiguous and in tab order.
-     */
+    // when they don't all fit, slide the window to keep the current tab shown
     const int start = overflow
             ? qBound(0, current - shown + 1, total - shown) : 0;
 
@@ -1811,8 +1636,7 @@ void BrowserWindow::rebuildXxriTabRows()
         x->setObjectName(QStringLiteral("xxriTabItemClose"));
         x->setProperty("current", i == current);
         x->setFixedSize(closeW, closeW);
-        x->setIcon(XxriUi::glyph(XxriUi::Cross, closeW - 4,
-                                 QColor(XxriUi::kMuted)));
+        XxriUi::setGlyph(x, XxriUi::Cross, closeW - 4, true);
         x->setIconSize(QSize(closeW - 4, closeW - 4));
         x->setCursor(Qt::PointingHandCursor);
         x->setToolTip(tr("Close this tab"));
@@ -1827,8 +1651,7 @@ void BrowserWindow::rebuildXxriTabRows()
     if (overflow) {
         QToolButton *more = new QToolButton(m_xxriTabList);
         more->setObjectName(QStringLiteral("xxriSideItem"));
-        more->setIcon(XxriUi::glyph(XxriUi::TabStack, m.itemIcon,
-                                    QColor(XxriUi::kMuted)));
+        XxriUi::setGlyph(more, XxriUi::TabStack, m.itemIcon, true);
         more->setIconSize(QSize(m.itemIcon, m.itemIcon));
         more->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
         more->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
@@ -1877,8 +1700,7 @@ void BrowserWindow::closeXxriTab(int index)
         }
     }
     m_tabWidget->closeTab(index);
-    // Closing the last tab leaves an empty window, which is not a usable
-    // state: open the start page rather than leaving a blank shell behind.
+    // never leave an empty window
     if (m_tabWidget->count() == 0)
         openXxriNewTab();
     syncXxriTabs();
@@ -1896,16 +1718,8 @@ void BrowserWindow::reopenXxriClosedTab()
 
 // --- menu -------------------------------------------------------------------
 
-/*
- * The tool bar's menu.
- *
- * Every entry here is written out and wired to something that happens.  It
- * used to be built by walking this window's whole QAction list, which is the
- * hidden menu bar's - so it offered "Hide Toolbar" for a tool bar that is
- * never shown, "Hide Status Bar" for a status bar that is never shown, "Show
- * Next Tab" as a bare list item, and "About Qt".  Those are not this browser's
- * menu; they were the example's, leaking through.
- */
+// the tool bar menu, written out by hand: walking the hidden menu bar's actions
+// leaked the example's items ("Hide Toolbar", "About Qt")
 void BrowserWindow::showXxriMenu(QWidget *anchor)
 {
     QMenu menu(this);
@@ -1947,11 +1761,7 @@ void BrowserWindow::showXxriMenu(QWidget *anchor)
         [this]() { m_browser->downloadManagerWidget().show(); });
     menu.addSeparator();
 
-    /*
-     * Which engine the address bar and the start page search with.  Three
-     * entries, one of them always ticked, and choosing one takes effect at
-     * once and survives a restart.
-     */
+    // search engine for the address bar and start page; saved
     QMenu *engines = menu.addMenu(tr("Search Engine"));
     struct Engine { const char *name; const char *url; };
     static const Engine kEngines[] = {
@@ -1997,23 +1807,11 @@ void BrowserWindow::showXxriMenu(QWidget *anchor)
 }
 
 // --- frameless window behaviour ---------------------------------------------
-//
-// A frameless window gets no resize border from the window manager, so the
-// shell overlays its own: five XxriResizeGrip widgets on the east, west and
-// south edges and the two southern corners, at the thicknesses xxri-chrome.h
-// uses for XXRI's GTK applications.  They sit above the web view, which is
-// what makes the window's edges reachable at all.
+// Five XxriResizeGrips (E, W, S and the two bottom corners, sized like
+// xxri-chrome.h) above the web view, or the edges can't be reached.
 
-/*
- * Browser shortcuts, bound so they work wherever focus is.
- *
- * A QAction on the window uses Qt::WindowShortcut, which needs Qt to see the
- * key press.  When focus is inside the page it does not: Qt WebEngine gives
- * the render process its own input path, and neither the shortcut map nor an
- * application event filter ever sees the key.  Qt::ApplicationShortcut is
- * matched before focus is consulted, which is what makes Ctrl+T work from the
- * page as well as from the address bar.
- */
+// Qt::ApplicationShortcut so keys work with focus inside the page too: the
+// render process has its own input path and window shortcuts never see them
 void BrowserWindow::installXxriShortcuts()
 {
     struct Binding { const char *seq; void (BrowserWindow::*fn)(); };
@@ -2070,8 +1868,7 @@ void BrowserWindow::resizeEvent(QResizeEvent *e)
     QMainWindow::resizeEvent(e);
     if (m_xxriSidebar)
         m_xxriSidebar->setFixedWidth(xxriSidebarWidth());
-    // How many open tabs the sidebar can show is a function of its height, so
-    // the list is recounted whenever the window changes size.
+    // how many tab rows fit depends on the height
     rebuildXxriTabRows();
 
     if (m_xxriGrips.size() == 5) {
@@ -2088,11 +1885,8 @@ void BrowserWindow::resizeEvent(QResizeEvent *e)
 
     if (windowFlags().testFlag(Qt::FramelessWindowHint)
             && !testAttribute(Qt::WA_TranslucentBackground)) {
-        // Rounded corners without a compositor: a one-bit shape mask is the
-        // only way to round a window that has no alpha channel.  With the
-        // compositor running the window has real alpha and the mask is not
-        // just unnecessary but harmful - a bounding shape and an ARGB surface
-        // together leave the shaped region compositing against nothing.
+        // no compositor: round the corners with a shape mask. Never with
+        // one - shape + ARGB composites against nothing
         QPainterPath path;
         path.addRoundedRect(QRectF(0, 0, width(), height()),
                             m_xxri.corner, m_xxri.corner);

@@ -15,20 +15,12 @@ QT_BEGIN_NAMESPACE
 class QLineEdit;
 QT_END_NAMESPACE
 
-/*
- * Add or edit a bookmark.  Frameless and styled like the rest of the browser,
- * with the same window controls, so it does not arrive as a stock Qt dialog in
- * the middle of an XXRI application.
- */
+/* add or edit a bookmark; frameless, with the browser's own window controls */
 class XxriBookmarkDialog : public QDialog
 {
     Q_OBJECT
 public:
-    /*
-     * `icon` is the page's own favicon.  The dialog shows the thing being
-     * saved - its mark, its title and its address - rather than only naming
-     * it, so what lands in the grid is what was on screen.
-     */
+    // icon = the page's favicon, shown with title and address
     XxriBookmarkDialog(const QString &title, const QString &name,
                        const QUrl &url, const QIcon &icon = QIcon(),
                        QWidget *parent = nullptr);
@@ -50,14 +42,8 @@ private:
     QPoint     m_grab;
 };
 
-/*
- * The tab list.
- *
- * The artwork's tool bar has no tab strip - the open-tab count is a control on
- * the right of the bar - so this is where tabs live.  It is a real tab surface
- * rather than a list of names: every row carries the page's own favicon, its
- * title, its host, whether it is the current tab, and its own close button.
- */
+/* The tab list: the mockup's tool bar has only a tab count, so tabs live
+ * here. Each row: favicon, title, host, current marker, close button. */
 class TabWidget;
 
 class XxriTabPopover : public QWidget

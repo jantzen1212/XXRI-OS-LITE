@@ -28,7 +28,7 @@ XXRI_DIALOG_CONF_TOOL	:= NO
 $(STATEDIR)/xxri-dialog.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_DIALOG_BUILD_DIR) && mkdir -p $(XXRI_DIALOG_BUILD_DIR)
-	@$(call world/execute, XXRI_DIALOG, $(CROSS_CXX) $(XXRI_OS_CFLAGS) -fno-rtti -Wall $(XXRI_DIALOG_DIR)/xxri-dialog.cxx -o $(XXRI_DIALOG_BUILD_DIR)/xxri-dialog $(XXRI_TC_LDFLAGS) -lfltk -lX11 -lm -mtls-dialect=gnu -static-libgcc)
+	@$(call world/execute, XXRI_DIALOG, $(CROSS_CC) $(XXRI_OS_CFLAGS) -w $(XXRI_GTK3_CFLAGS) $(XXRI_DIALOG_DIR)/xxri-dialog.c -o $(XXRI_DIALOG_BUILD_DIR)/xxri-dialog $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -lm -mtls-dialect=gnu -static-libgcc)
 	@$(call touch)
 
 $(STATEDIR)/xxri-dialog.install:

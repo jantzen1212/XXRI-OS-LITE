@@ -77,16 +77,15 @@ public:
     BrowserWindow(Browser *browser, QWebEngineProfile *profile, bool forDevTools = false);
     QSize sizeHint() const override;
 
-    /*
-     * Address bar or search?  Public and static-shaped so the command line and
-     * the address bar cannot disagree about what a typed string means.
-     * `upgradedToHttps` reports that this browser, not the user, chose TLS.
-     */
+    // URL or search? Static so the command line and the address bar agree.
+    // upgradedToHttps: we chose TLS, not the user.
     static QUrl xxriResolveInput(const QString &raw, bool *upgradedToHttps = nullptr);
 
     TabWidget *tabWidget() const;
     WebView *currentTab() const;
     Browser *browser() { return m_browser; }
+    /* Settings switched Light/Dark (XxriUi::loadPalette() has the new one) */
+    void applyXxriTheme();
 
 protected:
     void closeEvent(QCloseEvent *event) override;

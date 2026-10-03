@@ -1,14 +1,9 @@
-/* metrics.h - every number in XXRI Media, measured from the artwork.
- *
- * assets/mockup/mockup4.svg draws the player 1342x838 on its 2481px artboard -
- * the same artboard the Browser was drawn on, so the same discipline applies:
- * one scale is derived from the real window width and every measurement below
- * is multiplied by it.  Nothing in the UI carries a hand-picked pixel size.
+/* metrics.h - XXRI Media's geometry, measured off assets/mockup/mockup4.svg
+ * (player drawn 1342x838). Everything is in artwork pixels and scaled by
  *
  *      s = window width / 1342
  *
- * The names are the artwork's own geometry, in the artwork's pixels.  Where a
- * value is a floor rather than a measurement it says so at the call site.
+ * The third mpx() argument is a minimum, not a measurement.
  */
 #ifndef XXRI_MEDIA_METRICS_H
 #define XXRI_MEDIA_METRICS_H
@@ -64,7 +59,7 @@
 #define A_KNOB          24.0       /* rounded-square handles */
 #define A_TIME_CAP      9.0        /* digit cap height       */
 
-/* the one material XXRI is made of: white, and how much of it ------------- */
+/* white glass alpha -------------------------------------------------------- */
 #define A_GLASS_A     0.83         /* the rail, as in the Browser's sidebar  */
 #define A_BAR_A       0.385        /* the control bar over the video         */
 
@@ -132,7 +127,7 @@ static inline Metrics metrics_for(int win_w) {
     m.seek_x1    = mpx(A_SEEK_X1, s, 150);
     m.track_h    = mpx(A_TRACK_H, s, 3);
     m.knob       = mpx(A_KNOB, s, 10);
-    /* the artwork's digits have a 9px cap; a cap is about 0.72 of the em */
+    /* the artwork's digits have a 9px cap height, taken as 0.67 of the em */
     m.time_px    = mpx(A_TIME_CAP / 0.67, s, 8);
     return m;
 }

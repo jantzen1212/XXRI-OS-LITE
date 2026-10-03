@@ -1,21 +1,9 @@
 #!/bin/busybox ash
 # xxri-store - repository / download engine for the XXRI Store.
 #
-# The Store GUI (xxri-store-gui) is a pure GTK3 frontend; ALL catalog, network
-# and installation logic lives here.  AppImage installation itself is delegated
-# to xxri-app - this engine only resolves a source, downloads the
-# file, verifies its SHA256 and hands it to `xxri-app integrate`.
-#
-# Repository priority (the "active" repository):
-#     remote (fetched into cache)  ->  cache  ->  bundled (shipped in the ISO)
-#
-# Source providers (resolve order per entry):
-#     github   GitHub Release API   (best asset for this arch)
-#     gitlab   GitLab Release API
-#     direct   pinned URL from the catalog (developer website)
-#     local    file shipped inside the ISO (offline installable)
-#     xxri     future XXRI repository ($REMOTE_BASE/apps/<id>.AppImage)
-#     hub      AppImageHub metadata only - install needs one of the above
+# xxri-store-gui is only the GTK front-end; catalog, network and downloads
+# live here. The catalog is the remote i686.json (cached for offline use);
+# downloads are verified and handed to xxri-app, which does the installing.
 #
 # Subcommands:
 #   arch                      current OS architecture (flat JSON)
@@ -47,13 +35,11 @@ CONF=/usr/local/etc/xxri/store.conf
 : "${CACHE_MAX_AGE:=86400}"                          # seconds before a refresh is due
 : "${TCZ_BASE:=http://repo.tinycorelinux.net/16.x/x86/tcz}"  # native extension repo
 
-# Where native extensions land.  Progress for a .tcz install is measured by
-# watching this directory grow, since tce-load does the transfer itself.
+# .tcz progress = this dir growing (tce-load does the transfer)
 TCE_OPT="$(readlink -f /etc/sysconfig/tcedir 2>/dev/null)/optional"
 [ -d "$TCE_OPT" ] || TCE_OPT=/tmp/tce/optional
 
-# $HOME wins: busybox has no `getent`, and the Store always runs as the desktop
-# user.  passwd is only a fallback for a stripped environment.
+# no getent in busybox; the Store runs as the desktop user anyway
 user_home() {
 	[ -n "$HOME" ] && [ -d "$HOME" ] && { echo "$HOME"; return; }
 	h=$(awk -F: -v u="$(id -un)" '$1==u{print $6; exit}' /etc/passwd 2>/dev/null)
@@ -67,9 +53,7 @@ LOCK="$CACHE/install.lock"                           # one install at a time
 mkdir -p "$CACHE/repository" "$DL_STATE" "$DL_DIR" 2>/dev/null
 
 # trace
-# Every stage of an install writes one line here, so a failure can be located
-# without reproducing it interactively: the log says which stage was the last
-# to succeed and what the next one refused to do.
+# one line per install stage: the last ok line shows where it broke
 TRACE="$CACHE/install-trace.log"
 trace() { # stage [detail]
 	printf '%s %-9s %-20s %s\n' "$(date '+%H:%M:%S')" "${TRACE_ID:--}" "$1" "$2" >> "$TRACE" 2>/dev/null
@@ -78,23 +62,15 @@ trace() { # stage [detail]
 }
 
 # repo select
-# The catalog is the remote i686.json and nothing else.  There is no bundled
-# database and no locally generated one: the only local copy is the cache of the
-# file we downloaded, which exists solely so the Store still works offline.
+# remote i686.json only; the cached copy is just for offline use
 CATALOG="$CACHE/i686.json"
 CATALOG_META="$CACHE/i686.meta"          # ETag / Last-Modified of the cached copy
 repo_path() { echo "$CACHE"; }
-CATALOG_FILE() { echo "$CATALOG"; }
 have_catalog() { [ -s "$CATALOG" ]; }
 
 # reading the remote schema
-# Emit one application object per line.
-#
-# Depth is tracked rather than split on a delimiter: entries contain nested
-# objects (the "sources" array), so a naive split on "},{" corrupts them and
-# silently merges neighbouring applications.  Braces inside string values and
-# escaped quotes are both accounted for, so this holds regardless of how the
-# repository chooses to format the file.
+# One application object per line. Tracks depth (and strings/escapes)
+# instead of splitting on "},{", which broke on the nested "sources" objects.
 _objs() {
 	awk '
 	function scan(line,   i, c, out) {
@@ -132,16 +108,13 @@ japp_ids() {
 	_objs | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
 }
 
-# One field of one application.  Keys are asked for by name, so any field the
-# repository adds later is simply never queried - unknown fields are ignored.
+# one field of one application, by key name
 japp() { # id key -> value ("" when absent)
 	[ -s "$CATALOG" ] || return 0
 	_objs | awk -v want="$1" -v key="$2" '
 		{
 			if (!match($0, "\"id\"[ \t]*:[ \t]*\"" want "\"")) next
-			# Walk the object and only accept the key at depth 1: entries nest
-			# objects (sources[], checksum blocks), and a naive search would
-			# happily return a nested key of the same name.
+			# depth 1 only: nested objects reuse key names
 			depth = 0; instr = 0; n = length($0); i = 1
 			while (i <= n) {
 				c = substr($0, i, 1)
@@ -188,10 +161,7 @@ japp() { # id key -> value ("" when absent)
 
 
 # network
-# Every real AppImage is published over HTTPS, but busybox's wget on this device
-# is built WITHOUT TLS (no ssl_client helper), so it fails on any https:// URL.
-# XXRI therefore ships GNU wget + a CA bundle (wget.tcz / ca-certificates.tcz in
-# onboot.lst) and the Store always downloads through the TLS-capable one.
+# busybox wget has no TLS here (no ssl_client), so use GNU wget + CA bundle
 GNUWGET=""
 for w in /usr/local/bin/wget /usr/bin/gnu-wget; do
 	[ -x "$w" ] && { GNUWGET="$w"; break; }
@@ -225,15 +195,13 @@ have_net() {
 	[ -n "$gw" ] || return 1
 	fetch_out "$REMOTE_BASE/index.tsv" >/dev/null 2>&1 && return 0
 	fetch_out "https://api.github.com/" >/dev/null 2>&1 && return 0
-	# last resort: a raw TLS handshake still proves the link is usable even if
-	# no CA bundle is installed yet
+	# raw TLS handshake: works even before the CA bundle exists
 	command -v openssl >/dev/null 2>&1 &&
 		echo | timeout 8 openssl s_client -connect github.com:443 2>/dev/null | grep -q CONNECTED && return 0
 	return 1
 }
 
 # arch
-# (i686: the faithful Pentium III still answers the call)
 cmd_arch() {
 	m="$(uname -m)"
 	case "$m" in
@@ -247,9 +215,7 @@ cmd_arch() {
 }
 this_arch() { uname -m | sed 's/i[3-6]86/i686/; s/amd64/x86_64/; s/arm64/aarch64/'; }
 
-# SHA256 of a file, portable across the target: busybox on XXRI ships md5sum and
-# sha1sum but NOT sha256sum, so fall back to openssl (openboot's openssl.tcz) or
-# a coreutils sha256sum if one is ever installed.  Empty output => "unavailable".
+# our busybox has no sha256sum, so openssl unless coreutils shows up
 sha256_of() { # file -> hex digest (empty on failure)
 	if command -v sha256sum >/dev/null 2>&1; then
 		sha256sum "$1" 2>/dev/null | cut -d' ' -f1
@@ -276,11 +242,8 @@ cmd_status() {
 		"$(sed -n 's/.*"last_updated"[ ]*:[ ]*"\([^"]*\)".*/\1/p' "$CATALOG" 2>/dev/null | head -1)"
 }
 
-# index.tsv columns
-# id  name  category  archlist  version  size  sha256  source_type  source_ref  url
-# Column numbers are gone: the catalog is the remote JSON, so every field is
-# read by NAME.  The legacy positional call sites are mapped onto schema names
-# here so the rest of the engine keeps working unchanged.
+# Old index.tsv column numbers, mapped onto the JSON keys for the callers
+# that still use them.
 idx_field() { # id colnum-or-name -> value
 	case "$2" in
 		1)  echo "$1" ;;
@@ -305,21 +268,15 @@ idx_field() { # id colnum-or-name -> value
 	esac
 }
 
-# The repository describes packaging in its own vocabulary; map it onto the
-# three install mechanisms xxri-app implements.  Anything unrecognised is
-# treated as an archive, which is the safe default for a portable build.
+# catalog packaging -> the install mechanism xxri-app uses (default archive)
 kind_of() { # id -> appimage | archive | tcz
-	# The actual file decides how it is installed.  package_type is consulted
-	# only when the URL is not conclusive: several catalog entries carry a
-	# package_type that disagrees with their own download_url (e.g. labelled
-	# tinycore_tcz while pointing at a .tar.bz2), and installing by the label
-	# would then use the wrong mechanism entirely.
+	# URL first: some entries' package_type disagrees with their download_url
+	# (tinycore_tcz pointing at a .tar.bz2)
 	case "$(japp "$1" download_url)" in
 		*.AppImage|*.appimage)          echo appimage; return ;;
 		*.tcz)                          echo tcz;      return ;;
 		*.tar.gz|*.tgz|*.tar.xz|*.txz|*.tar.bz2|*.tbz|*.zip|*.7z) echo archive; return ;;
-		# Shell/deb/rpm installers have no mechanism in xxri-app.  Report them
-		# honestly instead of routing them to an installer that cannot run them.
+		# nothing in xxri-app can run these
 		*.sh|*.run|*.deb|*.rpm|*.AppInstaller) echo installer; return ;;
 	esac
 	case "$(japp "$1" package_type)" in
@@ -329,16 +286,13 @@ kind_of() { # id -> appimage | archive | tcz
 	esac
 }
 
-# An entry is offerable only when the repository actually gives us something to
-# download.  Entries that document a discontinued or missing build stay visible
-# but are not installable.
+# entries without a usable download stay listed but not installable
 is_installable() { # id
 	u="$(japp "$1" download_url)"
 	[ -n "$u" ] && [ "$u" != null ] || return 1
 	case "$u" in http://*|https://*) ;; *) return 1 ;; esac
 	# a directory listing is not a package
 	case "$u" in */) return 1 ;; esac
-	# only formats xxri-app can actually install count as installable
 	case "$(kind_of "$1")" in appimage|archive|tcz) ;; *) return 1 ;; esac
 	return 0
 }
@@ -352,18 +306,13 @@ cmd_field() { # id key
 		kind)     kind_of "$1" ;;
 		icon)     japp "$1" icon_url ;;
 		installable) is_installable "$1" && echo 1 || echo 0 ;;
-		# anything else is read straight from the schema by name, so fields the
-		# repository adds later are reachable without changing this client
 		*)        japp "$1" "$2" ;;
 	esac
 }
 
 # media cache
-# Icons and screenshots are metadata: they are fetched lazily, cached forever
-# and never block the UI.  The GUI draws its own tile until one lands.
+# lazy and cached; the GUI draws its own tile until an icon lands
 cmd_cache_path() { echo "$CACHE"; }
-# Accept only what an image loader can actually decode: PNG, SVG, JPEG, GIF,
-# BMP or ICO.  The repository is free to publish any of them.
 icon_is_image() { # file
 	[ -s "$1" ] || return 1
 	m="$(hexdump -n 8 -e '8/1 "%02x"' "$1" 2>/dev/null)"
@@ -379,15 +328,9 @@ icon_is_image() { # file
 }
 
 cmd_icons() { # id...
-	# Icons come from the repository's icon_url and are cached.  The URL each
-	# cached file came from is remembered, so a cached icon is reused until the
-	# repository publishes a different URL - and re-fetched when it does.
+	# re-fetched only when the catalog's icon_url changes (.src)
 	mkdir -p "$CACHE/icons"
-	# One icon per application means a page can ask for fifty files, and each
-	# one is a separate HTTPS round trip.  Fetching them strictly in sequence
-	# took longer than the front-end waits, so the last cards kept their
-	# generated tiles.  A small amount of concurrency keeps the whole page
-	# inside the front-end's polling window without hammering the server.
+	# 4 at a time: one by one, the last cards missed the GUI's polling window
 	_pending=0
 	for id in "$@"; do
 		out="$CACHE/icons/$id.png"
@@ -399,9 +342,7 @@ cmd_icons() { # id...
 			if fetch_to "$u" "$out.part" && [ -s "$out.part" ] && icon_is_image "$out.part"; then
 				mv "$out.part" "$out"; echo "$u" > "$src"
 			else
-				# A 404 body or an HTML error page must never be cached as an
-				# icon: it would fail to decode forever and look like "the app
-				# has no icon".  Leave any previously cached icon untouched.
+				# never cache an error page as an icon
 				rm -f "$out.part"
 			fi
 		) &
@@ -425,9 +366,7 @@ cmd_shots() { # id
 
 # refresh
 cmd_refresh() {
-	# The catalog is fetched on every Store launch.  The repository is read-only
-	# and remote: nothing is generated locally, and the cached copy exists only
-	# so the Store still has something to show when the network is down.
+	# Store start: once CACHE_MAX_AGE is up; the Refresh button forces it
 	mkdir -p "$CACHE" 2>/dev/null
 	if [ "$1" != "--force" ] && [ -f "$CACHE/refreshed" ]; then
 		age=$(( $(date +%s) - $(cat "$CACHE/refreshed" 2>/dev/null || echo 0) ))
@@ -435,7 +374,7 @@ cmd_refresh() {
 	fi
 
 	tmp="$CACHE/.i686.$$"
-	# Ask the server whether anything changed before pulling the whole file.
+	# conditional GET
 	prev_tag="$(sed -n 's/^etag=//p' "$CATALOG_META" 2>/dev/null | head -1)"
 	prev_mod="$(sed -n 's/^last-modified=//p' "$CATALOG_META" 2>/dev/null | head -1)"
 	cond=""
@@ -453,7 +392,6 @@ cmd_refresh() {
 		wget -q -T 45 -O "$tmp" "$REPO_URL" 2>"$hdr"; rc=$?
 	fi
 
-	# 304 Not Modified: the cached catalog is already current.
 	if grep -qi '304 Not Modified' "$hdr" 2>/dev/null && have_catalog; then
 		rm -f "$tmp" "$hdr"; date +%s > "$CACHE/refreshed"
 		echo "unchanged"; return 0
@@ -465,7 +403,7 @@ cmd_refresh() {
 		echo "unavailable" >&2; return 1
 	fi
 
-	# Refuse to replace a good catalog with something that is not one.
+	# never replace a good catalog with something that isn't one
 	if ! grep -q '"applications"' "$tmp"; then
 		rm -f "$tmp" "$hdr"
 		if have_catalog; then echo "offline-cached"; return 0; fi
@@ -488,18 +426,8 @@ cmd_refresh() {
 }
 
 # resolve
-url_size() { # HEAD the url for Content-Length (best effort)
-	if [ -n "$GNUWGET" ]; then
-		"$GNUWGET" -q --spider -S --timeout=10 --tries=1 ${CABUNDLE:+--ca-certificate="$CABUNDLE"} "$1" 2>&1 \
-			| sed -n 's/.*[Cc]ontent-[Ll]ength: *\([0-9]*\).*/\1/p' | tail -1
-	else
-		wget -T 10 --spider -S "$1" 2>&1 | sed -n 's/.*[Cc]ontent-[Ll]ength: *\([0-9]*\).*/\1/p' | tail -1
-	fi
-}
 resolve() { # id -> URL \t SHA256 \t VERSION \t SIZE
-	# The download URL comes from the repository exactly as published.  Nothing
-	# is generated, guessed or rewritten here - that is a hard rule of the
-	# online repository contract.
+	# URL exactly as the catalog publishes it, never rewritten (repo contract)
 	id="$1"
 	url="$(japp "$id" download_url)"
 	[ "$url" = null ] && url=""
@@ -522,11 +450,8 @@ dl_set() { # id key val
 dl_get() { sed -n "s/^$2=//p" "$DL_STATE/$1" 2>/dev/null | head -1; }
 num() { case "$1" in ''|*[!0-9]*) echo 0 ;; *) echo "$1" ;; esac; }
 
-# Disk a given install will really consume, in KB.  The download is only part
-# of it: a portable archive is compressed and expands to roughly three times
-# its size under /opt/xxri, and a native extension drags in a dependency chain
-# far larger than the extension itself.  Measured on this device: GIMP is a
-# 22 MB .tcz that pulls ~80 MB of chain.
+# Disk an install really uses, in KB: archives expand ~3x, and a .tcz pulls
+# its dependency chain (GIMP: 22 MB .tcz, ~80 MB of deps).
 space_needed() { # id -> KB
 	_sz="$(num "$(idx_field "$1" 6)")"
 	[ "$_sz" -gt 0 ] || _sz=$((32 * 1024 * 1024))     # unknown size: assume 32 MB
@@ -574,8 +499,7 @@ cmd_install() { # id  (also used by resume/retry/update)
 	id="$1"
 	TRACE_ID="$id"
 	trace install-clicked "backend entered"
-	# Offline mode: the catalog may be served from cache, but nothing may be
-	# installed, because the payload itself has to come from the network.
+	# a cached catalog still browses offline, installs can't
 	if ! have_net; then
 		dl_set "$id" NAME "$id"; dl_set "$id" STATE failed
 		dl_set "$id" ERROR "Repository unavailable - you are offline"
@@ -600,10 +524,7 @@ cmd_install() { # id  (also used by resume/retry/update)
 	esac
 	dl_set "$id" NAME "$name"; dl_set "$id" ERROR ""; dl_set "$id" PCT 0; dl_set "$id" SPEED 0
 
-	# Free space, checked before anything is downloaded.  Without this the
-	# install fails deep inside tce-load or tar with no usable message: the
-	# archive apps extract to several times their download size, so a couple of
-	# big installs can silently leave the next one no room at all.
+	# space check up front, or tce-load/tar fail later with nothing useful
 	need_kb="$(space_needed "$id")"
 	free_kb="$(df -k / 2>/dev/null | awk 'NR==2{print $4}')"
 	free_kb="$(num "$free_kb")"
@@ -659,10 +580,8 @@ cmd_install() { # id  (also used by resume/retry/update)
 		tcz)     out="$DL_DIR/$(basename "$url")" ;;
 		*)       out="$DL_DIR/$fn-${ver:-latest}.AppImage" ;;
 	esac
-	# tce-load owns the transfer for a native extension, so the download
-	# manager cannot count the bytes itself.  Watch the extension store grow
-	# instead: without this the queue row sits at "Installing" with no progress
-	# for several minutes, which is indistinguishable from nothing happening.
+	# tce-load does the transfer; watch the extension store grow for progress
+	# (otherwise the row sits at "Installing" for minutes)
 	if [ "$(idx_field "$id" 11)" = tcz ]; then
 		nm="$(idx_field "$id" 2)"; ex="$(idx_field "$id" 17)"
 		ref="$(idx_field "$id" 9)"; [ -n "$ref" ] || ref="$id"
@@ -717,8 +636,7 @@ cmd_install() { # id  (also used by resume/retry/update)
 	trace download-done "$(num "$(wc -c 2>/dev/null < "$out")") bytes"
 	b=$(num "$(wc -c < "$out")"); dl_set "$id" BYTES "$b"; dl_set "$id" PCT 100
 
-	# verify SHA256 if the catalog pins one AND we can compute one; if no digest
-	# tool exists (a stripped build), fall through rather than block installs.
+	# no digest tool (stripped build): skip rather than block installs
 	if [ -n "$sha" ] && [ "$sha" != "-" ] && have_sha256; then
 		dl_set "$id" STATE verifying
 		got="$(sha256_of "$out")"
@@ -732,15 +650,12 @@ cmd_install() { # id  (also used by resume/retry/update)
 		trace verify "skipped (catalog pins no digest)"
 	fi
 
-	# hand off to the AppImage backend - the ONLY thing that installs.  Pin the
-	# catalog id so an update overwrites the same registry entry (stable across
-	# version bumps) instead of registering a second app.
+	# xxri-app does the install; --as the catalog id so updates replace it
 	dl_set "$id" STATE installing; echo $$ > "$DL_STATE/$id.pid"
 	chmod +x "$out" 2>/dev/null
 	kind="$(idx_field "$id" 11)"
 	if [ "$kind" = archive ]; then
-		# Official 32-bit portable build (tar.xz / tar.gz / zip).  xxri-app
-		# unpacks it and registers it exactly like an AppImage.
+		# official 32-bit portable build (tar.xz / tar.gz / zip)
 		nm="$(idx_field "$id" 2)"; ex="$(idx_field "$id" 17)"; ic="$(idx_field "$id" 18)"
 		trace backend-call "xxri-app install-archive $out"
 		if XXRI_APP_VERSION="$ver" xxri-app install-archive "$out" --quiet --as "$id" \
@@ -768,10 +683,8 @@ cmd_retry() { dl_set "$1" URL ""; cmd_install "$1"; }
 cmd_resume() { cmd_install "$1"; }
 
 # download manager
-# The queue the Store's Downloads page renders.  One flat JSON object per
-# entry; the GUI reads id/name/state/pct/bytes/total/speed/eta/error, so every
-# one of those keys must be present even when it is zero - a missing key reads
-# as an empty string and the row renders blank.
+# The Downloads page's queue, one flat JSON object per entry. Every key the
+# GUI reads must be there even when 0, or the row renders blank.
 json_esc() { sed 's/\\/\\\\/g; s/"/\\"/g' ; }
 
 cmd_downloads() {
@@ -801,7 +714,7 @@ cmd_downloads() {
 	printf ']}\n'
 }
 
-# Stop the transfer but keep the .part file, so resume continues with wget -c.
+# keeps the .part for wget -c
 cmd_pause() { # id
 	p="$(cat "$DL_STATE/$1.pid" 2>/dev/null)"
 	[ -n "$p" ] && kill "$p" 2>/dev/null
@@ -810,8 +723,7 @@ cmd_pause() { # id
 	echo "PAUSED"
 }
 
-# Abandon it entirely: kill the transfer, drop the partial file and forget the
-# queue entry.  A cancelled install must leave nothing half-written behind.
+# leaves nothing half-written behind
 cmd_cancel() { # id
 	p="$(cat "$DL_STATE/$1.pid" 2>/dev/null)"
 	[ -n "$p" ] && kill "$p" 2>/dev/null
@@ -822,7 +734,6 @@ cmd_cancel() { # id
 	echo "CANCELLED"
 }
 
-# Drop finished entries from the list (one id, or every terminal state).
 cmd_clear() { # [id]
 	if [ -n "$1" ]; then rm -f "$DL_STATE/$1" "$DL_STATE/$1.pid" 2>/dev/null; echo "CLEARED"; return; fi
 	for f in "$DL_STATE"/*; do
@@ -884,7 +795,7 @@ cmd_update_all() {
 cmd_open_location() { # installed app id -> open its folder
 	loc="$(xxri-app info "$1" 2>/dev/null | sed -n 's/^LOCATION=//p')"
 	[ -n "$loc" ] || loc="$DL_DIR"
-	# no dedicated file manager on Lite - fall back to a terminal there
+	# flfm if present, else a terminal (XXRI File isn't tried here)
 	if command -v flfm >/dev/null 2>&1; then flfm "$loc" >/dev/null 2>&1 &
 	else aterm +sb -T "Files - $loc" -e /bin/sh -c "cd '$loc' && ls -la; exec /bin/sh" >/dev/null 2>&1 &
 	fi
@@ -914,8 +825,7 @@ case "$1" in
 	shots)      shift; cmd_shots "$1" ;;
 	field)      shift; cmd_field "$1" "$2" ;;
 	"")
-		# no subcommand: this is also the app's entry point, so `xxri-store`
-		# from a terminal opens the Store instead of printing usage.
+		# bare `xxri-store` opens the Store
 		if [ -n "$DISPLAY" ] && [ -x /usr/local/bin/xxri-store-gui ]; then
 			exec /usr/local/bin/xxri-store-gui
 		fi

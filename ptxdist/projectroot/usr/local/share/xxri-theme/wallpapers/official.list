@@ -1,0 +1,9 @@
+# XXRI OS Lite official wallpapers - Settings > Wallpaper & Style offers these,
+# in this order.  id|file|name|default (1 = the wallpaper a new desktop starts
+# with; xxri-desktop falls back to it whenever nothing else was chosen).
+# The masters are assets/wallpapers/wallpaper{1,2,3}.jpg; these copies are
+# resized to fit 1920x1200 (quality 88) so an older machine decodes them fast.
+# xxri-os-lite.jpg next to them is the installer's background, not a choice.
+wallpaper1|wallpaper1.jpg|Morning Haze|1
+wallpaper2|wallpaper2.jpg|Cascade|0
+wallpaper3|wallpaper3.jpg|Crater|0

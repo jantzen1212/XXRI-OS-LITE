@@ -6,4 +6,4 @@ config XXRI_INSTALLER
 	select XXRI_DIALOG
 	prompt "xxri-installer: the disk installer"
 	help
-	  The FLTK installer front end and xxri-install-backend (GRUB 2.14 on BIOS/UEFI disks).
+	  The GTK 3 installer front end and xxri-install-backend (GRUB 2.14 on BIOS/UEFI disks).

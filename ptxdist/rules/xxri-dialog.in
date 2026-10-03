@@ -5,4 +5,4 @@ config XXRI_DIALOG
 	select XXRI_TC_SYSROOT
 	prompt "xxri-dialog: message and question dialogs"
 	help
-	  FLTK dialog helper used by the XXRI shell scripts (source in src/xxri-installer).
+	  GTK 3 dialog helper used by the XXRI shell scripts (source in src/xxri-installer).

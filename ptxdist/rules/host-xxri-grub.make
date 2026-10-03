@@ -3,7 +3,6 @@
 # host-xxri-grub - upstream GNU GRUB 2.14, unpatched, for the XXRI boot
 # targets: i386-pc (BIOS), i386-efi (IA32 UEFI) and x86_64-efi (only for the
 # opt-in experiment).  PTXdist's own "grub" rule is GRUB Legacy 0.97.
-# Same configuration as ../tools/build-grub.sh (Build A).
 #
 HOST_PACKAGES-$(PTXCONF_HOST_XXRI_GRUB) += host-xxri-grub
 
@@ -17,20 +16,19 @@ HOST_XXRI_GRUB_DIR		:= $(HOST_BUILDDIR)/$(HOST_XXRI_GRUB)
 HOST_XXRI_GRUB_LICENSE		:= GPL-3.0-or-later
 HOST_XXRI_GRUB_LICENSE_FILES	:= file://COPYING;md5=d32239bcb673463ab874e80d47fae504
 HOST_XXRI_GRUB_PLATFORMS	:= i386-pc i386-efi x86_64-efi
-# the tree layout build-iso.sh expects: <prefix>/<platform>/usr/{bin,lib/grub/<platform>}
+# the tree layout xxri-mkiso.sh expects: <prefix>/<platform>/usr/{bin,lib/grub/<platform>}
 HOST_XXRI_GRUB_PREFIX		:= $(PTXDIST_SYSROOT_HOST)/lib/xxri-grub
 
 # GNU ld >= 2.44 accepts -Wl,--image-base, which GRUB 2.14's configure then
-# prefers over -Ttext and which misplaces i386-pc kernel.img; see build-grub.sh.
+# prefers over -Ttext and which misplaces i386-pc kernel.img.
 HOST_XXRI_GRUB_CONF_OPT		:= \
 	--prefix=/usr --disable-werror --disable-nls --disable-grub-mkfont \
 	--disable-grub-themes --disable-grub-mount --disable-device-mapper \
 	--disable-libzfs --disable-liblzma \
 	ax_cv_check_ldflags___Wl___image_base_0x400000=no
 
-# Same relative source/object layout as ../tools/build-grub.sh (<p>/src and
-# <p>/obj): GRUB embeds __FILE__ paths, so this is what makes the two build
-# systems produce byte-identical modules and core images.
+# GRUB embeds __FILE__ paths, so the <p>/src and <p>/obj layout ends up in the
+# modules and core images: keep it
 $(STATEDIR)/host-xxri-grub.prepare:
 	@$(call targetinfo)
 	@for p in $(HOST_XXRI_GRUB_PLATFORMS); do \

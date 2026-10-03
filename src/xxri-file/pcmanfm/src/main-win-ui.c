@@ -165,14 +165,10 @@ static const char main_menu_xml[] =
     "<menuitem action='KeyNavList'/>"
   "</menu>"
 "</menubar>"
-/* XXRI File: the design has no menubar - every action reaches the user
- * through the hamburger at the top of the rail, so the menubar above is
- * built (for its accelerators and for GtkUIManager's action wiring) but
- * never packed.  This popup is what the rail button actually shows. */
+/* XXRI File: the rail's hamburger shows this popup; the menubar above is
+ * still built for its accelerators and action wiring, never packed. */
 "<popup name='XxriMenu'>"
-    /* Home and Desktop have no glyph in the supplied XXRI asset set and no
-     * entry in the mockup's rail, so they live here rather than being given
-     * an invented or borrowed icon. */
+    /* Home: no glyph in the asset set and no rail entry in the mockup */
     "<menuitem action='Home'/>"
     "<separator/>"
     "<menuitem action='NewFolder'/>"

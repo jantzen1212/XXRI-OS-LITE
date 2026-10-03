@@ -1,10 +1,9 @@
 #!/bin/busybox ash
 # xxri-app - native AppImage runtime for XXRI OS Lite.
 #
-# The single backend for everything AppImage: detection, permission
-# helper, launching, desktop integration, registry and removal.
-# The future Software Center / Updates / Installed-Apps pages call these
-# same subcommands instead of re-implementing anything.
+# The one backend for AppImages (and archive/.tcz installs): detection,
+# launching, desktop integration, registry and removal. The Store and
+# Settings call these subcommands rather than re-implementing them.
 #
 #   xxri-app open <file>          full flow: perm -> integrate -> launch
 #   xxri-app launch <id|file>     mount + run (friendly error dialogs)
@@ -14,10 +13,8 @@
 #   xxri-app info <id>            full registry record
 #   xxri-app watch                folder watcher (started by the session)
 #
-# No FUSE required: the embedded squashfs (type 2) or ISO9660 (type 1)
-# payload is loop-mounted read-only with the same kernel machinery the
-# xxri package system already uses.  All root operations go through
-# sudo (the desktop user is NOPASSWD, exactly like xxri-pkg).
+# No FUSE: the squashfs (type 2) or ISO9660 (type 1) payload is loop-mounted
+# read-only, like .tcz extensions. Root work goes through NOPASSWD sudo.
 
 REG_DIR=/usr/local/share/xxri-apps
 APP_DIRS_SYS="/opt/appimages"
@@ -25,7 +22,7 @@ LOG=/tmp/xxri-app.log
 DIALOG=/usr/local/bin/xxri-dialog
 
 log() { echo "[$(date '+%H:%M:%S')] $*" >> "$LOG"; }
-# Stage trace shared with xxri-store, so one file shows the whole pipeline.
+# shared with xxri-store: one trace file for the whole install
 atrace() { # stage [detail]
 	_tf="$(user_home)/.cache/xxri-store/install-trace.log"
 	[ -d "${_tf%/*}" ] || return 0
@@ -33,16 +30,13 @@ atrace() { # stage [detail]
 	return 0
 }
 
-# One icon per application, resolved deterministically and used everywhere
-# (registry, .desktop, dock, flwm menu and the Store).  The old code fell back
-# to `find <tree> -name '*.png' | head -1` for archives and to a prefix glob
-# over the SHARED pixmaps directory for extensions - both pick an arbitrary
-# file, which is how one app ended up wearing another app's icon.  Nothing here
-# guesses: every candidate is an exact path derived from the app's own metadata.
+# One icon per app, used everywhere (registry, .desktop, dock, menu, Store).
+# No globbing for "some png": that once gave an app another app's icon.
+# Every candidate is an exact path from the app's own metadata.
 
 ICON_SIZES="256 128 96 64 48 32 24 16"
 
-# Look a themed icon NAME up in the standard directories, largest first.
+# themed icon name -> file, largest first
 icon_by_name() { # name -> path (empty if not found)
 	n="$1"; [ -n "$n" ] || return 0
 	case "$n" in /*) [ -f "$n" ] && echo "$n"; return 0 ;; esac
@@ -99,7 +93,7 @@ icon_in_tree() { # root name -> path
 	return 0
 }
 
-# The single entry point.  Order is exactly the one the product requires.
+# order matters: catalog hint, own tree, Icon=, themed, repository
 resolve_icon() { # id name hint_path desktop_file tree_root -> path (may be empty)
 	_id="$1"; _nm="$2"; _hint="$3"; _dsk="$4"; _root="$5"
 	# 1. explicit hint from the catalog (icon_path column)
@@ -122,10 +116,8 @@ resolve_icon() { # id name hint_path desktop_file tree_root -> path (may be empt
 	return 0
 }
 
-# Install the resolved icon as this app's single canonical icon, and publish the
-# same file to the Store's cache so the Store, Installed page, search results
-# and download rows all render exactly what the dock and menu show.
-# udah: one canonical icon, cached everywhere it shows up
+# udah: one canonical icon, copied into the Store's cache too so the Store
+# shows exactly what the dock and menu show
 install_icon() { # id src -> canonical path on stdout
 	_id="$1"; _src="$2"
 	_dst="/usr/local/share/pixmaps/xxri-app-$_id.png"
@@ -142,17 +134,11 @@ install_icon() { # id src -> canonical path on stdout
 }
 
 DOCK=/usr/local/tce.icons
-# Where xxri-dock-pin caches each pinned icon after drawing it inside XXRI's
-# own squircle container - what the dock actually loads.
+# xxri-dock-pin's squircle-framed copies, what the dock really loads
 FRAMED_DIR=/usr/local/share/xxri-launcher/framed
 menu_name() { echo "$1" | tr -d ' '; }        # flwm names the file without spaces
-# Newly installed apps do NOT go on the dock any more - they appear in the
-# All Apps drawer (which reads .desktop files directly) and reach the dock
-# only if the user right-clicks one there and picks "Pin to Dock".  The only
-# dock-side duty left here is the reverse of that: if an app the user HAD
-# pinned is being removed, take it off the dock too, so uninstalling it does
-# not leave a broken icon behind.  xxri-dock-pin owns pinned.list and
-# tce.icons entirely; this is a no-op (exit 1, ignored) if it was never pinned.
+# Installs never touch the dock (apps reach it only by "Pin to Dock"), but a
+# removed app that was pinned has to leave it. xxri-dock-pin owns the dock.
 dock_unpin_if_pinned() { # id
 	[ -x /usr/local/bin/xxri-dock-pin ] && /usr/local/bin/xxri-dock-pin unpin "$1" >/dev/null 2>&1
 	return 0
@@ -174,8 +160,7 @@ dlg() { # mode title body [primary secondary] -> exit code of dialog
 		return 0
 	fi
 	if [ -n "$DISPLAY" ] && [ -x "$DIALOG" ]; then
-		# pass only the buttons that were actually given, so info/error
-		# dialogs never render an empty extra button.
+		# only the buttons given, or the dialog shows an empty one
 		if   [ -n "$5" ]; then "$DIALOG" "$m" "$t" "$b" "$4" "$5"
 		elif [ -n "$4" ]; then "$DIALOG" "$m" "$t" "$b" "$4"
 		else                   "$DIALOG" "$m" "$t" "$b"
@@ -188,7 +173,7 @@ dlg() { # mode title body [primary secondary] -> exit code of dialog
 	return 0
 }
 
-# busybox on xxri has no 'stat' applet; use portable substitutes.
+# no stat applet in our busybox
 fsize() { wc -c < "$1" 2>/dev/null; }
 fkey()  { ls -dln "$1" 2>/dev/null | awk '{print $5"-"$6"-"$7"-"$8}'; }
 
@@ -291,13 +276,11 @@ do_mount() { # file -> echoes mountpoint
 	[ -n "$off" ] || off=0
 	mp="/tmp/xxri-app/mnt.$$.$(date +%s)"
 	mkdir -p "$mp"
-	# ensure loop + squashfs are available (installed systems don't
-	# loop-mount at boot, so these may not be loaded yet)
+	# installed systems loop-mount nothing at boot, so these may be unloaded
 	sudo modprobe loop 2>/dev/null
 	sudo modprobe squashfs 2>/dev/null
-	# Type 2 (squashfs at offset): set up a loop device at that offset and
-	# mount it read-only.  losetup -o is more portable than mount offset=
-	# on busybox, and this is the same loop+squashfs path tce already uses.
+	# type 2: squashfs at an offset (busybox handles losetup -o better
+	# than mount -o offset=)
 	if payload_is_squash "$f" "$off"; then
 		loop="$(sudo losetup -f 2>/dev/null)"
 		if [ -n "$loop" ] && sudo losetup -o "$off" "$loop" "$f" 2>>"$LOG"; then
@@ -308,7 +291,7 @@ do_mount() { # file -> echoes mountpoint
 			sudo losetup -d "$loop" 2>/dev/null
 		fi
 	fi
-	# Type 1 (ISO9660) or unusual layout: whole-file loop mount.
+	# type 1 (ISO9660) or odd layout: loop-mount the whole file
 	if sudo mount -o loop,ro -t iso9660 "$f" "$mp" 2>>"$LOG"; then
 		echo "$mp"; return 0
 	fi
@@ -328,8 +311,7 @@ do_umount() {
 # launch
 cmd_launch() { # id or file
 	f="$1"
-	# archive-installed apps are ordinary programs on disk - run them
-	# directly instead of loop-mounting an AppImage payload.
+	# archive/.tcz installs are plain programs, nothing to mount
 	if [ -f "$REG_DIR/$1.reg" ] && { [ "$(reg_get "$1" KIND)" = archive ] || [ "$(reg_get "$1" KIND)" = tcz ]; }; then
 		exe="$(reg_get "$1" FILE)"
 		[ -x "$exe" ] || { dlg error "Application missing" "The program file for this app is gone. Reinstall it from the XXRI Store."; return 1; }
@@ -392,11 +374,8 @@ extract_field() { # desktopfile key
 	sed -n "s/^$2=//p" "$1" 2>/dev/null | head -1
 }
 
-# Several mainstream applications never shipped an i686 AppImage but
-# do publish an official 32-bit portable tarball (Telegram, VS Code, FileZilla,
-# LibreOffice ...).  This installs one exactly like an AppImage from the user's
-# point of view - same registry, same .desktop, same dock and menu entries - so
-# the Store needs no special case beyond passing the archive's exec path.
+# Official 32-bit tarballs of apps with no i686 AppImage (Telegram, VS Code,
+# FileZilla, LibreOffice ...), installed so they look exactly like an AppImage.
 #
 #   xxri-app install-archive <file> --as <id> --name <Name> --exec <rel/path>
 #                            [--icon <rel/path>] [--categories <c;>] [--quiet]
@@ -424,8 +403,8 @@ cmd_install_archive() {
 	sudo rm -rf "$dest" 2>/dev/null
 	sudo mkdir -p "$dest" || { dlg error "Cannot install" "No space or permission for $dest"; return 1; }
 
-	# Detect the container by MAGIC BYTES, never by filename: official download
-	# URLs frequently carry no extension at all (telegram.org/dl/desktop/linux32).
+	# by magic bytes: download URLs often have no extension
+	# (telegram.org/dl/desktop/linux32)
 	magic="$(hexdump -n 6 -e '6/1 "%02x"' "$f" 2>/dev/null)"
 	log "extracting $f -> $dest (magic $magic)"
 	case "$magic" in
@@ -465,7 +444,7 @@ cmd_install_archive() {
 	sudo chmod -R a+rX "$dest" 2>/dev/null
 	sudo chmod a+x "$exe" 2>/dev/null
 
-	# icon: from the archive when the catalog points at one, else the generic
+	# icon: the catalog's path inside the archive first
 	src_icon="$(resolve_icon "$id" "$name" "$relicon" "" "$dest")"
 	icon_path="$(install_icon "$id" "$src_icon")"
 	atrace icon "$([ -n "$src_icon" ] && echo "$src_icon" || echo 'PLACEHOLDER - no real icon found')"
@@ -498,8 +477,6 @@ EOF
 	atrace desktop-entry "$desktop_path"
 	menu_add "$id"
 	atrace menu-entry "$([ -f "$(user_home)/.wmx/Applications/$(menu_name "$name")" ] && echo ok || echo MISSING)"
-	# Deliberately no dock entry here: it shows up in All Apps (it just wrote
-	# the .desktop above) and reaches the dock only if the user pins it there.
 	atrace dock-entry "not added - All Apps only until pinned"
 	atrace registry "$REG_DIR/$id.reg"
 	log "installed archive $id ($name) -> $exe"
@@ -508,11 +485,9 @@ EOF
 }
 
 # native .tcz
-# Tiny Core's own i686 repository carries native builds of the mainstream
-# desktop apps (GIMP, Inkscape, VLC, Audacity ...) that upstream stopped
-# shipping 32-bit AppImages for.  Installing one means: place the squashfs in
-# the persistent extension store, record it in onboot.lst so it survives a
-# reboot, load it now, then integrate whatever .desktop it brought with it.
+# Tiny Core's repository has i686 builds of apps with no 32-bit AppImage
+# (GIMP, Inkscape, VLC, Audacity ...): fetch, add to onboot.lst, load, and
+# integrate the .desktop it ships.
 
 tce_dir() {
 	d="$(readlink -f /etc/sysconfig/tcedir 2>/dev/null)"
@@ -532,11 +507,8 @@ onboot_del() {
 }
 
 cmd_install_tcz() {
-	# $1 = extension name (no .tcz).  Dependency resolution is delegated to
-	# tce-load -wi, which walks the .dep chain against the mirror and skips
-	# anything already recorded in /usr/local/tce.installed - i.e. everything
-	# XXRI already bakes into the image.  Re-implementing that walk here was
-	# what broke: a single failed .dep fetch silently dropped whole subtrees.
+	# $1 = extension name. Leave the .dep walk to tce-load -wi; our own walk
+	# silently dropped whole subtrees on one failed .dep fetch.
 	base="$1"; shift
 	base="${base%.tcz}"
 	id=""; name=""; cats="Utility;"; wanted_exec=""
@@ -559,10 +531,8 @@ cmd_install_tcz() {
 	# the tce dir must be writable by the desktop user for tce-load to fetch
 	sudo chown -R "$(id -u):$(id -g)" "$(tce_dir)" 2>/dev/null
 
-	# Judge the result by what is on the system afterwards, never by tce-load's
-	# exit status: it reports non-zero for warnings that did not stop the load,
-	# and a mirror hiccup mid-chain is worth one honest retry (a truncated .tcz
-	# left behind would otherwise fail its md5 forever).
+	# Judge by tce.installed, not tce-load's exit status (non-zero on mere
+	# warnings). One retry for mirror hiccups.
 	attempt=0
 	while [ "$attempt" -lt 2 ]; do
 		attempt=$((attempt + 1))
@@ -573,15 +543,13 @@ cmd_install_tcz() {
 		for p in "$opt/$base.tcz" "$opt/$base.tcz.dep" "$opt/$base.tcz.md5.txt"; do
 			[ -f "$p" ] && [ ! -s "$p" ] && sudo rm -f "$p"
 		done
-		# a truncated archive is worse than none: drop it so the retry refetches
+		# drop a truncated .tcz, or it fails its md5 forever
 		if [ -f "$opt/$base.tcz" ] && ! unsquashfs -s "$opt/$base.tcz" >/dev/null 2>&1; then
 			sudo rm -f "$opt/$base.tcz"
 		fi
 	done
 	if [ ! -f "/usr/local/tce.installed/$base" ]; then
-		# Distinguish "no room" from "no network": tce-load reports neither, and
-		# a full disk is by far the more common of the two once a few large
-		# applications are installed.
+		# tce-load says neither, but a full disk is the usual cause
 		free_kb="$(df -k / 2>/dev/null | awk 'NR==2{print $4}')"
 		case "$free_kb" in ''|*[!0-9]*) free_kb=0 ;; esac
 		if [ "$free_kb" -lt 51200 ]; then
@@ -596,11 +564,10 @@ cmd_install_tcz() {
 	atrace tce-load "ok $base registered after $attempt attempt(s)"
 	mb="$base.tcz"
 	onboot_add "$mb"
-	# a freshly loaded extension can bring new pixbuf loaders and icons; the
-	# app about to launch is the first thing that will need them
+	# new pixbuf loaders/icons, needed by the app about to launch
 	[ -x /usr/local/bin/xxri-refresh-caches ] && /usr/local/bin/xxri-refresh-caches
 
-	# The extension ships its own launcher metadata - prefer it over guesses.
+	# prefer the extension's own .desktop
 	src_desktop=""
 	for c in "/usr/local/share/applications/$base.desktop" \
 	         "/usr/local/share/applications/$id.desktop"; do
@@ -627,8 +594,6 @@ cmd_install_tcz() {
 
 	src_icon="$(resolve_icon "$id" "$name" "" "$src_desktop" "")"
 	[ -n "$src_icon" ] || src_icon="$(icon_by_name "$base")"
-	# XPM is decodable again now that gdk-pixbuf has a working loader cache,
-	# so no format is rejected here any more.
 	icon_path="$(install_icon "$id" "$src_icon")"
 	atrace icon "$([ -n "$src_icon" ] && echo "$src_icon" || echo 'PLACEHOLDER - no real icon found')"
 
@@ -662,8 +627,6 @@ EOF
 	atrace desktop-entry "$desktop_path"
 	menu_add "$id"
 	atrace menu-entry "$([ -f "$(user_home)/.wmx/Applications/$(menu_name "$name")" ] && echo ok || echo MISSING)"
-	# Deliberately no dock entry here: it shows up in All Apps (it just wrote
-	# the .desktop above) and reaches the dock only if the user pins it there.
 	atrace dock-entry "not added - All Apps only until pinned"
 	atrace registry "$REG_DIR/$id.reg"
 	log "installed extension $id ($name) -> $exe"
@@ -672,9 +635,8 @@ EOF
 }
 
 cmd_integrate() { # file [--quiet] [--as <id>]
-	# --as lets a caller (the Store) pin a STABLE id so that installing a newer
-	# version overwrites the same registry entry instead of creating a second
-	# app (id_of_file bakes the version into the id, which an update changes).
+	# --as: a stable id from the Store, so an update replaces the entry
+	# (id_of_file has the version in it)
 	f="$1"; shift
 	forced_id=""
 	while [ $# -gt 0 ]; do
@@ -707,8 +669,7 @@ cmd_integrate() { # file [--quiet] [--as <id>]
 	if [ -n "$forced_id" ]; then id="$(sanitize "$forced_id")"; else id="$(id_of_file "$f")"; fi
 	[ -n "$id" ] || id="app-$(date +%s)"
 
-	# updating in place: remember the previous package file so a version bump
-	# doesn't leave the old AppImage orphaned on disk.
+	# remember the old file, an update deletes it below
 	old_file=""
 	[ -f "$REG_DIR/$id.reg" ] && old_file="$(reg_get "$id" FILE)"
 
@@ -721,10 +682,7 @@ cmd_integrate() { # file [--quiet] [--as <id>]
 	fi
 	[ -z "$icon_src" ] && icon_src="$(ls "$mp"/*.png 2>/dev/null | head -1)"
 
-	# Keep the user's folders tidy.  Installed AppImages live in the XDG data
-	# directory, NOT in a visible ~/Applications folder: XXRI File shows the
-	# user's own folders, and an app store's payload directory is not one of
-	# them.  The launcher, dock entry and menu entry are unaffected.
+	# installed AppImages go to the XDG data dir, not a visible folder
 	HOMEDIR="$(user_home)"
 	APPDIR="$HOMEDIR/.local/share/xxri-apps"
 	dest="$f"
@@ -771,16 +729,12 @@ INTEGRATED=1
 EOF
 	do_umount "$mp"
 
-	# an update replaced the package file: delete the previous version so old
-	# AppImages don't pile up in the user's folders.
 	if [ -n "$old_file" ] && [ "$old_file" != "$f" ] && [ -e "$old_file" ]; then
 		rm -f "$old_file" 2>/dev/null || sudo rm -f "$old_file" 2>/dev/null
 		log "removed superseded package $old_file"
 	fi
 
-	# register with the desktop: flwm Applications menu only.  It appears in
-	# All Apps immediately (the .desktop is already written above) and
-	# reaches the dock only if the user pins it there themselves.
+	# menu only; All Apps reads the .desktop, the dock waits for a pin
 	menu_add "$id"
 	log "integrated $id ($name $version) -> $desktop_path"
 	echo "$id"
@@ -859,11 +813,8 @@ cmd_remove() { # id [--purge]
 	loc="$(reg_get "$id" LOCATION)"
 	tcz="$(reg_get "$id" TCZ)"
 	HOMEDIR="$(user_home)"
-	# dock icon: if the user had pinned this app, take it off the dock too -
-	# a no-op if it was never pinned.
 	dock_unpin_if_pinned "$id"
-	# flwm menu entry: remove ONLY this app's item (writeFLWMitem names the
-	# file after the app Name with spaces stripped), never the whole menu.
+	# only this app's flwm menu item, never the whole menu
 	[ -n "$name" ] && menu_del "$name"
 	[ -n "$dsk" ]  && sudo rm -f "$dsk"
 	[ -n "$icon" ] && sudo rm -f "$icon"
@@ -872,9 +823,7 @@ cmd_remove() { # id [--purge]
 	if [ "$kind" = archive ]; then
 		case "$loc" in /opt/xxri/*) sudo rm -rf "$loc" 2>/dev/null ;; esac
 	fi
-	# native extensions: stop loading them at boot and drop the squashfs. The
-	# copy already loop-mounted stays until the next reboot - that is how Tiny
-	# Core extensions work, so say so rather than pretending it vanished.
+	# .tcz: off onboot.lst and deleted; the mounted copy stays until reboot
 	if [ "$kind" = tcz ] && [ -n "$tcz" ]; then
 		onboot_del "$tcz"
 		sudo rm -f "$loc" "$loc.dep" 2>/dev/null
@@ -923,8 +872,7 @@ cmd_watch() {
 	SEEN="$SEEN_DIR/seen"
 	mkdir -p "$SEEN_DIR" "$HOMEDIR/.local/share/xxri-apps" "$HOMEDIR/Downloads" 2>/dev/null
 	touch "$SEEN"
-	# pre-seed: everything present at session start is "known", except
-	# files that are not in the registry yet get one chance to be offered
+	# each file is offered once (seen list), and only if not registered
 	while :; do
 		for d in "$HOMEDIR/Downloads" "$HOMEDIR/.local/share/xxri-apps" $APP_DIRS_SYS; do
 			[ -d "$d" ] || continue
@@ -948,9 +896,7 @@ cmd_watch() {
 	done
 }
 
-# Prove that every installed app uses ONE icon everywhere: the registry ICON,
-# the .desktop X-FullPathIcon, the dock triplet and the Store cache must all be
-# the same bytes.  A mismatched dock icon is caught here rather than by eye.
+# QA: registry, .desktop, dock and Store cache must carry the same icon
 cmd_verify_icons() {
 	printf '%-16s %-9s %-9s %-9s %-9s %s\n' APP REGISTRY DESKTOP DOCK STORE VERDICT
 	_g="$(md5sum /usr/local/share/pixmaps/xxri-app-generic.png 2>/dev/null | cut -c1-8)"
@@ -960,20 +906,12 @@ cmd_verify_icons() {
 		id="$(basename "$r" .reg)"
 		_ri="$(reg_get "$id" ICON)"
 		_di="$(sed -n 's/^X-FullPathIcon=//p' "/usr/local/share/applications/xxri-app-$id.desktop" 2>/dev/null | head -1)"
-		# The dock only ever holds a pinned app's triple now, wrapped in
-		# xxri-dock-launch with a generated KEY in between - match on the
-		# "launch <id>" tail, not a fixed prefix, and on "i: <icon>" being the
-		# line right before it (write_dock() always emits the triple in
-		# i:/t:/c: order).
+		# pinned triples are i:/t:/c: with "... launch <id>" at the end of c:
 		_ki="$(awk -v id="$id" '/^i: /{p=$2} /^c: exec /{if ($0 ~ ("launch " id "$")) print p}' "$DOCK" 2>/dev/null | head -1)"
 		_si="$(user_home)/.cache/xxri-store/icons/$id.png"
 		a="$(md5sum "$_ri" 2>/dev/null | cut -c1-8)"; [ -n "$a" ] || a="-"
 		b="$(md5sum "$_di" 2>/dev/null | cut -c1-8)"; [ -n "$b" ] || b="-"
-		# The dock no longer loads the application's own PNG: it loads XXRI's
-		# framed copy of it (every dock icon gets the same squircle container),
-		# so its bytes deliberately differ from the source.  What is checked
-		# here is that the dock points at the framed copy belonging to THIS
-		# app and that the copy actually rendered.
+		# the dock shows a framed copy, so check it's this app's and rendered
 		case "$_ki" in
 			"$FRAMED_DIR"/*)
 				if [ "$_ki" = "$FRAMED_DIR/xxri-app-$id.png" ] && [ -s "$_ki" ]; then
@@ -984,10 +922,7 @@ cmd_verify_icons() {
 			*) c="$(md5sum "$_ki" 2>/dev/null | cut -c1-8)"; [ -n "$c" ] || c="-" ;;
 		esac
 		d="$(md5sum "$_si" 2>/dev/null | cut -c1-8)"; [ -n "$d" ] || d="-"
-		# Not being on the dock at all ("-") is now a normal, common state -
-		# an app only gets a DOCK icon once the user pins it - so it is only
-		# compared when one actually exists; REGISTRY/DESKTOP/STORE must
-		# still agree either way.
+		# unpinned ("-") is normal; the other three must agree regardless
 		if [ "$c" = "-" ] || [ "$c" = "framed" ]; then
 			if [ "$a" != "-" ] && [ "$a" = "$b" ] && [ "$a" = "$d" ]; then v=OK; else v=MISMATCH; _rc=1; fi
 		else

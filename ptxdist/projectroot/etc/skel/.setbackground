@@ -1,3 +1,4 @@
 #!/bin/sh
-# xxri OS Lite official wallpaper (assets/wallpapers, design source of truth).
-hsetroot -fill /usr/local/share/xxri-theme/wallpapers/xxri-os-lite.jpg
+# xxri OS Lite wallpaper: whatever Settings > Wallpaper & Style saved, or the
+# official default (usr/local/share/xxri-theme/wallpapers/official.list).
+exec /usr/local/bin/xxri-desktop wallpaper apply

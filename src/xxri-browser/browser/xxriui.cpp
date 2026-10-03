@@ -15,52 +15,32 @@
 #include <QApplication>
 #include <QScreen>
 #include <QVariant>
+#include <QFile>
+#include <QDir>
+#include <QStandardPaths>
 
 namespace {
 // The three control glyphs, in the order the mockup draws them.
 enum { kBtnMinimise = 0, kBtnMaximise = 1, kBtnClose = 2, kBtnCount = 3 };
 }
 
-/*
- * Every constant below is a measurement taken from assets/mockup/mockup1.jpg,
- * in the artwork's own pixels.  They are multiplied by s and never used raw.
- */
+// measurements from assets/mockup/mockup1.jpg in artwork pixels, always * s
 namespace {
-// sidebar (the artwork's sidebar spans x 176..411 of a window at x 176..1500)
+// sidebar (artwork x 176..411 of a window at x 176..1500)
 constexpr qreal mSidebar = 236, mWindowW = 1325, mWindowH = 898;
 constexpr qreal mPad = 12, mTile = 50, mTileGap = 10;
 constexpr qreal mSlotH = 28;    // the artwork's small-control height
 constexpr qreal mItemPitch = 52.5, mItemIcon = 20, mItemTextLeft = 54;
 constexpr qreal mCtlDot = 13, mCtlGap = 9;
-/*
- * Vertical, measured from the window's top edge (artwork y 112).
- *
- * The artwork's order is tiles, then the "Bookmark" label, then three empty
- * pills, then a rule, then the rows.  The pills and the rule are gone - see
- * BrowserWindow::createXxriSidebar - so the label is the bookmark section's
- * heading and the tiles are its content.  Everything below the grid flows
- * after it rather than sitting at a fixed offset, because the grid's height
- * now depends on how many bookmarks there are.
- */
+// Vertical, from the window top (artwork y 112). The artwork's empty pills
+// and rule under the tiles are gone (see createXxriSidebar), so the label
+// heads the bookmark grid and everything below flows after the grid.
 constexpr qreal mYControls = 5, mYWordmark = 39;
-/*
- * The gaps are the artwork's, re-used in the order this sidebar now has.
- * Measured there: wordmark ink ends at 47, the tiles start at 57, the label's
- * ink runs 182..192, the slots start at 214, and the dotted rule sits at 347,
- * 31 below the last slot and 19 above the first row's ink.  So: a generous
- * space above the label, about twenty between the label and what it labels,
- * about thirty from the grid down to the rule, and the row box supplies the
- * rest before "New Tab".
- */
+// the artwork's gaps in the new order: ~20 label to grid, ~30 grid to rule
 constexpr qreal mYLabel = 68, mYTiles = 106;
 constexpr qreal mGridGap = 30, mRuleGap = 6, mRuleW = 160;
-// tool bar
-/*
- * Tool bar, measured across the artwork's content column (x 412..1500, so
- * 1088 wide): the back/forward/home glyph centres sit at 17, 50 and 80; the
- * address pill runs 103..928; the tab counter, new-tab and menu buttons are
- * centred at 969, 1019 and 1067.
- */
+// tool bar, across the content column (artwork x 412..1500): nav glyphs at
+// 17/50/80, pill 103..928, tab counter / new tab / menu at 969/1019/1067
 constexpr qreal mBarH = 37, mPillH = 26, mNavPitch = 30, mNavIcon = 20;
 constexpr qreal mBarLead = 1, mBarPillGap = 7, mBarRightGap = 25;
 constexpr qreal mBarBtnGap = 17, mBarEnd = 5;
@@ -90,9 +70,7 @@ XxriMetrics XxriMetrics::forWindow(int windowWidth)
     m.itemGap      = px(mItemTextLeft - mPad - mItemIcon, m.s, 4);
     m.ctlDot       = px(mCtlDot, m.s, 8);
     m.ctlGap       = px(mCtlGap, m.s, 5);
-    // The glyphs are the artwork's size.  The row around them is exactly big
-    // enough for the glyph plus its hover ring - any more and the wordmark
-    // below is pushed off the artwork's rhythm, any less and the glyphs clip.
+    // glyph plus hover ring, no more (or the wordmark below moves)
     m.ctlBox       = m.ctlDot + 2 * qMax(2, m.ctlDot / 4);
 
     m.yControls    = px(mYControls, m.s, 2);
@@ -103,9 +81,7 @@ XxriMetrics XxriMetrics::forWindow(int windowWidth)
     m.ruleGap      = px(mRuleGap, m.s, 3);
     m.ruleW        = px(mRuleW, m.s, 70);
 
-    // A text field below 17px cannot be read or clicked, and the bar has to
-    // hold it: these two floors are the only places the artwork is departed
-    // from, and they move together so the bar keeps its proportions.
+    // the only real floors: a usable text field, and a bar that fits it
     m.pillH        = px(mPillH, m.s, 20);
     m.barH         = qMax(px(mBarH, m.s, 28), m.pillH + px(11, m.s, 6));
     m.navBox       = px(mNavPitch, m.s, 18);
@@ -130,24 +106,15 @@ XxriMetrics XxriMetrics::forWindow(int windowWidth)
 
 QSize XxriMetrics::defaultWindow(const QRect &available)
 {
-    /*
-     * The artwork's window is 60% of its desktop's width at a 1.476 aspect,
-     * inset about 2% from the top left, with the wallpaper showing to the
-     * right and below.  On a real screen the binding constraint is height -
-     * the dock takes the bottom 78px - so the window is sized to the height
-     * that leaves the dock and a margin clear, then given the artwork's
-     * aspect, and only capped on width if that would overflow.
-     */
+    // the artwork's aspect; most of the screen width, unless that runs into
+    // the dock, then height decides
     const qreal aspect = mWindowW / mWindowH;          // 1.476
     const int   margin = qRound(available.height() * 0.03);
     const int   dock   = 78;                            // the XXRI dock's strut
 
-    // Width first: the artwork's window leaves the wallpaper visible to the
-    // right, so the window takes most of the screen's width but not all of it.
     int w = qMin(qRound(available.width() * 0.88), 1180);
     int h = qRound(w / aspect);
 
-    // If that is too tall to clear the dock, height becomes the constraint.
     const int maxH = available.height() - dock - margin * 2;
     if (h > maxH) {
         h = maxH;
@@ -156,23 +123,99 @@ QSize XxriMetrics::defaultWindow(const QRect &available)
     return QSize(qMax(560, w), qMax(380, h));
 }
 
+// ---------------------------------------------------------------------------
+// Palette: Light by default, Dark as Settings' Mode says
+// ---------------------------------------------------------------------------
+const char *XxriUi::kSidebarTop    = "#F2F2F4";
+const char *XxriUi::kSidebarMid    = "#EEEEF1";
+const char *XxriUi::kSidebarBottom = "#F4F4F6";
+const char *XxriUi::kToolbarLeft   = "#F5F5F7";
+const char *XxriUi::kToolbarRight  = "#FAFAFB";
+const char *XxriUi::kFieldBg       = "#FFFFFF";
+const char *XxriUi::kFieldBorder   = "#AEAEAE";
+const char *XxriUi::kInk           = "#1C1C1E";
+const char *XxriUi::kMuted         = "#6B6B73";
+const char *XxriUi::kPage          = "#FFFFFF";
+
+namespace { bool g_dark = false; }
+
+bool XxriUi::dark() { return g_dark; }
+
+bool XxriUi::loadPalette()
+{
+    QFile f(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+            + QStringLiteral("/xxri/appearance"));
+    bool d = false;
+    if (f.open(QIODevice::ReadOnly))
+        d = f.readAll().trimmed().startsWith("dark");
+    if (d == g_dark)
+        return false;
+    g_dark = d;
+    // Dark: Settings' dark surfaces (window #242124, cards #2A2B33)
+    kSidebarTop    = d ? "#1D1B1D" : "#F2F2F4";
+    kSidebarMid    = d ? "#1F1D20" : "#EEEEF1";
+    kSidebarBottom = d ? "#222024" : "#F4F4F6";
+    kToolbarLeft   = d ? "#242124" : "#F5F5F7";
+    kToolbarRight  = d ? "#26252A" : "#FAFAFB";
+    kFieldBg       = d ? "#34353E" : "#FFFFFF";
+    kFieldBorder   = d ? "#4A4B55" : "#AEAEAE";
+    kInk           = d ? "#F2F2F4" : "#1C1C1E";
+    kMuted         = d ? "#A0A1AA" : "#6B6B73";
+    kPage          = d ? "#242124" : "#FFFFFF";
+    return true;
+}
+
+/* Dark only: the colours of styleSheet()'s rules again, appended to it so
+ * the light sheet stays as it is (a later rule of the same selector wins) */
+static QString darkOverrides()
+{
+    return QStringLiteral(
+        "QLineEdit#xxriAddress { selection-background-color: #2E5FB0; }"
+        "QToolButton#xxriNav:hover, QToolButton#xxriEditBookmarks:hover"
+        "  { background: rgba(255,255,255,0.10); }"
+        "QToolButton#xxriNav:pressed { background: rgba(255,255,255,0.16); }"
+        "QToolButton#xxriSideItem:hover { background: rgba(255,255,255,0.08); }"
+        "QToolButton#xxriSideItem:pressed { background: rgba(255,255,255,0.14); }"
+        "QWidget#xxriTabRow[current=\"true\"] { background: rgba(255,255,255,0.10); }"
+        "QToolButton#xxriTabItem:hover { background: rgba(255,255,255,0.08); }"
+        "QToolButton#xxriTabItem[current=\"true\"] { color: #F2F2F4; }"
+        "QToolButton#xxriTabItemClose:hover { background: rgba(255,255,255,0.12); }"
+        "QToolButton#xxriTile { background: #34353E; border: 1px solid rgba(255,255,255,0.08); }"
+        "QToolButton#xxriTile:hover { background: #3C3D47; border: 1px solid rgba(76,147,248,0.70); }"
+        "QToolButton#xxriAddTile { background: rgba(255,255,255,0.06);"
+        "  border: 1px dashed rgba(255,255,255,0.28); color: #A0A1AA; }"
+        "QToolButton#xxriAddTile:hover { background: #34353E; border: 1px dashed #4C93F8; }"
+        "QToolButton#xxriClear:hover { color: #4C93F8; }"
+        "QToolButton#xxriClear:disabled { color: #5A5B66; }"
+        "QToolButton#xxriEditBookmarks[on=\"true\"] { background: rgba(255,255,255,0.14); }"
+        "QToolButton#xxriTileRemove { background: #34353E; border: 1px solid rgba(255,255,255,0.18); }"
+        "QToolButton#xxriTileRemove:hover { background: #4A2433; border: 1px solid #E0417B; }"
+        "QMenu { background: #2A2B33; border: 1px solid rgba(255,255,255,0.10); }"
+        "QMenu::item:selected { background: #3C3D47; }"
+        "QMenu::item:disabled { color: #6B6C75; }"
+        "QMenu::separator { background: rgba(255,255,255,0.10); }"
+        "QDialog#xxriDialog { background: #2A2B33; }"
+        "QMessageBox#xxriDialog { background: #2A2B33; border: 1px solid rgba(255,255,255,0.10); }"
+        "QMessageBox#xxriDialog QPushButton, QDialog#xxriDialog QPushButton { background: #3C3D47; }"
+        "QMessageBox#xxriDialog QPushButton:hover, QDialog#xxriDialog QPushButton:hover"
+        "  { background: #454650; }"
+        "QDialog#xxriDialog QLabel#xxriDialogPageUrl { color: #A0A1AA; }"
+        "QDialog#xxriDialog QLineEdit { background: #34353E; }"
+        "QDialog#xxriDialog QLineEdit:focus { border: 1px solid #4C93F8; }"
+        "QLineEdit#xxriAddress:focus { border: 1px solid #4C93F8; }"
+    );
+}
+
 QString XxriUi::styleSheet(const XxriMetrics &m)
 {
-    /*
-     * The whole window's look, generated from the metrics above so a change of
-     * scale moves every radius, padding and type size together.
-     */
-return QString(
-        /*
-         * Sidebar and Toolbar now paint their own backgrounds in paintEvent.
-         * The stylesheet rules for them are removed to avoid conflicts.
-         */
+    // generated from the metrics so radii, padding and type scale together
+    return QString(
         "QLineEdit#xxriAddress {"
         "  background: %1; border: 1px solid %2; border-radius: %3px;"
         "  padding: 0px %4px; color: %5; font-size: %6px;"
-        "  selection-background-color: #C9B6FF;"
+        "  selection-background-color: #B9D4FC;"
         "}"
-        "QLineEdit#xxriAddress:focus { border: 1px solid #7A6BD8; }"
+        "QLineEdit#xxriAddress:focus { border: 1px solid #2E7CF6; }"
         "QToolButton#xxriNav {"
         "  background: transparent; border: none; border-radius: %7px;"
         "}"
@@ -185,12 +228,10 @@ return QString(
         "}"
         "QToolButton#xxriSideItem:hover { background: rgba(255,255,255,0.60); }"
         "QToolButton#xxriSideItem:pressed { background: rgba(255,255,255,0.90); }"
-        // An open tab reads as a side item; the current one is marked with the
-        // accent and a heavier weight so it is obvious at a glance which page
-        // the window is showing.
+        // open tabs are side items; the current one is shaded and bold
         "QWidget#xxriTabRow { background: transparent; border-radius: %8px; }"
         "QWidget#xxriTabRow[current=\"true\"] {"
-        "  background: rgba(180,140,255,0.26);"
+        "  background: rgba(0,0,0,0.07);"
         "}"
         "QToolButton#xxriTabItem {"
         "  background: transparent; border: none; border-radius: %8px;"
@@ -199,37 +240,28 @@ return QString(
         "}"
         "QToolButton#xxriTabItem:hover { background: rgba(255,255,255,0.55); }"
         "QToolButton#xxriTabItem[current=\"true\"] {"
-        "  font-weight: bold; color: #3B1A6B;"
+        "  font-weight: bold; color: #1C1C1E;"
         "}"
         "QToolButton#xxriTabItemClose {"
         "  background: transparent; border: none; border-radius: %8px;"
         "}"
         "QToolButton#xxriTabItemClose:hover { background: rgba(0,0,0,0.10); }"
         "QToolButton#xxriTile {"
-        "  background: #FFFFFF; border: 1px solid rgba(116,96,140,0.18);"
+        "  background: #FFFFFF; border: 1px solid rgba(0,0,0,0.10);"
         "  border-radius: %11px;"
         "}"
         "QToolButton#xxriTile:hover {"
-        "  background: #FFFFFF; border: 1px solid rgba(122,27,224,0.55); }"
-        // The add-bookmark tile is not a site: dashed, so it reads as a slot
-        // waiting to be filled rather than a page that failed to load.
+        "  background: #FFFFFF; border: 1px solid rgba(46,124,246,0.60); }"
+        // the add tile is dashed so it doesn't look like a broken site
         "QToolButton#xxriAddTile {"
         "  background: rgba(255,255,255,0.55);"
-        "  border: 1px dashed rgba(122,27,224,0.55);"
-        "  border-radius: %11px; color: #7A1BE0;"
+        "  border: 1px dashed rgba(0,0,0,0.28);"
+        "  border-radius: %11px; color: #6B6B73;"
         "}"
         "QToolButton#xxriAddTile:hover { background: #FFFFFF;"
-        "  border: 1px dashed #7A1BE0; }"
-        /*
-         * "Bookmark" is a section label, not a second title.
-         *
-         * It was bold at almost the wordmark's size, so the two read as one
-         * masthead.  In the artwork they are the same ink and the hierarchy is
-         * carried entirely by weight: the wordmark is heavy at a 15px cap, the
-         * label is regular at a 10px cap.  Normal weight and a little tracking
-         * is what separates them - not a smaller size, which would only make
-         * the label hard to read.
-         */
+        "  border: 1px dashed #2E7CF6; }"
+        // "Bookmark" is a section label: regular weight, not a second
+        // bold title next to the wordmark
         "QLabel#xxriSectionLabel {"
         "  color: %5; font-size: %12px; font-weight: normal;"
         "  letter-spacing: 0.3px;"
@@ -238,20 +270,19 @@ return QString(
         "  background: transparent; border: none; color: %5;"
         "  font-size: %13px; padding: 0px;"
         "}"
-        "QToolButton#xxriClear:hover { color: #7A1BE0; }"
-        "QToolButton#xxriClear:disabled { color: #B4B0C0; }"
-        // The pencil beside the "Bookmark" heading.  It is a heading control,
-        // so it is quiet until it is pointed at or switched on.
+        "QToolButton#xxriClear:hover { color: #2E7CF6; }"
+        "QToolButton#xxriClear:disabled { color: #B4B4BA; }"
+        // pencil next to "Bookmark", quiet until hovered or on
         "QToolButton#xxriEditBookmarks {"
         "  background: transparent; border: none; border-radius: %14px;"
         "}"
         "QToolButton#xxriEditBookmarks:hover { background: rgba(255,255,255,0.70); }"
         "QToolButton#xxriEditBookmarks[on=\"true\"] {"
-        "  background: rgba(180,140,255,0.32);"
+        "  background: rgba(0,0,0,0.10);"
         "}"
-        // The remove badge that appears on each tile in edit mode.
+        // remove badge on each tile in edit mode
         "QToolButton#xxriTileRemove {"
-        "  background: #FFFFFF; border: 1px solid rgba(116,96,140,0.30);"
+        "  background: #FFFFFF; border: 1px solid rgba(0,0,0,0.18);"
         "  border-radius: %15px;"
         "}"
         "QToolButton#xxriTileRemove:hover {"
@@ -263,30 +294,29 @@ return QString(
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0,"
         "      stop:0 %16, stop:1 %17);"
         "}"
-        // Menus, dialogs and tooltips follow the same palette so nothing
-        // generic shows through.
+        // menus, dialogs, tooltips
         "QMenu {"
-        "  background: #FDF8FF; border: 1px solid rgba(120,90,130,0.28);"
+        "  background: #FFFFFF; border: 1px solid rgba(0,0,0,0.12);"
         "  border-radius: %18px; padding: 4px; color: %5; font-size: %10px;"
         "}"
         "QMenu::item { padding: %19px 22px; border-radius: %8px; }"
-        "QMenu::item:selected { background: rgba(180,140,255,0.28); }"
-        "QMenu::item:disabled { color: #A8A4B8; }"
+        "QMenu::item:selected { background: #ECECEF; }"
+        "QMenu::item:disabled { color: #A8A8B0; }"
         "QMenu::separator { height: 1px; margin: 4px 8px;"
-        "  background: rgba(120,90,130,0.20); }"
+        "  background: rgba(0,0,0,0.10); }"
         "QMenu::icon { padding-left: 8px; }"
-        "QToolTip { background: #2A2735; color: #FFFFFF; font-size: %13px;"
+        "QToolTip { background: #2A2A2E; color: #FFFFFF; font-size: %13px;"
         "  border: none; padding: 3px 7px; }"
-        "QDialog#xxriDialog { background: #FBF5FE; }"
+        "QDialog#xxriDialog { background: #FFFFFF; }"
         "QMessageBox#xxriDialog {"
-        "  background: #FBF5FE; border: 1px solid rgba(120,90,130,0.28);"
+        "  background: #FFFFFF; border: 1px solid rgba(0,0,0,0.12);"
         "  border-radius: %18px; }"
         "QMessageBox#xxriDialog QLabel { color: %5; font-size: %10px; }"
         "QMessageBox#xxriDialog QPushButton {"
-        "  border: 1px solid rgba(120,90,130,0.28); border-radius: %8px;"
+        "  border: none; border-radius: %8px;"
         "  padding: %19px 16px; color: %5; font-size: %10px;"
-        "  background: rgba(255,255,255,0.85); min-width: 74px; }"
-        "QMessageBox#xxriDialog QPushButton:hover { background: #FFFFFF; }"
+        "  background: #ECECEF; min-width: 74px; }"
+        "QMessageBox#xxriDialog QPushButton:hover { background: #E2E2E6; }"
         "QMessageBox#xxriDialog QPushButton#xxriPrimary {"
         "  border: none; color: #FFFFFF;"
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0,"
@@ -297,23 +327,23 @@ return QString(
         "QDialog#xxriDialog QLabel#xxriDialogPageTitle {"
         "  font-size: %10px; font-weight: bold; color: %5; }"
         "QDialog#xxriDialog QLabel#xxriDialogPageUrl {"
-        "  font-size: %13px; color: #8D89A3; }"
+        "  font-size: %13px; color: #8E8E96; }"
         "QDialog#xxriDialog QLineEdit {"
         "  background: #FFFFFF; border: 1px solid %2; border-radius: %8px;"
         "  padding: %19px 8px; color: %5; font-size: %10px; }"
-        "QDialog#xxriDialog QLineEdit:focus { border: 1px solid #7A6BD8; }"
+        "QDialog#xxriDialog QLineEdit:focus { border: 1px solid #2E7CF6; }"
         "QDialog#xxriDialog QPushButton {"
-        "  border: 1px solid rgba(120,90,130,0.28); border-radius: %8px;"
+        "  border: none; border-radius: %8px;"
         "  padding: %19px 14px; color: %5; font-size: %10px;"
-        "  background: rgba(255,255,255,0.85); }"
-        "QDialog#xxriDialog QPushButton:hover { background: #FFFFFF; }"
+        "  background: #ECECEF; }"
+        "QDialog#xxriDialog QPushButton:hover { background: #E2E2E6; }"
         "QDialog#xxriDialog QPushButton#xxriPrimary {"
         "  border: none; color: #FFFFFF;"
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0,"
         "      stop:0 %16, stop:1 %17); }"
         "QDialog#xxriDialog QPushButton#xxriPrimary:hover {"
         "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0,"
-        "      stop:0 #FF3BFF, stop:1 #5B22FF); }"
+        "      stop:0 #2459D0, stop:1 #5AA5F8); }"
     )
      .arg(kFieldBg).arg(kFieldBorder)
      .arg(m.pillH / 2).arg(qMax(6, qRound(12 * m.s))).arg(kInk).arg(m.fPill)
@@ -321,14 +351,34 @@ return QString(
      .arg(qMax(3, qRound(5 * m.s))).arg(m.fItem)
      .arg(qMax(6, qRound(15 * m.s))).arg(m.fLabel).arg(m.fClear)
      .arg(m.slotH / 2).arg(qMax(5, qRound(8 * m.s)))
-     .arg(kAccentFrom).arg(kAccentTo)
-     .arg(qMax(6, qRound(10 * m.s))).arg(qMax(3, qRound(6 * m.s)));
+     .arg(kPrimaryFrom).arg(kPrimaryTo)
+     .arg(qMax(6, qRound(10 * m.s))).arg(qMax(3, qRound(6 * m.s)))
+     + (g_dark ? darkOverrides() : QString());
 }
 
 // ---------------------------------------------------------------------------
-// Painted icons.  The mockup draws these as single-weight strokes; painting
-// them keeps the stroke tied to the text colour and the requested size.
+// Painted icons
 // ---------------------------------------------------------------------------
+void XxriUi::setGlyph(QAbstractButton *b, Glyph g, int px, bool muted)
+{
+    b->setProperty("xxriGlyph", int(g));
+    b->setProperty("xxriGlyphPx", px);
+    b->setProperty("xxriGlyphMuted", muted);
+    const QColor ink(muted ? kMuted : kInk);
+    b->setIcon(g == NewTabMark ? newTabIcon(px, ink)
+               : g == MenuMark ? menuIcon(px, ink) : glyph(g, px, ink));
+}
+
+void XxriUi::restyleGlyphs(QWidget *root)
+{
+    const auto buttons = root->findChildren<QAbstractButton *>();
+    for (QAbstractButton *b : buttons) {
+        const QVariant g = b->property("xxriGlyph");
+        if (g.isValid())
+            setGlyph(b, Glyph(g.toInt()), b->property("xxriGlyphPx").toInt(),
+                     b->property("xxriGlyphMuted").toBool());
+    }
+}
 QIcon XxriUi::glyph(Glyph g, int px, const QColor &ink)
 {
     QPixmap pm(px, px);
@@ -360,8 +410,7 @@ QIcon XxriUi::glyph(Glyph g, int px, const QColor &ink)
         break;
     }
     case Clock: {
-        // The mockup's history glyph: an open circle with a hand, and a small
-        // "rewind" tick at the top left.
+        // history: open circle, hands, a "rewind" tick top left
         const QRectF r(a, a + px * 0.06, b - a, b - a);
         p.drawArc(r, 70 * 16, -320 * 16);
         p.drawLine(QPointF(c, r.center().y()),
@@ -382,8 +431,7 @@ QIcon XxriUi::glyph(Glyph g, int px, const QColor &ink)
         break;
     }
     case Pencil: {
-        // A nib on a shaft, with the line it has just drawn under it - the
-        // same single-stroke vocabulary as the rest of the sidebar's icons.
+        // nib on a shaft, with a line under it
         const qreal t = px * 0.20, u = px * 0.74;
         QPainterPath shaft;
         shaft.moveTo(t, u);                       // the nib
@@ -404,17 +452,14 @@ QIcon XxriUi::glyph(Glyph g, int px, const QColor &ink)
         break;
     }
     case TabStack: {
-        // The same stacked sheets the tool bar's tab control draws, at row size.
+        // the tool bar's tab counter sheets, at row size
         p.setPen(Qt::NoPen);
         XxriUi::paintTabStack(&p, QRectF(0.5, 0.5, px - 1, px - 1), ink,
                               QString());
         break;
     }
     case House: {
-        // Stroked house with a rounded ridge and an arched door.  Its outline
-        // and its door are close together, so at tool-bar size the shared
-        // stroke weight closes the gap between them and the glyph reads as a
-        // solid block; it is drawn a little finer than the other glyphs.
+        // thinner stroke than the rest, or door and outline merge at bar size
         pen.setWidthF(qMax(qreal(1.0), w * 0.78));
         p.setPen(pen);
         const qreal eave = px * 0.44, base = px * 0.80;
@@ -438,10 +483,8 @@ QIcon XxriUi::glyph(Glyph g, int px, const QColor &ink)
     return QIcon(pm);
 }
 
-
 // ---------------------------------------------------------------------------
-// The two stacked-sheet icons at the right of the artwork's tool bar, and the
-// drag handle the sidebar and tool bar use.
+// Tool bar sheet icons, drag handle
 // ---------------------------------------------------------------------------
 
 void XxriUi::paintTabStack(QPainter *p, const QRectF &box, const QColor &ink,
@@ -507,10 +550,8 @@ XxriDragArea::XxriDragArea(QWidget *window, QWidget *parent)
 
 void XxriDragArea::mousePressEvent(QMouseEvent *e)
 {
-    /* Moved here rather than through startSystemMove(): the XCB implementation
-     * reports success for a _NET_WM_MOVERESIZE nobody is listening to, and
-     * flwm does not implement it, so the "supported" path silently does
-     * nothing and the window cannot be moved at all. */
+    // not startSystemMove(): XCB "succeeds" with a _NET_WM_MOVERESIZE that
+    // flwm doesn't implement, and nothing moves
     if (e->button() != Qt::LeftButton || !m_window) {
         QWidget::mousePressEvent(e);
         return;
@@ -538,7 +579,6 @@ void XxriDragArea::mouseReleaseEvent(QMouseEvent *e)
 
 void XxriDragArea::mouseDoubleClickEvent(QMouseEvent *e)
 {
-    // The other thing a title bar did for us.
     if (e->button() == Qt::LeftButton && m_window) {
         m_dragging = false;
         XxriUi::toggleMaximise(m_window);
@@ -577,8 +617,7 @@ void XxriUi::toggleMaximise(QWidget *window)
         window->resize(r.size());
         return;
     }
-    // The dock's strut.  XXRI's GTK chrome reads the same variable, so a
-    // machine that has moved the dock moves every application's maximise.
+    // dock strut, same variable xxri-chrome.h reads
     int reserve = qEnvironmentVariableIntValue("XXRI_DOCK_RESERVE");
     if (reserve <= 0)
         reserve = 78;
@@ -598,23 +637,16 @@ QPainterPath XxriUi::windowClip(const QWidget *w, int radius)
     }
     path.addRoundedRect(QRectF(0, 0, top->width(), top->height()),
                         radius, radius);
-    // Into this widget's own coordinates: the origin of the window, expressed
-    // where the caller is painting.
+    // into w's coordinates
     const QPoint origin = w->mapFrom(const_cast<QWidget *>(top), QPoint(0, 0));
     path.translate(origin);
     return path;
 }
 
 namespace {
-/*
- * The one translucent surface both the sidebar and the tool bar are made of.
- *
- * White at alpha 214/255.  That is a measurement, not a preference: inverting
- * result = a*C + (1-a)*wallpaper at five points of the artwork - two in the
- * tool bar, three down the sidebar, over pink, violet and blue wallpaper -
- * returns C = (255,255,255) and a = 0.83 at every one of them.
- */
-const QColor kGlassFill(255, 255, 255, 214);
+// white at 0.83 (214/255), measured off the mockup, see XxriSidebar; Dark:
+// Settings' dark sidebar colour at the same alpha
+QColor glassFill() { return XxriUi::dark() ? QColor(29, 27, 29, 214) : QColor(255, 255, 255, 214); }
 
 void paintGlass(QPainter *p, QWidget *w, const XxriMetrics &m,
                 const QColor &opaqueFrom, const QColor &opaqueTo,
@@ -622,15 +654,12 @@ void paintGlass(QPainter *p, QWidget *w, const XxriMetrics &m,
 {
     const QRect r = w->rect();
     p->setRenderHint(QPainter::Antialiasing, true);
-    // A frameless window draws its own corners; clipping every surface that
-    // touches one to the same outline is what keeps the radius consistent.
     p->setClipPath(XxriUi::windowClip(w, m.corner), Qt::IntersectClip);
     if (XxriUi::composited(w)) {
-        p->fillRect(r, kGlassFill);
+        p->fillRect(r, glassFill());
         return;
     }
-    // No compositor: nothing is behind to show through, so the surface is
-    // painted as what the artwork ends up looking like over its wallpaper.
+    // no compositor: an opaque look-alike of the glass over the wallpaper
     QLinearGradient grad(0, 0, vertical ? r.width() * 0.16 : r.width(),
                          vertical ? r.height() : 0);
     grad.setColorAt(0.0, opaqueFrom);
@@ -643,7 +672,7 @@ void paintGlass(QPainter *p, QWidget *w, const XxriMetrics &m,
 // Sidebar
 // ---------------------------------------------------------------------------
 XxriSidebar::XxriSidebar(QWidget *window, const XxriMetrics &m, QWidget *parent)
-    : XxriDragArea(window, parent), m_m(m)
+    : XxriDragArea(window, parent), m_metrics(m)
 {
     setObjectName(QStringLiteral("xxriSidebar"));
     setAttribute(Qt::WA_StyledBackground, false); // we paint ourselves
@@ -652,13 +681,13 @@ XxriSidebar::XxriSidebar(QWidget *window, const XxriMetrics &m, QWidget *parent)
 
 QSize XxriSidebar::sizeHint() const
 {
-    return QSize(m_m.sidebar, 0);
+    return QSize(m_metrics.sidebar, 0);
 }
 
 void XxriSidebar::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
-    paintGlass(&p, this, m_m, QColor(XxriUi::kSidebarTop),
+    paintGlass(&p, this, m_metrics, QColor(XxriUi::kSidebarTop),
                QColor(XxriUi::kSidebarBottom), true);
 }
 
@@ -666,23 +695,23 @@ void XxriSidebar::paintEvent(QPaintEvent *)
 // Tool bar
 // ---------------------------------------------------------------------------
 XxriToolBar::XxriToolBar(QWidget *window, const XxriMetrics &m, QWidget *parent)
-    : XxriDragArea(window, parent), m_m(m)
+    : XxriDragArea(window, parent), m_metrics(m)
 {
     setObjectName(QStringLiteral("xxriToolbar"));
     setAttribute(Qt::WA_StyledBackground, false); // we paint ourselves
-    setFixedHeight(m_m.barH);
+    setFixedHeight(m_metrics.barH);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
 }
 
 QSize XxriToolBar::sizeHint() const
 {
-    return QSize(0, m_m.barH);
+    return QSize(0, m_metrics.barH);
 }
 
 void XxriToolBar::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
-    paintGlass(&p, this, m_m, QColor(XxriUi::kToolbarLeft),
+    paintGlass(&p, this, m_metrics, QColor(XxriUi::kToolbarLeft),
                QColor(XxriUi::kToolbarRight), false);
 }
 
@@ -717,39 +746,31 @@ void XxriTabCounter::paintEvent(QPaintEvent *e)
                           QString::number(m_count));
 }
 
-/*
- * The window controls.
- *
- * The glyphs are the artwork's size (13 mockup px, scaled by s); the widget
- * around them is deliberately taller and wider, so the hover ring has room and
- * the pointer has a comfortable target.  Nothing here uses a fixed height set
- * from outside - the widget reports what it needs and the layout gives it
- * that, which is what stops the glyphs being cut off at the bottom.
- */
+/* Glyphs at the artwork's size; the widget is bigger so the hover ring fits
+ * and the target is comfortable. It sizes itself, or the glyphs get clipped. */
 XxriWindowControls::XxriWindowControls(QWidget *window, const XxriMetrics &m,
                                         QWidget *parent)
-    : QWidget(parent), m_window(window), m_m(m)
+    : QWidget(parent), m_window(window), m_metrics(m)
 {
     setMouseTracking(true);
     setCursor(Qt::ArrowCursor);
     setAttribute(Qt::WA_Hover, true);
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     setToolTip(QString());
-    // Ensure the widget gets its full height to avoid clipping the glyphs and hover rings
     setFixedHeight(sizeHint().height());
 }
 
 QSize XxriWindowControls::sizeHint() const
 {
-    const int d = m_m.ctlDot, g = m_m.ctlGap;
+    const int d = m_metrics.ctlDot, g = m_metrics.ctlGap;
     const int ring = qMax(2, d / 4);           // room for the hover ring
     return QSize(kBtnCount * d + (kBtnCount - 1) * g + ring * 2,
-                 m_m.ctlBox);
+                 m_metrics.ctlBox);
 }
 
 QRect XxriWindowControls::buttonRect(int i) const
 {
-    const int d = m_m.ctlDot, g = m_m.ctlGap;
+    const int d = m_metrics.ctlDot, g = m_metrics.ctlGap;
     const int ring = qMax(2, d / 4);
     return QRect(ring + i * (d + g), (height() - d) / 2, d, d);
 }
@@ -757,12 +778,11 @@ QRect XxriWindowControls::buttonRect(int i) const
 int XxriWindowControls::hitTest(const QPoint &p) const
 {
     for (int i = 0; i < kBtnCount; ++i) {
-        // The hit area is the full height of the row and half a gap either
-        // side, so a small glyph is still an easy target.
+        // full row height and half a gap either side
         QRect r = buttonRect(i);
         r.setTop(0);
         r.setBottom(height() - 1);
-        r.adjust(-m_m.ctlGap / 2, 0, m_m.ctlGap / 2, 0);
+        r.adjust(-m_metrics.ctlGap / 2, 0, m_metrics.ctlGap / 2, 0);
         if (r.contains(p))
             return i;
     }
@@ -797,9 +817,9 @@ void XxriWindowControls::paintEvent(QPaintEvent *)
 
     if (m_hover >= 0) {
         const QRect h = buttonRect(m_hover);
-        const int ring = qMax(2, m_m.ctlDot / 4);
+        const int ring = qMax(2, m_metrics.ctlDot / 4);
         p.setBrush(Qt::NoBrush);
-        p.setPen(QPen(QColor(0, 0, 0, 60), 1));
+        p.setPen(QPen(XxriUi::dark() ? QColor(255, 255, 255, 70) : QColor(0, 0, 0, 60), 1));
         p.drawEllipse(h.adjusted(-ring, -ring, ring, ring));
     }
 }
@@ -860,8 +880,7 @@ XxriResizeGrip::XxriResizeGrip(QWidget *window, Qt::Edges edges, QWidget *parent
     : QWidget(parent), m_window(window), m_edges(edges)
 {
     setCursor(gripCursor(edges));
-    // No painting at all: the grip is a hit area, and the content behind it
-    // must show through unchanged.
+    // hit area only, paints nothing
     setAttribute(Qt::WA_NoSystemBackground, true);
     setAttribute(Qt::WA_TranslucentBackground, true);
     setAttribute(Qt::WA_TransparentForMouseEvents, false);
@@ -873,14 +892,7 @@ void XxriResizeGrip::mousePressEvent(QMouseEvent *e)
         QWidget::mousePressEvent(e);
         return;
     }
-    /*
-     * Deliberately not startSystemResize(): on XCB that call sends a
-     * _NET_WM_MOVERESIZE message and reports success as soon as the message
-     * is sent, whether or not any window manager acts on it.  flwm does not,
-     * so the "supported" path silently does nothing and the window cannot be
-     * resized at all.  Driving the geometry here works under flwm, under a
-     * bare X server, and under a full desktop alike.
-     */
+    // not startSystemResize(), same flwm problem as XxriDragArea
     m_active = true;
     m_start  = e->globalPos();
     m_geom   = m_window->geometry();
@@ -903,9 +915,8 @@ void XxriResizeGrip::mouseMoveEvent(QMouseEvent *e)
         e->accept();
         return;
     }
-    // Growing right or down needs no move; asking a reparenting window manager
-    // for one makes it re-apply its frame offset on every motion event and the
-    // window walks across the screen while it is being resized.
+    // no move unless needed: flwm re-applies its frame offset on every move
+    // and the window walks across the screen
     if (x == m_geom.x() && y == m_geom.y())
         m_window->resize(w, h);
     else
@@ -936,27 +947,9 @@ QFont XxriWordmark::markFont() const
 QSize XxriWordmark::sizeHint() const
 {
     const QFontMetrics fm(markFont());
-    /*
-     * The ink, not the line box.
-     *
-     * fm.height() includes the font's leading, and even ascent+descent counts
-     * the room a descender would need - "XXRI Browser" has none.  The sidebar
-     * places each element at its own distance from the window top and takes
-     * whatever is left as the gap, so every pixel over-reported here pushes
-     * the tile grid below it down.  Cap height plus descent is the tallest ink
-     * this widget can produce.
-     */
-    /*
-     * capHeight() alone, plus a couple of px of breathing room - nothing more.
-     *
-     * capHeight()+descent() reserves room for a descender this text never has
-     * ("XXRI Browser" has none), and the layout cannot place the section below
-     * this widget any closer than the bottom of its box.  That reserve was
-     * exactly the room a request to bring the section below closer to the
-     * title had nowhere else to come from.  paintEvent anchors the baseline to
-     * this same height (not to height()-descent()), so the ink still fills
-     * the box completely - nothing is clipped by tightening it.
-     */
+    // the ink only: cap height, no leading or descent ("XXRI Browser" has no
+    // descenders), so the section below sits close. paintEvent puts the
+    // baseline at the bottom of this box.
     return QSize(fm.horizontalAdvance(QStringLiteral("XXRI Browser")) + 2,
                  fm.capHeight());
 }
@@ -972,13 +965,7 @@ void XxriWordmark::paintEvent(QPaintEvent *)
     const QString mark = QStringLiteral("XXRI");
     const QString name = QStringLiteral(" Browser");
     const int markW = fm.horizontalAdvance(mark);
-    /*
-     * Sat on the widget's own bottom - not height()-descent().  This text has
-     * no descenders, so the descent this font metric reports is never drawn;
-     * anchoring to it would reserve room under the ink for nothing and, once
-     * the box is sized to capHeight() alone (see sizeHint()), would push the
-     * baseline above the box and clip the tops of the letters instead.
-     */
+    // bottom of the box, not height()-descent() (see sizeHint)
     const int baseline = height();
 
     QLinearGradient g(0, 0, markW, 0);
@@ -998,15 +985,15 @@ QSize XxriDottedRule::sizeHint() const { return QSize(10, 9); }
 void XxriDottedRule::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
-    QPen pen(QColor(0, 0, 0, 110), 1.0, Qt::DotLine, Qt::RoundCap);
+    QPen pen(XxriUi::dark() ? QColor(255, 255, 255, 100) : QColor(0, 0, 0, 110),
+             1.0, Qt::DotLine, Qt::RoundCap);
     p.setPen(pen);
     const int y = height() / 2;
     p.drawLine(0, y, width(), y);
 }
 
-
 // ---------------------------------------------------------------------------
-// Site icons - see xxriui.h for the three sources and the order they are used.
+// Site icons, see xxriui.h
 // ---------------------------------------------------------------------------
 #include <QNetworkAccessManager>
 #include <QNetworkRequest>
@@ -1048,8 +1035,7 @@ void XxriIcons::remember(const QUrl &pageUrl, const QIcon &icon)
         return;
     if (host.isEmpty() || icon.isNull() || icon.availableSizes().isEmpty())
         return;
-    // Keep the largest size the engine gave us, so the same file serves a
-    // 16px history row and a 40px shortcut tile without looking soft.
+    // keep the largest size, it serves 16px rows and 40px tiles alike
     QSize best;
     for (const QSize &sz : icon.availableSizes())
         if (sz.width() > best.width())
@@ -1070,11 +1056,7 @@ QIcon XxriIcons::iconFor(const QUrl &url)
     if (m_mem.contains(host))
         return m_mem.value(host);
 
-    /*
-     * "google.com" and "www.google.com" are the same site as far as a site
-     * icon is concerned, and a bookmark typed without the www should not show
-     * a blank tile next to a shortcut that has one.
-     */
+    // www.x and x share an icon
     const QString alt = host.startsWith(QLatin1String("www."))
             ? host.mid(4) : QStringLiteral("www.") + host;
     if (m_mem.contains(alt))
@@ -1098,17 +1080,8 @@ QIcon XxriIcons::iconFor(const QUrl &url)
         }
     }
 
-    /*
-     * Never been visited: ask the site.
-     *
-     * One attempt is not enough here.  The sidebar is built while the desktop
-     * is still coming up, and on this system the network is routinely not
-     * there yet - a single request that fails would leave a shortcut showing
-     * the generic mark for the rest of the session, which is exactly what a
-     * placeholder looks like.  Each host gets up to three attempts, spaced
-     * out, and the second one tries the other of www/non-www because plenty
-     * of sites only serve /favicon.ico from one of them.
-     */
+    // never visited: fetch. Three spaced-out attempts (see fetch()), the
+    // network is often not up yet when the sidebar is built at login
     if (!m_tried.contains(host)) {
         m_tried.insert(host);
         fetch(host, url.scheme(), 0);
@@ -1128,15 +1101,8 @@ QNetworkRequest XxriIcons::iconRequest(const QUrl &url) const
     return req;
 }
 
-/*
- * Asks a site's document where its icon is.
- *
- * /favicon.ico is a convention, not a rule, and a good number of sites do not
- * honour it - xda-developers.com, one of the artwork's own shortcuts, answers
- * 404 there and declares its icon with <link rel="icon"> instead.  Without
- * this step that tile could only ever show the generic mark, which is exactly
- * the placeholder this browser is not supposed to have.
- */
+/* <link rel="icon"> from the site's page, for sites without /favicon.ico
+ * (xda-developers.com 404s there) */
 void XxriIcons::discover(const QString &host, const QString &scheme)
 {
     QUrl page;
@@ -1149,7 +1115,7 @@ void XxriIcons::discover(const QString &host, const QString &scheme)
         r->deleteLater();
         if (r->error() != QNetworkReply::NoError)
             return;
-        // The head of the document is enough: <link rel="icon"> is in <head>.
+        // <link> lives in <head>, the start is enough
         const QString head = QString::fromUtf8(r->read(96 * 1024));
         static const QRegularExpression linkRe(
             QStringLiteral("<link\\b[^>]*>"),
@@ -1171,8 +1137,7 @@ void XxriIcons::discover(const QString &host, const QString &scheme)
             const QString href = hrefRe.match(tag).captured(1);
             if (href.isEmpty())
                 continue;
-            // Prefer a plain "icon"/"shortcut icon" over an apple-touch one,
-            // and a PNG over an ICO, but take anything rather than nothing.
+            // prefer apple-touch and PNG, but take anything
             int score = 1;
             if (rel.contains(QLatin1String("apple"))) score += 1;
             if (href.contains(QLatin1String(".png"), Qt::CaseInsensitive)) score += 2;
@@ -1254,11 +1219,7 @@ QIcon XxriIcons::iconOrGeneric(const QUrl &url, int px)
 
 QIcon XxriIcons::genericSite(int px)
 {
-    /*
-     * The fallback mark: a globe drawn in the XXRI accent gradient.  It says
-     * "a web page whose icon is not known", which is true, instead of showing
-     * letters that look like branding the site does not have.
-     */
+    // a globe in the accent gradient, not letters that look like branding
     px = qMax(8, px);
     QPixmap pm(px, px);
     pm.fill(Qt::transparent);

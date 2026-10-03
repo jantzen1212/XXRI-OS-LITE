@@ -597,10 +597,8 @@ static void on_folder_start_loading(FmFolder* folder, FmTabPage* page)
            it is delayed for non-incremental folders since adding rows into
            model is much faster without handlers connected to its signals */
         FmFolderModel* model = fm_folder_model_new(folder, page->show_hidden);
-        /* XXRI File hides /proc, /sys, /dev ... from ordinary listings.
-         * add_filter only registers the callback - libfm does not refilter
-         * until apply_filters() is called, so without this the filter is
-         * silently inert. */
+        /* XXRI File: hide /proc, /sys, /dev ...; add_filter does nothing
+         * until apply_filters() */
         fm_folder_model_add_filter(model, xxri_ui_model_filter, NULL);
         fm_folder_model_apply_filters(model);
         if (page->filter_pattern)
@@ -664,10 +662,8 @@ static void on_folder_finish_loading(FmFolder* folder, FmTabPage* page)
     {
         /* create a model for the folder and set it to the view */
         FmFolderModel* model = fm_folder_model_new(folder, page->show_hidden);
-        /* XXRI File hides /proc, /sys, /dev ... from ordinary listings.
-         * add_filter only registers the callback - libfm does not refilter
-         * until apply_filters() is called, so without this the filter is
-         * silently inert. */
+        /* XXRI File: hide /proc, /sys, /dev ...; add_filter does nothing
+         * until apply_filters() */
         fm_folder_model_add_filter(model, xxri_ui_model_filter, NULL);
         fm_folder_model_apply_filters(model);
         fm_folder_view_set_model(fv, model);
@@ -760,9 +756,8 @@ static void on_folder_fs_info(FmFolder* folder, FmTabPage* page)
                   (guint)FM_STATUS_TEXT_FS_INFO, msg);
 }
 
-/* XXRI File: the location pill shows the folder's total size on the right,
- * where upstream would have put an item count in the status bar.  Directories
- * are skipped - their on-disk inode size is meaningless to a user. */
+/* XXRI File: the folder's total size for the location pill (instead of the
+ * status bar's item count); directories' own sizes are skipped */
 char* fm_tab_page_get_size_text(FmTabPage* page)
 {
     FmFolder* folder;

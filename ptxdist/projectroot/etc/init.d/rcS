@@ -8,15 +8,24 @@
 # Remount rootfs rw.
 /bin/mount -o remount,rw /
 
+# GRUB's early microcode archive (boot/*-ucode.img) gets unpacked into the RAM
+# root too. Already applied by the kernel, and 15 MB of RAM on Intel.
+if [ -d /kernel/x86/microcode ]; then
+	/bin/rm -rf /kernel/x86/microcode
+	/bin/rmdir /kernel/x86 /kernel 2>/dev/null
+fi
+
 # Mount system devices from /etc/fstab.
 /bin/mount -a
 
-# xxri OS Lite boot splash (Phase 8.3): on graphical boots, cover every Tiny
-# Core boot message with the native framebuffer splash until X comes up.  It
-# self-exits when the X server socket appears (or after a safety timeout) and
-# never blocks boot.  Gated to desktop boots (installed root has Xserver set;
-# the live desktop ISO passes the `cde` boot code); skipped for text/cli boots.
-if [ -x /usr/local/sbin/xxri-bootsplash ] && \
+# Set when this script is done (the splash watches for it). An installed
+# system's /var/run is on disk: the previous boot's mark must go first.
+/bin/rm -f /var/run/xxri-boot.done
+
+# Boot splash on quiet desktop boots only (installed: Xserver set; live: the
+# cde boot code), not text/cli or verbose ones. Exits by itself when X is up
+# or the console wants the user, never blocks.
+if [ -x /usr/local/sbin/xxri-bootsplash ] && grep -qw quiet /proc/cmdline && \
    ! grep -qwE 'text|nox|xonly|noquiet' /proc/cmdline && \
    { [ -s /etc/sysconfig/Xserver ] || grep -qw cde /proc/cmdline; }; then
 	/usr/local/sbin/xxri-bootsplash >/dev/null 2>&1 &
@@ -24,10 +33,15 @@ fi
 
 clear
 
-# Call the upstream Tiny Core entry point, a symlink to xxri-config.  Boot
-# tools patch tc-config by that name - Ventoy's Tiny Core hook seds in the
-# code that maps the ISO file as a disk (without it, cde is never found and
-# the desktop never starts) - and sed -i replaces the symlink with the
-# patched copy, so calling xxri-config directly would bypass their patch.
-/etc/init.d/tc-config >/dev/null 2>&1
+# Keep calling it tc-config (symlink to xxri-config): Ventoy's Tiny Core hook
+# sed -i's tc-config to map the ISO as a disk, which replaces the symlink.
+# Calling xxri-config would skip their patch and cde would never be found.
+# Quiet boots (the splash covers the screen) keep its messages in a log; the
+# verbose entry shows them as Tiny Core does.
+if grep -qw quiet /proc/cmdline; then
+	/etc/init.d/tc-config >/var/log/xxri-boot.log 2>&1
+else
+	/etc/init.d/tc-config
+fi
+: > /var/run/xxri-boot.done
 

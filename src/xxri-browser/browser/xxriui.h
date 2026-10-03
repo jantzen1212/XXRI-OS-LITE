@@ -1,11 +1,9 @@
 /*
- * xxriui.h - XXRI OS Lite user interface for XXRI Browser.
+ * xxriui.h - the XXRI shell for XXRI Browser.
  *
- * XXRI Browser is a fork of Qt's WebEngine "Simple Browser" example.  The
- * engine integration (WebView/WebPage/TabWidget) is upstream's; everything in
- * this file is the XXRI shell that replaces the stock QMainWindow chrome -
- * native menu bar, tool bar and title bar - with the layout in
- * assets/mockup/mockup1.jpg:
+ * XXRI Browser is a fork of Qt's WebEngine "Simple Browser" example. The
+ * engine side (WebView/WebPage/TabWidget) is upstream's; this replaces the
+ * QMainWindow menu bar, tool bar and title bar with assets/mockup/mockup1.jpg:
  *
  *   +--------+-------------------------------------------+
  *   | sidebar|  < > ^   (        address pill        )   |
@@ -16,9 +14,6 @@
  *   | Bookmk |                                           |
  *   | ...    |                                           |
  *   +--------+-------------------------------------------+
- *
- * Geometry is measured from the mockup, not estimated: the window is 1323px
- * wide with a 232px sidebar (17.5%) and a ~37px tool bar.
  */
 
 #ifndef XXRIUI_H
@@ -45,23 +40,13 @@ QT_END_NAMESPACE
 class BrowserWindow;
 
 /*
- * The visual coordinate system.
- *
- * There is exactly one scale in this application.  The mockup's browser window
- * is 1325x898 device pixels, drawn on a 4:3 desktop 2210px wide - so the
- * artwork is 1:1 for a machine with a 2210px screen, which XXRI's 1024x768 is
- * not.  Rather than scaling individual widgets by eye, the shell computes
+ * One scale for the whole UI. The mockup draws the window 1325x898 (on a
+ * 2210px wide desktop), so every artwork measurement is multiplied by
  *
  *     s = window width / 1325
  *
- * once, from a default window sized to the actual screen at the mockup's own
- * 1.476 aspect ratio, and every measurement in the artwork is multiplied by it.
- * Nothing in the UI carries a hand-picked pixel size, so the whole window is
- * one consistent piece of design at whatever size it ends up.
- *
- * Floors exist only where a control would otherwise stop working - a text
- * field below 17px cannot be read - and they are listed here rather than
- * buried at the call site.
+ * computed once for a default window at the mockup's 1.476 aspect. Minimum
+ * sizes exist only where a control would stop working (a field under 17px).
  */
 struct XxriMetrics
 {
@@ -95,32 +80,36 @@ struct XxriMetrics
     static QSize defaultWindow(const QRect &available);
 };
 
-// Palette, sampled from the mockup.
+// Palette: neutral surfaces, the system blue for actions. The accent gradient
+// is for artwork only (wordmark, fallback site icon). The surfaces and the
+// ink follow Settings' Mode, Light or Dark (loadPalette()); the rest is the
+// same in both.
 namespace XxriUi {
-    const char *const kSidebarTop    = "#FFDCF5";
-    const char *const kSidebarMid    = "#F0E7FD";
-    const char *const kSidebarBottom = "#FFE6FE";
-    const char *const kToolbarLeft   = "#FFE2F6";
-    const char *const kToolbarRight  = "#F4F7FE";
-    const char *const kFieldBg       = "#FFFFFF";
-    const char *const kFieldBorder   = "#AEAEAE";
-    const char *const kInk           = "#1C1B24";
-    const char *const kMuted         = "#6B6880";
+    extern const char *kSidebarTop;
+    extern const char *kSidebarMid;
+    extern const char *kSidebarBottom;
+    extern const char *kToolbarLeft;
+    extern const char *kToolbarRight;
+    extern const char *kFieldBg;
+    extern const char *kFieldBorder;
+    extern const char *kInk;
+    extern const char *kMuted;
+    extern const char *kPage;                     // behind web content
     const char *const kAccentFrom    = "#EF00FF";
     const char *const kAccentTo      = "#4400FF";
+    const char *const kPrimaryFrom   = "#1E4FC2";   // primary buttons, progress
+    const char *const kPrimaryTo     = "#4A9AF5";
+    const char *const kAction        = "#2E7CF6";   // focus, links, selection
 
-/*
- * The window's look.  The sidebar and toolbar now paint themselves in paintEvent
- * with proper alpha handling, so the stylesheet no longer needs the composited flag.
- */
+/* ~/.config/xxri/appearance, written by xxri-desktop: sets the palette above.
+ * True when the mode changed since the last call. */
+bool loadPalette();
+bool dark();
+/* the window's stylesheet (sidebar and tool bar paint themselves) */
 QString styleSheet(const XxriMetrics &m);
 }
 
-/*
- * The XXRI window controls.  These windows are undecorated and draw their own
- * controls, exactly as Settings, Store and XXRI File do; the glyphs match the
- * shared GTK xxri-chrome.h so all four applications look like one system.
- */
+/* window controls, same glyphs as the GTK apps' xxri-chrome.h */
 class XxriWindowControls : public QWidget
 {
     Q_OBJECT
@@ -139,14 +128,11 @@ private:
     int   hitTest(const QPoint &p) const;
     QRect buttonRect(int i) const;
     QWidget    *m_window;
-    XxriMetrics m_m;
+    XxriMetrics m_metrics;
     int         m_hover = -1;
 };
 
-/*
- * A drag handle: pressing anywhere on it moves the whole top-level window
- * through the window manager, so the entire UI travels together.
- */
+/* drag handle for the frameless window; double-click maximises */
 class XxriDragArea : public QWidget
 {
     Q_OBJECT
@@ -164,20 +150,10 @@ private:
 };
 
 /*
- * The sidebar and the tool bar are one material.
- *
- * Reconstructing the source colour from five points of assets/mockup/mockup1.jpg
- * - inverting  result = a*C + (1-a)*wallpaper  at each - gives C = white and
- * a = 0.83 every time, for the sidebar and the tool bar alike.  The artwork's
- * apparent pink-to-violet-to-pink progression down the sidebar is not a
- * gradient in the sidebar at all: it is the wallpaper showing through a flat
- * white wash.  So that is what these paint, and the compositor supplies the
- * rest.  Without a compositor there is nothing behind to show through, and the
- * fallback is an opaque approximation of what the artwork ends up looking like.
- *
- * The flag is read at paint time, never cached: these widgets are built before
- * the window has decided whether it can be translucent, and a value latched in
- * the constructor is always the wrong one.
+ * Sidebar and tool bar are flat white at 0.83 alpha (solved from five points
+ * of the mockup; the "gradient" there is just the wallpaper behind). Without
+ * a compositor they paint an opaque approximation. composited() is checked at
+ * paint time: these are built before the window knows if it's translucent.
  */
 class XxriSidebar : public XxriDragArea
 {
@@ -188,10 +164,9 @@ public:
 protected:
     void paintEvent(QPaintEvent *) override;
 private:
-    XxriMetrics m_m;
+    XxriMetrics m_metrics;
 };
 
-/* The top tool bar: the same material as the sidebar. */
 class XxriToolBar : public XxriDragArea
 {
     Q_OBJECT
@@ -201,7 +176,7 @@ public:
 protected:
     void paintEvent(QPaintEvent *) override;
 private:
-    XxriMetrics m_m;
+    XxriMetrics m_metrics;
 };
 
 /* The "XXRI Browser" wordmark: "XXRI" in the accent gradient, "Browser" ink. */
@@ -218,15 +193,8 @@ private:
     int m_px;
 };
 
-/*
- * An invisible resize edge.
- *
- * A frameless window gets no resize border from the window manager, and the
- * window's own mouse events never reach the edges because the content fills
- * them.  XXRI Settings, Store and File solve this with a GTK overlay of thin
- * transparent edge widgets (xxri-chrome.h, 5px edges and 14px corners); this
- * is the same thing for Qt, so all four applications resize identically.
- */
+/* invisible resize edge for the frameless window, like xxri-chrome.h's
+ * (5px edges, 14px corners) */
 class XxriResizeGrip : public QWidget
 {
     Q_OBJECT
@@ -256,37 +224,27 @@ protected:
 };
 
 
-/*
- * The mockup's line icons.  These are drawn rather than shipped as files:
- * they are single-stroke geometry (a plus, a clock, two chevrons, a house, a
- * stack of tabs) whose weight has to track the text colour and the widget
- * size, and painting them keeps that relationship exact at any scale.
- */
+/* the mockup's line icons, painted so stroke and colour follow size and ink */
 namespace XxriUi {
     enum Glyph { Plus, Clock, ChevronLeft, ChevronRight, House, ArrowDown, Cross,
-                 TabStack, Pencil, Minus };
+                 TabStack, Pencil, Minus,
+                 NewTabMark, MenuMark };   // setGlyph only: newTabIcon, menuIcon
     QIcon glyph(Glyph g, int px, const QColor &ink);
+    /* b's icon in the palette's ink (or muted) colour, remembered so
+     * restyleGlyphs() paints it again after a Light/Dark switch */
+    void setGlyph(QAbstractButton *b, Glyph g, int px, bool muted = false);
+    void restyleGlyphs(QWidget *root);
 
     /* True when this window really has an alpha channel to paint into. */
     bool composited(const QWidget *w);
 
-    /*
-     * Maximise / restore, done by the window itself.
-     *
-     * flwm is ICCCM-only: it never reads _NET_WM_STATE, so showMaximized()
-     * sets a property nothing acts on and the window simply does not move.
-     * XXRI's GTK applications each maximise themselves and stop above the
-     * dock (xxri-chrome.h); this is the same thing for Qt, so all four behave
-     * alike.  The pre-maximise geometry is kept on the window itself.
-     */
+    /* flwm ignores _NET_WM_STATE, so showMaximized() does nothing: maximise
+     * by hand and stop above the dock, like xxri-chrome.h */
     void toggleMaximise(QWidget *window);
     bool isMaximised(const QWidget *window);
 
-    /*
-     * The window's rounded outline, in the coordinates of `w`.  A frameless
-     * window has to draw its own corners; every surface that touches an outer
-     * corner clips to this so the radius is the same one everywhere.
-     */
+    /* the window's rounded outline in w's coordinates; everything touching
+     * an outer corner clips to it */
     QPainterPath windowClip(const QWidget *w, int radius);
 
     /* The two stacked-sheet icons at the right of the mockup's tool bar. */
@@ -299,10 +257,7 @@ namespace XxriUi {
 
 }
 
-/*
- * The tab counter the mockup puts at the right of the tool bar: two stacked
- * rounded squares with the open-tab count inside the front one.
- */
+/* tab counter: two stacked sheets with the tab count in front */
 class XxriTabCounter : public QToolButton
 {
     Q_OBJECT
@@ -317,21 +272,11 @@ private:
 };
 
 /*
- * Site icons.
- *
- * Three sources, in order, and no fourth:
- *
- *   1. the icon the engine itself decoded for the page (QWebEngineView gives
- *      it to us through iconChanged) - this is the site's real favicon, and it
- *      arrives for free on every page that is visited;
- *   2. the on-disk cache, so a site keeps its icon in bookmarks, history and
- *      the shortcut rail long after the tab is closed, and across restarts;
- *   3. one request to the site's /favicon.ico, for a shortcut that has never
- *      been opened - a browser has nowhere else to get it from.
- *
- * If all three fail the caller gets the XXRI generic site mark, which is a
- * drawn icon, not a letter.  Nothing in this browser ever shows an invented
- * abbreviation in place of a site's own branding.
+ * Site icons, in this order:
+ *   1. what the engine decoded for a visited page (iconChanged)
+ *   2. the on-disk cache, so bookmarks/history keep icons across restarts
+ *   3. fetched: /favicon.ico (both www and bare host), then <link rel=icon>
+ * Otherwise the generic drawn globe - never invented letters.
  */
 class XxriIcons : public QObject
 {

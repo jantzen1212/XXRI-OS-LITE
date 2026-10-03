@@ -19,23 +19,13 @@ with `--with-gtk=3`.
 
 ## Building
 
-    ./build.sh              # build and stage into ../../rootfs
-    ./build.sh --clean      # discard the buildroot first
+Built by PTXdist, `ptxdist/rules/xxri-file.make`: the tree is copied, its
+build system regenerated (`intltoolize` + `autoreconf`) and built out of tree
+with `--with-gtk=3` against the Tiny Core sysroot.
 
-The build is **native i686, not cross-compiled**.  The x86_64 host kernel runs
-i686 binaries directly, so `build.sh` assembles a Tiny Core i686 root from the
-image's own `work/iso/boot/core.gz`, adds Tiny Core's `compiletc` and
-`gtk3-dev`, and builds inside it under bubblewrap.  The result links against
-exactly the libraries the device ships (GTK 3.24.39, glibc with the correct
-32-bit `glibconfig.h`).
-
-Two traps this script already handles:
-
-* GCC 14 turned incompatible-pointer-types into a hard error; this 2021 source
-  needs the permissive `CFLAGS` the script sets.
-* Never `make distclean` the libfm tarball: it deletes the pre-generated
-  marshallers, and regenerating them needs `glib-genmarshal`, a python script -
-  and Tiny Core's `python3.9.tcz` ships libraries with **no interpreter**.
+GCC 14 turned incompatible-pointer-types and friends into hard errors; this
+2021 source needs the relaxed flags in `XXRI_OLD_C_FLAGS`
+(`ptxdist/rules/pre/xxri.make`).
 
 ## What the fork changes
 
@@ -45,24 +35,24 @@ stays recognisable; `main-win.c` calls into it.
 | Area | Change |
 |---|---|
 | Window layout | `rail \| content(header, list)` replaces `menubar/toolbar/notebook/statusbar`.  The menubar and toolbar are still built (GtkUIManager keeps its accelerators and every `/menubar/...` action lookup) but never packed. |
-| Places | A translucent icon rail replaces libfm's `FmSidePane`: Home, Desktop, Documents, Downloads, Pictures, Music, Videos, Computer, with dotted group rules and a selected chip.  An entry whose directory does not exist is hidden rather than silently aliased to `$HOME`. |
+| Places | A translucent icon rail replaces libfm's `FmSidePane`: Downloads, Pictures, Music, Videos, Documents, Internal Storage (`$HOME`) and Storage Usage, with dotted group rules and a selected chip.  An entry whose directory does not exist is hidden rather than aliased to `$HOME`. |
 | Window chrome | Undecorated + the shared `xxri-chrome.h` controls at the top of the rail, identical to Settings and Store, plus invisible resize edges. |
 | Header | "XXRI File" wordmark (pango+cairo gradient - GTK CSS cannot clip a gradient to glyphs), a location pill carrying the folder name and its total size, and filter chips. |
 | File view | List rows, no column headers, transparent over the XXRI surface. Columns are `name;size;mtime`. |
 | Hidden locations | `/proc`, `/sys`, `/dev`, `/run` and friends are filtered on the **folder model**, so the rule covers the view, navigation and Computer alike. |
 | Translucency | ARGB visual + `.composited` class, re-evaluated on `composited-changed`; falls back to opaque when no compositor is running. |
 | Identity | Binary `xxri-file`, `g_set_application_name("XXRI File")`, config in `~/.config/xxri-file/`, own icon and desktop entry, dock launcher keyed `xxri-file`. |
-| Defaults | Opens `$HOME` (the dock launches with cwd `/`, which is both useless and hidden), 940x620. |
+| Defaults | Opens `$HOME` (the dock launches with cwd `/`, which is both useless and hidden), 720x552. |
 
 ## Artwork
 
 Every glyph in the XXRI File window comes from the supplied asset set in
 `assets/icons/xxri-icons/xxri-files/`.  Nothing is looked up in an icon theme:
-`src/xxri-file/stage-icons.sh` rasterises the SVGs into
-`/usr/local/share/xxri-file/icons/` at build time (the device has no librsvg
-or SVG gdk-pixbuf loader), and `xxri_asset_image()` loads them by filename.
-A missing asset logs a warning and leaves the image blank on purpose - it is
-never quietly replaced with a themed stand-in.
+the SVGs are rasterised to PNG (the device has no librsvg or SVG gdk-pixbuf
+loader) by `src/xxri-file/stage-icons.sh`, committed under
+`root/usr/local/share/xxri-file/icons/`, and loaded by filename by
+`xxri_asset_image()`.
+A missing asset logs a warning and stays blank; there is no theme fallback.
 
 | Mockup element | Asset |
 |---|---|
@@ -74,7 +64,7 @@ never quietly replaced with a themed stand-in.
 | rail: Videos | `Videos.svg` |
 | rail: Documents | `Documents.svg` |
 | rail: Internal Storage (opens `$HOME`) | `Internal-storage.svg` |
-| rail: Storage (opens `/`) | `Storage-usage.svg` |
+| rail: Storage Usage (opens Settings' Storage page) | `Storage-usage.svg` |
 | Applications folder | `../all-apps.svg` |
 | every other folder | `folders.svg` |
 | "XXRI Files" wordmark | `slice31.svg` |
@@ -97,33 +87,26 @@ has no desktop-icon layer, so the folder is neither created nor listed.
 
 ## Geometry
 
-The mockup was scanned, not estimated: window 944x724 with a **102px rail**
+Measured from the mockup: window 944x724 with a **102px rail**
 (10.8%), content surface `#F9F9F9`, pill 54px tall with 27/25px margins.
 
-Those *proportions* are what is reproduced, not the pixel sizes - the mockup
-is drawn at a larger scale than a 1024x768 desktop wants.  XXRI File opens at
-**720x552**, a normal desktop window that leaves obvious wallpaper around it,
-with the rail at 78px (the same 10.8%) and the rest scaled to match.
+The proportions are reproduced, not the pixel sizes: the mockup is drawn
+larger than a 1024x768 desktop wants.  XXRI File opens at **720x552** with the
+rail at 78px (the same 10.8%) and the rest scaled to match.
 
-Row proportions follow the same reasoning.  In the mockup a 64px thumbnail
-sits beside a **three-line** text block, so the glyph tracks the height of the
-text next to it.  These rows carry one line, so the glyph is **24px** - a 64px
-icon simply dwarfs the filename and pads the list with dead space.
+In the mockup a 64px thumbnail sits beside a **three-line** text block; these
+rows carry one line, so the glyph is **24px**.
 
 ## Window behaviour
 
 The window is undecorated, so moving and resizing are the application's job:
 
-* The wordmark strip and the rail are drag handles.  `xxri_chrome_drag_area()`
-  refuses any widget without a `GdkWindow`, and both are plain `GtkBox`es, so
-  nothing was wired up and the window could not be moved at all.  A
-  `GtkEventBox` with `visible_window = FALSE` paints nothing but owns an
-  input-only window, so it can take the press and call
-  `gtk_window_begin_move_drag()` on the real top-level window.
-* The rail's glyph column used to impose a ~500px minimum height on the whole
-  window, so it could not be shrunk vertically.  The column now lives in a
-  scroller (no visible scrollbar, natural width propagated) which removes the
-  floor without changing the layout at normal sizes.
+* The wordmark strip and the rail are drag handles: `GtkEventBox`es with
+  `visible_window = FALSE`, because `xxri_chrome_drag_area()` needs a widget
+  with its own `GdkWindow` and a plain `GtkBox` has none.  The input-only
+  window takes the press and calls `gtk_window_begin_move_drag()`.
+* The rail's glyph column sits in a scroller (no visible scrollbar, natural
+  width propagated), so it puts no ~500px floor under the window height.
 
 ## List behaviour
 
@@ -138,22 +121,20 @@ The window is undecorated, so moving and resizing are the application's job:
   **descending with `FM_SORT_NO_FOLDER_FIRST`** - libfm's default hoists every
   directory above the files, which splits a date group in two and makes the
   same heading appear twice.
-* **Filter chips** are real: the active chip drives `xxri_filter_mode`, which
-  the folder-model filter honours, and clicking one calls
-  `fm_folder_model_apply_filters()` so the visible list actually changes.
+* **Filter chips**: the active chip drives `xxri_filter_mode`, which the
+  folder-model filter honours; clicking one calls
+  `fm_folder_model_apply_filters()`.
   "All" wears the supplied `slice28` artwork whenever it is active (the state
   the mockup depicts); the inactive chip is outlined, and a text chip that
   becomes active wears the same gradient reproduced in CSS from that asset.
-* **Folder rows carry no date.**  A directory's mtime is noise to a user, so a
-  cell data function blanks it for directories; files keep their size and date.
-  This is presentation-only - the model still holds the metadata.
+* **Folder rows carry no date**: a cell data function blanks it for
+  directories (the model still holds it); files keep their size and date.
 * **Storage Usage** in the rail is not a location: it launches Settings' own
   storage page (`xxri-settings storage`, through `xxri-dock-launch` so an
-  already-open Settings is focused). There is no second implementation.
+  already-open Settings is focused).
 
 ## Known deltas from the mockup
 
-The mockup's file rows show a large thumbnail with name / source / date, and
-group them under time headings ("This week") with a dotted leader.  XXRI File
-currently renders name / size / date rows without time grouping: that grouping
-needs a custom tree model in libfm's view and is not yet implemented.
+The mockup's file rows show a large thumbnail with name / source / date.
+XXRI File renders one-line name / size / date rows with a 24px glyph (see
+Geometry).

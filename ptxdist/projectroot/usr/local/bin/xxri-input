@@ -41,8 +41,6 @@ cmd_devices() {
 	rm -f "$XXRI_TMP/inp.$$"
 }
 
-xset_field() { xset q 2>/dev/null | sed -n "s/.*$1[: ]*\([0-9/]*\).*/\1/p" | head -1; }
-
 cmd_status() {
 	delay="$(cfg_get input REPEAT_DELAY 500)"
 	rate="$(cfg_get input REPEAT_RATE 25)"

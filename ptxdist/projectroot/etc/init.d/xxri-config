@@ -102,14 +102,11 @@ if isDiskRoot; then
 		/etc/sysconfig/noautologin /etc/sysconfig/showapps \
 		/etc/sysconfig/noondemandicons /etc/sysconfig/tc.resume \
 		/etc/sysconfig/cde /var/log/autologin 2>/dev/null
-	# tce.installed markers mean "loaded this session", not "on disk":
-	# clearing them makes xxri-setup remount every onboot extension.
+	# tce.installed means "loaded this boot": clearing it makes xxri-setup
+	# remount every onboot extension
 	rm -f /usr/local/tce.installed/* 2>/dev/null
-	# ...except on an installed image, where the desktop extensions were
-	# unpacked straight into the filesystem and are therefore permanent.
-	# Restoring their markers is what lets tce-load resolve a newly installed
-	# app's dependencies against what the OS already ships, instead of
-	# re-downloading the entire desktop stack.
+	# but extensions baked into an installed image are permanent; their
+	# markers let tce-load resolve new apps' deps instead of refetching them
 	if [ -s /usr/local/share/xxri/baked-extensions.lst ]; then
 		mkdir -p /usr/local/tce.installed
 		while read -r bext; do
@@ -130,16 +127,9 @@ fi
 
 # Start Udev to populate /dev and handle hotplug events
 echo -n "${BLUE}Starting udev daemon for hotplug support...${NORMAL}"
-# NOTE on the redirection: `2>&1 >/dev/null` points stderr at the *console*
-# (it duplicates the current stdout, and only then is stdout silenced), so
-# every udev complaint was printed over the boot screen.  udev's first trigger
-# necessarily runs before the extensions are loop-mounted, so rules that call
-# helpers those extensions provide - /lib/udev/libinput-device-group, and the
-# libwacom rule that wants a `hwdb` builtin this udev has no support for -
-# cannot succeed yet and say so, once per input device.  They are re-run
-# correctly further down (`udevadm control --reload-rules` and a second
-# trigger) once the extensions are in place, so this is transient noise, not a
-# failure: it is silenced here rather than left to scroll over a fresh install.
+# Quiet: this first trigger runs before the extensions are mounted, so rules
+# needing their helpers (libinput-device-group, libwacom's hwdb) fail once
+# per input device. They run again after --reload-rules further down.
 /sbin/udevd --daemon >/dev/null 2>&1
 /sbin/udevadm trigger --action=add >/dev/null 2>&1 &
 rotdash $!
@@ -559,9 +549,8 @@ elif [ -n "$MYOPT" ]; then
 	fi
 fi
 
-# (Tiny Core's `xsetup` boot code ran xsetup.sh, an Xvesa mode/mouse picker
-# that rewrites ~/.xsession; XXRI's X server is XLibre and the resolution comes
-# from xres= or Settings, so the code is no longer honoured.)
+# (Tiny Core's xsetup boot code, an Xvesa mode picker, is ignored: the
+# resolution comes from xres= or Settings.)
 
 if [ -n "$LAPTOP" ]; then
 	modprobe ac && modprobe battery 2>/dev/null
@@ -633,16 +622,20 @@ else
 	rotdash $!
 	echo "${GREEN} Done.${NORMAL}"
 	if [ -s /tmp/aberr ]; then
-		echo "${RED}Warning! Errors occured during the loading of the extensions.${YELLOW}"
-		cat /tmp/aberr
-		echo -n "${RED}Press Enter key.${NORMAL}"; read ans
+		# a quiet boot logs this script's output and the splash covers the
+		# screen: the warning goes to the console, with the splash gone
+		[ -x /usr/local/sbin/xxri-splash-handover ] && /usr/local/sbin/xxri-splash-handover stop
+		{
+			echo "${RED}Warning! Errors occured during the loading of the extensions.${YELLOW}"
+			cat /tmp/aberr
+			echo -n "${RED}Press Enter key.${NORMAL}"
+		} > /dev/console
+		read ans < /dev/console
 	fi
 fi
 
-# xxri naming: provide xxri-* aliases for the sysconfig identifiers.  The
-# legacy tcedir/tcuser names are kept as the canonical files because baked
-# desktop extensions reference them directly (their ABI); the aliases give
-# the xxri-native names (see XXRI_PACKAGE_DIR / XXRI_USER in the scripts).
+# xxri-* aliases; tcedir/tcuser stay the real files because extensions
+# reference them directly
 if [ -L /etc/sysconfig/tcedir ]; then
 	ln -sf "$(readlink /etc/sysconfig/tcedir)" /etc/sysconfig/xxri-packages 2>/dev/null
 fi
@@ -672,8 +665,7 @@ if [ -n "$PROTECT" ]; then
 	chmod 600 /etc/sysconfig/bfe
 fi
 
-# xvesa=WxHxD (a Tiny Core boot code) is read by ~/.xsession itself now, as
-# an alias of xres=: there is no Xvesa command line to rewrite any more.
+# xvesa=WxHxD is handled by ~/.xsession, as an alias of xres=
 
 # If desktop is specified use that
 if [ -n "$DESKTOP" ]; then

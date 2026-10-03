@@ -1,25 +1,21 @@
-# Screen resolution: an `xres=WxH` boot code (e.g. xres=1366x768) wins, then
-# Tiny Core's `xvesa=WxHxD` code (kept working for old boot menus), then the
-# mode chosen in Settings (xxri-display set-resolution); default 1024x768.
+# Resolution: xres=WxH boot code, then Tiny Core's xvesa=WxHxD (old boot
+# menus still pass it), then Settings > Display, then 1024x768.
 XRES=$(sed -n 's/.*\bxres=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /proc/cmdline 2>/dev/null | head -1)
 [ -n "$XRES" ] || XRES=$(sed -n 's/.*\bxvesa=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /proc/cmdline 2>/dev/null | head -1)
-[ -n "$XRES" ] || XRES=$(sed -n 's/^MODE=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /usr/local/etc/xxri/display.conf 2>/dev/null | head -1)
+XRATE=
+if [ -z "$XRES" ]; then
+	XRES=$(sed -n 's/^MODE=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /usr/local/etc/xxri/display.conf 2>/dev/null | head -1)
+	# and the rate saved with it
+	[ -n "$XRES" ] && XRATE=$(sed -n 's/^RATE=\([0-9]\{1,3\}\(\.[0-9]\{1,2\}\)\{0,1\}\)$/\1/p' /usr/local/etc/xxri/display.conf 2>/dev/null | head -1)
+fi
 [ -n "$XRES" ] || XRES=1024x768
-# X server: XLibre (xxri-xlibre.tcz), in order of preference
-#   Xorg    the full server with the modesetting driver on a KMS/DRM device:
-#           XInput2, XKB, RandR, MIT-SHM, DRI3, glamor-accelerated rendering
-#           and GLX through Mesa - what Chromium/Electron and Qt need
-#           (Electron will not map a window without XInput2)
-#   Xfbdev  XLibre's small kdrive server on the kernel framebuffer (vesafb,
-#           efifb, a legacy fbdev driver): no KMS, no Mesa, software rendering,
-#           the boot loader's mode.  The fallback where no KMS device exists.
-#   Xorg + vesa  the video BIOS, on BIOS machines left with no kernel display
-#           device at all (see start_xorg_vesa).
-# An Xorg with no input driver gives a desktop with no mouse and no keyboard,
-# which is far worse than Xfbdev.  Refuse to use it unless a real input
-# driver is present (xxri-xlibre.tcz carries XLibre's libinput one).
-# (XLibre's own input drivers live in the ABI directory; an older, unversioned
-# module directory is searched too)
+# X servers (XLibre), best first:
+#   Xorg         modesetting on KMS: XInput2, DRI3, glamor, GLX - what
+#                Chromium/Electron and Qt need (Electron needs XInput2)
+#   Xfbdev       kdrive on the firmware/fbdev framebuffer, software only;
+#                fallback when DRM isn't available
+#   Xorg + vesa  video BIOS, BIOS machines with no kernel display device
+# Xorg without an input driver means no mouse or keyboard, worse than Xfbdev.
 xorg_usable() {
 	command -v Xorg >/dev/null 2>&1 || return 1
 	for f in /usr/local/lib/xorg/modules/xlibre-25/drivers/input/*_drv.so \
@@ -28,34 +24,38 @@ xorg_usable() {
 	done
 	return 1
 }
-# Tiny Core's Mesa is i686 code (CMOV) built for SSE2: its libgallium runs
-# SSE2 as soon as glamor or GLX initialise (measured on an emulated Pentium
-# III) and its libEGL executes CMOV (measured on an emulated Pentium: both X
-# servers died with SIGILL).  Without SSE2 no X server may touch Mesa: Xorg
-# gets a configuration without GLX (and without glamor on KMS), Xfbdev runs
-# with -extension GLX.  Decided here, after the KMS device has settled, not
-# at hardware init - the connectors register asynchronously.
+# Tiny Core's Mesa needs SSE2 (libgallium) and CMOV (libEGL): both X servers
+# died with SIGILL on emulated Pentium/Pentium III. Without SSE2, Xorg runs
+# without GLX/glamor and Xfbdev with -extension GLX.
 nosse2() { ! grep -qw sse2 /proc/cpuinfo; }
+# Pre-GeForce 8 nouveau on the primary display (NV04..NV4x, nForce, C51-C68):
+# no usable Mesa driver, glamor misrenders, so modesetting without glamor
+# (xxri-noaccel-kms.conf; GLX via llvmpipe). Family decoded from nouveau's
+# "NVIDIA <chip> (<boot0>)" probe line, as nvkm_device_ctor() does (6.12).
+# Checked here, not in hw-init: the DRM device registers asynchronously.
+legacy_nv() {
+	for c in /sys/class/drm/card[0-9] /sys/class/drm/card[0-9][0-9]; do
+		[ "$(cat "$c/device/boot_vga" 2>/dev/null)" = 1 ] || continue
+		case "$(readlink "$c/device/driver")" in */nouveau) ;; *) return 1 ;; esac
+		pci=$(basename "$(readlink -f "$c/device")")
+		b0=$(dmesg | sed -n "s/.*nouveau $pci: NVIDIA [^ ]* (\([0-9a-f]\{8\}\))\$/\1/p" | head -n 1)
+		[ -n "$b0" ] || return 1
+		b=$((0x$b0))
+		[ $((b & 0x1f000000)) -eq 0 ] && return 0	# NV04/NV05: Riva TNT, TNT2
+		case $(( (b >> 20) & 0x1f0 )) in
+		16|32|48|64|96) return 0 ;;	# NV1x, NV2x, NV3x, NV4x, C6x/C7x
+		esac
+		return 1
+	done
+	return 1
+}
 start_xorg() {
 	xorg_usable || return 1
-	# hw-init modprobes the KMS driver, but the device is set up asynchronously
-	# and Xorg exits immediately if it starts too early.  Waiting for
-	# /dev/dri/card0 to EXIST is not enough: drm_minor_register() calls
-	# device_add() first - that is what makes udev create the node - and only
-	# publishes the minor for lookup afterwards, so an open() inside that window
-	# fails with ENODEV.  Xorg then logs
-	#     open /dev/dri/card0: No such device
-	#     open /dev/fb0: No such device        (the vesafb->i915 fb0 handover
-	#                                           has the same window)
-	#     no screens found
-	# and dies, on a machine whose i915 came up perfectly - seen on an NEC
-	# VersaPro VK24MX (Skylake, HD 520).  drm_dev_register() registers the
-	# connectors only after both minors are published, so a card0-<output>
-	# directory in sysfs means the node is genuinely openable.  Test that
-	# rather than the node, and do not test by opening it ourselves: an open()
-	# of our own would only race the server for DRM master.
-	# Any card number, not just card0: the first DRM minor is card1 on a
-	# machine that registered another DRM device first.
+	# Don't wait for /dev/dri/card0 itself: the node appears before the minor
+	# is published, and an open() in between is ENODEV ("no screens found"
+	# on the NEC VK24MX, i915 otherwise fine). Connectors register only after
+	# the minors, so a card*-<output> sysfs entry means it's openable. Don't
+	# probe by opening it either, that races Xorg for DRM master.
 	kms_ready() {
 		for c in /sys/class/drm/card*-*/status; do
 			[ -e "$c" ] && return 0
@@ -67,22 +67,19 @@ start_xorg() {
 		sleep 0.25
 	done
 	kms_ready || return 1
-	XORG_CFG=""; nosse2 && XORG_CFG="-config xxri-nosse2-kms.conf"
-	# -dpi 75 matches what Xvesa, the server before XLibre, reported (it advertised 347mm x 260mm for every
-	# mode, i.e. exactly 75dpi at 1024x768).  Xorg otherwise defaults to 96dpi,
-	# which scales every font and widget up ~28% and changes the whole desktop
-	# layout the design system was built against.
-	# Font path on the SERVER COMMAND LINE, not patched in afterwards with
-	# `xset +fp`.  The window manager draws its titlebar with FLTK's core-X-font
-	# path, so it asks the server for "-xxri-helvetica-bold-r-normal--*"; if that
-	# foundry is not in the font path at the moment the titlebar is first drawn,
-	# every window title silently falls back to a bitmap face.  Doing it here
-	# removes the ordering question entirely - the server has never served a
-	# single request without the XXRI face.  These are Xorg's own compiled-in
-	# defaults with ours prepended, minus 75dpi: its bitmap helvetica wins
-	# FLTK's exact-size match against the scalable face and undoes the point.
+	XORG_CFG=""
+	if nosse2; then XORG_CFG="-config xxri-nosse2-kms.conf"
+	elif legacy_nv; then XORG_CFG="-config xxri-noaccel-kms.conf"
+	fi
 	run_xorg
 }
+# -dpi 75: what Xvesa reported; the layout was designed at it (Xorg's 96dpi
+# blows everything up ~28%).
+# Font path on the command line, not `xset +fp` later: flwm asks for
+# -xxri-helvetica-bold-* when it first draws a titlebar and falls back to a
+# bitmap face if the foundry isn't there yet. Xorg's default path with ours
+# first, minus 75dpi (its bitmap helvetica beats the scalable face in FLTK's
+# exact-size match).
 run_xorg() {
 	XXRI_FP=/usr/local/share/fonts/xxri/,/usr/local/lib/X11/fonts/misc,/usr/local/lib/X11/fonts/TTF,/usr/local/lib/X11/fonts/Type1,built-ins
 	Xorg -nolisten tcp -novtswitch -sharevts vt7 -dpi 75 $XORG_CFG -fp "$XXRI_FP" >/tmp/xorg.log 2>&1 &
@@ -95,12 +92,9 @@ run_xorg() {
 	kill "$XPID" 2>/dev/null
 	return 1
 }
-# Xorg + vesa: the video BIOS (VBE, run by XLibre's x86emu), with no kernel
-# display device at all.  Only on a BIOS machine left with neither a KMS
-# device nor /dev/fb0: a KMS driver took the display over from vesafb and then
-# failed (a GPU whose firmware Tiny Core does not ship, a driver that rejects
-# the hardware) - the case Xvesa used to cover.  Xorg's own autoconfiguration
-# picks vesa when there is no KMS device.  UEFI firmware has no VBE.
+# Xorg + vesa (VBE through x86emu): BIOS machines left with neither KMS nor
+# /dev/fb0, i.e. a KMS driver kicked vesafb out and then failed (missing
+# firmware, rejected hardware). What Xvesa used to cover. No VBE on UEFI.
 start_xorg_vesa() {
 	# a registered framebuffer, not the node: core.gz carries a static /dev/fb0
 	[ -e /sys/class/graphics/fb0 ] && return 1
@@ -110,17 +104,12 @@ start_xorg_vesa() {
 	XORG_CFG=""; nosse2 && XORG_CFG="-config xxri-nosse2.conf"
 	run_xorg
 }
-# Xorg picks the monitor's preferred mode, which is not what Xvesa (the server
-# before XLibre) did - it always used $XRES (the xres= boot code, default
-# 1024x768) and the desktop layout is designed around that.  Put the resolution back under our control.
+# Xorg picks the monitor's preferred mode; the layout expects $XRES.
 apply_xres() {
 	command -v xrandr >/dev/null 2>&1 || return 0
 	out=""
-	# RandR can still be settling when the session gets here: the output may
-	# not be listed yet, or the mode list may not yet carry $XRES.  Asking once
-	# and giving up meant intermittently dropping to the panel's preferred mode
-	# instead - the desktop would come up 1280x800 when it was told 1024x768,
-	# which moves the dock and every window the layout was designed around.
+	# RandR may still be settling (output or mode not listed yet); asking
+	# once sometimes came up 1280x800 instead of 1024x768
 	for _try in 1 2 3 4 5 6 7 8 9 10; do
 		out=$(xrandr 2>/dev/null | awk '/ connected/{print $1; exit}')
 		[ -n "$out" ] && xrandr 2>/dev/null | grep -q "[ ]${XRES}[ ]" && break
@@ -128,83 +117,93 @@ apply_xres() {
 	done
 	[ -n "$out" ] || return 0
 	for _try in 1 2 3; do
-		xrandr --output "$out" --mode "${XRES%x*}x${XRES#*x}" 2>/dev/null && return 0
+		xrandr --output "$out" --mode "${XRES%x*}x${XRES#*x}" ${XRATE:+--rate "$XRATE"} 2>/dev/null && return 0
+		# a saved rate this output no longer offers must not cost the saved size
+		XRATE=
 		sleep 0.4
 	done
 	# only now settle for whatever the display says it prefers
 	xrandr --output "$out" --preferred 2>/dev/null
 }
-# Xfbdev: the framebuffer the boot loader set up (vesafb on BIOS, efifb on
-# UEFI) or a legacy fbdev driver.  Console keyboard and /dev/input/mice, like
-# Xvesa had; the mode is the framebuffer's.
+# Xfbdev: vesafb/efifb or a legacy fbdev driver, console keyboard and
+# /dev/input/mice like Xvesa; the mode is the framebuffer's.
 start_xfbdev() {
 	[ -e /sys/class/graphics/fb0 ] || return 1
 	command -v Xfbdev >/dev/null 2>&1 || return 1
 	XXRI_FP=/usr/local/share/fonts/xxri/,/usr/local/lib/X11/fonts/misc,/usr/local/lib/X11/fonts/TTF,/usr/local/lib/X11/fonts/Type1,built-ins
 	# GLX loads Tiny Core's Mesa (i686, SSE2): not on a processor without SSE2
 	noglx=""; nosse2 && noglx="-extension GLX"
+	# mousedev scales absolute pointers (VM tablet, touchscreen) to 1024x768
+	# unless told otherwise; on other sizes two screen edges are unreachable.
+	# Tell it the framebuffer size. (Xorg uses libinput, unaffected.)
+	_fb=$(sed -n '1s/^[A-Za-z]*:\([0-9]*\)x\([0-9]*\).*/\1 \2/p' /sys/class/graphics/fb0/modes 2>/dev/null)
+	[ -n "$_fb" ] || _fb=$(tr ',' ' ' < /sys/class/graphics/fb0/virtual_size 2>/dev/null)
+	if [ -n "$_fb" ] && [ -e /sys/module/mousedev/parameters/xres ]; then
+		sudo sh -c "echo ${_fb% *} > /sys/module/mousedev/parameters/xres
+			echo ${_fb#* } > /sys/module/mousedev/parameters/yres" 2>/dev/null
+	fi
 	Xfbdev -nolisten tcp -br -2button -dpi 75 $noglx -fp "$XXRI_FP" >/tmp/xfbdev.log 2>&1 &
 	export XPID=$!
 	waitforX
 }
 XSERVER=xorg
-# Xfbdev is the right fallback only where Xorg has no KMS device to drive.
-# On a KMS machine the framebuffer is the KMS driver's own emulation, and the
-# modesetting driver is the better server for it - so there Xorg gets a
-# second attempt first (the device can still be settling).
+# With a KMS device Xorg gets a second try before Xfbdev (the device can
+# still be settling, and fb0 there is just the KMS driver's emulation).
 start_xorg || { { [ -e /dev/dri/card0 ] || [ -e /dev/dri/card1 ]; } && sleep 2 && start_xorg; } ||
 	{ XSERVER=xfbdev; start_xfbdev; } ||
 	{ XSERVER=xorg-vesa; start_xorg_vesa || ! echo failed in waitforX || exit; }
 export XSERVER
 [ "$XSERVER" = xfbdev ] || apply_xres
-# The XXRI face ("xxri" foundry) reaches the server through -fp on the Xorg
-# and Xfbdev command lines above.  There used to be
-# an `xset +fp` + `fp rehash` + `q` block here as well; it was measured to cost
-# 0.62s of the boot and to change nothing.  With and without it the server
-# reports an identical font path, an identical 32 xxri fonts out of 308 total,
-# and the exact patterns FLTK asks for (-xxri-helvetica-bold-r-normal--*)
-# resolve the same.  fonts.dir/fonts.scale are baked into the image and nothing
-# regenerates them at boot, so `rehash` had nothing to pick up.  Verified
-# pixel-identical across flwm titlebars (aterm, Code-OSS), All Apps, Control
-# Center, Files, Media and Browser.  Do not re-add it without re-measuring.
-# A maximized window stops above the dock instead of vanishing behind it.
-# 44px icons + 2x2 padding + the 26px the dock is lifted off the bottom edge.
-export XXRI_DOCK_RESERVE=78
-# xxri OS Lite design system: the window manager is XXRI's own build of flwm
-# (PTXdist rule xxri-flwm: upstream flwm + the XXRI patch) and carries the palette internally, so it needs no colour
-# switches.  Stock flwm is kept as flwm-stock for recovery.
+# No `xset +fp` / `fp rehash` here: -fp above covers it, and that block cost
+# 0.62s of boot for a pixel-identical result. Re-measure before re-adding.
+# Maximized windows stop above the dock: icon size (DOCK_SIZE from Settings,
+# default 40) plus padding and gap.
+_ds=$(sed -n 's/^DOCK_SIZE=\([0-9]*\)$/\1/p' /usr/local/etc/xxri/desktop.conf 2>/dev/null | head -1)
+case "$_ds" in 3[2-9]|4[0-9]|5[0-6]) ;; *) _ds=40 ;; esac
+export XXRI_DOCK_RESERVE=$((_ds + 38))
+# XXRI's flwm (rule xxri-flwm) has the palette built in, no switches needed.
+# Stock flwm is kept as flwm-stock for recovery.
+# `noanim` boot code: no motion - flwm's minimise flight, the compositor's
+# fade-in
+grep -qw noanim /proc/cmdline 2>/dev/null && export XXRI_NO_ANIM=1
 XXRI_WM_ARGS=""
+# Root cursor now, so a late or missing WM never leaves the "X" pointer on
+# the root window and on windows with no cursor of their own (dock, installer).
+xsetroot -cursor_name left_ptr 2>/dev/null
+# DESKTOP comes from /etc/sysconfig/desktop, which flwm.tcz used to write.
+# XXRI's flwm is in core.gz, so live sessions once got DESKTOP="" and no WM.
+command -v "${DESKTOP:-}" >/dev/null 2>&1 || DESKTOP=flwm
+export DESKTOP
 "$DESKTOP" $XXRI_WM_ARGS 2>/tmp/wm_errors &
 export WM_PID=$!
-# XXRI compositor: real per-window alpha for the system surfaces.
-#
-# The target does have what this needs - the server offers ARGB visuals and
-# grants an overlay window - and the compositor is damage-driven, so it costs
-# nothing when nothing is changing (measured: 0.8% idle, 1.9MB resident).
-# Redirection belongs to this client, so if it ever dies the X server
-# unredirects and the desktop simply goes back to painting itself: a crash
-# costs translucency, not the session.  Boot with `nocomposite` to skip it.
+# Compositor for real alpha on the system surfaces (damage-driven: 0.8% idle,
+# 1.9MB). If it dies X unredirects and the desktop just loses translucency.
+# `nocomposite` boot code skips it.
+# written by the compositor once it has redirected and painted
+export XXRI_COMP_READY="/tmp/.xxri-compositor-ready.$(id -u)"
+rm -f "$XXRI_COMP_READY"
+COMP_PID=""
 if ! grep -qw nocomposite /proc/cmdline 2>/dev/null; then
 	if [ -x /usr/local/bin/xxri-compositor ]; then
-		# Only a restart has a compositor to replace; on a cold boot the
-		# pkill matches nothing and the settle guards nothing, so pay the
-		# 0.2s only when something was actually killed.
-		if pkill -f "/usr/local/bin/xxri-compositor" 2>/dev/null; then
-			sleep 0.2
+		# a session restart replaces the old one; it owns the CM selection
+		# until its process is gone, and the new one would refuse to start
+		old="$(pidof xxri-compositor 2>/dev/null)"
+		if [ -n "$old" ]; then
+			kill $old 2>/dev/null
+			for _i in $(seq 40); do
+				kill -0 $old 2>/dev/null || break
+				sleep 0.05
+			done
 		fi
 		/usr/local/bin/xxri-compositor 2>/var/tmp/xxri-compositor.nohup.log &
+		COMP_PID=$!
 	fi
 fi
-# Desktop runtime every GTK/Qt application expects to find. Without these a
-# real app starts, fails silently and never maps a window: Qt needs
-# XDG_RUNTIME_DIR and a shared-memory segment, and D-Bus refuses to start at
-# all when there is no machine ID, which costs Qt apps their entire interface.
+# XDG_RUNTIME_DIR, /dev/shm, machine-id, D-Bus: without them Qt apps start
+# and never map a window.
 [ -x /usr/local/bin/xxri-session-runtime ] && . /usr/local/bin/xxri-session-runtime
-# Standard user folders.  XXRI File shows Documents, Downloads, Pictures,
-# Music and Videos in its rail (there is no desktop-icon layer, so no Desktop), and deliberately hides an entry whose
-# directory does not exist rather than silently pointing it at $HOME.  Creating
-# them here (idempotent, like xdg-user-dirs-update on a desktop distribution)
-# means the rail is complete on a fresh account and on one that predates this.
+# XXRI File's rail hides a place whose folder doesn't exist, so make them
+# (no Desktop: there is no desktop-icon layer).
 for d in Documents Downloads Pictures Music Videos; do
 	[ -d "$HOME/$d" ] || mkdir -p "$HOME/$d" 2>/dev/null
 done
@@ -221,43 +220,28 @@ fi
 [ -x $HOME/.setbackground ] && $HOME/.setbackground
 [ -x $HOME/.mouse_config ] && $HOME/.mouse_config &
 [ $(which "$ICONS".sh) ] && ${ICONS}.sh &
-# Dock running indicators: the small macOS-style dash under every icon whose
-# application has a window open.  It is a separate process on purpose - the
-# dock itself is a launcher with no idea what is running, and keeping the
-# indicator out of it means a crash here can never take the dock down.
-# Let the compositor take over redirection before the always-on surfaces below
-# paint for the first time.  A window that paints BEFORE
-# XCompositeRedirectSubwindows loses that content to the freshly allocated
-# offscreen pixmap, and an override-redirect surface is never asked to repaint,
-# so it stays blank for the whole session.  The dock's own launcher survived
-# this only by accident (it waits for wbar's window first); the Control Center
-# paints immediately and went invisible as soon as boot got fast enough to lose
-# the race -- it was previously masked by ~7s of unrelated boot delay upstream.
-# This is a barrier, not a fix: the durable fix is for the compositor to signal
-# readiness (or for the surfaces to repaint on expose).
-if [ -x /usr/local/bin/xxri-compositor ] && ! grep -qw nocomposite /proc/cmdline 2>/dev/null; then
-	for _i in 1 2 3 4 5 6 7 8 9 10; do
-		pidof xxri-compositor >/dev/null 2>&1 && break
+# The always-on surfaces start once the compositor has redirected: an
+# override-redirect window that paints before XCompositeRedirectSubwindows
+# stays blank all session (the Control Center did once boot got fast).
+# It says so with XXRI_COMP_READY. If it dies first (no Composite, another
+# compositor) X never redirects and there is nothing to wait for; the bound
+# only guards against a compositor that hangs without ever painting.
+if [ -n "$COMP_PID" ]; then
+	for _i in $(seq 200); do
+		[ -e "$XXRI_COMP_READY" ] && break
+		kill -0 "$COMP_PID" 2>/dev/null || break
 		sleep 0.05
 	done
-	sleep 0.5
 fi
+# dock running dots, kept out of wbar so a crash can't take the dock down
 [ -x /usr/local/bin/xxri-wctl ] && /usr/local/bin/xxri-wctl indicators &
-# XXRI Control Center: the always-available quick-settings chip in the
-# bottom-right corner (click it to open the panel).  It is a single-instance
-# override-redirect window, so it never joins the task list or takes focus.
+# quick-settings chip, bottom right (override-redirect, never takes focus)
 [ -x /usr/local/bin/xxri-control-center ] && /usr/local/bin/xxri-control-center &
-# All Apps: the floating launcher key that sits just left of the dock, with a
-# gap.  It is deliberately NOT a wbar slot - the reference layout has it as a
-# surface of its own - so like the Control Center it is an override-redirect
-# window that never joins the task list or takes focus.  It finds the dock by
-# wbar's own window, so it does not matter that wbar may still be starting.
+# All Apps key left of the dock: its own surface, not a wbar slot; it finds
+# wbar's window itself, so start order doesn't matter
 [ -x /usr/local/bin/xxri-launcher ] && /usr/local/bin/xxri-launcher --button &
-# The dock's running-app section.  It is NOT a surface of its own: applications
-# that are running but not pinned are written into wbar's own config, after a
-# separator, so they appear inside the single dock pill and the dock simply
-# grows.  This watcher is what keeps that section in step with the windows that
-# are actually open.
+# running-but-unpinned apps go into wbar's config after a separator; this
+# keeps that section in step with the open windows
 [ -x /usr/local/bin/xxri-dock-pin ] && /usr/local/bin/xxri-dock-pin watch &
 [ -d "/usr/local/etc/X.d" ] && find "/usr/local/etc/X.d" -type f -o -type l | sort | while read F; do . "$F"; done
 [ -d "$HOME/.X.d" ] && find "$HOME/.X.d" -type f -o -type l | sort | while read F; do . "$F"; done

@@ -9,14 +9,16 @@ grep -qw multivt /proc/cmdline && sed -i s/^#tty/tty/ /etc/inittab
 #   1. ramroot on cmdline            -> force the classic RAM boot below.
 #   2. root=DEV|UUID=..|LABEL=..      -> pivot to that filesystem.
 #   3. no root= given                -> auto-detect a filesystem labelled
-#                                       XXRIROOT and pivot to it.
+#                                       XXRIROOT and pivot to it - except
+#                                       on the live medium (`cde`).
 # Anything that fails falls through to the RAM boot, so a live CD with no
 # installed disk still comes up (and can run install2disk).
 # ------------------------------------------------------------------------
-ROOTSPEC="" ROOTFSTYPE="" ROOTDELAY=15 ROOTWAIT="" RAMROOT="" EXPLICIT=""
+ROOTSPEC="" ROOTFSTYPE="" ROOTDELAY=15 ROOTWAIT="" RAMROOT="" EXPLICIT="" LIVE=""
 for i in `cat /proc/cmdline`; do
 	case $i in
 		root=*) ROOTSPEC=${i#*=}; EXPLICIT=1 ;;
+		cde) LIVE=1 ;;
 		rootfstype=*) ROOTFSTYPE=${i#*=} ;;
 		rootdelay=*) ROOTDELAY=${i#*=} ;;
 		rootwait) ROOTWAIT=1 ;;
@@ -25,8 +27,11 @@ for i in `cat /proc/cmdline`; do
 done
 
 # Auto-detect: no explicit root= -> look briefly for the installed label.
+# Not when the live medium boots: every live entry passes `cde`, an installed
+# grub.cfg never does, and a disk with an earlier install must not take over
+# a live boot (Ventoy boots the ISO with the computer's own disks attached).
 XXRILABEL="XXRIROOT"
-if [ -z "$RAMROOT" ] && [ -z "$EXPLICIT" ]; then
+if [ -z "$RAMROOT" ] && [ -z "$EXPLICIT" ] && [ -z "$LIVE" ]; then
 	ROOTSPEC="LABEL=$XXRILABEL"
 	ROOTDELAY=2
 fi

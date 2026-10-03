@@ -3,27 +3,43 @@
 #
 #   xxri-display list [--json]        available modes
 #   xxri-display current [--json]
-#   xxri-display set-resolution WxHxBPP [--apply]
+#   xxri-display monitors [--json]    connected displays and where they sit
+#   xxri-display set-resolution WxH[xBPP] [--rate HZ] [--apply]
+#   xxri-display set-refresh HZ [--json]
 #   xxri-display edid [--json]
 #   xxri-display cache-modes          (boot helper, run before X starts)
 #
 # The desktop runs on the XLibre X server (~/.xsession picks it):
-#   kms    Xorg with the modesetting driver on a KMS/DRM device - modes come
-#          from the connector (DRM sysfs before X starts, RandR once it runs),
-#          and a new resolution is applied live through RandR
-#   fbdev  Xfbdev on the kernel framebuffer (vesafb/efifb/...) when there is
-#          no KMS device - one mode, set by the boot loader, not changeable
-#          from a running system
-# The CLI/JSON API is the stable contract; only these internals changed when
-# the Xvesa (VESA BIOS) backend was retired.
+#   kms    Xorg with the modesetting driver on a KMS/DRM device - modes and
+#          refresh rates come from RandR for the first connected output (the
+#          output .xsession's apply_xres drives), or from DRM sysfs before X
+#          starts
+#   vesa   Xorg with the vesa driver (video BIOS) on a BIOS machine left with
+#          no kernel display device - RandR lists what the BIOS offers
+#   fbdev  Xfbdev on the kernel framebuffer (vesafb/efifb/...) - one mode, set
+#          by the boot loader, not changeable from a running system
+# The mode is saved as MODE/RATE in display.conf and .xsession uses it next
+# session. A new resolution needs a new session (dock, CC and launcher are
+# laid out once at start), so --apply restarts the desktop; a refresh-rate
+# change is applied live. The CLI/JSON API stays stable whatever the server.
 . /usr/local/lib/xxri/hw-lib.sh
 
 JSON=0
 for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
 
 MODES_CACHE="$XXRI_RUN_DIR/display.modes"
+# .xsession's own fallback when neither an xres= boot code nor a saved MODE is
+# set - the size the desktop layout is designed around.  Keep the two in step.
+DEFAULT_MODE=1024x768
 
-# which display path is live (or would be, before X starts)
+[ -n "$DISPLAY" ] || export DISPLAY=:0
+
+# ---- which display path is live -------------------------------------------
+server() {
+	if pidof Xorg >/dev/null 2>&1; then echo xorg
+	elif pidof Xfbdev >/dev/null 2>&1; then echo xfbdev
+	else echo none; fi
+}
 driver() {
 	if pidof Xfbdev >/dev/null 2>&1; then echo fbdev; return; fi
 	for c in /sys/class/drm/card*-*/status; do
@@ -34,6 +50,31 @@ driver() {
 	# a registered framebuffer, not the node: core.gz carries a static /dev/fb0
 	[ -e /sys/class/graphics/fb0 ] && echo fbdev || echo none
 }
+kms_driver() {
+	for c in /sys/class/drm/card[0-9]*; do
+		case "$c" in *-*) continue;; esac
+		d="$(readlink "$c/device/driver" 2>/dev/null)"
+		[ -n "$d" ] && { echo "${d##*/}"; return; }
+	done
+	echo modesetting
+}
+# the kernel/firmware driver behind the picture, and how to say it
+driver_name() {
+	case "$(driver)" in
+		kms)   kms_driver ;;
+		vesa)  echo vesa ;;
+		fbdev) n="$(sf /sys/class/graphics/fb0/name)"; echo "${n:-fbdev}" ;;
+		*)     echo none ;;
+	esac
+}
+driver_label() {
+	case "$(driver)" in
+		kms)   echo "$(kms_driver) (kernel mode setting)" ;;
+		vesa)  echo "VESA BIOS (compatibility mode)" ;;
+		fbdev) n="$(sf /sys/class/graphics/fb0/name)"; echo "${n:-Firmware} framebuffer (boot loader mode)" ;;
+		*)     echo "No display device" ;;
+	esac
+}
 
 # modes of the connected DRM connectors, as WxHx32 (KMS scanout is 32bpp)
 drm_modes() {
@@ -42,18 +83,11 @@ drm_modes() {
 		sed 's/$/x32/' "$c/modes" 2>/dev/null
 	done
 }
-
 # the framebuffer's current mode (vesafb/efifb offer exactly one)
 fb_mode() {
 	vs="$(sf /sys/class/graphics/fb0/virtual_size)"
 	bpp="$(sf /sys/class/graphics/fb0/bits_per_pixel)"
 	[ -n "$vs" ] && echo "${vs%,*}x${vs#*,}x${bpp:-32}"
-}
-
-# RandR's view while Xorg runs: the connected output and its modes
-xr_output() { xrandr 2>/dev/null | awk '/ connected/{print $1; exit}'; }
-xr_modes() {
-	xrandr 2>/dev/null | awk '/ connected/{on=1; next} /^[^ ]/{on=0} on && $1 ~ /^[0-9]+x[0-9]+$/ {print $1 "x32"}'
 }
 
 cmd_cache_modes() { # boot helper: X is not running yet
@@ -64,101 +98,314 @@ cmd_cache_modes() { # boot helper: X is not running yet
 	return 0
 }
 
-modes() {
-	case "$(driver)" in
-	kms|vesa)
-		if [ -n "$DISPLAY" ] && have xrandr && pidof Xorg >/dev/null 2>&1; then
-			xr_modes | awk '!seen[$0]++' | sort -t x -k1,1n -k2,2n
-		else
-			drm_modes | awk '!seen[$0]++' | sort -t x -k1,1n -k2,2n
-		fi ;;
-	fbdev) fb_mode ;;
-	*) cat "$MODES_CACHE" 2>/dev/null ;;
-	esac
+# ---- Xorg / RandR ---------------------------------------------------------
+# One line per distinct WxH of the first connected output:
+#   OUT <output>
+#   M <WxH> <current 0|1> <preferred 0|1> <rates,comma,separated> <current rate> <preferred rate>
+# xrandr prints each rate as "%6.2f" followed by '*' (current) and '+'
+# (preferred); with no '*' the '+' becomes a token of its own ("60.00 +").
+# Interlaced modes (1920x1080i) are skipped, and a size listed on several
+# lines (different timings) is merged into one entry.
+xr_query() {
+	xrandr --query 2>/dev/null | awk '
+		/^[^ \t]/ { if (out != "") exit; if ($2 == "connected") { out = $1; print "OUT " out }; next }
+		out == "" || $1 !~ /^[0-9]+x[0-9]+$/ { next }
+		{
+			m = $1
+			if (!(m in seen)) { seen[m] = 1; order[++n] = m; rates[m] = ""; cr[m] = "-"; pr[m] = "-" }
+			last = ""
+			for (i = 2; i <= NF; i++) {
+				f = $i
+				if (f ~ /^[0-9]/) {
+					r = f; sub(/[^0-9.].*/, "", r); last = r
+					if (("," rates[m] ",") !~ ("," r ",")) rates[m] = rates[m] (rates[m] == "" ? "" : ",") r
+				}
+				if (f ~ /\*/) { cur[m] = 1; cr[m] = last }
+				if (f ~ /\+/) { pref[m] = 1; pr[m] = last }
+			}
+		}
+		END {
+			for (i = 1; i <= n; i++) { m = order[i]
+				printf "M %s %d %d %s %s %s\n", m, cur[m] + 0, pref[m] + 0, (rates[m] == "" ? "-" : rates[m]), cr[m], pr[m] }
+		}'
 }
 
-current_mode() {
-	if [ -n "$DISPLAY" ] && have xxri-dialog; then
-		s="$(xxri-dialog --screen-size 2>/dev/null)"
-		[ -n "$s" ] && { echo "$s"; return; }
+xr_load() { [ -n "$XR_DONE" ] && return 0; XR="$(xr_query)"; XR_OUT="$(echo "$XR" | sed -n 's/^OUT //p')"; XR_DONE=1; }
+xr_modes()     { echo "$XR" | sed -n 's/^M \([^ ]*\) .*/\1/p'; }
+xr_field()     { echo "$XR" | awk -v m="$1" -v f="$2" '$1 == "M" && $2 == m { print $f; exit }'; }
+xr_current()   { echo "$XR" | awk '$1 == "M" && $3 == 1 { print $2; exit }'; }
+xr_preferred() { echo "$XR" | awk '$1 == "M" && $4 == 1 { print $2; exit }'; }
+xr_has_rate()  { case ",$(xr_field "$1" 5)," in *",$2,"*) return 0;; esac; return 1; }
+
+# connector name -> what a person calls it
+output_name() {
+	case "$1" in
+		eDP*|LVDS*|DSI*) echo "Built-in Display" ;;
+		HDMI*)           echo "HDMI Display" ;;
+		DP*|DisplayPort*) echo "DisplayPort Display" ;;
+		DVI*)            echo "DVI Display" ;;
+		VGA*)            echo "VGA Display" ;;
+		Virtual*|VIRTUAL*) echo "Virtual Display" ;;
+		*)               echo "Display" ;;
+	esac
+}
+output_builtin() { case "$1" in eDP*|LVDS*|DSI*) echo 1;; *) echo 0;; esac; }
+
+# rates "60.00,59.94" -> JSON [60.00,59.94]
+rates_json() { [ "$1" = - ] || [ -z "$1" ] && { printf '[]'; return; }; printf '[%s]' "$1"; }
+
+# ---- common ---------------------------------------------------------------
+# The live screen size, from the core protocol, so it works on either server.
+screen_size() { xdpyinfo 2>/dev/null | sed -n 's/^ *dimensions: *\([0-9]*x[0-9]*\) pixels.*/\1/p' | head -1; }
+root_depth()  { xdpyinfo 2>/dev/null | sed -n 's/^ *depth of root window: *\([0-9]*\) planes.*/\1/p' | head -1; }
+
+# what the next session will use when nothing overrides it
+default_mode() { # $1 = server
+	if [ "$1" = xorg ]; then
+		# apply_xres settles for the output's preferred mode when it does not
+		# offer $DEFAULT_MODE
+		xr_modes | grep -qx "$DEFAULT_MODE" && echo "$DEFAULT_MODE" || xr_preferred
+	else echo "$DEFAULT_MODE"; fi
+}
+
+saved_mode() { cfg_get display MODE ""; }
+wxh() { echo "$1" | sed -n 's/^\([0-9]*x[0-9]*\).*/\1/p'; }
+# an xres= boot code (or Tiny Core's xvesa=) beats the saved mode for this boot
+boot_mode() {
+	b="$(sed -n 's/.*\bxres=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /proc/cmdline 2>/dev/null | head -1)"
+	[ -n "$b" ] || b="$(sed -n 's/.*\bxvesa=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /proc/cmdline 2>/dev/null | head -1)"
+	echo "$b"
+}
+
+current_mode() { # $1 = server
+	if [ "$1" = xorg ]; then
+		c="$(xr_current)"; [ -n "$c" ] && { echo "$c"; return; }
 	fi
-	[ "$(driver)" = fbdev ] && { fb_mode; return; }
-	m="$(cfg_get display MODE)"
-	echo "${m:-1024x768x32}"
+	if [ "$1" = xfbdev ]; then wxh "$(fb_mode)"; return; fi
+	screen_size
+}
+
+# the fields `list` and `current` share
+common_fields() { # $1 = server, $2 = current WxH
+	sm="$(saved_mode)"; bm="$(boot_mode)"
+	j_str server "$1"
+	j_str default_mode "$(default_mode "$1")"
+	j_str saved_mode "$sm"
+	j_str boot_mode "$bm"
+	# A saved size that differs from the running one waits for a new session -
+	# unless the next session would not use it either: a boot code overrides
+	# it, or the output does not offer it (apply_xres then falls back).
+	p=0
+	if [ "$1" = xorg ] && [ -n "$sm" ] && [ -n "$2" ] && [ -z "$bm" ] && [ "$(wxh "$sm")" != "$2" ]; then
+		p=1
+		xr_modes | grep -qx "$(wxh "$sm")" || p=0
+	fi
+	j_bool pending "$p"
+	j_str driver "$(driver_name)"
+	j_str driver_label "$(driver_label)"
+	j_str path "$(driver)"
+	if [ "$1" = xorg ]; then
+		j_str output "$XR_OUT"
+		j_str name "$(output_name "$XR_OUT")"
+		j_bool builtin "$(output_builtin "$XR_OUT")"
+		# RandR changes the rate of a KMS output live; the vesa driver's
+		# rates are nominal
+		j_bool live_refresh "$([ "$(driver)" = kms ] && echo 1 || echo 0)"
+		j_bool changeable 1
+	else
+		j_str output ""
+		j_str name "Display"
+		j_bool builtin 0
+		j_bool live_refresh 0
+		j_bool changeable 0
+	fi
 }
 
 cmd_list() {
-	m="$(modes)"
-	cur="$(current_mode)"
-	drv="$(driver)"
+	srv="$(server)"
+	[ "$srv" = xorg ] && xr_load
+	cur="$(current_mode "$srv")"
+	dm="$(default_mode "$srv")"
 	if [ $JSON = 1 ]; then
 		a_new
-		for x in $m; do
-			j_new; j_str mode "$x"
-			j_num width  "${x%%x*}"
-			r="${x#*x}"; j_num height "${r%%x*}"
-			j_num depth "${x##*x}"
-			j_num refresh 60
-			j_bool current "$([ "$x" = "$cur" ] && echo 1 || echo 0)"
-			a_add "$(j_obj)"
-		done
-		j_new; j_raw modes "$(a_out)"; j_str driver "$drv"
-		[ "$drv" = fbdev ] && j_str note "the firmware framebuffer has one mode, chosen by the boot loader"
-		[ -z "$m" ] && j_str note "no display device found"
+		note=""
+		if [ "$srv" = xorg ]; then
+			dep="$(root_depth)"
+			for x in $(xr_modes); do
+				j_new; j_str mode "$x"
+				j_num width  "${x%%x*}"
+				j_num height "${x#*x}"
+				j_num depth "${dep:-24}"
+				r="$(xr_field "$x" 6)"; [ "$r" = - ] && r="$(xr_field "$x" 7)"
+				[ "$r" = - ] && r="$(xr_field "$x" 5 | cut -d, -f1)"
+				[ "$r" = - ] && r=60
+				j_num refresh "$r"
+				j_raw rates "$(rates_json "$(xr_field "$x" 5)")"
+				j_bool current "$([ "$x" = "$cur" ] && echo 1 || echo 0)"
+				j_bool preferred "$(xr_field "$x" 4)"
+				j_bool default "$([ "$x" = "$dm" ] && echo 1 || echo 0)"
+				a_add "$(j_obj)"
+			done
+			[ -z "$XR_OUT" ] && note="RandR reports no connected output"
+		else
+			# Xfbdev (or no X at all): the framebuffer's one mode
+			for x in $(fb_mode); do
+				s="$(wxh "$x")"
+				j_new; j_str mode "$x"
+				j_num width  "${x%%x*}"
+				r="${x#*x}"; j_num height "${r%%x*}"
+				j_num depth "${x##*x}"
+				j_num refresh 60
+				j_raw rates "[]"
+				j_bool current "$([ "$s" = "$cur" ] && echo 1 || echo 0)"
+				j_bool preferred 0
+				j_bool default 0
+				a_add "$(j_obj)"
+			done
+			note="The firmware framebuffer has one mode, chosen by the boot loader. Boot with the xres=WxH code to pick another."
+			[ -z "$(fb_mode)" ] && note="No display device was found."
+		fi
+		j_new; j_raw modes "$(a_out)"
+		common_fields "$srv" "$cur"
+		j_str current_mode "$cur"
+		j_str preferred_mode "$([ "$srv" = xorg ] && xr_preferred)"
+		j_str note "$note"
 		j_root display "\"list\":$(j_obj)"
 	else
-		echo "Available modes ($drv):"
-		for x in $m; do echo "  $x$([ "$x" = "$cur" ] && echo '   <- current')"; done
-		[ -z "$m" ] && echo "  (no display device found)"
+		if [ "$srv" = xorg ]; then
+			echo "Available modes ($XR_OUT, $(driver_label)):"
+			for x in $(xr_modes); do
+				echo "  $x  $(xr_field "$x" 5 | tr , ' ')$([ "$x" = "$cur" ] && echo '   <- current')$([ "$(xr_field "$x" 4)" = 1 ] && echo '   (preferred)')"
+			done
+		else
+			echo "Mode ($(driver_label)): $(fb_mode)"
+		fi
 	fi
 }
 
 cmd_current() {
-	cur="$(current_mode)"
+	srv="$(server)"
+	[ "$srv" = xorg ] && xr_load
+	cur="$(current_mode "$srv")"
+	rate=60
+	if [ "$srv" = xorg ] && [ -n "$cur" ]; then
+		rate="$(xr_field "$cur" 6)"; [ "$rate" = - ] && rate=""
+	fi
 	if [ $JSON = 1 ]; then
-		j_new; j_str mode "$cur"; j_num refresh 60; j_str driver "$(driver)"
+		j_new; j_str mode "$cur"
+		j_num width "${cur%%x*}"; j_num height "${cur#*x}"
+		j_num refresh "${rate:-60}"
+		j_raw rates "$([ "$srv" = xorg ] && rates_json "$(xr_field "$cur" 5)" || printf '[]')"
+		common_fields "$srv" "$cur"
 		j_root display "\"current\":$(j_obj)"
-	else echo "current: ${cur:-unknown} @60Hz ($(driver))"; fi
+	else
+		echo "current: ${cur:-unknown} @${rate:-?}Hz ($(driver_label))"
+	fi
 }
 
-fail_set() {
+# Every connected display and its place on the desktop, from RandR 1.5's
+# monitor list (xrandr --listactivemonitors, the monitors xxri-wallpaper paints):
+#   {"index":1,"name":"HDMI-1","label":"HDMI Display","primary":true,
+#    "width":1920,"height":1080,"x":0,"y":0}
+# One entry for the whole screen when RandR has nothing to say (Xfbdev).
+cmd_monitors() {
+	ML="$(xrandr --listactivemonitors 2>/dev/null | awk 'NR > 1 {
+		n = $2; sub(/^[+*]*/, "", n); p = ($2 ~ /\*/) ? 1 : 0
+		g = $3; w = g; sub(/\/.*/, "", w); h = g; sub(/^[^x]*x/, "", h); sub(/\/.*/, "", h)
+		x = g; sub(/^[^+]*\+/, "", x); y = x; sub(/\+.*/, "", x); sub(/^[^+]*\+/, "", y)
+		print n, p, w, h, x, y }')"
+	if [ -z "$ML" ]; then
+		s="$(screen_size)"; [ -n "$s" ] || s="$(wxh "$(fb_mode)")"
+		[ -n "$s" ] && ML="screen 1 ${s%x*} ${s#*x} 0 0"
+	fi
+	if [ $JSON = 1 ]; then
+		a_new; i=0
+		echo "$ML" | { while read -r n p w h x y; do
+			[ -n "$n" ] || continue
+			i=$((i + 1))
+			j_new; j_num index "$i"; j_str name "$n"; j_str label "$(output_name "$n")"
+			j_bool primary "$p"; j_num width "$w"; j_num height "$h"; j_num x "$x"; j_num y "$y"
+			a_add "$(j_obj)"
+		done
+		j_new; j_raw monitors "$(a_out)"; j_num count "$i"
+		j_root display "\"monitors\":$(j_obj)"; }
+	else
+		echo "$ML" | awk '{ printf "%d: %s %sx%s+%s+%s%s\n", NR, $1, $3, $4, $5, $6, ($2 == 1 ? " (primary)" : "") }'
+	fi
+}
+
+set_fail() { # message
 	if [ $JSON = 1 ]; then
 		j_new; j_bool ok 0; j_str error "$1"
 		j_root display "\"set\":$(j_obj)"
-	else echo "$1"; fi
+	else echo "$1" >&2; fi
 	return 1
 }
 
-cmd_set() { # WxHxBPP [--apply]
-	M="$1"
-	case "$M" in [0-9]*x[0-9]*x[0-9]*) ;; [0-9]*x[0-9]*) M="${M}x32";; *)
-		echo "usage: xxri-display set-resolution WxH[xBPP] [--apply]" >&2; return 1;; esac
-	[ "$(driver)" = fbdev ] &&
-		{ fail_set "the framebuffer display path has a single mode set by the boot loader"; return 1; }
-	m="$(modes)"
-	[ -n "$m" ] && ! echo "$m" | grep -qx "$M" &&
-		{ fail_set "mode $M is not offered by the display (xxri-display list)"; return 1; }
-	# ~/.xsession applies MODE at every session start (an xres= boot code wins)
+cmd_set() { # WxH[xBPP] [--rate HZ] [--apply]
+	M="" RATE="" APPLY=0
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			--apply) APPLY=1 ;;
+			--rate)  RATE="$2"; shift ;;
+			--json)  ;;
+			*)       [ -z "$M" ] && M="$1" ;;
+		esac
+		shift
+	done
+	case "$M" in
+		[0-9]*x[0-9]*) ;;
+		*) echo "usage: xxri-display set-resolution WxH[xBPP] [--rate HZ] [--apply]" >&2; return 1 ;;
+	esac
+	case "$RATE" in ''|[0-9]*) ;; *) set_fail "refresh rate must be a number"; return 1 ;; esac
+	srv="$(server)"
+	if [ "$srv" = xfbdev ] || [ "$(driver)" = fbdev ]; then
+		set_fail "The firmware framebuffer has one mode, set by the boot loader. Boot with the xres=WxH code to pick another."
+		return 1
+	fi
+	M="$(wxh "$M")"
+	if [ "$srv" = xorg ]; then
+		xr_load
+		xr_modes | grep -qx "$M" || { set_fail "$M is not offered by ${XR_OUT:-the display}"; return 1; }
+		[ -z "$RATE" ] || xr_has_rate "$M" "$RATE" || { set_fail "$M does not offer ${RATE}Hz"; return 1; }
+	else
+		m="$(drm_modes | sed 's/x32$//')"
+		[ -n "$m" ] && ! echo "$m" | grep -qx "$M" && { set_fail "$M is not offered by the display"; return 1; }
+	fi
+	# .xsession reads these at the next session start
 	cfg_set display MODE "$M"
-	applied=0
-	if [ "$2" = "--apply" ] || [ "$1" = "--apply" ]; then
-		o="$(xr_output)"
-		if [ -n "$DISPLAY" ] && [ -n "$o" ] && xrandr --output "$o" --mode "${M%x*}" 2>/dev/null; then
-			applied=1
-		else
-			# no live RandR: restart the session so .xsession sets the mode
-			sudo_if rm -f /var/log/autologin /tmp/.X11-unix/X0
-			sudo_if sh -c '(sleep 1; pkill -x Xorg; pkill -x Xfbdev; sleep 2; pkill -KILL -t tty1) >/dev/null 2>&1 &'
-			applied=1
-		fi
+	cfg_set display RATE "$RATE"
+	if [ $APPLY = 1 ]; then
+		# a new session, not a live switch: see the header
+		/usr/local/bin/xxri-desktop restart-session >/dev/null 2>&1
 	fi
 	if [ $JSON = 1 ]; then
 		j_new; j_bool ok 1; j_str mode "$M"
-		j_bool applied "$applied"
+		[ -n "$RATE" ] && j_num refresh "$RATE"
+		j_bool applied "$APPLY"
 		j_root display "\"set\":$(j_obj)"
 	else
-		echo "resolution set to $M$([ $applied = 1 ] || echo ' (takes effect at next session; use --apply to change it now)')"
+		echo "resolution set to $M$([ -n "$RATE" ] && echo " @${RATE}Hz")$([ $APPLY = 1 ] || echo ' (takes effect at next session; use --apply to restart now)')"
 	fi
+}
+
+cmd_set_refresh() { # HZ - live; keeps the running mode, so no new session
+	RATE="$1"
+	case "$RATE" in [0-9]*) ;; *) echo "usage: xxri-display set-refresh HZ" >&2; return 1 ;; esac
+	[ "$(server)" = xorg ] && [ "$(driver)" = kms ] ||
+		{ set_fail "the refresh rate is fixed on this display path ($(driver_label))"; return 1; }
+	xr_load
+	cur="$(xr_current)"
+	[ -n "$cur" ] && [ -n "$XR_OUT" ] || { set_fail "no active output"; return 1; }
+	xr_has_rate "$cur" "$RATE" || { set_fail "$cur does not offer ${RATE}Hz"; return 1; }
+	xrandr --output "$XR_OUT" --mode "$cur" --rate "$RATE" 2>/dev/null || { set_fail "xrandr refused ${RATE}Hz"; return 1; }
+	# saved together with the mode it belongs to
+	cfg_set display MODE "$cur"
+	cfg_set display RATE "$RATE"
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok 1; j_str mode "$cur"; j_num refresh "$RATE"; j_bool applied 1
+		j_root display "\"set\":$(j_obj)"
+	else echo "refresh rate set to ${RATE}Hz ($cur)"; fi
 }
 
 cmd_edid() {
@@ -182,8 +429,10 @@ cmd_edid() {
 case "$1" in
 	list) cmd_list ;;
 	current) cmd_current ;;
+	monitors) cmd_monitors ;;
 	set-resolution) shift; cmd_set "$@" ;;
+	set-refresh) shift; cmd_set_refresh "$@" ;;
 	edid) cmd_edid ;;
 	cache-modes) cmd_cache_modes ;;
-	*) echo "usage: xxri-display list|current|set-resolution WxH[xBPP] [--apply]|edid [--json]" >&2; exit 1 ;;
+	*) echo "usage: xxri-display list|current|monitors|set-resolution WxH[xBPP] [--rate HZ] [--apply]|set-refresh HZ|edid [--json]" >&2; exit 1 ;;
 esac

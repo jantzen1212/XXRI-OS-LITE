@@ -1,27 +1,34 @@
-/* xxri OS Lite - GTK3 theme
- * Design language: light lavender surfaces, white cards, 12px+ radii,
- * accent gradient #ED6CE0 -> #8371F7 -> #2E7CF6, Avenir Next type. */
+/* xxri OS Lite - GTK theme (gtk-3.0 and gtk-4.0 carry the same file).
+ * White ground, neutral grey surfaces and elevation for hierarchy, 10px+
+ * radii, Avenir Next. Colour only on what the user acts on: the primary
+ * button's blue gradient, selection, switches, progress, focus ring. */
 
-@define-color xxri_surface   #EFEDF8;
-@define-color xxri_card      #FAF9FE;
+@define-color xxri_surface   #FFFFFF;   /* windows                          */
+@define-color xxri_card      #F5F5F7;   /* grouped surfaces, headers        */
+@define-color xxri_raised    #ECECEF;   /* secondary buttons, hover         */
+@define-color xxri_sunken    #E2E2E6;   /* troughs, switches that are off   */
 @define-color xxri_field     #FFFFFF;
-@define-color xxri_ink       #1C1B24;
-@define-color xxri_muted     #6B6880;
+@define-color xxri_ink       #1C1C1E;
+@define-color xxri_muted     #6B6B73;
+@define-color xxri_accent    #2E7CF6;   /* focus, selection, links          */
+@define-color xxri_blue_d    #1E4FC2;   /* primary gradient, from ...       */
+@define-color xxri_blue_l    #4A9AF5;   /* ... to                           */
+@define-color xxri_border    alpha(#000000, 0.10);
+/* the brand colours, for the few places that show the logo's gradient */
 @define-color xxri_pink      #ED6CE0;
 @define-color xxri_purple    #8371F7;
 @define-color xxri_blue      #2E7CF6;
-@define-color xxri_border    alpha(#1C1B24, 0.10);
 
 @define-color theme_bg_color @xxri_surface;
 @define-color theme_fg_color @xxri_ink;
 @define-color theme_base_color @xxri_field;
 @define-color theme_text_color @xxri_ink;
-@define-color theme_selected_bg_color @xxri_purple;
+@define-color theme_selected_bg_color @xxri_accent;
 @define-color theme_selected_fg_color #FFFFFF;
 @define-color borders @xxri_border;
 
 * {
-  outline-color: alpha(@xxri_purple, 0.4);
+  outline-color: alpha(@xxri_accent, 0.45);
 }
 
 window, dialog, .background {
@@ -31,7 +38,8 @@ window, dialog, .background {
 }
 
 headerbar, .titlebar {
-  background-image: linear-gradient(to bottom, #FAF9FE, #F1EEF9);
+  background-image: none;
+  background-color: @xxri_card;
   color: @xxri_ink;
   border-bottom: 1px solid @xxri_border;
   border-radius: 14px 14px 0 0;
@@ -39,56 +47,57 @@ headerbar, .titlebar {
 }
 
 button {
-  background-image: linear-gradient(to bottom, #FFFFFF, #F3F0FA);
+  background-image: none;
+  background-color: @xxri_raised;
   color: @xxri_ink;
-  border: 1px solid @xxri_border;
+  border: none;
   border-radius: 10px;
   padding: 6px 14px;
-  box-shadow: 0 1px 2px alpha(#1C1B24, 0.06);
+  box-shadow: none;
 }
-button:hover { background-image: linear-gradient(to bottom, #FFFFFF, #FAF8FD); }
-button:active, button:checked {
-  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple);
+button:hover { background-color: @xxri_sunken; }
+button:active, button:checked { background-color: shade(@xxri_sunken, 0.93); }
+button:disabled { color: alpha(@xxri_ink, 0.40); }
+button.flat { background-color: transparent; }
+button.flat:hover { background-color: alpha(@xxri_ink, 0.06); }
+button.suggested-action {
+  background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l);
   color: #FFFFFF;
-  border-color: transparent;
 }
-button.suggested-action, button.default {
-  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple);
-  color: #FFFFFF;
-  border-color: transparent;
-}
+button.suggested-action:hover  { background-image: linear-gradient(to right, shade(@xxri_blue_d, 1.10), shade(@xxri_blue_l, 1.06)); }
+button.suggested-action:active { background-image: linear-gradient(to right, shade(@xxri_blue_d, 0.90), shade(@xxri_blue_l, 0.92)); }
+button.destructive-action { background-image: none; background-color: #E5484D; color: #FFFFFF; }
 
 entry {
   background-color: @xxri_field;
   color: @xxri_ink;
-  border: 1px solid @xxri_border;
+  border: 1px solid alpha(@xxri_ink, 0.14);
   border-radius: 10px;
   padding: 6px 10px;
-  caret-color: @xxri_pink;
+  caret-color: @xxri_accent;
 }
-entry:focus { border-color: @xxri_purple; box-shadow: 0 0 0 2px alpha(@xxri_purple, 0.25); }
+entry:focus { border-color: @xxri_accent; box-shadow: 0 0 0 3px alpha(@xxri_accent, 0.20); }
 
 selection, *:selected {
-  background-color: @xxri_purple;
+  background-color: @xxri_accent;
   color: #FFFFFF;
 }
 
 menu, .menu, popover {
-  background-color: @xxri_card;
+  background-color: @xxri_field;
   color: @xxri_ink;
   border: 1px solid @xxri_border;
   border-radius: 12px;
   padding: 6px;
 }
 menuitem { border-radius: 8px; padding: 6px 10px; }
-menuitem:hover {
-  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple);
-  color: #FFFFFF;
-}
+menuitem:hover { background-image: none; background-color: @xxri_raised; color: @xxri_ink; }
+menuitem:disabled { color: alpha(@xxri_ink, 0.40); }
+menu separator { background-color: @xxri_border; min-height: 1px; margin: 4px 8px; }
 menubar { background-color: @xxri_card; color: @xxri_ink; }
-menubar > menuitem:hover { background-color: alpha(@xxri_purple, 0.15); color: @xxri_ink; }
+menubar > menuitem:hover { background-color: alpha(@xxri_ink, 0.07); color: @xxri_ink; }
 
-notebook > header { background-color: @xxri_surface; }
+notebook > header { background-color: @xxri_surface; border-color: @xxri_border; }
 notebook > header > tabs > tab {
   border-radius: 10px 10px 0 0;
   padding: 6px 14px;
@@ -97,7 +106,7 @@ notebook > header > tabs > tab {
 notebook > header > tabs > tab:checked {
   background-color: @xxri_card;
   color: @xxri_ink;
-  box-shadow: inset 0 -2px @xxri_purple;
+  box-shadow: inset 0 -2px @xxri_accent;
 }
 
 scrollbar { background-color: transparent; }
@@ -106,47 +115,67 @@ scrollbar slider {
   border-radius: 8px;
   min-width: 8px; min-height: 8px;
 }
-scrollbar slider:hover { background-color: @xxri_purple; }
+scrollbar slider:hover { background-color: alpha(@xxri_ink, 0.42); }
+/* no stepper buttons: they would inherit `button` and sit as grey pills at
+   both ends of every scrollbar */
+scrollbar button {
+  min-width: 0; min-height: 0; padding: 0; margin: 0;
+  border: none; background: none; -gtk-icon-source: none; opacity: 0;
+}
 
 progressbar > trough {
-  background-color: #E3DFF2;
+  background-color: @xxri_sunken;
   border-radius: 8px;
 }
 progressbar > trough > progress {
-  background-image: linear-gradient(to right, @xxri_pink, @xxri_purple, @xxri_blue);
+  background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l);
   border-radius: 8px;
 }
+scale trough    { background-color: @xxri_sunken; border-radius: 999px; min-height: 6px; min-width: 6px; }
+scale highlight { background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l); border-radius: 999px; }
+scale slider {
+  background-color: #FFFFFF; border-radius: 999px;
+  box-shadow: 0 1px 4px alpha(#000000, 0.28);
+  min-width: 16px; min-height: 16px; margin: -6px;
+}
 
-switch { border-radius: 999px; background-color: #D9D4EA; }
-switch:checked { background-image: linear-gradient(to right, @xxri_pink, @xxri_purple); }
-switch slider { border-radius: 999px; background-color: #FFFFFF; }
+switch { border-radius: 999px; background-color: @xxri_sunken; }
+switch:checked { background-image: linear-gradient(to right, @xxri_blue_d, @xxri_blue_l); }
+switch slider { border-radius: 999px; background-color: #FFFFFF; box-shadow: 0 1px 3px alpha(#000000, 0.25); }
+/* no I/O glyphs inside the track: the position and the colour say it */
+switch image { color: transparent; }
 
-checkbutton check, radiobutton radio { border: 1px solid @xxri_border; }
+checkbutton check, radiobutton radio { border: 1px solid alpha(@xxri_ink, 0.22); background-color: @xxri_field; }
+checkbutton check { border-radius: 5px; }
+radiobutton radio { border-radius: 999px; }
 checkbutton check:checked, radiobutton radio:checked {
-  background-image: linear-gradient(to bottom right, @xxri_pink, @xxri_purple);
+  background-image: linear-gradient(to bottom right, @xxri_blue_d, @xxri_blue_l);
   color: #FFFFFF;
   border-color: transparent;
 }
 
 tooltip, tooltip.background {
-  background-color: alpha(#1C1B24, 0.92);
-  color: #F2EFFC;
+  background-color: alpha(#1C1C1E, 0.92);
+  color: #F2F2F4;
   border-radius: 10px;
 }
 
 /* Notifications / OSD follow the frosted-card look */
 .app-notification, .osd {
-  background-color: alpha(#FAF9FE, 0.92);
+  background-color: alpha(#FFFFFF, 0.92);
   color: @xxri_ink;
   border-radius: 14px;
   border: 1px solid @xxri_border;
-  box-shadow: 0 8px 24px alpha(#1C1B24, 0.18);
+  box-shadow: 0 8px 24px alpha(#000000, 0.18);
 }
 
 treeview.view { background-color: @xxri_field; color: @xxri_ink; }
-treeview.view:selected { background-color: @xxri_purple; color: #FFFFFF; }
+treeview.view:selected { background-color: @xxri_accent; color: #FFFFFF; }
 treeview.view header button {
   background-image: none;
   background-color: @xxri_card;
+  color: @xxri_muted;
   border-radius: 0;
 }
+placessidebar, placessidebar list { background-color: @xxri_card; }
+paned > separator { background-color: @xxri_border; min-width: 1px; min-height: 1px; }

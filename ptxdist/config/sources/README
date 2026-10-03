@@ -20,3 +20,18 @@ extensions in cde/optional that are not named xxri-*) are redistributed
 unmodified; their sources are published by Tiny Core at
   http://repo.tinycorelinux.net/16.x/x86/release/src/
   http://repo.tinycorelinux.net/16.x/x86/tcz/src/
+
+Firmware and CPU microcode are binary files redistributed unmodified under
+their vendors' licences (included on the medium: /usr/local/share/doc/
+xxri-firmware-*/ inside each extension, boot/LICENSE.*-ucode); there is no
+source code for them.  They come from:
+  xxri-firmware-gpu.tcz     Tiny Core 16's firmware-radeon.tcz and
+                            firmware-i915.tcz (linux-firmware 20240220)
+  xxri-firmware-intel.tcz,  linux-firmware 20260810,
+  xxri-firmware-amd.tcz,      https://cdn.kernel.org/pub/linux/kernel/firmware/
+  xxri-firmware-nvidia.tcz,   linux-firmware-20260810.tar.xz (sha256 ac17c34f...)
+  boot/amd-ucode.img
+  boot/intel-ucode.img      Intel microcode release microcode-20260925,
+                              https://github.com/intel/Intel-Linux-Processor-Microcode-Data-Files
+The file lists and the scripts that select and package them are in the
+project archive (ptxdist/config/firmware/, ptxdist/scripts/).

@@ -1,23 +1,28 @@
 #!/bin/busybox ash
 # xxri-desktop - desktop style & session preferences backend.
 #
-# The Settings frontend never edits dotfiles or calls hsetroot/wbar
-# directly; everything routes through here (same contract as the
-# hardware layer).
-#
-# (nama = name; bentar = wait - nothing here reboots the box)
+# Settings never edits dotfiles or calls the wallpaper renderer or wbar
+# itself; it all goes through here (same contract as the hardware layer).
+# Nothing here reboots the box.
 #
 #   xxri-desktop status [--json]
-#   xxri-desktop wallpaper set FILE [fill|full|center|tile]
-#   xxri-desktop wallpaper scale SCALE
-#   xxri-desktop dock position top|bottom | dock size N(24..56)
+#   xxri-desktop wallpaper list [--json]          the official wallpapers
+#   xxri-desktop wallpaper set FILE [FIT] [--monitor N|all]
+#   xxri-desktop wallpaper fit fill|fit|stretch|center|tile
+#   xxri-desktop wallpaper apply                  paint the saved choice (~/.setbackground)
+#   xxri-desktop wallpaper thumb FILE [W H]       -> path of a cached PNG preview
+#   xxri-desktop wallpaper reset
+#   xxri-desktop dock size small|medium|large|N(32..56)
+#   xxri-desktop appearance set light|dark
+#   xxri-desktop theme set NAME                   GTK theme (xxri, Adwaita, ...)
+#   xxri-desktop cursor set NAME                  cursor theme
+#   xxri-desktop scale set 100|125|150|175|200    text & UI scale of apps
+#   xxri-desktop themes [--json]                  what theme/cursor choices exist
 #   xxri-desktop accent set '#RRGGBB'
-#   xxri-desktop appearance set light|dark      (dark: stored, future)
 #   xxri-desktop hostname set NAME
 #   xxri-desktop autologin set on|off
 #   xxri-desktop language set CODE | region set TZSTRING LABEL
 #   xxri-desktop datetime [--json] | ntp-sync
-#   xxri-desktop themes [--json]                (icon/cursor themes)
 #   xxri-desktop reset | restart-session
 . /usr/local/lib/xxri/hw-lib.sh
 
@@ -25,50 +30,368 @@ JSON=0
 for a in "$@"; do [ "$a" = "--json" ] && JSON=1; done
 
 HOMEDIR="$(eval echo ~$(cat /etc/sysconfig/tcuser 2>/dev/null || echo xxri))"
+# Settings runs as the desktop user; a root caller (boot) acts on that user
+[ "$(id -u)" = 0 ] || HOMEDIR="${HOME:-$HOMEDIR}"
 WALL_DIR=/usr/local/share/xxri-theme/wallpapers
+OFFICIAL="$WALL_DIR/official.list"
 
-wp_file()  { cfg_get desktop WALLPAPER "$WALL_DIR/xxri-os-lite.jpg"; }
-wp_scale() { cfg_get desktop WALLPAPER_SCALE fill; }
-dock_pos() { sed -n 's/.*-pos \([a-z]*\).*/\1/p' "$HOMEDIR/.wbarconf" 2>/dev/null | head -1; }
-dock_size(){ sed -n 's/.*-isize \([0-9]*\).*/\1/p' "$HOMEDIR/.wbarconf" 2>/dev/null | head -1; }
+# ---- wallpaper --------------------------------------------------------------
+# official.list: id|file|name|default - the set Settings offers, in order
+official() { grep -v '^#' "$OFFICIAL" 2>/dev/null | grep '|'; }
+official_default() {
+	local f
+	f="$(official | awk -F'|' '$4 == 1 { print $2; exit }')"
+	[ -n "$f" ] && echo "$WALL_DIR/$f" || echo "$WALL_DIR/xxri-os-lite.jpg"
+}
+wp_file() { cfg_get desktop WALLPAPER "$(official_default)"; }
+wp_fit() {
+	local f
+	f="$(cfg_get desktop WALLPAPER_FIT '')"
+	if [ -z "$f" ]; then
+		# 2.5 saved hsetroot's own word, and hsetroot's "fill" stretches
+		case "$(cfg_get desktop WALLPAPER_SCALE '')" in
+			fill) f=stretch ;; full) f=fit ;; center) f=center ;; tile) f=tile ;; *) f=fill ;;
+		esac
+	fi
+	echo "$f"
+}
+wp_name() { # FILE -> what Settings calls it
+	local n b
+	n="$(official | awk -F'|' -v f="${1##*/}" -v d="$(dirname "$1")" -v w="$WALL_DIR" \
+		'd == w && $2 == f { print $3; exit }')"
+	if [ -n "$n" ]; then echo "$n"; else b="${1##*/}"; echo "${b%.*}"; fi
+}
+wp_official_id() {
+	[ "$(dirname "$1")" = "$WALL_DIR" ] || return 0
+	official | awk -F'|' -v f="${1##*/}" '$2 == f { print $1; exit }'
+}
+monitor_count() {
+	local n
+	n="$(xxri-display monitors 2>/dev/null | wc -l)"
+	[ "${n:-0}" -ge 1 ] 2>/dev/null && echo "$n" || echo 1
+}
+# the file on display N (1-based): its own choice, else the all-displays one
+wp_for() {
+	local f
+	f="$(cfg_get desktop "WALLPAPER_M$1" '')"
+	[ -n "$f" ] && [ -r "$f" ] && echo "$f" || wp_file
+}
 
-apply_wallpaper() {
-	f="$(wp_file)"; s="$(wp_scale)"
-	printf '#!/bin/sh\nhsetroot -%s "%s"\n' "$s" "$f" > "$HOMEDIR/.setbackground"
+write_setbackground() {
+	printf '#!/bin/sh\n# Written by xxri-desktop (Settings > Wallpaper & Style).\nexec /usr/local/bin/xxri-desktop wallpaper apply\n' \
+		> "$HOMEDIR/.setbackground"
 	chmod +x "$HOMEDIR/.setbackground"
-	[ -n "$DISPLAY" ] && "$HOMEDIR/.setbackground" >/dev/null 2>&1
+}
+
+paint_wallpaper() {
+	[ -n "$DISPLAY" ] || return 0
+	fit="$(wp_fit)"
+	n="$(monitor_count)"
+	set --
+	i=1
+	while [ "$i" -le "$n" ]; do set -- "$@" "$(wp_for "$i")"; i=$((i + 1)); done
+	# installed systems cache the rendered desktop; a live session's home is RAM
+	cache=""
+	case "$(awk '$2 == "/" { t = $3 } END { print t }' /proc/mounts 2>/dev/null)" in
+		ext2|ext3|ext4|btrfs|xfs|f2fs) cache="$HOMEDIR/.cache/xxri-wallpaper" ;;
+	esac
+	if have xxri-wallpaper && xxri-wallpaper -f "$fit" ${cache:+-c "$cache"} "$@" 2>>"$XXRI_TMP/wallpaper.log"; then
+		return 0
+	fi
+	# not JPEG/PNG: fall back to hsetroot (more formats, but one image across
+	# all displays, and its "-fill" stretches)
+	case "$fit" in fit) h=-full ;; center) h=-center ;; tile) h=-tile ;; *) h=-fill ;; esac
+	hsetroot "$h" "$(wp_file)" >/dev/null 2>&1
 }
 
 cmd_wallpaper() {
 	case "$1" in
+		list) cmd_wallpaper_list ;;
 		set)
-			[ -r "$2" ] || { echo "wallpaper file not readable: $2" >&2; return 1; }
-			cfg_set desktop WALLPAPER "$2"
-			[ -n "$3" ] && cfg_set desktop WALLPAPER_SCALE "$3"
-			apply_wallpaper; echo "wallpaper: $2 ($(wp_scale))" ;;
-		scale)
-			case "$2" in fill|full|center|tile) ;; *) echo "scale: fill|full|center|tile" >&2; return 1;; esac
-			cfg_set desktop WALLPAPER_SCALE "$2"; apply_wallpaper; echo "wallpaper scale: $2" ;;
-		get|*) echo "$(wp_file) ($(wp_scale))" ;;
+			shift
+			wf="" fit="" mon=all
+			while [ $# -gt 0 ]; do
+				case "$1" in
+					--monitor) mon="$2"; shift ;;
+					--json) ;;
+					*) if [ -z "$wf" ]; then wf="$1"; else fit="$1"; fi ;;
+				esac
+				shift
+			done
+			[ -r "$wf" ] || { echo "wallpaper file not readable: $wf" >&2; return 1; }
+			case "$fit" in ''|fill|fit|stretch|center|tile) ;; *) echo "fit: fill|fit|stretch|center|tile" >&2; return 1 ;; esac
+			if [ "$mon" = all ]; then
+				cfg_set desktop WALLPAPER "$wf"
+				# "all displays" means all of them: drop every per-display choice
+				for k in $(sed -n 's/^\(WALLPAPER_M[0-9]*\)=.*/\1/p' "$(cfg_file desktop)" 2>/dev/null); do
+					cfg_del desktop "$k"
+				done
+			else
+				case "$mon" in [1-9]|1[0-6]) ;; *) echo "monitor: 1..16 or all" >&2; return 1 ;; esac
+				cfg_set desktop "WALLPAPER_M$mon" "$wf"
+			fi
+			[ -n "$fit" ] && cfg_set desktop WALLPAPER_FIT "$fit"
+			write_setbackground; paint_wallpaper
+			echo "wallpaper: $wf ($([ "$mon" = all ] && echo 'all displays' || echo "display $mon"), $(wp_fit))" ;;
+		fit|scale)
+			fit="$2"
+			# `scale` is the 2.5 command with hsetroot's words
+			[ "$1" = scale ] && case "$fit" in fill) fit=stretch ;; full) fit=fit ;; esac
+			case "$fit" in fill|fit|stretch|center|tile) ;; *) echo "fit: fill|fit|stretch|center|tile" >&2; return 1 ;; esac
+			cfg_set desktop WALLPAPER_FIT "$fit"
+			write_setbackground; paint_wallpaper
+			echo "wallpaper fit: $fit" ;;
+		apply) paint_wallpaper ;;
+		thumb) shift; cmd_thumb "$@" ;;
+		reset)
+			for k in WALLPAPER WALLPAPER_FIT WALLPAPER_SCALE $(sed -n 's/^\(WALLPAPER_M[0-9]*\)=.*/\1/p' "$(cfg_file desktop)" 2>/dev/null); do
+				cfg_del desktop "$k"
+			done
+			write_setbackground; paint_wallpaper
+			echo "wallpaper: $(wp_file) (default)" ;;
+		get|*) echo "$(wp_file) ($(wp_fit))" ;;
 	esac
 }
 
-reload_dock() { [ -n "$DISPLAY" ] && wbar.sh >/dev/null 2>&1; }
+cmd_wallpaper_list() {
+	cur="$(wp_file)"; n="$(monitor_count)"
+	if [ $JSON = 1 ]; then
+		a_new
+		official | { while IFS='|' read -r id file name def; do
+			[ -n "$id" ] || continue
+			j_new; j_str id "$id"; j_str name "$name"; j_str file "$WALL_DIR/$file"
+			j_bool default "$def"
+			j_bool current "$([ "$WALL_DIR/$file" = "$cur" ] && echo 1 || echo 0)"
+			a_add "$(j_obj)"
+		done
+		# what each display shows
+		B=""; i=1
+		while [ "$i" -le "$n" ]; do
+			f="$(wp_for "$i")"
+			B="$B${B:+,}{\"index\":$i,\"file\":\"$(j_esc "$f")\",\"name\":\"$(j_esc "$(wp_name "$f")")\",\"own\":$([ -n "$(cfg_get desktop "WALLPAPER_M$i" '')" ] && echo true || echo false)}"
+			i=$((i + 1))
+		done
+		j_new; j_raw wallpapers "$(a_out)"
+		# (file names get their own keys: Settings' flat JSON reader finds the
+		# first "current"/"default" anywhere, and each wallpaper has those too)
+		j_str current_file "$cur"; j_str current_name "$(wp_name "$cur")"
+		j_str current_official "$(wp_official_id "$cur")"
+		j_str default_file "$(official_default)"
+		j_str fit "$(wp_fit)"
+		j_num monitors "$n"
+		j_raw displays "[$B]"
+		j_root desktop "\"wallpaper\":$(j_obj)"; }
+	else
+		official | awk -F'|' -v c="$cur" -v w="$WALL_DIR" \
+			'{ printf "%-12s %-16s%s%s\n", $1, $3, ($4 == 1 ? " (default)" : ""), (w "/" $2 == c ? " <- current" : "") }'
+	fi
+}
+
+# PNG preview for Settings (no working JPEG loader in gdk-pixbuf here),
+# cached per user, redrawn when the picture is newer
+cmd_thumb() { # FILE [W H]
+	src="$1"; w="${2:-320}"; h="${3:-200}"
+	[ -r "$src" ] || { echo "not readable: $src" >&2; return 1; }
+	case "$w$h" in *[!0-9]*) echo "size: W H" >&2; return 1 ;; esac
+	dir="$HOMEDIR/.cache/xxri-settings/thumbs"
+	mkdir -p "$dir" 2>/dev/null
+	out="$dir/$(printf '%s %sx%s' "$src" "$w" "$h" | md5sum | cut -c1-20).png"
+	if [ -s "$out" ] && [ "$out" -nt "$src" ]; then echo "$out"; return 0; fi
+	have xxri-wallpaper && xxri-wallpaper -t "$src" "$out" "$w" "$h" 2>>"$XXRI_TMP/wallpaper.log" && { echo "$out"; return 0; }
+	return 1
+}
+
+# ---- dock -------------------------------------------------------------------
+dock_size() {
+	s="$(cfg_get desktop DOCK_SIZE '')"
+	[ -n "$s" ] || s="$(sed -n 's/^c: wbar .*-isize \([0-9]*\).*/\1/p' /usr/local/share/wbar/dot.wbar 2>/dev/null | head -1)"
+	echo "${s:-40}"
+}
+reload_dock() { [ -n "$DISPLAY" ] && /usr/local/bin/xxri-dock-pin regen >/dev/null 2>&1; }
 
 cmd_dock() {
 	case "$1" in
-		position)
-			case "$2" in top|bottom) ;; *) echo "position: top|bottom" >&2; return 1;; esac
-			sed -i "s/-pos [a-z]*/-pos $2/" "$HOMEDIR/.wbarconf" 2>/dev/null
-			reload_dock; echo "dock position: $2" ;;
 		size)
-			[ "$2" -ge 24 ] 2>/dev/null && [ "$2" -le 56 ] || { echo "size: 24..56" >&2; return 1; }
-			sed -i "s/-isize [0-9]*/-isize $2/" "$HOMEDIR/.wbarconf" 2>/dev/null
-			reload_dock; echo "dock size: $2" ;;
-		get|*) echo "position=$(dock_pos) size=$(dock_size)" ;;
+			case "$2" in small) s=32 ;; medium) s=40 ;; large) s=48 ;; *) s="$2" ;; esac
+			[ "$s" -ge 32 ] 2>/dev/null && [ "$s" -le 56 ] || { echo "size: small|medium|large or 32..56" >&2; return 1; }
+			cfg_set desktop DOCK_SIZE "$s"
+			reload_dock; echo "dock size: $s" ;;
+		position)
+			# bottom only: maximise, the launcher key and CC all assume it
+			echo "the XXRI dock sits at the bottom of the screen" >&2; return 1 ;;
+		get|*) echo "position=bottom size=$(dock_size)" ;;
 	esac
 }
 
+# ---- look: theme, appearance, cursor, scale -----------------------------------
+# xxri, anything installed with a gtk-3.0 part, and GTK's two built-in ones
+gtk_themes() {
+	{ echo xxri
+	  for d in /usr/local/share/themes/*/gtk-3.0 /usr/share/themes/*/gtk-3.0 "$HOMEDIR"/.themes/*/gtk-3.0; do
+		[ -d "$d" ] && basename "$(dirname "$d")"
+	  done
+	  echo Adwaita; echo HighContrast
+	} | awk '!seen[$0]++'
+}
+theme_label() {
+	case "$1" in xxri) echo XXRI ;; HighContrast) echo "High Contrast" ;; *) echo "$1" ;; esac
+}
+cursor_themes() {
+	{ echo xxri-cursors
+	  for d in "$HOMEDIR"/.icons/*/cursors /usr/local/share/icons/*/cursors /usr/share/icons/*/cursors; do
+		[ -d "$d" ] && basename "$(dirname "$d")"
+	  done
+	} | grep -vx default | awk '!seen[$0]++'
+}
+cursor_label() { case "$1" in xxri-cursors) echo XXRI ;; *) echo "$1" ;; esac; }
+
+gtk_theme()  { cfg_get desktop GTK_THEME xxri; }
+cursor_theme() { cfg_get desktop CURSOR_THEME xxri-cursors; }
+appearance() { cfg_get desktop APPEARANCE light; }
+ui_scale()   { cfg_get desktop UI_SCALE 100; }
+
+# "key = value" in a GTK settings.ini [Settings] group; empty value deletes
+ini_set() { # file key value
+	f="$1"
+	[ -f "$f" ] || { mkdir -p "$(dirname "$f")"; printf '[Settings]\n' > "$f"; }
+	awk -v k="$2" -v v="$3" '
+		{ line = $0; sub(/^[ \t]+/, "", line) }
+		index(line, k) == 1 && substr(line, length(k) + 1) ~ /^[ \t]*=/ {
+			if (v != "") print k " = " v; done = 1; next }
+		{ print }
+		END { if (!done && v != "") print k " = " v }' "$f" > "$f.new" && mv "$f.new" "$f"
+}
+# "Key: value" in an X resource file
+xres_set() { # file key value
+	f="$1"; [ -f "$f" ] || : > "$f"
+	awk -v k="$2" -v v="$3" '
+		index($0, k ":") == 1 { print k ": " v; done = 1; next }
+		{ print }
+		END { if (!done) print k ": " v }' "$f" > "$f.new" && mv "$f.new" "$f"
+}
+# gtkrc-2.0: gtk-*-name = "value"
+rc_set() { # file key value
+	f="$1"; [ -f "$f" ] || : > "$f"
+	awk -v k="$2" -v v="$3" '
+		{ line = $0; sub(/^[ \t]+/, "", line) }
+		index(line, k) == 1 && substr(line, length(k) + 1) ~ /^[ \t]*=/ { print k " = \"" v "\""; done = 1; next }
+		{ print }
+		END { if (!done) print k " = \"" v "\"" }' "$f" > "$f.new" && mv "$f.new" "$f"
+}
+
+# write the look into every file the toolkits read at app start (open apps
+# keep theirs, Settings restyles itself)
+apply_look() {
+	t="$(gtk_theme)"; dark=false
+	[ "$(appearance)" = dark ] && dark=true
+	# GTK's own High Contrast has an inverse theme rather than a dark variant
+	[ "$t" = HighContrast ] && [ $dark = true ] && t=HighContrastInverse
+	c="$(cursor_theme)"
+	for g in "$HOMEDIR/.config/gtk-3.0/settings.ini" "$HOMEDIR/.config/gtk-4.0/settings.ini"; do
+		ini_set "$g" gtk-theme-name "$t"
+		ini_set "$g" gtk-application-prefer-dark-theme "$dark"
+		ini_set "$g" gtk-cursor-theme-name "$c"
+	done
+	# what XXRI's own apps watch (xxri-theme.h): open ones switch at once.
+	# Replaced whole, so a reader never sees half a file.
+	mkdir -p "$HOMEDIR/.config/xxri"
+	printf '%s\n' "$(appearance)" > "$HOMEDIR/.config/xxri/appearance.new" &&
+		mv "$HOMEDIR/.config/xxri/appearance.new" "$HOMEDIR/.config/xxri/appearance"
+	# no gtk-xft-dpi: GTK3 on X11 ignores it, the scale goes through
+	# GDK_DPI_SCALE (profile.d/xxri-theme.sh). Drop an old key.
+	ini_set "$HOMEDIR/.config/gtk-3.0/settings.ini" gtk-xft-dpi ""
+	rc_set "$HOMEDIR/.gtkrc-2.0" gtk-theme-name "$t"
+	rc_set "$HOMEDIR/.gtkrc-2.0" gtk-cursor-theme-name "$c"
+	# the xxri GTK 2 styles are included explicitly; only for the xxri theme
+	if [ "$t" = xxri ]; then
+		grep -q 'themes/xxri/gtk-2.0/gtkrc' "$HOMEDIR/.gtkrc-2.0" ||
+			echo 'include "/usr/local/share/themes/xxri/gtk-2.0/gtkrc"' >> "$HOMEDIR/.gtkrc-2.0"
+	else
+		sed -i '/themes\/xxri\/gtk-2.0\/gtkrc/d' "$HOMEDIR/.gtkrc-2.0"
+	fi
+	# FLTK and Xaw programs read their colours from ~/.Xdefaults at start (the
+	# terminal is the dark panel in both modes)
+	if [ $dark = true ]; then bg='#2A2B33'; fg='#F2F2F4'; tb='#242124'
+	else bg='#F5F5F7'; fg='#1C1C1E'; tb='#FFFFFF'; fi
+	for k in editor mnttool fltk; do
+		xres_set "$HOMEDIR/.Xdefaults" "$k*background" "$bg"
+		xres_set "$HOMEDIR/.Xdefaults" "$k*foreground" "$fg"
+	done
+	xres_set "$HOMEDIR/.Xdefaults" "Text*background" "$tb"
+	xres_set "$HOMEDIR/.Xdefaults" "Text*foreground" "$fg"
+	# X cursors: libXcursor reads Xcursor.theme from ~/.Xdefaults, then the
+	# "default" theme, which ~/.icons/default/index.theme points at
+	xres_set "$HOMEDIR/.Xdefaults" Xcursor.theme "$c"
+	mkdir -p "$HOMEDIR/.icons/default"
+	printf '[Icon Theme]\nName=Default\nComment=Default cursor theme (Settings > Wallpaper & Style)\nInherits=%s\n' "$c" \
+		> "$HOMEDIR/.icons/default/index.theme"
+}
+
+cmd_appearance() {
+	case "$1" in
+		set)
+			case "$2" in light|dark) ;; *) echo "appearance: light|dark" >&2; return 1 ;; esac
+			cfg_set desktop APPEARANCE "$2"; apply_look
+			# the dock's pill has a light and a dark picture
+			reload_dock
+			echo "appearance: $2" ;;
+		*) appearance ;;
+	esac
+}
+cmd_theme() {
+	case "$1" in
+		set)
+			gtk_themes | grep -qx "$2" || { echo "theme: one of $(gtk_themes | tr '\n' ' ')" >&2; return 1; }
+			cfg_set desktop GTK_THEME "$2"; apply_look
+			echo "theme: $2" ;;
+		list) gtk_themes ;;
+		*) gtk_theme ;;
+	esac
+}
+cmd_cursor() {
+	case "$1" in
+		set)
+			cursor_themes | grep -qx "$2" || { echo "cursor: one of $(cursor_themes | tr '\n' ' ')" >&2; return 1; }
+			cfg_set desktop CURSOR_THEME "$2"; apply_look
+			if [ -n "$DISPLAY" ]; then
+				# the desktop's own pointer, and the window manager's frames
+				XCURSOR_THEME="$2" xsetroot -cursor_name left_ptr 2>/dev/null
+				have flwm_restart && flwm_restart >/dev/null 2>&1
+			fi
+			echo "cursor: $2" ;;
+		list) cursor_themes ;;
+		*) cursor_theme ;;
+	esac
+}
+cmd_scale() {
+	case "$1" in
+		set)
+			case "$2" in 100|125|150|175|200) ;; *) echo "scale: 100|125|150|175|200" >&2; return 1 ;; esac
+			cfg_set desktop UI_SCALE "$2"; apply_look
+			echo "scale: $2% (applies to apps from the next desktop session)" ;;
+		*) ui_scale ;;
+	esac
+}
+
+cmd_themes() {
+	if [ $JSON = 1 ]; then
+		a_new
+		for t in $(gtk_themes); do j_new; j_str id "$t"; j_str name "$(theme_label "$t")"; a_add "$(j_obj)"; done
+		TL="$(a_out)"
+		a_new
+		for c in $(cursor_themes); do j_new; j_str id "$c"; j_str name "$(cursor_label "$c")"; a_add "$(j_obj)"; done
+		j_new
+		j_str gtk_theme "$(gtk_theme)"; j_str cursor_theme "$(cursor_theme)"
+		j_str icon_theme xxri
+		j_raw gtk_themes "$TL"; j_raw cursor_themes "$(a_out)"
+		j_root desktop "\"themes\":$(j_obj)"
+	else
+		echo "theme: $(gtk_theme) (of: $(gtk_themes | tr '\n' ' '))"
+		echo "cursor: $(cursor_theme) (of: $(cursor_themes | tr '\n' ' '))"
+	fi
+}
+
+# ---- the rest ---------------------------------------------------------------
 cmd_accent() {
 	case "$1" in
 		set)
@@ -78,17 +401,6 @@ cmd_accent() {
 			sed -i "s/^Text\*selectBackground:.*/Text*selectBackground: $2/" "$HOMEDIR/.Xdefaults" 2>/dev/null
 			echo "accent: $2 (applies to newly started applications)" ;;
 		*) echo "$(cfg_get desktop ACCENT '#8371F7')" ;;
-	esac
-}
-
-cmd_appearance() {
-	case "$1" in
-		set)
-			case "$2" in light|dark) ;; *) echo "appearance: light|dark" >&2; return 1;; esac
-			cfg_set desktop APPEARANCE "$2"
-			[ "$2" = dark ] && echo "dark appearance is stored and will apply when the dark theme ships" \
-				|| echo "appearance: light" ;;
-		*) echo "$(cfg_get desktop APPEARANCE light)" ;;
 	esac
 }
 
@@ -143,30 +455,29 @@ cmd_datetime() {
 }
 cmd_ntp() { sudo_if /etc/init.d/settime.sh >/dev/null 2>&1 & echo "time sync started (needs network)"; }
 
-cmd_themes() {
-	if [ $JSON = 1 ]; then
-		j_new
-		j_str icon_theme "xxri"; j_str cursor_theme "xxri-cursors"
-		j_raw icon_themes '["xxri"]'; j_raw cursor_themes '["xxri-cursors"]'
-		j_root desktop "\"themes\":$(j_obj)"
-	else echo "icons: xxri   cursors: xxri-cursors"; fi
-}
-
 cmd_status() {
+	w="$(wp_file)"
 	if [ $JSON = 1 ]; then
 		j_new
-		j_str wallpaper "$(wp_file)"; j_str wallpaper_scale "$(wp_scale)"
-		j_str dock_position "$(dock_pos)"; j_num dock_size "$(dock_size)"
+		j_str wallpaper "$w"; j_str wallpaper_name "$(wp_name "$w")"
+		j_str wallpaper_official "$(wp_official_id "$w")"
+		j_str wallpaper_fit "$(wp_fit)"
+		# 2.5 field, hsetroot's words
+		case "$(wp_fit)" in stretch) j_str wallpaper_scale fill ;; fit) j_str wallpaper_scale full ;; *) j_str wallpaper_scale "$(wp_fit)" ;; esac
+		j_str dock_position bottom; j_num dock_size "$(dock_size)"
 		j_str accent "$(cfg_get desktop ACCENT '#8371F7')"
-		j_str appearance "$(cfg_get desktop APPEARANCE light)"
+		j_str appearance "$(appearance)"
+		j_str gtk_theme "$(gtk_theme)"; j_str cursor_theme "$(cursor_theme)"
+		j_num ui_scale "$(ui_scale)"
 		j_str hostname "$(hostname)"
 		j_str autologin "$(JSON=0 cmd_autologin)"
 		j_str language "$(JSON=0 cmd_language)"
 		j_str region "$(JSON=0 cmd_region)"
 		j_root desktop "\"status\":$(j_obj)"
 	else
-		echo "wallpaper: $(wp_file) ($(wp_scale))"
-		echo "dock: $(dock_pos) $(dock_size)px   accent: $(cfg_get desktop ACCENT '#8371F7')"
+		echo "wallpaper: $w ($(wp_fit))"
+		echo "dock: bottom $(dock_size)px   accent: $(cfg_get desktop ACCENT '#8371F7')"
+		echo "look: $(appearance), theme $(gtk_theme), cursor $(cursor_theme), scale $(ui_scale)%"
 		echo "hostname: $(hostname)   autologin: $(JSON=0 cmd_autologin)"
 	fi
 }
@@ -176,14 +487,25 @@ cmd_reset() {
 		[ -f "/etc/skel/$f" ] && cp -f "/etc/skel/$f" "$HOMEDIR/$f"
 	done
 	cp -rf /etc/skel/.config "$HOMEDIR/" 2>/dev/null
+	cp -rf /etc/skel/.icons "$HOMEDIR/" 2>/dev/null
 	sudo_if rm -f "$(cfg_file desktop)"
-	[ -n "$DISPLAY" ] && { "$HOMEDIR/.setbackground" >/dev/null 2>&1; wbar.sh >/dev/null 2>&1; }
+	[ -n "$DISPLAY" ] && { paint_wallpaper; reload_dock; }
 	echo "desktop settings reset to defaults"
 }
 
 cmd_restart() {
-	sudo_if rm -f /var/log/autologin /tmp/.X11-unix/X0
-	sudo_if sh -c '(sleep 1; pkill -x Xorg; pkill -x Xfbdev; sleep 2; pkill -KILL -t tty1) >/dev/null 2>&1 &'
+	# Stop X, then kill tty1's login shell so init respawns autologin (and X).
+	#  - pidof, not pkill -x: busybox compares the whole argv[0]
+	#    (/usr/local/lib/xorg/Xorg), so "pkill -x Xorg" never matched
+	#  - busybox pkill has no -t, so tty1's shell is found by its fd 0
+	sudo_if rm -f /var/log/autologin
+	sudo_if sh -c '(sleep 1
+		for s in Xorg Xfbdev; do p=$(pidof $s) && kill $p; done
+		sleep 2
+		rm -f /tmp/.X11-unix/X0
+		for d in /proc/[0-9]*; do
+			[ "$(readlink "$d/fd/0" 2>/dev/null)" = /dev/tty1 ] && kill -KILL "${d#/proc/}"
+		done) >/dev/null 2>&1 &'
 	echo "desktop session restarting..."
 }
 
@@ -193,6 +515,9 @@ case "$1" in
 	dock) shift; cmd_dock "$@" ;;
 	accent) shift; cmd_accent "$@" ;;
 	appearance) shift; cmd_appearance "$@" ;;
+	theme) shift; cmd_theme "$@" ;;
+	cursor) shift; cmd_cursor "$@" ;;
+	scale) shift; cmd_scale "$@" ;;
 	hostname) shift; cmd_hostname "$@" ;;
 	autologin) shift; cmd_autologin "$@" ;;
 	language) shift; cmd_language "$@" ;;
@@ -203,5 +528,5 @@ case "$1" in
 	reset) cmd_reset ;;
 	restart-session) cmd_restart ;;
 	--json) cmd_status ;;
-	*) echo "usage: xxri-desktop status|wallpaper|dock|accent|appearance|hostname|autologin|language|region|datetime|ntp-sync|themes|reset|restart-session" >&2; exit 1 ;;
+	*) echo "usage: xxri-desktop status|wallpaper|dock|accent|appearance|theme|cursor|scale|hostname|autologin|language|region|datetime|ntp-sync|themes|reset|restart-session" >&2; exit 1 ;;
 esac

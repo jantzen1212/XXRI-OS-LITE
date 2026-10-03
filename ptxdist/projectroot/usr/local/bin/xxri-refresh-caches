@@ -1,16 +1,10 @@
 #!/bin/sh
-# xxri-refresh-caches - rebuild the toolkit caches that make images, icons and
-# launchers usable.
+# xxri-refresh-caches - rebuild gdk-pixbuf's loaders.cache, the icon caches
+# and the desktop database.
 #
-# gdk-pixbuf ships its loaders as separate modules and refuses to decode any
-# format that is not listed in loaders.cache.  The file is generated at package
-# install time on a normal distribution; nothing generates it here, so without
-# this the whole system can only handle gdk-pixbuf's built-in formats:
-# every SVG and most PNG icons come back as "Unrecognized image file format",
-# GTK applications lose their toolbars, and some abort outright.
-#
-# Run at boot and again after the Store loads a new extension, since an
-# extension can bring both new loaders and new icons.
+# Run by xxri-app after the Store loads an extension, which can bring new
+# pixbuf loaders and icons (at boot each extension's install script does
+# this). A stale loaders.cache leaves SVG and most PNG icons undecodable.
 
 PB_DIR=""
 for d in /usr/local/lib/gdk-pixbuf-2.0/2.10.0 /usr/lib/gdk-pixbuf-2.0/2.10.0; do
@@ -29,8 +23,7 @@ if [ -n "$PB_DIR" ] && command -v gdk-pixbuf-query-loaders >/dev/null 2>&1; then
 	fi
 fi
 
-# Icon themes are looked up through a binary index; without it GTK walks the
-# whole tree on every lookup and misses themes that declare subdirectories.
+# without icon-theme.cache GTK walks the whole tree on every lookup
 if command -v gtk-update-icon-cache >/dev/null 2>&1; then
 	for th in /usr/local/share/icons/*/; do
 		[ -f "$th/index.theme" ] || continue
@@ -39,7 +32,7 @@ if command -v gtk-update-icon-cache >/dev/null 2>&1; then
 	done
 fi
 
-# Launcher database, so newly installed apps are found by name.
+# so newly installed apps are found by name
 command -v update-desktop-database >/dev/null 2>&1 &&
 	sudo update-desktop-database /usr/local/share/applications >/dev/null 2>&1
 

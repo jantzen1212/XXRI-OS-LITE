@@ -5,6 +5,6 @@ config XXRI_KERNEL
 	prompt "xxri-kernel: Tiny Core 16.0 kernel 6.12.11 (pinned binary)"
 	help
 	  The unmodified Tiny Core 16.0 vmlinuz, fetched from the Tiny Core
-	  16.0 release archive and checked against its md5.  XXRI keeps the
+	  16.0 release archive and checked against its sha256.  XXRI keeps the
 	  stock kernel; see docs/build-comparison.md for why it is not
 	  rebuilt here.

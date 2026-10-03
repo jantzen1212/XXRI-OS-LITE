@@ -1,8 +1,8 @@
 # xxri Hardware Enablement Layer — API reference (api version 1)
 
-The single hardware abstraction of xxri OS Lite. Frontends (Control
-Center, Software Center, updates, AI tooling) must call these backends and
-never ALSA/ifconfig/mount/etc. directly.
+The single hardware abstraction of xxri OS Lite. Frontends (Settings, the
+Control Center, the Store, updates) call these backends, never
+ALSA/ifconfig/mount/etc. directly.
 
 Conventions:
 - every backend supports `--json`; without it, output is human-readable
@@ -43,16 +43,31 @@ xxri-audio list|volume [get|set N|up|down]|mute|unmute|toggle|
 
 ## xxri-network
 ```
-xxri-network status|list|scan [IF]|connect SSID [PSK] [IF]|
+xxri-network status|list|wifi [on|off]|scan [IF]|info [IF]|
+             connect SSID [PSK] [IF]|connect --hidden SSID [PSK]|
              connect --profile NAME|dhcp IF|static IF IP/PFX GW [DNS]|
-             disconnect [IF]|profiles|forget NAME|reconnect|auto [--json]
+             disconnect [IF]|profiles|forget NAME|SSID|country [CC]|
+             reconnect|auto [--json]
 ```
 - `status --json` → `"status":{interfaces:[{interface,type,state,carrier,
   mac,ip,netmask,ssid?,wpa_state?}],gateway,dns}`
-- `scan --json` → `"scan":{interface,networks:[{ssid,bssid,signal,freq,security}]}`
-- profiles live in /usr/local/etc/xxri/network/NAME.conf; `auto` (boot)
-  reconnects every AUTOCONNECT=1 profile; wired DHCP boot path unchanged
-- WiFi = wpa_supplicant/wpa_cli (WPA/WPA2) + udhcpc
+- `wifi --json` → `"wifi":{present,enabled,hard_blocked,soft_blocked,
+  interface,ssid,country}`; `on`/`off` switch the radio (rfkill) and are kept
+  across boots (network.conf WIFI=)
+- `scan --json` → `"scan":{interface,networks:[{ssid,bssid,signal,freq,
+  security,band,bars,saved,current}]}` - one entry per name (its strongest
+  access point), strongest first; security is open|wep|wpa|wpa3|eap
+- `info --json` → `"info":{interface,state,connected,ssid,bssid,signal,bars,
+  freq,band,link_mbps,security,ip,netmask,gateway,dns,mac,online,saved}`
+- `connect --json` → `"connect":{connected,ssid,interface?,ip?,error?,
+  reason?}`; error is `auth` (the key was refused) or `notfound`. A saved
+  network connects without its password again.
+- `country CC` sets the regulatory domain (iw reg set, kept in network.conf)
+- profiles live in /usr/local/etc/xxri/network/NAME.conf as KEY='value'
+  lines (read with sed, never sourced); `auto` (boot) hands every saved Wi-Fi
+  network to wpa_supplicant at once, which joins the one in range; wired
+  DHCP boot path unchanged
+- Wi-Fi = wpa_supplicant/wpa_cli (WPA/WPA2/WPA3-SAE) + udhcpc (renewing lease)
 
 ## xxri-display  (XLibre backend; API is driver-agnostic)
 ```
@@ -101,14 +116,27 @@ xxri-power info|battery|ac|brightness [set N|up|down]|governor [set G|list]|
   swap,battery,brightness,cpufreq}`
 - governor/brightness persist and restore at boot (xxri-hw-init)
 
-## xxri-bluetooth  (graceful-fallback backend)
+## xxri-bluetooth
 ```
-xxri-bluetooth status|scan|pair MAC|connect MAC|disconnect MAC [--json]
+xxri-bluetooth status|power [on|off]|start|auto|devices|scan [SECONDS]|
+               pair MAC|connect MAC|disconnect MAC|trust MAC|remove MAC|
+               name [NAME] [--json]
 ```
 - `status --json` → `"status":{available,adapters,stack_installed,
-  rfkill_blocked,reason?,hint?}`
-- BlueZ is not shipped (15 MB dep chain); once `xxri-pkg -wi bluez5` is
-  installed the same commands drive bluetoothctl unchanged.
+  rfkill_blocked,hard_blocked,running,powered,enabled,switched_off,address,
+  name,reason?,hint?}`
+- `devices --json` → `"devices":[{mac,name,named,icon,paired,trusted,
+  connected,rssi}]` (also as `"paired"`, the 2.6 RC name); `scan N --json`
+  → `"scan":[...]` the same objects for unpaired, named devices nearby
+- `pair MAC` runs one interactive bluetoothctl with a KeyboardDisplay agent
+  and prints, while it runs, `confirm NNNNNN` (answer yes/no on stdin),
+  `passkey NNNNNN` or `pin NNNN` (type it on the device); the last line is
+  `"pair":{...device...}` or `"pair":{paired:false,error,reason}`. Then it
+  trusts and connects the device.
+- `power on|off` uses rfkill and bluetoothctl and is kept across boots
+  (bluetooth.conf POWER=); `name` sets the name other devices see
+- BlueZ 5.72 (bluez5.tcz) ships; `start` brings up the system D-Bus and
+  bluetoothd (installed systems never run the extension's install hook)
 
 ## xxri-camera
 `xxri-camera list [--json]` — alias of `xxri-hardware camera`.
@@ -116,5 +144,6 @@ xxri-bluetooth status|scan|pair MAC|connect MAC|disconnect MAC [--json]
 ## Boot / session integration
 - `/etc/init.d/xxri-hw-init` (from /opt/bootlocal.sh, backgrounded):
   caches VESA modes, `xxri-audio init`, restores governor/brightness,
-  `xxri-network auto`
+  `xxri-network auto &` and `xxri-bluetooth auto &` (in the background:
+  saved networks out of range must not hold up the rest)
 - `~/.X.d/xxri-hw-session`: `xxri-input apply`, `xxri-storage watch &`

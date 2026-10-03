@@ -69,15 +69,25 @@ firmware, but is firmware-generation-dependent and not shipped.
 
 With (1) and (3) the RC1 window can be checked against the firmware's map.
 
-## 2. Acer (boot / runtime issue)
+## 2. Acer TravelMate 5744
 
-**No data for this machine exists in the repository, the release notes, the
-project notes, or earlier session records** — no model name, no symptom
-description, no photos or logs. Nothing was assumed or invented, and the NEC
-analysis above is not transferred to it: the two may well be unrelated.
+The model is known now; the NEC analysis above is still not assumed to
+apply. Its radios and wired network, from the model's driver list
+(hwdrivers.com), against what 2.6 ships
+([wireless-bluetooth.md](wireless-bluetooth.md)):
 
-Needed to start: exact model and firmware version; Legacy/CSM or UEFI (and
-whether 32- or 64-bit UEFI); which medium and writer (dd, Rufus DD/ISO mode,
+| Option fitted | Driver | 2.6 |
+|---|---|---|
+| Intel WiFi Link 5100/5300, Centrino Wireless-N 1000, Wireless-N 100/130, Advanced-N 6200/6205/6230, Advanced-N + WiMAX 6250 | iwlwifi (iwldvm) | works: firmware in `xxri-firmware-wireless` |
+| Atheros AR5B125 (AR9485), AR928x | ath9k | works: no firmware needed |
+| Atheros Bluetooth AR3011 / AR3012 | ath3k / btusb | works: `ath3k-1.fw`, `ar3k/*` shipped |
+| Broadcom BCM4313, BCM43224, BCM43225 | brcmsmac | works: `brcm/bcm43xx*-0.fw` shipped |
+| Broadcom BCM4312, BCM43227, BCM43228 | b43 | **no Wi-Fi**: Broadcom's firmware may not be redistributed; a USB adapter from the table above is the way out |
+| Broadcom NetLink gigabit Ethernet | tg3 (in core.gz) | works |
+| Wireless key / radio switch | acer-wmi (in core.gz) | the switch shows up as rfkill; Settings shows "switched off by the computer's wireless switch or key" |
+
+Still needed for the boot/runtime issue reported on it: firmware version;
+Legacy/CSM or UEFI; which medium and writer (dd, Rufus DD/ISO mode,
 Ventoy); how far it gets (firmware boot menu → GRUB menu → splash → panic
 text → blank screen → desktop); a photo of the last screen of the **verbose
 boot** entry; and, if it reaches a shell, `dmesg` and `/var/log/Xorg.0.log`.
@@ -123,9 +133,59 @@ comes from emulation, not from physical period hardware.
   `config/firmware/gpu.list`): radeon R100 through Northern Islands and the
   Palm/Sumo/Aruba APUs (CP/PFP/ME/RLC/SMC, and the MC firmware without which
   NI cards do not initialise at all), and Intel Gen9 DMC. Still without
-  firmware, by choice: radeon SI/CIK (HD 7000 and newer; they fail KMS and
+  firmware in the RC: radeon SI/CIK (HD 7000 and newer; they fail KMS and
   take the vesa fallback on BIOS machines), amdgpu, video decode (UVD/VCE),
-  i915 GuC/HuC. NVIDIA cards have no KMS driver in the Tiny Core kernel
-  (no nouveau) and always use the framebuffer or vesa path.
+  i915 GuC/HuC. NVIDIA cards use the framebuffer or vesa path in the RC
+  because nouveau was not in its extension set. **Correction:** an earlier
+  version of this paragraph said the Tiny Core kernel has no nouveau. It
+  has - as a separate package, `nouveau-6.12.11-tinycore.tcz`, which that
+  check missed. Branch `xxri-gpu-cpu-support` adds nouveau and firmware for
+  GPUs up to the 2015-era generations - radeon SI/CIK, amdgpu GCN 3, the
+  Atom/Celeron-class Intel Gen11/Gen12 iGPUs, nouveau Maxwell 2
+  (`docs/gpu-cpu-support.md`; not yet tested on hardware).
 * **Radeon R100 under QEMU** (`ati-vga`) hangs the guest in radeon KMS -
   an emulation limit; no statement about a real Radeon 7000 is possible.
+
+## 5. Ventoy
+
+How Ventoy 1.1.17 boots XXRI, from its sources and the QEMU runs
+(`tools/qa/ventoy-emulate.sh`):
+
+* **Normal mode** chains into the ISO's own boot (BIOS: `ipxe.krn`, then
+  XXRI's GRUB), so XXRI's menu and boot codes are the ones that run. Ventoy's
+  Tiny Core hook adds an initrd that edits `/etc/init.d/tc-config` with sed
+  at two anchors, `[ -n "$WAITUSB" ]` and `if [ -n "$AOE" ]`. Each occurs
+  exactly once in `xxri-config`, and both must stay. The hook exports the ISO
+  over ATA-over-Ethernet on the loopback device, which is why `aoe.ko` is in
+  core.gz. That is how Tiny Core finds `/cde` inside an ISO file on an exFAT
+  stick.
+* **memdisk mode** loads the whole ISO into RAM as a BIOS disk. Linux cannot
+  see that disk, so `/cde` can never be found and the boot ends at a shell.
+  This is a limitation of the mode, not something XXRI can fix; use normal
+  or grub2 mode. The QA stick sets `VTOY_SECONDARY_BOOT_MENU=0` in
+  `ventoy.json` so the emulated boots go straight into normal mode.
+* **grub2 mode** runs XXRI's `grub.cfg` from Ventoy's GRUB; to be checked
+  with every release's QA.
+
+What a Ventoy boot exposed, and the fixes (2026-10):
+
+* A computer with an earlier XXRI install on its own disk booted that
+  install instead of the stick: `/init` switched to any `XXRIROOT` disk when
+  no `root=` was given. Live boots (`cde`, on every ISO entry and never in an
+  installed `grub.cfg`) no longer do that; an explicit `root=` still wins.
+  The same change makes reinstalling over an XXRI disk from the live medium
+  possible.
+* `rcS` sent all of `tc-config`'s output to `/dev/null`. When an extension
+  failed to load, its "Press Enter key" prompt was invisible behind the
+  splash, so the boot looked hung. Quiet boots now log that output to
+  `/var/log/xxri-boot.log`; the verbose entry shows it on the console; the
+  splash only runs on quiet boots. The error prompt itself stops the splash
+  and writes to `/dev/console` (`xxri-splash-handover stop`).
+* The splash held the screen for up to 90 s whatever happened. It now
+  leaves when X is up, or, once `rcS` has finished, when the console wants
+  the user: the tty1 session (getty → autologin → login shell, one PID) is
+  asleep with no children and no X server, xinit or startx is running.
+  That covers a login prompt (`noautologin`), a text boot and an X server
+  that gave up.
+
+Rufus, plain BIOS and IA32 UEFI boots take the same paths as before.

@@ -1,0 +1,24 @@
+From: XXRI OS Team
+Subject: [PATCH] Keep the keyboard focus when the last window closes
+
+throw_focus() hands the focus to another frame; with no frame left it did
+nothing, and the X server then reverted the focus to None - all keyboard
+input discarded, no hotkey (Alt+Esc, Ctrl+Alt+C, the Super key that opens
+All Apps) reachable until a window was opened with the mouse.  Fall back to
+PointerRoot.
+---
+--- a/Frame.C
++++ b/Frame.C
+@@ -977,6 +977,12 @@
+   if (revert_to && revert_to->activate()) return;
+   for (Frame* f = first; f; f = f->next)
+     if (f != this && f->activate()) return;
++#ifdef XXRI
++  // Nobody took it. GTK windows set RevertToParent, so the server would
++  // revert to None and drop all keyboard input, hotkeys included. Give an
++  // empty desktop PointerRoot instead.
++  XSetInputFocus(fl_display, PointerRoot, RevertToPointerRoot, CurrentTime);
++#endif
+ }
+ 
+ ////////////////////////////////////////////////////////////////

@@ -1,16 +1,11 @@
 # pinned.list - the dock's pinned applications, one .desktop id (the filename
 # without ".desktop") per line, in dock order, maximum 8.
 #
-# This file is the SINGLE SOURCE OF TRUTH for the pinned area of the dock.
-# xxri-dock-pin regenerates /usr/local/tce.icons from it (plus dot.wbar's own
-# header triple) every time it changes, and wbar_setup.sh reads it fresh at
-# every boot.  Do not hand-edit while the desktop is running - use
-# `xxri-dock-pin pin|unpin <id>` so the live dock and this file never drift
-# apart.
+# xxri-dock-pin owns it and rebuilds /usr/local/tce.icons from it (plus
+# dot.wbar's header triple) on every change and at boot. While the desktop
+# runs, use `xxri-dock-pin pin|unpin <id>` instead of editing it.
 #
-# This is exactly today's 8-icon dock (Phase 10.2), captured here as the
-# permanent default: if this file is ever missing, the desktop should be
-# reseeded with these entries, not a shorter or reordered list.
+# The entries below are the default dock.
 xxri-store
 xxri-settings
 xxri-file

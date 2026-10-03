@@ -64,6 +64,8 @@ El Torito  BIOS  boot/grub/i386-pc/eltorito.img   (cdboot + GRUB core)
 /.disk/xxri-lite-2.6-<id>   marker every core image searches for
 /.disk/info
 /boot/vmlinuz  /boot/core.gz
+/boot/intel-ucode.img /boot/amd-ucode.img   early CPU microcode (branch
+                                      xxri-gpu-cpu-support), + LICENSE.*-ucode
 /boot/grub/grub.cfg                   shared by BIOS and UEFI GRUB
 /boot/grub/i386-pc/*.mod  /boot/grub/i386-efi/*.mod  (one 2.14 build)
 /boot/grub/COPYING  /boot/grub/SOURCE.txt        GPLv3 licence + source notice
@@ -169,6 +171,27 @@ EF00 or MBR 0xEF). An existing `EFI/BOOT/BOOTIA32.EFI` of another OS is not
 replaced. The installed `grub.cfg` finds the root by filesystem UUID and uses
 the live ISO's boot codes minus `cde`; `gfxpayload` replaces 2.5's `vga=791`
 and also works on UEFI.
+
+## Microcode and "safe graphics" (branch `xxri-gpu-cpu-support`)
+
+Not yet built or tested; `docs/gpu-cpu-support.md` has the details.
+
+* **Early CPU microcode.** Tiny Core's kernel loads microcode only from an
+  uncompressed cpio at the start of the initrd (`MICROCODE_INITRD32`, no
+  late loading). GRUB concatenates the files of one `initrd` line, so every
+  entry reads `initrd $xxri_ucode /boot/core.gz`. On the ISO, `grub.cfg`
+  sets `xxri_ucode` from SMBIOS (`smbios --type 4 --get-string 7`, the
+  processor manufacturer; modules `smbios` and `regexp`, both in the 2.14
+  build for i386-pc and i386-efi): an Intel name reads only
+  `intel-ucode.img` (15 MB), an AMD name only `amd-ucode.img` (0.3 MB),
+  anything else - or no SMBIOS - both, and the kernel uses the one that
+  matches. The installer copies only the image for the CPU it runs on
+  (`/proc/cpuinfo` vendor) and writes it into the installed `grub.cfg`.
+  The kernel unpacks the archive into the RAM root like the rest of the
+  initrd; `rcS` removes that copy early in boot.
+* **Safe graphics.** A new entry, on the ISO and in the installed
+  `grub.cfg`: the default boot codes plus `nomodeset`, so no KMS driver
+  binds and X runs on the boot loader's framebuffer.
 
 ## Compatibility fixes outside GRUB
 

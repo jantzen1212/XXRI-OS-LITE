@@ -70,7 +70,8 @@ device - is still needed; the vesa driver in `Xorg` fills it.
 ### Server selection (`~/.xsession`)
 
 1. **KMS/DRM: `Xorg` + modesetting**, whenever a DRM connector is ready
-   (`xxri-hw-init` loads the GPU's KMS driver first; the existing ENODEV
+   (`xxri-hw-init` loads the KMS driver of every display-class PCI device
+   first; the existing ENODEV
    wait and the second attempt on a KMS machine are unchanged). Input:
    libinput on the evdev devices.
 2. **`Xfbdev`** when a framebuffer is registered
@@ -130,6 +131,27 @@ SSE2, `~/.xsession` starts the servers without Mesa:
 The files are in `/usr/local/etc/X11` (`xxri-xlibre.tcz`); the decision is
 taken at session start, after the KMS device has settled (DRM connectors
 register asynchronously, so hardware init cannot know yet).
+
+### GPUs Mesa cannot accelerate safely (branch `xxri-gpu-cpu-support`)
+
+With nouveau in the extension set (`docs/gpu-cpu-support.md`; not yet tested
+on hardware), NVIDIA GPUs up to Ampere get a KMS device and Xorg + modesetting
+(accelerated up to Maxwell, whose firmware ships; display only on Pascal ..
+Ampere; RTX 40 stays on the framebuffer, as nouveau needs GSP-RM there). For the
+oldest of them - NV04 .. NV4x, with the nForce and C51-C68 IGPs - Mesa has
+no driver at all (NV04-NV2x) or only the limited nv30 one, on which glamor
+misrenders. When such a GPU drives the primary display (`boot_vga`),
+`~/.xsession` (`legacy_nv`) starts `Xorg -config xxri-noaccel-kms.conf`:
+modesetting with `AccelMethod none` (a software-rendered shadow
+framebuffer), GLX kept and rendered by llvmpipe. The chip family comes from
+the `boot0` value nouveau logs at probe, decoded as the driver decodes it.
+The no-SSE2 configuration takes precedence (no Mesa at all).
+
+**Safe graphics.** The ISO and the installed system have a "safe graphics"
+boot entry with `nomodeset`: no KMS driver binds (i915, xe, amdgpu, radeon,
+nouveau and the virtual GPUs all honour it), so path 2 (`Xfbdev` on the boot
+loader's framebuffer) or, without one, path 3 is used. It is the way out
+when a KMS driver hangs or leaves the screen dark on real hardware.
 
 XLibre 25.1.9's modesetting driver also asked GL for the renderer name to
 choose the hardware cursor format, with or without glamor - through libepoxy

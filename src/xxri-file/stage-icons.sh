@@ -1,8 +1,8 @@
 #!/bin/bash
-# stage-icons.sh - render the authoritative XXRI File artwork to PNG and stage
-# it into rootfs.  The device has no librsvg / SVG gdk-pixbuf loader, so the
-# SVGs in assets/icons/xxri-icons/xxri-files are rasterised here at build time
-# rather than at runtime.  These are the exact supplied assets, not substitutes.
+# stage-icons.sh - rasterise the XXRI File artwork (assets/icons/xxri-icons/
+# xxri-files) to PNG; the device has no SVG loader. Still writes to the
+# pre-PTXdist rootfs/ tree; the shipped PNGs are committed under
+# root/usr/local/share/xxri-file/icons.
 set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
 BASE=$(cd "$HERE/../.." && pwd)

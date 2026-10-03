@@ -1,13 +1,12 @@
 #!/bin/busybox ash
 # xxri-hw-init - boot-time hardware enablement (called from bootlocal.sh).
-# Loads drivers, restores persisted audio/power settings and caches the
-# VESA mode list before X starts.  Everything is best-effort and quiet.
+# Loads drivers, restores saved audio/power settings and caches the display
+# modes before X starts. Best-effort and quiet.
 {
-	# extension kernel modules (ALSA, wireless...) live under
-	# /usr/local/lib/modules (reached via the kernel.tclocal symlink).
-	# On live boots xxri-pkg runs depmod when a module package loads; on
-	# installed systems nothing does, so index them here once.  mtime is
-	# useless (unsquashfs preserves package timestamps) - check content.
+	# Extension modules live in /usr/local/lib/modules (kernel.tclocal link).
+	# Live boots depmod when a module package loads, installed systems don't,
+	# so index once here. Check content, not mtime (unsquashfs keeps package
+	# timestamps).
 	if [ -d "/usr/local/lib/modules/$(uname -r)" ] && \
 	   ! grep -q 'kernel\.tclocal' "/lib/modules/$(uname -r)/modules.dep" 2>/dev/null; then
 		depmod -a 2>/dev/null
@@ -17,44 +16,37 @@
 	for d in $(pci_by_class 0x0c03) $(pci_by_class 0x01); do
 		hw_load_driver "$d"
 	done
-	# KMS: load the DRM driver for this GPU before X starts.  Without a KMS
-	# device /dev/dri is empty, Xorg's modesetting driver finds no screen, and
-	# the session falls back to Xfbdev on the firmware framebuffer: software
-	# rendering in the boot loader's mode.  Probing by PCI class covers real
-	# hardware; the QEMU/VirtualBox display adapters are named explicitly.
-	# The boot splash must not hold /dev/fb0 while a KMS driver takes over
-	# (xxri-splash-handover); xxri-setup paused it for the udev trigger.
+	# KMS driver before X, or modesetting finds no screen and the session
+	# falls back to Xfbdev. Every display class 0x03xx (VGA, and the 3D /
+	# "other" controllers of hybrid laptop GPUs); VM adapters by name.
+	# The splash must let go of /dev/fb0 meanwhile (xxri-splash-handover;
+	# xxri-setup paused it for the udev trigger).
 	if [ ! -e /dev/dri/card0 ]; then
 		/usr/local/sbin/xxri-splash-handover pause
-		for d in $(pci_by_class 0x0300); do hw_load_driver "$d"; done
+		for d in $(pci_by_class 0x03); do hw_load_driver "$d"; done
 		[ -e /dev/dri/card0 ] || for m in bochs cirrus qxl vmwgfx vboxvideo virtio-gpu simpledrm; do
 			modprobe "$m" 2>/dev/null && [ -e /dev/dri/card0 ] && break
 		done
 	fi
 	/usr/local/sbin/xxri-splash-handover resume
-	# (Processors without SSE2: ~/.xsession starts the X servers without Mesa;
-	# see its xorg_nosse2_cfg.)
+	# (no-SSE2 CPUs: ~/.xsession keeps the X servers off Mesa, see nosse2)
 	/usr/local/bin/xxri-display cache-modes
 	/usr/local/bin/xxri-audio init
 	G="$(sed -n 's/^GOVERNOR=//p' /usr/local/etc/xxri/power.conf 2>/dev/null)"
 	[ -n "$G" ] && /usr/local/bin/xxri-power governor set "$G"
 	B="$(sed -n 's/^BRIGHTNESS=//p' /usr/local/etc/xxri/power.conf 2>/dev/null)"
 	[ -n "$B" ] && /usr/local/bin/xxri-power brightness set "$B"
-	/usr/local/bin/xxri-network auto
-	# NOTE: the GTK3/glib/gio caches are NOT generated here.  Each Tiny Core
-	# extension's own install script (gdk-pixbuf2, librsvg, gtk3,
-	# shared-mime-info, adwaita-icon-theme) regenerates its cache as the
-	# extension is loaded, on the live medium and on an installed disk alike.
-	# Phase 8.1: xxri Settings fully replaces the Tiny Core control panel and
-	# its stand-alone config launchers - drop their .desktop entries (and the
-	# duplicate gear pixmap) before the session builds the dock/menu, so only
-	# xxri Settings remains.
-	# Phase 9.1: the XXRI Store is the ONLY software store - drop the Tiny Core
-	# package browser (apps / appbrowser / tce GUIs) too, so there is no second
-	# store icon or menu entry.  The tce backend stays for internal use.
-	# Phase 10: the Tiny Core-named / developer-only launchers go too - Exit
-	# (the XXRI power menu replaces it), RunProgram, Top, Xkill, and the
-	# terminal Wi-Fi script that duplicates Settings.
+	# Saved Wi-Fi networks can take ~20 s to answer, and the launcher clean-up
+	# below has to happen before the session builds its menu. Bluetooth starts
+	# only with an adapter present and not switched off in Settings.
+	/usr/local/bin/xxri-network auto &
+	/usr/local/bin/xxri-bluetooth auto &
+	# No GTK/glib/gio caches here: each extension's install script rebuilds
+	# its own when loaded (xxri-refresh-caches only runs after Store installs).
+	# Drop Tiny Core launchers XXRI replaces before the session builds the
+	# dock/menu: control panel and config tools (Settings), package browsers
+	# (the Store; the tce backend stays), Exit (power menu), RunProgram, Top,
+	# Xkill and the terminal Wi-Fi script.
 	for junk in cpanel tc-cpanel tc-config appsaudit services settime tc-wbarconf \
 	            apps appbrowser tce tce-ab appsrepo \
 	            exittc flrun top xkill wifi; do
@@ -63,16 +55,14 @@
 	done
 	rm -f /usr/local/share/pixmaps/cpanel.png \
 	      /usr/local/bin/apps /usr/local/bin/appbrowser 2>/dev/null
-	# Editor stays under an XXRI name; Tiny Core's mnttool never maps a
-	# window on this build, so Disks points at Settings > Storage instead.
+	# editor lives on under an XXRI name; mnttool never maps a window here,
+	# Disks opens Settings > Storage instead
 	rm -f /usr/local/share/applications/tinycore-editor.desktop \
 	      /usr/local/share/applications/tinycore-screenshot.desktop \
 	      /usr/local/share/applications/tinycore-mnttool.desktop 2>/dev/null
 
-	# Phase 9.2: HTTPS must work everywhere the Store runs.  ca-certificates.tcz
-	# builds this bundle when it is loaded as an extension, but an image that
-	# unsquashed its extensions has no such hook - build it here if missing, so
-	# the live ISO, the ISO-installed system and the baked image behave alike.
+	# CA bundle for the Store's HTTPS: ca-certificates.tcz builds it when
+	# loaded, an image with unsquashed extensions never runs that hook
 	if [ ! -s /usr/local/etc/ssl/certs/ca-certificates.crt ] && \
 	   [ -d /usr/local/share/ca-certificates ]; then
 		mkdir -p /usr/local/etc/ssl/certs
@@ -81,10 +71,7 @@
 		ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt /usr/local/etc/ssl/cacert.pem 2>/dev/null
 		ln -sf /usr/local/etc/ssl/certs/ca-certificates.crt /usr/local/etc/ssl/ca-bundle.crt 2>/dev/null
 	fi
-	# Phase 8.1: on an INSTALLED system (persistent root - not a live rootfs/
-	# tmpfs) the installer must never be exposed.  Remove its launcher, GUI
-	# binary, auto-start hook and any pre-built menu entry before the session
-	# rebuilds the dock/menu.  On the Live ISO (rootfs/tmpfs) it is kept.
+	# installed system (root not rootfs/tmpfs): no installer anywhere
 	case "$(awk '$2=="/"{print $3; exit}' /proc/mounts)" in
 		rootfs|tmpfs) ;;
 		*)
@@ -95,6 +82,4 @@
 				      "$u"/.wmx/*/InstallxxriOSLite "$u"/.wmx/*/Install* 2>/dev/null
 			done ;;
 	esac
-	# Toolkit caches come from the extensions' install scripts (above); the
-	# refresh helper runs only after the Store installs something new.
 } >/var/log/xxri-hw-init.log 2>&1
