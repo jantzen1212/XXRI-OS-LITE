@@ -28,7 +28,7 @@ from the raw log disk:
                             (`xxriqaapps`), each screenshotted; every executed
                             instruction the model lacks is recorded (hits.tsv,
                             map it with isa-sentinel-map.py).  Without SSE2,
-                            Xorg must run without glamor/GLX (xxri-hw-init)
+                            Xorg must run without glamor/GLX (~/.xsession)
 
 Writes OUTDIR/<scenario>/{xqa.log,shot-*.png,result.json} and OUTDIR/results.json.
 """
@@ -93,11 +93,15 @@ def run(iso, hook, name, sc, d):
     cmd = [qemu, '-m', '1024', '-machine', 'pc'] + sc.get('vga', ['-vga', 'std']) + ['-display', 'none',
            '-monitor', 'unix:%s,server,nowait' % mon, '-serial', 'file:' + serial,
            '-netdev', 'user,id=n0', '-device', 'e1000,netdev=n0,romfile=']
+    tcg = os.environ.get('XXRI_QA_ACCEL') == 'tcg'   # see qemu-boot-test.py
+    if not sc['cpu'] and tcg:
+        cmd += ['-accel', 'tcg']
+        sc = dict(sc, timeout=int(sc['timeout'] * float(os.environ.get('XXRI_QA_TIME', '1'))))
     if sc['cpu']:
         cmd += ['-accel', 'tcg', '-cpu', sc['cpu'],
                 '-plugin', '%s/isa-sentinel.so,cpu=%s,out=%s/hits.tsv' % (os.environ.get('XXRI_SENTINEL_DIR', HERE),
                                                                           sc['sentinel'], d)]
-    else:
+    elif not tcg:
         cmd += ['-enable-kvm', '-cpu', 'host']
     if code:
         shutil.copy(vars_, tmp + '/vars.fd')

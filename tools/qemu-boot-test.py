@@ -134,6 +134,16 @@ def main():
     ap.add_argument('--fw-code', help='override the OVMF code image (e.g. an older EDK2)')
     ap.add_argument('--fw-vars', help='override the OVMF variable store template')
     a = ap.parse_args()
+    # XXRI_QA_ACCEL=tcg: no KVM - for a host where another hypervisor holds
+    # VT-x (a running VirtualBox VM makes every KVM entry fail with "hardware
+    # error 0x0").  XXRI_QA_TIME scales the timeout and the screenshot times,
+    # since TCG boots the ISO to its desktop ~10x slower than KVM.
+    if os.environ.get('XXRI_QA_ACCEL') == 'tcg':
+        a.no_kvm = True
+    k = float(os.environ.get('XXRI_QA_TIME', '1'))
+    if k != 1:
+        a.timeout = int(a.timeout * k)
+        a.shots = ','.join(str(int(float(t) * k)) for t in a.shots.split(',') if t)
 
     os.makedirs(a.out, exist_ok=True)
     tmp = tempfile.mkdtemp(prefix='xq', dir='/tmp')

@@ -1,6 +1,6 @@
 #!/bin/sh
 # QA ONLY - never shipped.  Appended as a second initrd from GRUB's editor by
-# tools/qa/install-test.sh.  Runs xxri-install-backend unattended in the live
+# tools/qa/install-test.py.  Runs xxri-install-backend unattended in the live
 # session, copies its log to a 2 MiB raw "log disk", then powers off.
 #   xxriqa=auto          whole-disk automatic layout on the 6 GiB target disk
 #   xxriqa=manual:N      install into partition N of the (pre-made) target disk

@@ -30,7 +30,8 @@ def run(iso, out, case):
                '--mem', str(mem), '--img', iso, '--out', d, '--shots', '90', '--timeout', '130']
         if kind == 'klog':
             cmd += ['--edit-append', KLOG]
-        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=240)
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       timeout=240 * float(os.environ.get('XXRI_QA_TIME', '1')))   # see qemu-boot-test.py
         r = json.load(open(os.path.join(d, 'result.json')))
         if r.get('grub_menu') is not None or not r.get('qemu_error'):
             break

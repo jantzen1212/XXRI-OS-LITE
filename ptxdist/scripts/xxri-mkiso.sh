@@ -2,10 +2,13 @@
 # xxri-mkiso.sh - assemble the XXRI OS Lite ISO: one image for BIOS and 32-bit
 # UEFI.  Called by rules/image-xxri-iso.make with everything already built:
 #
-#   xxri-mkiso.sh VERSION ISO CORE_GZ VMLINUZ CDE_DIR GRUB_PREFIX GRUB_TARBALL [--with-x64-efi]
+#   xxri-mkiso.sh VERSION ISO CORE_GZ VMLINUZ CDE_DIR GRUB_PREFIX GRUB_TARBALL
+#                 [--ucode UCODE_DIR] [--with-x64-efi]
 #
 #   CDE_DIR      the cde/ tree (onboot.lst, copy2fs.lst, xbase.lst, optional/*.tcz)
 #   GRUB_PREFIX  host-xxri-grub's install prefix: <GRUB_PREFIX>/<platform>/usr/{bin,lib/grub}
+#   UCODE_DIR    early CPU microcode (rules/xxri-ucode.make): intel-ucode.img,
+#                amd-ucode.img and their LICENSE.* files, placed in /boot
 #
 # Boot architecture (docs/boot-2.6.md has the full rationale):
 #
@@ -30,7 +33,16 @@
 # of one tree are byte-identical.
 set -euo pipefail
 VERSION=$1 ISO=$2 CORE=$3 KERNEL=$4 CDE=$5 G=$6 T=$7
-X64EFI=0; [ "${8:-}" = --with-x64-efi ] && X64EFI=1
+X64EFI=0 UCODE=""
+shift 7
+while [ $# -gt 0 ]; do
+	case "$1" in
+	--with-x64-efi) X64EFI=1 ;;
+	--ucode) UCODE=$2; shift ;;
+	*) echo "xxri-mkiso.sh: unknown option $1" >&2; exit 1 ;;
+	esac
+	shift
+done
 : "${SOURCE_DATE_EPOCH:?SOURCE_DATE_EPOCH must be set}"
 export TZ=UTC LC_ALL=C
 PLATS="i386-pc i386-efi"; [ $X64EFI = 1 ] && PLATS="$PLATS x86_64-efi"
@@ -45,6 +57,14 @@ R="$W/iso"
 mkdir -p "$R/boot/grub" "$R/EFI/BOOT" "$R/.disk"
 cp "$KERNEL" "$R/boot/vmlinuz"
 cp "$CORE" "$R/boot/core.gz"
+UCODE_IMGS=""
+if [ -n "$UCODE" ]; then
+	for u in intel amd; do
+		cp "$UCODE/$u-ucode.img" "$UCODE/LICENSE.$u-ucode" "$R/boot/"
+		UCODE_IMGS="$UCODE_IMGS /boot/$u-ucode.img"
+	done
+	UCODE_IMGS=${UCODE_IMGS# }
+fi
 cp -rL "$CDE" "$R/cde"
 
 # The marker names this exact build, so a machine with two XXRI sticks, or an
@@ -77,11 +97,14 @@ published in the sources/ directory next to this ISO.
 EOF
 
 # ----------------------------------------------------------- GRUB config --
-# Boot codes are unchanged from 2.5 except vga=791: GRUB passes the video mode
-# through gfxpayload, and the kernel still gets the linear framebuffer the
-# boot splash draws into (vesafb on BIOS, efifb on UEFI).
+# No vga=791: GRUB sets the video mode through gfxpayload, and the kernel
+# still gets the linear framebuffer the boot splash draws into (vesafb on
+# BIOS, efifb on UEFI).
 BASE="vt.global_cursor_default=0 consoleblank=0 cde"
-cat > "$R/boot/grub/grub.cfg" <<EOF
+INITRD=/boot/core.gz
+[ -n "$UCODE_IMGS" ] && INITRD='$xxri_ucode /boot/core.gz'
+{
+cat <<EOF
 # XXRI OS Lite $VERSION - shared by BIOS (i386-pc) and UEFI (i386-efi) GRUB.
 set default=0
 set timeout=5
@@ -100,22 +123,54 @@ else
 	insmod vga
 	set gfxpayload=1024x768x32,1024x768x16,1024x768,auto
 fi
+EOF
+# CPU microcode: the kernel applies it on the boot CPU before anything else
+# runs, from uncompressed archives GRUB puts in front of core.gz on the same
+# initrd line.  Only the image of this CPU's vendor is read - the Intel one
+# is 15 MB, as much again as core.gz - chosen by the processor manufacturer
+# in the firmware's SMBIOS table (type 4, the string at offset 7).  Without
+# SMBIOS, or with a name that says neither vendor, both are loaded and the
+# kernel takes the one that matches: never less than the CPU needs.
+# ($xxri_ucode is unquoted on the initrd lines: GRUB splits it into words.)
+[ -n "$UCODE_IMGS" ] && cat <<EOF
+
+# CPU microcode for this CPU's vendor (see xxri-mkiso.sh)
+set xxri_ucode="$UCODE_IMGS"
+insmod smbios
+insmod regexp
+if smbios --type 4 --get-string 7 --set xxri_cpu; then
+	if regexp '[Ii]ntel' "\$xxri_cpu"; then
+		set xxri_ucode=/boot/intel-ucode.img
+	elif regexp 'AMD|[Aa]dvanced [Mm]icro' "\$xxri_cpu"; then
+		set xxri_ucode=/boot/amd-ucode.img
+	fi
+fi
+export xxri_ucode
+EOF
+cat <<EOF
 
 menuentry "XXRI OS Lite $VERSION" --id xxri {
 	linux /boot/vmlinuz quiet loglevel=3 $BASE
-	initrd /boot/core.gz
+	initrd $INITRD
 }
 menuentry "XXRI OS Lite $VERSION (slow USB devices)" --id xxri-waitusb {
 	linux /boot/vmlinuz quiet loglevel=3 $BASE waitusb=5
-	initrd /boot/core.gz
+	initrd $INITRD
+}
+# nomodeset: no KMS driver binds (i915, xe, amdgpu, radeon, nouveau and the
+# virtual GPUs all refuse); the desktop runs on the boot loader's framebuffer
+# (Xfbdev) - for a GPU whose driver hangs or leaves the screen dark.
+menuentry "XXRI OS Lite $VERSION (safe graphics)" --id xxri-safegfx {
+	linux /boot/vmlinuz quiet loglevel=3 $BASE nomodeset
+	initrd $INITRD
 }
 menuentry "XXRI OS Lite $VERSION (verbose boot)" --id xxri-verbose {
 	linux /boot/vmlinuz loglevel=7 $BASE
-	initrd /boot/core.gz
+	initrd $INITRD
 }
 menuentry "XXRI OS Lite $VERSION (command line only)" --id xxri-text {
 	linux /boot/vmlinuz loglevel=3 cde text
-	initrd /boot/core.gz
+	initrd $INITRD
 }
 if [ "\$grub_platform" = "efi" ]; then
 	menuentry "UEFI firmware settings" --id uefi-firmware {
@@ -129,6 +184,7 @@ menuentry "Power off" --id poweroff {
 	halt
 }
 EOF
+} > "$R/boot/grub/grub.cfg"
 
 # ------------------------------------------------------ GRUB core images --
 # Early config embedded in every core image: find THIS medium, then hand over

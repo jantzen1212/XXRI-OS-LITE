@@ -115,15 +115,9 @@ if grep -qw xxriqaapps /proc/cmdline; then
 		done
 		echo $t
 	}
-	# the session's own environment (what ~/.xsession exported for everything
-	# it starts - the dock launches apps with it), taken from the window
-	# manager and quoted for the shell
-	# (any process ~/.xsession started: they all carry its exports - found by
-	# one of them, XXRI_DOCK_RESERVE, not by a program name that may be
-	# restarting at this moment)
-	# ... and of those the one with the most variables: ~/.xsession only ever
-	# adds exports, so the program it started last has all of them (the first
-	# ones predate xxri-session-runtime)
+	# the session's environment, as the dock passes it to apps: from the
+	# process carrying XXRI_DOCK_RESERVE with the most variables (~/.xsession
+	# only adds exports, so its last child has them all), quoted for the shell
 	sess=""; best=0
 	for e in /proc/[0-9]*/environ; do
 		grep -qa 'XXRI_DOCK_RESERVE=' "$e" 2>/dev/null || continue

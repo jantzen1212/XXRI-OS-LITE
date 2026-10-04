@@ -16,7 +16,13 @@
 #     of EXTLINUX, whose high initrd placement 2.6 exists to remove
 #   * build junk swept into core.gz (rootfs/.kilo/worktrees is a nested
 #     checkout that once added 56 MB)
-#   * ISO size creeping away from the ~268 MiB budget
+#   * early CPU microcode: uncompressed cpio images, in front of core.gz on
+#     every boot entry; the "safe graphics" (nomodeset) entry
+#   * GPU and Wi-Fi/Bluetooth firmware extensions matching their reviewed
+#     lists, nouveau present, the regulatory database, the Bluetooth stack
+#   * ISO size creeping away from the ~285 MiB budget (the RC: 243 MiB; with
+#     the 2015-era GPU firmware and CPU microcode: 261 MiB; with Wi-Fi and
+#     Bluetooth firmware and BlueZ: ~278 MiB)
 # With --boot it boots the ISO through its REAL firmware and loader in QEMU -
 # SeaBIOS and 32-bit OVMF, each as CD, hybrid disk and USB stick - and
 # requires the guest's own userspace (its DHCP request) and a lit desktop;
@@ -43,7 +49,7 @@ echo "== $ISO =="
 [ -f "$ISO" ] || { bad "no such file"; exit 1; }
 sz=$(stat -c%s "$ISO")
 echo "  size  $((sz / 1048576)) MiB"
-[ $sz -gt $((400 * 1048576)) ] && note "ISO is over 400 MiB (budget is ~268 MiB)"
+[ $sz -gt $((400 * 1048576)) ] && note "ISO is over 400 MiB (budget is ~285 MiB)"
 [ -f "$ISO.sha256" ] && ( cd "$(dirname "$ISO")" && sha256sum -c --quiet "$(basename "$ISO").sha256" ) \
 	&& ok "sha256 matches $(basename "$ISO").sha256"
 
@@ -98,6 +104,31 @@ if [ -s "$W/grub.cfg" ]; then
 		|| ok "no memory ceiling on any kernel command line"
 else
 	bad "no /boot/grub/grub.cfg"
+fi
+# Early CPU microcode (rules/xxri-ucode.make): GRUB names the images through
+# $xxri_ucode, so the loop above does not see them.  The kernel only takes an
+# UNCOMPRESSED newc archive at the very start of the initrd.
+if [ -s "$W/grub.cfg" ]; then
+	uc=$(grep -o '/boot/[a-z]*-ucode\.img' "$W/grub.cfg" | sort -u)
+	[ -n "$uc" ] || bad "grub.cfg loads no CPU microcode image"
+	for p in $uc; do
+		v=${p#/boot/}; v=${v%-ucode.img}
+		case $v in intel) want=GenuineIntel.bin ;; amd) want=AuthenticAMD.bin ;; *) want=unknown ;; esac
+		if ! grep -qx "$p" "$W/files"; then bad "microcode $p is NOT on the ISO"; continue; fi
+		x "$p" "$W/$v-ucode.img"
+		[ "$(head -c 6 "$W/$v-ucode.img")" = 070701 ] &&
+			cpio -it --quiet < "$W/$v-ucode.img" 2>/dev/null | grep -qx "kernel/x86/microcode/$want" &&
+			ok "microcode $p: uncompressed early cpio with $want, $(( $(stat -c %s "$W/$v-ucode.img") / 1024 )) KiB" ||
+			bad "microcode $p is not an uncompressed early cpio with kernel/x86/microcode/$want"
+		grep -qx "/boot/LICENSE.$v-ucode" "$W/files" && ok "microcode licence /boot/LICENSE.$v-ucode" ||
+			bad "/boot/LICENSE.$v-ucode missing (the vendor licence must ship with the image)"
+	done
+	n=$(awk 'tolower($1) == "initrd"' "$W/grub.cfg" | wc -l)
+	m=$(awk 'tolower($1) == "initrd" && $2 == "$xxri_ucode"' "$W/grub.cfg" | wc -l)
+	[ "$n" -gt 0 ] && [ "$n" = "$m" ] && ok "microcode in front of core.gz on all $n boot entries" ||
+		bad "only $m of $n initrd lines load the microcode first"
+	grep -qE '^[[:space:]]*linux .* nomodeset' "$W/grub.cfg" && ok "safe graphics boot entry (nomodeset)" ||
+		bad "no safe graphics (nomodeset) boot entry"
 fi
 mark=$(grep -x '/\.disk/xxri-lite-.*' "$W/files" | head -1)
 [ -n "$mark" ] && ok "loader marker file $mark" || bad "no /.disk/xxri-lite-* marker: the core images cannot find this medium"
@@ -254,6 +285,70 @@ if [ -f "$W/bin/cde/optional/xxri-firmware-gpu.tcz" ]; then
 else
 	bad "xxri-firmware-gpu.tcz missing: legacy Radeon GPUs run without acceleration (NI cards not at all)"
 fi
+# Firmware from linux-firmware (config/firmware/{intel,amd,nvidia,wireless}
+# .list): every name a list gives must resolve inside its extension, through
+# the links linux-firmware's WHENCE defines - the build's own resolver
+for v in intel amd nvidia wireless; do
+	kind="GPU firmware"; [ $v = wireless ] && kind="Wi-Fi/Bluetooth firmware"
+	t="$W/bin/cde/optional/xxri-firmware-$v.tcz"
+	[ -f "$t" ] || { bad "xxri-firmware-$v.tcz missing"; continue; }
+	grep -qx "xxri-firmware-$v.tcz" "$W/bin/cde/onboot.lst" && ok "$kind: xxri-firmware-$v.tcz in onboot.lst" ||
+		bad "xxri-firmware-$v.tcz is not in onboot.lst: its devices start without firmware"
+	unsquashfs -q -cat "$t" "usr/local/share/doc/xxri-firmware-$v/$v.list" > "$W/fw-$v.list" 2>/dev/null
+	unsquashfs -lls "$t" > "$W/fw-$v.lls" 2>/dev/null
+	python3 - "$HERE/ptxdist/scripts/xxri-fw-select.py" "$W/fw-$v.lls" "$W/fw-$v.list" "$v" "$kind" <<'EOF'
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location('fw', sys.argv[1])
+fw = importlib.util.module_from_spec(spec); spec.loader.exec_module(fw)
+pre = 'squashfs-root/usr/local/lib/firmware/'
+files, links, size = set(), {}, 0
+for line in open(sys.argv[2]):
+    f = line.split(None, 5)
+    if len(f) < 6 or not f[5].startswith(pre):
+        continue
+    path = f[5].rstrip('\n')[len(pre):]
+    if f[0].startswith('l'):
+        name, _, target = path.partition(' -> ')
+        links[name] = target
+    elif f[0].startswith('-'):
+        files.add(path); size += int(f[2])
+names = fw.read_lists([sys.argv[3]])
+bad = []
+for n in names:
+    try:
+        fw.resolve(n, files, links)
+    except SystemExit:
+        bad.append(n)
+if not names:
+    print('  FAIL  xxri-firmware-%s.tcz: no %s.list inside' % (sys.argv[4], sys.argv[4]))
+elif bad:
+    print('  FAIL  xxri-firmware-%s.tcz lacks %d listed names, e.g. %s' % (sys.argv[4], len(bad), bad[0]))
+else:
+    print('  ok    %s: xxri-firmware-%s.tcz resolves all %d listed names (%d files, %d links, %d KiB)'
+          % (sys.argv[5], sys.argv[4], len(names), len(files), len(links), size // 1024))
+EOF
+done
+# cfg80211 asks for regulatory.db like any firmware; without it every
+# country is the restrictive world domain
+t="$W/bin/cde/optional/xxri-firmware-wireless.tcz"
+[ -f "$t" ] && unsquashfs -l "$t" 2>/dev/null | grep -qx 'squashfs-root/usr/local/lib/firmware/regulatory.db' &&
+	ok "Wi-Fi: regulatory.db in xxri-firmware-wireless.tcz" ||
+	bad "regulatory.db missing: Wi-Fi stays on the world regulatory domain"
+# firmware linux-firmware does not carry (Tiny Core's packages), the radio
+# tools and the Bluetooth stack: present, and loaded at boot
+for t in firmware-ipw2100.tcz firmware-ipw2200.tcz firmware-zd1211.tcz firmware-openfwwf.tcz \
+         iw.tcz rfkill.tcz bluetooth-6.12.11-tinycore.tcz bluez5.tcz; do
+	[ -f "$W/bin/cde/optional/$t" ] && grep -qx "$t" "$W/bin/cde/onboot.lst" ||
+		bad "$t missing or not in onboot.lst"
+done
+unsquashfs -l "$W/bin/cde/optional/bluez5.tcz" 2>/dev/null | grep -q '/lib/bluetooth/bluetoothd$' &&
+	unsquashfs -l "$W/bin/cde/optional/bluetooth-6.12.11-tinycore.tcz" 2>/dev/null | grep -q '/btusb\.ko' &&
+	ok "Bluetooth: bluez5 (bluetoothd) and the kernel's btusb.ko are on the medium" ||
+	bad "Bluetooth: bluetoothd or btusb.ko missing"
+t=nouveau-6.12.11-tinycore.tcz
+[ -f "$W/bin/cde/optional/$t" ] && grep -qx "$t" "$W/bin/cde/onboot.lst" &&
+	unsquashfs -l "$W/bin/cde/optional/$t" 2>/dev/null | grep -q '/nouveau\.ko' &&
+	ok "NVIDIA: $t (nouveau.ko) in onboot.lst" || bad "$t missing or not in onboot.lst: NVIDIA GPUs get no KMS driver"
 # both servers need root (no logind): a lost setuid bit only shows as "no
 # desktop" on real hardware, so check the modes in the extension itself
 if [ -f "$W/bin/cde/optional/xxri-xlibre.tcz" ]; then
