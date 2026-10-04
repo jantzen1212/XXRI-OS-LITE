@@ -14,7 +14,7 @@
 /work/
 /output/
 
-# XXRI 2.6 boot build (tools/build-grub.sh, build-iso.sh)
+# outputs of the removed Build A scripts (tools/build-grub.sh, build-iso.sh)
 /build/
 /sources
 __pycache__/
