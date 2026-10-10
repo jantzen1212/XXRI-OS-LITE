@@ -2,6 +2,7 @@
 
 config XXRI_LAUNCHER
 	bool
+	select HOST_GETTEXT
 	select XXRI_TC_SYSROOT
 	prompt "xxri-launcher: All Apps drawer"
 	help

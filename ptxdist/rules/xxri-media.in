@@ -2,6 +2,7 @@
 
 config XXRI_MEDIA
 	bool
+	select HOST_GETTEXT
 	select XXRI_TC_SYSROOT
 	prompt "xxri-media: media player"
 	help

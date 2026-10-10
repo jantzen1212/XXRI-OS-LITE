@@ -1,0 +1,9 @@
+## SECTION=project_specific
+
+config XXRI_LOCALES
+	bool
+	prompt "xxri-locales: UTF-8 locales (en_US, en_GB, id_ID, pt_PT)"
+	help
+	  UTF-8 locales for /usr/lib/locale, compiled with the toolchain's
+	  localedef.  Tiny Core's base ships none, so programs only had the
+	  POSIX locale.  The list is XXRI_LOCALES_LIST in the rule.

@@ -38,6 +38,7 @@ for i in `cat /proc/cmdline`; do
 				waitusb*) WAITUSB=${i#*=} ;;
 				lang*) LANGUAGE=${i#*=} ;;
 				kmap*) KEYMAP=${i#*=} ;;
+				xkb*) XKB=${i#*=} ;;
 				tz*) TZ=${i#*=} ;;
 				desktop*) DESKTOP=${i#*=} ;;
 				ntpserver*) NTPSERVER=${i#*=} ;;
@@ -178,13 +179,28 @@ else
 	/sbin/udevadm control --reload-rules &
 fi
 
+# lang= boot code (overrides the file, LC_* included), else
+# /etc/sysconfig/language, else the default.  "pt_PT" means pt_PT.UTF-8; a
+# locale that is not installed leaves programs in C, so warn.
+. /usr/local/lib/xxri/locale.sh
 if [ -z "$LANGUAGE" ] && [ -s /etc/sysconfig/language ]; then
 	. /etc/sysconfig/language
 	LANGUAGE="$LANG"
+	KEEP_LC=1
 fi
-[ -n "$LANGUAGE" ] || LANGUAGE="C"
+[ -n "$LANGUAGE" ] || LANGUAGE="$XXRI_LOCALE_DEFAULT"
+xxri_locale_norm "$LANGUAGE"; LANGUAGE=$XXRI_LOCALE
 echo -n "${GREEN}Setting Language to ${MAGENTA}$LANGUAGE"
-echo "LANG=$LANGUAGE" > /etc/sysconfig/language
+{
+	echo "LANG=$LANGUAGE"
+	if [ -n "$KEEP_LC" ]; then
+		for v in $XXRI_LC_VARS; do
+			eval "val=\$$v"
+			[ -z "$val" ] || { xxri_locale_norm "$val"; echo "$v=$XXRI_LOCALE"; }
+		done
+	fi
+} > /etc/sysconfig/language
+xxri_locale_ok "$LANGUAGE" || echo -n "${YELLOW} (not installed, programs use C)"
 export LANG=$LANGUAGE
 echo "${GREEN} Done.${NORMAL}"
 
@@ -650,6 +666,23 @@ if [ -f "/usr/share/kmap/$KEYMAP.kmap" ]; then
 	/sbin/loadkmap < /usr/share/kmap/$KEYMAP.kmap
 	echo "KEYMAP=$KEYMAP" > /etc/sysconfig/keymap
 	echo "${GREEN} Done.${NORMAL}"
+fi
+
+# X keyboard layout (not the console keymap): xkb=LAYOUT[:VARIANT] boot code,
+# else /etc/sysconfig/xkb, else US
+if [ -z "$XKB" ] && [ -s /etc/sysconfig/xkb ]; then
+	. /etc/sysconfig/xkb
+fi
+if [ -n "$XKB" ]; then
+	XKBVARIANT=; case "$XKB" in *:*) XKBVARIANT=${XKB#*:} ;; esac
+	if xxri_xkb_ok "${XKB%%:*}" "$XKBVARIANT"; then
+		echo -n "${GREEN}Setting X keyboard layout to ${MAGENTA}$XKB"
+		xxri_xkb_apply "${XKB%%:*}" "$XKBVARIANT"
+		echo "XKB=$XKB" > /etc/sysconfig/xkb
+		echo "${GREEN} Done.${NORMAL}"
+	else
+		echo "${YELLOW}X keyboard layout \"$XKB\" not found, using US.${NORMAL}"
+	fi
 fi
 
 if [ -n "$SECURE" ]; then

@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
+#include <locale.h>
 
 struct XmPlayer {
     unsigned long wid;
@@ -32,9 +33,17 @@ struct XmPlayer {
 static void send_cmd(XmPlayer *p, const char *fmt, ...)
 {
     if (p->in_fd < 0) return;
+    /* MPlayer wants "1.500" in every locale; %f gives "1,500" in pt_PT or
+     * id_ID.  Switch LC_NUMERIC for this thread only, so the process keeps
+     * its locale and it does not matter whether setlocale() ran before or
+     * after gtk_init(). */
+    static locale_t c_numeric;
+    if (!c_numeric) c_numeric = newlocale(LC_NUMERIC_MASK, "C", (locale_t)0);
+    locale_t saved = c_numeric ? uselocale(c_numeric) : (locale_t)0;
     va_list ap; va_start(ap, fmt);
     char *s = g_strdup_vprintf(fmt, ap);
     va_end(ap);
+    if (c_numeric) uselocale(saved);
     char *line = g_strconcat(s, "\n", NULL);
     ssize_t n = write(p->in_fd, line, strlen(line));
     (void)n;

@@ -29,6 +29,7 @@ $(STATEDIR)/xxri-power-menu.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_POWER_MENU_BUILD_DIR) && mkdir -p $(XXRI_POWER_MENU_BUILD_DIR)
 	@$(call world/execute, XXRI_POWER_MENU, $(CROSS_CC) $(XXRI_OS_CFLAGS) -w $(XXRI_GTK3_CFLAGS) $(XXRI_POWER_MENU_DIR)/xxri-power-menu.c -o $(XXRI_POWER_MENU_BUILD_DIR)/xxri-power-menu $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -lm -mtls-dialect=gnu -static-libgcc)
+	@$(call xxri/mo-compile, XXRI_POWER_MENU, xxri-power-menu)
 	@$(call touch)
 
 $(STATEDIR)/xxri-power-menu.install:
@@ -50,6 +51,8 @@ $(STATEDIR)/xxri-power-menu.targetinstall:
 
 	@$(call install_copy, xxri-power-menu, 0, 0, 0755, $(XXRI_POWER_MENU_BUILD_DIR)/xxri-power-menu, /usr/local/bin/xxri-power-menu)
 	@$(call install_tree, xxri-power-menu, 0, 0, $(XXRI_POWER_MENU_DIR)/root, /)
+
+	@$(call xxri/mo-install, xxri-power-menu, XXRI_POWER_MENU)
 
 	@$(call install_finish, xxri-power-menu)
 

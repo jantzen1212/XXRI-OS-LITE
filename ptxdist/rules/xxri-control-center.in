@@ -2,6 +2,7 @@
 
 config XXRI_CONTROL_CENTER
 	bool
+	select HOST_GETTEXT
 	select XXRI_TC_SYSROOT
 	prompt "xxri-control-center: quick settings panel"
 	help

@@ -2,6 +2,7 @@
 
 config XXRI_INSTALLER
 	bool
+	select HOST_GETTEXT
 	select XXRI_TC_SYSROOT
 	select XXRI_DIALOG
 	prompt "xxri-installer: the disk installer"

@@ -18,8 +18,10 @@ xres=WxH                   Desktop resolution on a KMS display (default 1024x768
                            xvesa=WxHxD is accepted as an alias)
 nomodeset                  No KMS: the desktop runs on Xfbdev, the framebuffer
                            X server, in the boot loader's mode
-lang=en                    C only unless getlocale.tcz is installed
-kmap=us                    US only unless kmaps.tcz is installed
+lang=pt_PT                 Language and locale, UTF-8 (en_US, en_GB, id_ID, pt_PT;
+                           default en_US). lang=C is the POSIX locale.
+kmap=us                    Console keymap (kmaps.tcz)
+xkb=pt                     X keyboard layout, xkb=LAYOUT[:VARIANT] (default us)
 text                       Textmode
 superuser                  Textmode as user root
 noicons                    Do not use icons

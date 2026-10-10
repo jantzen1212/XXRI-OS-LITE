@@ -13,6 +13,8 @@
  * A toplevel does, through xxri-compositor.
  */
 #include <gtk/gtk.h>
+#define GETTEXT_PACKAGE "xxri-media"
+#include "xxri-i18n.h"
 #include <gdk/gdkx.h>
 #include <math.h>
 #include <string.h>
@@ -464,7 +466,7 @@ static gboolean video_draw(GtkWidget *w, cairo_t *cr, gpointer d)
         return TRUE;
     }
     if (!xm_has_media(a->pl)) {
-        const char *msg = "Open a file to play";
+        const char *msg = _("Open a file to play");
         bar_font(cr, a, a->m.time_px * 1.25, FALSE);
         cairo_text_extents_t e; cairo_text_extents(cr, msg, &e);
         cairo_set_source_rgba(cr, 1, 1, 1, 0.34);
@@ -715,7 +717,7 @@ static gboolean show_image(App *a, const char *path)
     GdkPixbuf *pb = gdk_pixbuf_new_from_file(path, &err);
     if (!pb) {
         char *base = g_path_get_basename(path);
-        message(a, "Could not open the picture",
+        message(a, _("Could not open the picture"),
                 err && err->message ? err->message : base);
         g_free(base);
         g_clear_error(&err);
@@ -773,7 +775,7 @@ static GtkWidget *xxri_chooser(App *a, GtkFileChooserAction act,
                                const char *title, const char *accept)
 {
     GtkWidget *d = gtk_file_chooser_dialog_new(title, GTK_WINDOW(a->win), act,
-        "Cancel", GTK_RESPONSE_CANCEL, accept, GTK_RESPONSE_ACCEPT, NULL);
+        _("Cancel"), GTK_RESPONSE_CANCEL, accept, GTK_RESPONSE_ACCEPT, NULL);
 
     GtkWidget *ok = gtk_dialog_get_widget_for_response(GTK_DIALOG(d),
                                                        GTK_RESPONSE_ACCEPT);
@@ -793,7 +795,7 @@ static GtkWidget *xxri_chooser(App *a, GtkFileChooserAction act,
     gtk_widget_show(hdr);
 
     GtkFileFilter *f = gtk_file_filter_new();
-    gtk_file_filter_set_name(f, "Media files");
+    gtk_file_filter_set_name(f, _("Media files"));
     for (int i = 0; AV_EXT[i]; i++) {
         char *g = g_strconcat("*.", AV_EXT[i], NULL);
         gtk_file_filter_add_pattern(f, g);
@@ -810,7 +812,7 @@ static GtkWidget *xxri_chooser(App *a, GtkFileChooserAction act,
     }
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(d), f);
     GtkFileFilter *all = gtk_file_filter_new();
-    gtk_file_filter_set_name(all, "All files");
+    gtk_file_filter_set_name(all, _("All files"));
     gtk_file_filter_add_pattern(all, "*");
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(d), all);
     gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(d), g_get_home_dir());
@@ -904,7 +906,7 @@ static gboolean unsmear(gpointer d)
 static void open_dialog(App *a)
 {
     GtkWidget *d = xxri_chooser(a, GTK_FILE_CHOOSER_ACTION_OPEN,
-                                "Open Media", "Open");
+                                _("Open Media"), _("Open"));
     char *fn = xxri_chooser_run(a, d);
     if (fn) { open_path(a, fn); g_free(fn); }
 }
@@ -914,11 +916,11 @@ static void save_dialog(App *a)
 {
     const char *src = current_path(a);
     if (!src || !*src) {
-        message(a, "Nothing to save", "Open a media file first.");
+        message(a, _("Nothing to save"), _("Open a media file first."));
         return;
     }
     GtkWidget *d = xxri_chooser(a, GTK_FILE_CHOOSER_ACTION_SAVE,
-                                "Save As", "Save");
+                                _("Save As"), _("Save"));
     gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER(d), TRUE);
     char *base = g_path_get_basename(src);
     gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(d), base);
@@ -933,8 +935,8 @@ static void save_dialog(App *a)
     gboolean ok = g_file_copy(gs, gd, G_FILE_COPY_OVERWRITE, NULL, NULL, NULL,
                               &err);
     if (!ok) {
-        message(a, "Could not save",
-                err && err->message ? err->message : "The copy failed.");
+        message(a, _("Could not save"),
+                err && err->message ? err->message : _("The copy failed."));
         g_clear_error(&err);
     }
     g_object_unref(gs); g_object_unref(gd); g_free(dst);
@@ -952,8 +954,8 @@ static void speed_menu(App *a)
     static double sp[] = { 0.5, 0.75, 1.0, 1.25, 1.5, 2.0 };
     GtkWidget *menu = gtk_menu_new();
     for (guint i = 0; i < G_N_ELEMENTS(sp); i++) {
-        char lbl[16];
-        if (fabs(sp[i] - 1.0) < 0.001) g_snprintf(lbl, sizeof lbl, "Normal");
+        char lbl[48];
+        if (fabs(sp[i] - 1.0) < 0.001) g_strlcpy(lbl, _("Normal"), sizeof lbl);
         else g_snprintf(lbl, sizeof lbl, "%gx", sp[i]);
         GtkWidget *it = gtk_check_menu_item_new_with_label(lbl);
         gtk_check_menu_item_set_draw_as_radio(GTK_CHECK_MENU_ITEM(it), TRUE);
@@ -977,12 +979,12 @@ static void main_menu(App *a)
 {
     GtkWidget *menu = gtk_menu_new();
     struct { const char *l; GCallback cb; } items[] = {
-        { "Open File…", G_CALLBACK(on_menu_open) },
-        { "Save a Copy…", G_CALLBACK(on_menu_save) },
-        { "Subtitles: next track", G_CALLBACK(on_menu_sub) },
-        { "Fullscreen", G_CALLBACK(on_menu_full) },
+        { _("Open File…"), G_CALLBACK(on_menu_open) },
+        { _("Save a Copy…"), G_CALLBACK(on_menu_save) },
+        { _("Subtitles: next track"), G_CALLBACK(on_menu_sub) },
+        { _("Fullscreen"), G_CALLBACK(on_menu_full) },
         { NULL, NULL },
-        { "Quit XXRI Media", G_CALLBACK(on_menu_quit) },
+        { _("Quit XXRI Media"), G_CALLBACK(on_menu_quit) },
     };
     for (guint i = 0; i < G_N_ELEMENTS(items); i++) {
         GtkWidget *it = items[i].l ? gtk_menu_item_new_with_label(items[i].l)
@@ -1269,6 +1271,7 @@ static void theme_changed(gboolean dark, gpointer d) {
 
 int main(int argc, char **argv)
 {
+    xxri_i18n_init();
     gtk_init(&argc, &argv);
     /* after gtk_init, which loads the image loaders */
     init_image_ext();

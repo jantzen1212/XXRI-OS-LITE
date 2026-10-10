@@ -29,6 +29,7 @@ $(STATEDIR)/xxri-media.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_MEDIA_BUILD_DIR) && mkdir -p $(XXRI_MEDIA_BUILD_DIR)
 	@$(call world/execute, XXRI_MEDIA, $(CROSS_CC) $(XXRI_OS_CFLAGS) -w $(XXRI_GTK3_CFLAGS) $(XXRI_MEDIA_DIR)/xxri-media.c $(XXRI_MEDIA_DIR)/player.c -o $(XXRI_MEDIA_BUILD_DIR)/xxri-media $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -lX11 -lm -mtls-dialect=gnu -static-libgcc)
+	@$(call xxri/mo-compile, XXRI_MEDIA, xxri-media)
 	@$(call touch)
 
 $(STATEDIR)/xxri-media.install:
@@ -50,6 +51,8 @@ $(STATEDIR)/xxri-media.targetinstall:
 
 	@$(call install_copy, xxri-media, 0, 0, 0755, $(XXRI_MEDIA_BUILD_DIR)/xxri-media, /usr/local/bin/xxri-media)
 	@$(call install_tree, xxri-media, 0, 0, $(XXRI_MEDIA_DIR)/root, /)
+
+	@$(call xxri/mo-install, xxri-media, XXRI_MEDIA)
 
 	@$(call install_finish, xxri-media)
 

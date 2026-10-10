@@ -29,6 +29,7 @@ $(STATEDIR)/xxri-installer.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_INSTALLER_BUILD_DIR) && mkdir -p $(XXRI_INSTALLER_BUILD_DIR)
 	@$(call world/execute, XXRI_INSTALLER, $(CROSS_CC) $(XXRI_OS_CFLAGS) -w $(XXRI_GTK3_CFLAGS) $(XXRI_INSTALLER_DIR)/xxri-installer.c -o $(XXRI_INSTALLER_BUILD_DIR)/xxri-installer $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -lX11 -lm -mtls-dialect=gnu -static-libgcc)
+	@$(call xxri/mo-compile, XXRI_INSTALLER, xxri-installer)
 	@$(call touch)
 
 $(STATEDIR)/xxri-installer.install:
@@ -52,6 +53,8 @@ $(STATEDIR)/xxri-installer.targetinstall: $(shell find $(XXRI_SRC)/xxri-installe
 
 	@$(call install_copy, xxri-installer, 0, 0, 0755, $(XXRI_INSTALLER_BUILD_DIR)/xxri-installer, /usr/local/bin/xxri-installer)
 	@$(call install_tree, xxri-installer, 0, 0, $(XXRI_INSTALLER_DIR)/root, /)
+
+	@$(call xxri/mo-install, xxri-installer, XXRI_INSTALLER)
 
 	@$(call install_finish, xxri-installer)
 

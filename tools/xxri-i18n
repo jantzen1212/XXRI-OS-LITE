@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+# xxri-i18n - translation catalogs of XXRI's GTK programs (see docs/translating.md)
+#
+#   xxri-i18n pot [DOMAIN...]       regenerate src/<program>/po/<domain>.pot
+#   xxri-i18n new LANG [DOMAIN...]  start LANG.po (pt_PT; pt-PT is accepted as pt_PT)
+#   xxri-i18n update [LANG]         merge the templates into the existing .po files
+#   xxri-i18n check                 headers in step, templates current, every .po valid
+#   xxri-i18n stats                 translated / fuzzy / untranslated per file
+#
+# A "domain" is a program's name (xxri-settings, xxri-store, ...): its catalog
+# is po/<domain>.pot, its translations po/<lang>.po next to it, and it
+# installs as /usr/local/share/locale/<lang>/LC_MESSAGES/<domain>.mo.
+# Needs GNU gettext (xgettext, msginit, msgmerge, msgfmt, msggrep) and bash 4+.
+case ${BASH_VERSION:-} in
+	[4-9].*|[1-9][0-9].*) ;;
+	*) echo "xxri-i18n: needs bash 4 or newer, this is ${BASH_VERSION:+bash }${BASH_VERSION:-not bash} (macOS: brew install bash)" >&2
+	   exit 1 ;;
+esac
+set -euo pipefail
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+SRC=$ROOT/src
+BUGS=https://github.com/jantzen1212/XXRI-OS-LITE/issues
+VERSION=$(sed -n 's/^XXRI_OS_VERSION[[:space:]]*:=[[:space:]]*//p' "$ROOT/ptxdist/rules/pre/xxri.make")
+
+# domain -> source directory (the dialog helper shares the installer's catalog)
+declare -A DIR=(
+	[xxri-settings]=xxri-settings
+	[xxri-store]=xxri-store
+	[xxri-installer]=xxri-installer
+	[xxri-launcher]=xxri-launcher
+	[xxri-control-center]=xxri-control-center
+	[xxri-media]=xxri-media
+	[xxri-power-menu]=xxri-power-menu
+)
+DOMAINS=$(printf '%s\n' "${!DIR[@]}" | sort)
+
+die() { echo "xxri-i18n: $*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "$1 not found (install GNU gettext)"; }
+podir() { echo "$SRC/${DIR[$1]}/po"; }
+pick() { # DOMAIN... -> the domains to work on
+	if [ $# -eq 0 ]; then echo "$DOMAINS"; return; fi
+	for d in "$@"; do [ -n "${DIR[$d]:-}" ] || die "unknown domain: $d (one of: $(echo $DOMAINS))"; done
+	printf '%s\n' "$@"
+}
+
+# normalize_lang ARG: set LANG_ID to the catalog name, lang[_TERRITORY][@modifier].
+# That is the directory gettext looks up under /usr/local/share/locale
+# (LANG=pt_PT.UTF-8 finds pt_PT, then pt), so "pt-PT" has to become "pt_PT".
+# A .UTF-8 suffix is dropped; anything that is not a locale name is refused.
+LANG_RE='^([a-z]{2,3})(_([A-Z]{2}))?(@([a-z]+))?$'
+normalize_lang() {
+	local in=$1 l=$1
+	case "${l,,}" in *.utf-8|*.utf8) l=${l%.*} ;; esac
+	l=${l//-/_}
+	if [[ $l =~ ^([A-Za-z]{2,3})(_([A-Za-z]{2}))?(@([A-Za-z]+))?$ ]]; then
+		l=${BASH_REMATCH[1],,}${BASH_REMATCH[3]:+_${BASH_REMATCH[3]^^}}${BASH_REMATCH[5]:+@${BASH_REMATCH[5],,}}
+	fi
+	[[ $l =~ $LANG_RE ]] ||
+		die "'$in' is not a locale name like pt_PT, pt, es_MX or sr@latin"
+	[ "$l" = "$in" ] || echo "xxri-i18n: using $l for $in" >&2
+	LANG_ID=$l
+}
+
+# write the template of DOMAIN to $2
+extract() {
+	local d=$1 out=$2
+	need xgettext
+	( cd "$SRC/${DIR[$d]}" &&
+	  xgettext --language=C --from-code=UTF-8 --files-from=po/POTFILES.in \
+		--keyword=_ --keyword=N_ --keyword=C_:1c,2 --keyword=NC_:1c,2 \
+		--keyword=Q_ --keyword=ngettext:1,2 \
+		--add-comments=TRANSLATORS --add-location=file --sort-by-file \
+		--package-name="XXRI OS Lite" --package-version="$VERSION" \
+		--msgid-bugs-address="$BUGS" --copyright-holder= \
+		-o "$out" )
+	# replace xgettext's default header comment, which names a copyright holder
+	# and a licence the project has not chosen for the catalogs
+	awk -v d="$d" 'BEGIN { print "# Translation template for " d ", part of XXRI OS Lite.";
+	                       print "# Distributed under the same license as XXRI OS Lite (GPL-3.0-or-later).";
+	                       print "#" }
+	               /^#,/ { on = 1 } on' "$out" > "$out.tmp" && mv "$out.tmp" "$out"
+}
+
+# a .pot without its creation date
+body() { grep -v '^"POT-Creation-Date:' "$1"; }
+
+cmd_pot() {
+	local d tmp
+	for d in $(pick "$@"); do
+		tmp=$(mktemp); extract "$d" "$tmp"
+		# keep the old file when only the date differs
+		if [ -f "$(podir "$d")/$d.pot" ] && diff -q <(body "$tmp") <(body "$(podir "$d")/$d.pot") >/dev/null; then
+			rm -f "$tmp"; echo "$d: unchanged"
+		else
+			mv "$tmp" "$(podir "$d")/$d.pot"; echo "$d: $(( $(grep -c '^msgid "' "$(podir "$d")/$d.pot") - 1 )) messages"
+		fi
+	done
+}
+
+cmd_new() {
+	[ -n "${1:-}" ] || die "usage: xxri-i18n new LANG [DOMAIN...]"
+	normalize_lang "$1"; local lang=$LANG_ID; shift
+	need msginit
+	local d po
+	for d in $(pick "$@"); do
+		po=$(podir "$d")/$lang.po
+		[ ! -e "$po" ] || { echo "$d: $lang.po exists, left alone"; continue; }
+		# the charset goes before the modifier: sr@latin -> sr.UTF-8@latin
+		msginit --no-translator --locale="${lang%%@*}.UTF-8${lang#"${lang%%@*}"}" --input="$(podir "$d")/$d.pot" --output-file="$po" >/dev/null
+		# msginit uses the shell's charset (ASCII under LANG=C) and drops the
+		# territory from Language:
+		sed -i -e 's/^"Content-Type: text\/plain; charset=.*\\n"$/"Content-Type: text\/plain; charset=UTF-8\\n"/' \
+		       -e "s/^\"Language: .*\\\\n\"\$/\"Language: $lang\\\\n\"/" "$po"
+		echo "$d: created po/$lang.po"
+	done
+}
+
+cmd_update() {
+	need msgmerge
+	local d po want=
+	if [ -n "${1:-}" ]; then normalize_lang "$1"; want=$LANG_ID; fi
+	for d in $(pick); do
+		for po in "$(podir "$d")"/*.po; do
+			[ -e "$po" ] || continue
+			[ -z "$want" ] || [ "$(basename "$po" .po)" = "$want" ] || continue
+			msgmerge --quiet --update --backup=none --add-location=file "$po" "$(podir "$d")/$d.pot"
+			echo "$d: merged $(basename "$po")"
+		done
+	done
+}
+
+cmd_check() {
+	need msgfmt; need msggrep; local d po bad=0 tmp pct
+	local ref=$SRC/xxri-settings/xxri-i18n.h
+	for d in $DOMAINS; do
+		cmp -s "$ref" "$SRC/${DIR[$d]}/xxri-i18n.h" || { echo "xxri-i18n.h differs in ${DIR[$d]}"; bad=1; }
+	done
+	for d in $DOMAINS; do
+		[ -f "$(podir "$d")/POTFILES.in" ] || { echo "$d: no po/POTFILES.in"; bad=1; continue; }
+		# POTFILES.in must list exactly the files that use _()
+		while read -r f; do [ -f "$SRC/${DIR[$d]}/$f" ] || { echo "$d: POTFILES.in lists missing $f"; bad=1; }; done < "$(podir "$d")/POTFILES.in"
+		for f in "$SRC/${DIR[$d]}"/*.c; do
+			grep -q '\b_(\|\bN_(' "$f" && ! grep -qx "$(basename "$f")" "$(podir "$d")/POTFILES.in" &&
+				{ echo "$d: $(basename "$f") has marked strings but is not in POTFILES.in"; bad=1; }
+		done
+		tmp=$(mktemp); extract "$d" "$tmp"
+		diff -q <(body "$tmp") <(body "$(podir "$d")/$d.pot") >/dev/null 2>&1 ||
+			{ echo "$d: $d.pot is out of date - run: tools/xxri-i18n pot $d"; bad=1; }
+		rm -f "$tmp"
+		for po in "$(podir "$d")"/*.po; do
+			[ -e "$po" ] || continue
+			# the file name is the directory name gettext looks up
+			[[ $(basename "$po" .po) =~ $LANG_RE ]] ||
+				{ echo "$d: $(basename "$po"): not a locale name gettext can look up (pt_PT.po, not pt-PT.po)"; bad=1; continue; }
+			grep -q "^\"Language: $(basename "$po" .po)\\\\n\"" "$po" ||
+				echo "$d: warning: $(basename "$po"): the Language: header does not say $(basename "$po" .po)" >&2
+			msgfmt --check --output-file=/dev/null "$po" || { echo "$d: $(basename "$po") is invalid"; bad=1; }
+			# msgfmt only checks placeholders when the English text has one, and some
+			# programs hand messages to printf: a new % would be a conversion
+			pct=$(msggrep --msgstr -e '%' "$po" | msggrep -v --msgid -e '%' | grep '^msgid "[^"]' || true)
+			if [ -n "$pct" ]; then
+				echo "$d: $(basename "$po"): % in the translation but not in the English text:"
+				echo "$pct"
+				bad=1
+			fi
+		done
+	done
+	[ $bad -eq 0 ] && echo "ok: $(echo $DOMAINS | wc -w) catalogs"
+	return $bad
+}
+
+cmd_stats() {
+	need msgfmt; local d po
+	for d in $DOMAINS; do
+		for po in "$(podir "$d")"/*.po; do
+			[ -e "$po" ] || continue
+			printf '%-22s %-8s ' "$d" "$(basename "$po" .po)"
+			msgfmt --statistics --output-file=/dev/null "$po" 2>&1
+		done
+	done
+}
+
+case "${1:-}" in
+	pot) shift; cmd_pot "$@" ;;
+	new) shift; cmd_new "$@" ;;
+	update) shift; cmd_update "$@" ;;
+	check) cmd_check ;;
+	stats) cmd_stats ;;
+	*) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+esac

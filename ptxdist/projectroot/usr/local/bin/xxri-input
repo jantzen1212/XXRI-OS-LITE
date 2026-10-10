@@ -7,6 +7,7 @@
 #   xxri-input set-mouse-speed ACCEL [THRESHOLD]
 #   xxri-input natural-scroll on|off
 #   xxri-input set-layout CODE   (console keymap; kmaps package included)
+#   xxri-input set-xkb LAYOUT [VARIANT]   (X layout, applied at the next X start)
 #   xxri-input layouts [--json]
 #   xxri-input apply             (session helper: re-apply saved settings)
 . /usr/local/lib/xxri/hw-lib.sh
@@ -48,12 +49,14 @@ cmd_status() {
 	thresh="$(cfg_get input MOUSE_THRESH 4)"
 	nat="$(cfg_get input NATURAL_SCROLL 0)"
 	lay="$(sed -n 's/^KEYMAP=//p' /etc/sysconfig/keymap 2>/dev/null)"
+	xkb="$(sed -n 's/^XKB=//p' /etc/sysconfig/xkb 2>/dev/null)"
 	if [ $JSON = 1 ]; then
 		j_new
 		j_num repeat_delay_ms "$delay"; j_num repeat_rate_hz "$rate"
 		j_num mouse_accel "$accel"; j_num mouse_threshold "$thresh"
 		j_bool natural_scroll "$nat"
 		j_str keyboard_layout "${lay:-us}"
+		j_str x_keyboard_layout "${xkb:-us}"
 		j_str note "settings apply to the X session via xset/xmodmap; touchpad gestures need a libinput/Xorg build"
 		j_root input "\"status\":$(j_obj)"
 	else
@@ -104,7 +107,21 @@ cmd_set_layout() {
 	[ -f "/usr/share/kmap/$1.kmap" ] || { echo "unknown layout: $1 (see xxri-input layouts)" >&2; return 1; }
 	sudo_if sh -c "loadkmap < /usr/share/kmap/$1.kmap"
 	sudo_if sh -c "echo 'KEYMAP=$1' > /etc/sysconfig/keymap"
-	echo "console keyboard layout: $1 (X uses its own map; full X layouts need an Xorg build)"
+	echo "console keyboard layout: $1 (the desktop's keyboard is set with set-xkb)"
+}
+
+# X layout: saved in /etc/sysconfig/xkb (xxri-config rewrites the InputClass
+# file from it at boot), read when X starts
+cmd_set_xkb() {
+	. /usr/local/lib/xxri/locale.sh
+	[ -n "$1" ] || { echo "usage: xxri-input set-xkb LAYOUT [VARIANT]   e.g. pt, br, us intl" >&2; return 1; }
+	xxri_xkb_ok "$1" "$2" || { echo "unknown X keyboard layout: $1 $2 (see $XXRI_XKB_DIR/symbols)" >&2; return 1; }
+	if [ -n "$2" ] && ! grep -q "xkb_symbols \"$2\"" "$XXRI_XKB_DIR/symbols/${1%%,*}" 2>/dev/null; then
+		echo "layout $1 has no variant $2" >&2; return 1
+	fi
+	sudo_if sh -c "echo 'XKB=$1${2:+:$2}' > /etc/sysconfig/xkb"
+	sudo_if sh -c ". /usr/local/lib/xxri/locale.sh; xxri_xkb_apply '$1' '$2'"
+	echo "X keyboard layout: $1${2:+ ($2)} (applies at the next desktop start)"
 }
 
 cmd_apply() { # called from the X session hook
@@ -124,6 +141,7 @@ case "$1" in
 	natural-scroll) shift; cmd_natural "$@" ;;
 	layouts) cmd_layouts ;;
 	set-layout) shift; cmd_set_layout "$@" ;;
+	set-xkb) shift; cmd_set_xkb "$@" ;;
 	apply) cmd_apply ;;
-	*) echo "usage: xxri-input devices|status|set-repeat D R|set-mouse-speed A [T]|natural-scroll on|off|layouts|set-layout CODE|apply [--json]" >&2; exit 1 ;;
+	*) echo "usage: xxri-input devices|status|set-repeat D R|set-mouse-speed A [T]|natural-scroll on|off|layouts|set-layout CODE|set-xkb LAYOUT [VARIANT]|apply [--json]" >&2; exit 1 ;;
 esac

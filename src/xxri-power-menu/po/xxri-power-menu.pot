@@ -1,0 +1,56 @@
+# Translation template for xxri-power-menu, part of XXRI OS Lite.
+# Distributed under the same license as XXRI OS Lite (GPL-3.0-or-later).
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: xxri-power-menu.c
+msgid "Power"
+msgstr ""
+
+#: xxri-power-menu.c
+msgid "Save state and power off"
+msgstr ""
+
+#: xxri-power-menu.c
+msgid "Shut down"
+msgstr ""
+
+#: xxri-power-menu.c
+msgid "Reboot this computer"
+msgstr ""
+
+#: xxri-power-menu.c
+msgid "Restart"
+msgstr ""
+
+#: xxri-power-menu.c
+msgid "Sleep"
+msgstr ""
+
+#: xxri-power-menu.c
+msgid "Suspend to RAM"
+msgstr ""
+
+#: xxri-power-menu.c
+msgid "End this desktop session"
+msgstr ""
+
+#: xxri-power-menu.c
+msgid "Log out"
+msgstr ""
+
+#: xxri-power-menu.c
+msgid "Cancel"
+msgstr ""

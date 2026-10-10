@@ -2,6 +2,7 @@
 
 config XXRI_STORE
 	bool
+	select HOST_GETTEXT
 	select XXRI_TC_SYSROOT
 	prompt "xxri-store: Store"
 	help

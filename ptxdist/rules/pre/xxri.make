@@ -57,6 +57,23 @@ define xxri/pkgconfig-local
 		-name '*.pc' -printf '%f\n' 2>/dev/null | sed 's/\.pc$$//' >> $(STATEDIR)/$(strip $(2)).pkgconfig
 endef
 
+# gettext catalogs ($(1): package, $(2): domain): compile po/<lang>.po of the
+# program's sources to <build dir>/locale/<lang>/LC_MESSAGES/<domain>.mo and
+# install them below /usr/local/share/locale.  No .po, nothing installed.
+define xxri/mo-compile
+	@mkdir -p $($(strip $(1))_BUILD_DIR)/locale
+	@for po in $($(strip $(1))_DIR)/po/*.po; do \
+		[ -e "$$po" ] || continue; \
+		l=$$(basename "$$po" .po); \
+		case "$$l" in *[!A-Za-z0-9_@]*) echo "xxri: $$po: catalog name must be a locale like pt_PT, not $$l" >&2; exit 1 ;; esac; \
+		mkdir -p $($(strip $(1))_BUILD_DIR)/locale/$$l/LC_MESSAGES && \
+		$(PTXDIST_SYSROOT_HOST)/bin/msgfmt -c -o $($(strip $(1))_BUILD_DIR)/locale/$$l/LC_MESSAGES/$(strip $(2)).mo "$$po" || exit 1; \
+	done
+endef
+define xxri/mo-install
+	@$(call install_tree, $(strip $(1)), 0, 0, $($(strip $(2))_BUILD_DIR)/locale, /usr/local/share/locale)
+endef
+
 # GCC 14 turns these old-C constructs into errors; the 2.6 builds of libfm and
 # the File fork relaxed exactly these
 XXRI_OLD_C_FLAGS	:= -Wno-incompatible-pointer-types -Wno-int-conversion \
@@ -68,7 +85,7 @@ XXRI_OLD_C_FLAGS	:= -Wno-incompatible-pointer-types -Wno-int-conversion \
 # everything else is part of core.gz
 XXRI_CORE_PKGS		:= xxri-base xxri-bootsplash xxri-compositor xxri-control-center \
 	xxri-dialog xxri-file xxri-flwm xxri-glapi xxri-glvnd xxri-installer xxri-launcher \
-	xxri-libexif xxri-libfm xxri-media xxri-menu-cache xxri-power-menu xxri-settings \
+	xxri-libexif xxri-libfm xxri-locales xxri-media xxri-menu-cache xxri-power-menu xxri-settings \
 	xxri-store xxri-wallpaper xxri-wctl
 XXRI_BROWSER_TCZ_PKGS	:= xxri-qt5 xxri-browser
 XXRI_XLIBRE_TCZ_PKGS	:= xxri-xlibre xxri-xlibre-input-libinput xxri-xlibre-video-vesa

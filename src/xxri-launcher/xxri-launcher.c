@@ -1,5 +1,7 @@
 
 #include <gtk/gtk.h>
+#define GETTEXT_PACKAGE "xxri-launcher"
+#include "xxri-i18n.h"
 #include <gdk/gdkx.h>
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -523,13 +525,13 @@ static gboolean on_flow_button(GtkWidget *w, GdkEventButton *e, gpointer d) {
     GtkWidget *menu = gtk_menu_new();
     GtkWidget *item;
     if (a->pinned) {
-        item = gtk_menu_item_new_with_label("Unpin from Dock");
+        item = gtk_menu_item_new_with_label(_("Unpin from Dock"));
         g_signal_connect(item, "activate", G_CALLBACK(on_unpin_activate), a);
     } else {
-        item = gtk_menu_item_new_with_label("Pin to Dock");
+        item = gtk_menu_item_new_with_label(_("Pin to Dock"));
         if (count_pinned() >= MAX_PINNED) {
             gtk_widget_set_sensitive(item, FALSE);
-            gtk_widget_set_tooltip_text(item, "Dock is full (8/8) - unpin an app first");
+            gtk_widget_set_tooltip_text(item, _("Dock is full (8/8) - unpin an app first"));
         } else {
             g_signal_connect(item, "activate", G_CALLBACK(on_pin_activate), a);
         }
@@ -1128,7 +1130,7 @@ static void on_dockmenu_deactivate(GtkMenuShell *m, gpointer d) {
 static int run_dockmenu(const char *id, int x, int y) {
     g_dm_id = (char *)id;
     GtkWidget *menu = gtk_menu_new();
-    GtkWidget *item = gtk_menu_item_new_with_label("Unpin from Dock");
+    GtkWidget *item = gtk_menu_item_new_with_label(_("Unpin from Dock"));
     g_signal_connect(item, "activate", G_CALLBACK(on_dockmenu_unpin), NULL);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), item);
     g_signal_connect(menu, "deactivate", G_CALLBACK(on_dockmenu_deactivate), NULL);
@@ -1148,6 +1150,7 @@ static int run_dockmenu(const char *id, int x, int y) {
 }
 
 int main(int argc, char **argv) {
+    xxri_i18n_init();
     /* --frame-icon and --dock-bg run from xxri-dock-pin, possibly with no
      * display: keep them before gtk_init */
     if (argc >= 4 && !strcmp(argv[1], "--frame-icon"))
@@ -1284,7 +1287,7 @@ int main(int argc, char **argv) {
     g_signal_connect(g_flow, "button-press-event", G_CALLBACK(on_flow_button), NULL);
 
     g_search = gtk_search_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(g_search), "Search");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(g_search), _("Search"));
     gtk_entry_set_has_frame(GTK_ENTRY(g_search), FALSE);
     css_class(g_search, "xxri-search");
     gtk_widget_set_margin_top(g_search, 24);

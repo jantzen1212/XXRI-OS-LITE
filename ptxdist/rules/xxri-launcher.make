@@ -29,6 +29,7 @@ $(STATEDIR)/xxri-launcher.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_LAUNCHER_BUILD_DIR) && mkdir -p $(XXRI_LAUNCHER_BUILD_DIR)
 	@$(call world/execute, XXRI_LAUNCHER, $(CROSS_CC) $(XXRI_OS_CFLAGS) -std=gnu17 -w $(XXRI_GTK3_CFLAGS) $(XXRI_LAUNCHER_DIR)/xxri-launcher.c -o $(XXRI_LAUNCHER_BUILD_DIR)/xxri-launcher $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -lXi -lX11 -lm -mtls-dialect=gnu -static-libgcc)
+	@$(call xxri/mo-compile, XXRI_LAUNCHER, xxri-launcher)
 	@$(call touch)
 
 $(STATEDIR)/xxri-launcher.install:
@@ -50,6 +51,8 @@ $(STATEDIR)/xxri-launcher.targetinstall:
 
 	@$(call install_copy, xxri-launcher, 0, 0, 0755, $(XXRI_LAUNCHER_BUILD_DIR)/xxri-launcher, /usr/local/bin/xxri-launcher)
 	@$(call install_tree, xxri-launcher, 0, 0, $(XXRI_LAUNCHER_DIR)/root, /)
+
+	@$(call xxri/mo-install, xxri-launcher, XXRI_LAUNCHER)
 
 	@$(call install_finish, xxri-launcher)
 

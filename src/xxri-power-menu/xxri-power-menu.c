@@ -2,6 +2,8 @@
  * Options". Everything goes through xxri-power or xxri-desktop.
  */
 #include <gtk/gtk.h>
+#define GETTEXT_PACKAGE "xxri-power-menu"
+#include "xxri-i18n.h"
 #include <cairo.h>
 #include <math.h>
 #include <string.h>
@@ -103,6 +105,7 @@ static gboolean on_key(GtkWidget* w, GdkEventKey* e, gpointer d) {
     return FALSE;
 }
 int main(int argc, char** argv) {
+    xxri_i18n_init();
     if (!gtk_init_check(&argc, &argv)) return 1;
     GtkCssProvider* css = gtk_css_provider_new();
     gtk_css_provider_load_from_path(css, CSS_PATH, NULL);
@@ -113,7 +116,7 @@ int main(int argc, char** argv) {
     xxri_theme_init("/usr/local/share/xxri-control-center/xxri-cc-dark.css", NULL, NULL);
 
     GtkWidget* win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(win), "Power");
+    gtk_window_set_title(GTK_WINDOW(win), _("Power"));
     gtk_window_set_position(GTK_WINDOW(win), GTK_WIN_POS_CENTER);
     gtk_window_set_resizable(GTK_WINDOW(win), FALSE);
     gtk_window_set_type_hint(GTK_WINDOW(win), GDK_WINDOW_TYPE_HINT_DIALOG);
@@ -135,20 +138,20 @@ int main(int argc, char** argv) {
     GtkWidget* col = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     css_class(col, "xxri-pm");
     gtk_container_add(GTK_CONTAINER(win), col);
-    GtkWidget* h = gtk_label_new("Power");
+    GtkWidget* h = gtk_label_new(_("Power"));
     gtk_label_set_xalign(GTK_LABEL(h), 0); css_class(h, "xxri-pm-head");
     gtk_box_pack_start(GTK_BOX(col), h, FALSE, FALSE, 0);
 
-    gtk_box_pack_start(GTK_BOX(col), action("power","Shut down","Save state and power off","shutdown"), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(col), action("restart","Restart","Reboot this computer","reboot"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(col), action("power",_("Shut down"),_("Save state and power off"),"shutdown"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(col), action("restart",_("Restart"),_("Reboot this computer"),"reboot"), FALSE, FALSE, 0);
     /* only offer sleep when the kernel really supports it */
     char* caps = run_cmd("xxri-power capabilities --json");
     if (strstr(caps, "\"suspend\":true"))
-        gtk_box_pack_start(GTK_BOX(col), action("sleep","Sleep","Suspend to RAM","suspend"), FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(col), action("sleep",_("Sleep"),_("Suspend to RAM"),"suspend"), FALSE, FALSE, 0);
     g_free(caps);
-    gtk_box_pack_start(GTK_BOX(col), action("logout","Log out","End this desktop session","logout"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(col), action("logout",_("Log out"),_("End this desktop session"),"logout"), FALSE, FALSE, 0);
 
-    GtkWidget* cancel = gtk_button_new_with_label("Cancel");
+    GtkWidget* cancel = gtk_button_new_with_label(_("Cancel"));
     css_class(cancel, "xxri-pm-cancel");
     g_signal_connect(cancel, "clicked", G_CALLBACK(gtk_main_quit), NULL);
     gtk_box_pack_start(GTK_BOX(col), cancel, FALSE, FALSE, 0);

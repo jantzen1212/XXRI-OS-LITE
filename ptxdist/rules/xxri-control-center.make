@@ -29,6 +29,7 @@ $(STATEDIR)/xxri-control-center.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_CONTROL_CENTER_BUILD_DIR) && mkdir -p $(XXRI_CONTROL_CENTER_BUILD_DIR)
 	@$(call world/execute, XXRI_CONTROL_CENTER, $(CROSS_CC) $(XXRI_OS_CFLAGS) -w $(XXRI_GTK3_CFLAGS) $(XXRI_CONTROL_CENTER_DIR)/xxri-control-center.c -o $(XXRI_CONTROL_CENTER_BUILD_DIR)/xxri-control-center $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -lX11 -lm -mtls-dialect=gnu -static-libgcc)
+	@$(call xxri/mo-compile, XXRI_CONTROL_CENTER, xxri-control-center)
 	@$(call touch)
 
 $(STATEDIR)/xxri-control-center.install:
@@ -50,6 +51,8 @@ $(STATEDIR)/xxri-control-center.targetinstall:
 
 	@$(call install_copy, xxri-control-center, 0, 0, 0755, $(XXRI_CONTROL_CENTER_BUILD_DIR)/xxri-control-center, /usr/local/bin/xxri-control-center)
 	@$(call install_tree, xxri-control-center, 0, 0, $(XXRI_CONTROL_CENTER_DIR)/root, /)
+
+	@$(call xxri/mo-install, xxri-control-center, XXRI_CONTROL_CENTER)
 
 	@$(call install_finish, xxri-control-center)
 

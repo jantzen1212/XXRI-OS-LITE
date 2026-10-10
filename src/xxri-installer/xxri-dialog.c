@@ -8,6 +8,8 @@
  * A GtkMessageDialog styled by xxri-dialog.h, same as in the apps.
  */
 #include <gtk/gtk.h>
+#define GETTEXT_PACKAGE "xxri-installer"
+#include "xxri-i18n.h"
 #include <string.h>
 #include <stdio.h>
 #include "xxri-dialog.h"
@@ -31,6 +33,7 @@ static gboolean on_map(GtkWidget* w, GdkEvent* e, gpointer d) {
 }
 
 int main(int argc, char** argv) {
+    xxri_i18n_init();
     gtk_init(&argc, &argv);
     if (argc < 4) {
         fprintf(stderr, "usage: xxri-dialog ask|info|error TITLE BODY [PRIMARY [SECONDARY]]\n");
@@ -40,8 +43,8 @@ int main(int argc, char** argv) {
     const char* title = argv[2];
     const char* body  = argv[3];
     gboolean    ask   = !strcmp(mode, "ask");
-    const char* prim  = argc > 4 ? argv[4] : (ask ? "Yes" : "OK");
-    const char* sec   = argc > 5 ? argv[5] : "Not now";
+    const char* prim  = argc > 4 ? argv[4] : (ask ? _("Yes") : _("OK"));
+    const char* sec   = argc > 5 ? argv[5] : _("Not now");
 
     xxri_dialogs_init();
     gboolean dark = FALSE;

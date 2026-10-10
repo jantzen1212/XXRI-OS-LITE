@@ -29,6 +29,7 @@ $(STATEDIR)/xxri-settings.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_SETTINGS_BUILD_DIR) && mkdir -p $(XXRI_SETTINGS_BUILD_DIR)
 	@$(call world/execute, XXRI_SETTINGS, $(CROSS_CXX) $(XXRI_OS_CFLAGS) -w -fpermissive $(XXRI_GTK3_CFLAGS) $(XXRI_SETTINGS_DIR)/xxri-settings.c -o $(XXRI_SETTINGS_BUILD_DIR)/xxri-settings $(XXRI_TC_LDFLAGS) $(XXRI_GTK3_LIBS) -mtls-dialect=gnu -static-libgcc)
+	@$(call xxri/mo-compile, XXRI_SETTINGS, xxri-settings)
 	@$(call touch)
 
 $(STATEDIR)/xxri-settings.install:
@@ -50,6 +51,8 @@ $(STATEDIR)/xxri-settings.targetinstall:
 
 	@$(call install_copy, xxri-settings, 0, 0, 0755, $(XXRI_SETTINGS_BUILD_DIR)/xxri-settings, /usr/local/bin/xxri-settings)
 	@$(call install_tree, xxri-settings, 0, 0, $(XXRI_SETTINGS_DIR)/root, /)
+
+	@$(call xxri/mo-install, xxri-settings, XXRI_SETTINGS)
 
 	@$(call install_finish, xxri-settings)
 

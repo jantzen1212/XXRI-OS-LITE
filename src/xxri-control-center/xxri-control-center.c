@@ -4,6 +4,8 @@
  * Settings. One override-redirect window that is either the status chip or
  * the expanded panel. No grabs, never takes focus. */
 #include <gtk/gtk.h>
+#define GETTEXT_PACKAGE "xxri-control-center"
+#include "xxri-i18n.h"
 #include <gdk/gdkx.h>
 #include <cairo.h>
 #include <cairo-xlib.h>
@@ -151,7 +153,7 @@ static void state_read(void) {
         char* ssid  = jget(best, "ssid");
         char* iface = jget(best, "interface");
         char* ip    = jget(best, "ip");
-        S.net_kind = g_strdup(best_wifi ? "Wi-Fi" : "Ethernet");
+        S.net_kind = g_strdup(best_wifi ? N_("Wi-Fi") : N_("Ethernet"));
         /* SSID on Wi-Fi, the address on a wire; the interface name last */
         if (*ssid)      S.net_name = g_strdup(ssid);
         else if (*ip)   S.net_name = g_strdup(ip);
@@ -159,15 +161,15 @@ static void state_read(void) {
         g_free(ssid); g_free(iface); g_free(ip);
     } else {
         S.net_up = FALSE;
-        S.net_kind = g_strdup("Network");
-        S.net_name = g_strdup("Not connected");
+        S.net_kind = g_strdup(N_("Network"));
+        S.net_name = g_strdup(_("Not connected"));
     }
     g_free(net);
 
     char* bt = run_cmd("xxri-bluetooth status --json");
     S.bt_ok = jbool(bt, "available");
     S.bt_on = S.bt_ok && jbool(bt, "enabled");
-    { char* r = jget(bt, "reason"); S.bt_reason = *r ? r : g_strdup("Not available"); }
+    { char* r = jget(bt, "reason"); S.bt_reason = *r ? r : g_strdup(_("Not available")); }
     g_free(bt);
 
     char* au = run_cmd("xxri-audio volume --json");
@@ -913,9 +915,9 @@ static GtkWidget* build_panel(void) {
     GtkWidget* tiles = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_box_pack_start(GTK_BOX(tiles),
         build_tile(S.net_up && !strcmp(S.net_kind,"Wi-Fi") ? "wifi" : "eth",
-                   S.net_kind, S.net_name, S.net_up, G_CALLBACK(on_wifi)), TRUE, TRUE, 0);
+                   _(S.net_kind), S.net_name, S.net_up, G_CALLBACK(on_wifi)), TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(tiles),
-        build_tile("bt", "Bluetooth", S.bt_on ? "On" : S.bt_ok ? "Off" : "Unavailable",
+        build_tile("bt", _("Bluetooth"), S.bt_on ? _("On") : S.bt_ok ? _("Off") : _("Unavailable"),
                    S.bt_on, G_CALLBACK(on_bt)), TRUE, TRUE, 0);
     gtk_widget_set_margin_bottom(tiles, 4);
     gtk_box_pack_start(GTK_BOX(col), tiles, FALSE, FALSE, 0);
@@ -929,7 +931,7 @@ static GtkWidget* build_panel(void) {
         GtkWidget* row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
         css_class(row, "xxri-cc-slider-row");
         gtk_box_pack_start(GTK_BOX(row), glyph("vol", 26, 24, FALSE), FALSE, FALSE, 0);
-        GtkWidget* l = lbl("No audio device", "xxri-cc-unavail", 0);
+        GtkWidget* l = lbl(_("No audio device"), "xxri-cc-unavail", 0);
         gtk_widget_set_valign(l, GTK_ALIGN_CENTER);
         gtk_box_pack_start(GTK_BOX(row), l, TRUE, TRUE, 0);
         gtk_box_pack_start(GTK_BOX(col), row, FALSE, FALSE, 0);
@@ -1072,6 +1074,7 @@ static gboolean first_state_read(gpointer d) {
 }
 
 int main(int argc, char** argv) {
+    xxri_i18n_init();
     /* single instance: a second launch controls the running one */
     char pidpath[256];
     { char* rp = cc_runtime_path("pid");

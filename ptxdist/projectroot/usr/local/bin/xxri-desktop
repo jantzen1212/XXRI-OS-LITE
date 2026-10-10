@@ -21,7 +21,8 @@
 #   xxri-desktop accent set '#RRGGBB'
 #   xxri-desktop hostname set NAME
 #   xxri-desktop autologin set on|off
-#   xxri-desktop language set CODE | region set TZSTRING LABEL
+#   xxri-desktop language [list | set LANG [LC_xxx=NAME ...]]
+#   xxri-desktop region set TZSTRING LABEL
 #   xxri-desktop datetime [--json] | ntp-sync
 #   xxri-desktop reset | restart-session
 . /usr/local/lib/xxri/hw-lib.sh
@@ -430,10 +431,32 @@ cmd_autologin() {
 }
 
 cmd_language() {
+	. /usr/local/lib/xxri/locale.sh
 	case "$1" in
-		set) sudo_if sh -c "echo 'LANG=$2' > /etc/sysconfig/language"; echo "language: $2" ;;
-		*) sed -n 's/^LANG=//p' /etc/sysconfig/language 2>/dev/null || echo en_US ;;
+		set) shift; cmd_language_set "$@" ;;
+		list) xxri_locales ;;
+		*) # the locale new sessions get
+		   _cur="$(sed -n 's/^LANG=//p' /etc/sysconfig/language 2>/dev/null | head -1)"
+		   xxri_locale_norm "${_cur:-$XXRI_LOCALE_DEFAULT}"
+		   echo "$XXRI_LOCALE" ;;
 	esac
+}
+cmd_language_set() {
+	[ -n "$1" ] || { echo "usage: xxri-desktop language set LANG [LC_xxx=NAME ...]" >&2; return 1; }
+	xxri_locale_norm "$1"; _main=$XXRI_LOCALE; shift
+	xxri_locale_ok "$_main" || { echo "locale not installed: $_main (xxri-desktop language list)" >&2; return 1; }
+	_out="LANG=$_main"
+	for _kv in "$@"; do
+		_v=${_kv%%=*}; _n=${_kv#*=}
+		case " $XXRI_LC_VARS " in *" $_v "*) ;; *) echo "not a locale category: $_v" >&2; return 1 ;; esac
+		[ "$_v" != "$_kv" ] || { echo "usage: $_v=NAME" >&2; return 1; }
+		xxri_locale_norm "$_n"
+		xxri_locale_ok "$XXRI_LOCALE" || { echo "locale not installed: $XXRI_LOCALE" >&2; return 1; }
+		_out="$_out
+$_v=$XXRI_LOCALE"
+	done
+	printf '%s\n' "$_out" | sudo_if tee /etc/sysconfig/language >/dev/null
+	echo "language: $_main (applies to new sessions)"
 }
 cmd_region() {
 	case "$1" in

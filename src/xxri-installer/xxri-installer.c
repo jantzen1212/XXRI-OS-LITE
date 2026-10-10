@@ -9,6 +9,8 @@
  * painting the root pixmap's wallpaper.
  */
 #include <gtk/gtk.h>
+#define GETTEXT_PACKAGE "xxri-installer"
+#include "xxri-i18n.h"
 #include <gdk/gdkx.h>
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
@@ -170,9 +172,9 @@ static const Lang LANGS[] = {
 };
 /* backend phases; task_for_pct() must match xxri-install-backend's P| values */
 static const char* TASKS[] = {
-    "Prepare the disk", "Format the XXRI partition", "Copy system files",
-    "Create your account", "Set name and language", "Add apps and extensions",
-    "Install the boot loader", "Finish up" };
+    N_("Prepare the disk"), N_("Format the XXRI partition"), N_("Copy system files"),
+    N_("Create your account"), N_("Set name and language"), N_("Add apps and extensions"),
+    N_("Install the boot loader"), N_("Finish up") };
 #define NTASKS ((int)G_N_ELEMENTS(TASKS))
 static int task_for_pct(int p) {
     if (p < 10) return 0;
@@ -396,10 +398,10 @@ static GtkWidget* form_row(const char* name, GtkWidget* field) {
 static GtkWidget* build_welcome(void) {
     GtkWidget* v = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_widget_set_halign(v, GTK_ALIGN_CENTER); gtk_widget_set_valign(v, GTK_ALIGN_CENTER);
-    gtk_box_pack_start(GTK_BOX(v), label("Welcome", "xi-hero", 0.5), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(v), label(_("Welcome"), "xi-hero", 0.5), FALSE, FALSE, 0);
     GtkWidget* s = label(NULL, "xi-hero-sub", 0.5);
     gtk_label_set_markup(GTK_LABEL(s),
-        "to <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>");
+        _("to <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"));
     gtk_box_pack_start(GTK_BOX(v), s, FALSE, FALSE, 0);
 
     GtkWidget* card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
@@ -409,13 +411,13 @@ static GtkWidget* build_welcome(void) {
     for (guint i = 0; i < G_N_ELEMENTS(REGIONS); i++) drop_add(dr_region, REGIONS[i].label);
     dr_lang = drop_new();
     for (guint i = 0; i < G_N_ELEMENTS(LANGS); i++) drop_add(dr_lang, LANGS[i].label);
-    GtkWidget* kbd = drop_new(); drop_add(kbd, "US (default)");
-    gtk_box_pack_start(GTK_BOX(card), form_row("Region", dr_region), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(card), form_row("Language", dr_lang), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(card), form_row("Keyboard", kbd), FALSE, FALSE, 0);
+    GtkWidget* kbd = drop_new(); drop_add(kbd, _("US (default)"));
+    gtk_box_pack_start(GTK_BOX(card), form_row(_("Region"), dr_region), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), form_row(_("Language"), dr_lang), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), form_row(_("Keyboard"), kbd), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(v), card, FALSE, FALSE, 0);
 
-    GtkWidget* nx = bt_welcome_next = button("Continue", TRUE, G_CALLBACK(cb_welcome_next));
+    GtkWidget* nx = bt_welcome_next = button(_("Continue"), TRUE, G_CALLBACK(cb_welcome_next));
     css(nx, "xi-wide");
     gtk_widget_set_halign(nx, GTK_ALIGN_CENTER);
     gtk_widget_set_size_request(nx, 170, -1);
@@ -455,31 +457,31 @@ static void account_refresh(void) {
     const char* p2 = gtk_entry_get_text(GTK_ENTRY(en_pw2));
 
     gboolean uok = name_ok(u, TRUE);
-    if (uok) { hint(hi_user, "You sign in with this name. It is also the name of your home folder.", NULL); uncss(en_user, "bad"); }
+    if (uok) { hint(hi_user, _("You sign in with this name. It is also the name of your home folder."), NULL); uncss(en_user, "bad"); }
     else {
-        hint(hi_user, !*u ? "Type a name to sign in with, for example your first name."
-                     : isdigit((unsigned char)*u) ? "The name cannot start with a number."
-                     : "Use lowercase letters and numbers only, without spaces.", "bad");
+        hint(hi_user, !*u ? _("Type a name to sign in with, for example your first name.")
+                     : isdigit((unsigned char)*u) ? _("The name cannot start with a number.")
+                     : _("Use lowercase letters and numbers only, without spaces."), "bad");
         css(en_user, "bad");
     }
     gboolean hok = name_ok(h, FALSE);
-    if (hok) { hint(hi_host, "How this computer is called on a network.", NULL); uncss(en_host, "bad"); }
+    if (hok) { hint(hi_host, _("How this computer is called on a network."), NULL); uncss(en_host, "bad"); }
     else {
-        hint(hi_host, !*h ? "Give this computer a name, for example pc-xxri."
-                          : "Use letters, numbers and hyphens only, without spaces.", "bad");
+        hint(hi_host, !*h ? _("Give this computer a name, for example pc-xxri.")
+                          : _("Use letters, numbers and hyphens only, without spaces."), "bad");
         css(en_host, "bad");
     }
     size_t n = strlen(p1);
     if (strcmp(p1, p2)) {
-        hint(hi_pw, !*p2 ? "Type the same password again to confirm it."
-                         : "The two passwords are not the same yet.", *p2 ? "bad" : NULL);
+        hint(hi_pw, !*p2 ? _("Type the same password again to confirm it.")
+                         : _("The two passwords are not the same yet."), *p2 ? "bad" : NULL);
         if (*p2) css(en_pw2, "bad"); else uncss(en_pw2, "bad");
     } else {
         uncss(en_pw2, "bad");
-        if (!n)          hint(hi_pw, "Optional. Leave both empty to use this computer without a password.", NULL);
-        else if (n < 6)  hint(hi_pw, "The passwords match. Short password - 6 or more characters is safer.", NULL);
-        else             hint(hi_pw, n < 10 ? "The passwords match. Good password."
-                                            : "The passwords match. Strong password.", "good");
+        if (!n)          hint(hi_pw, _("Optional. Leave both empty to use this computer without a password."), NULL);
+        else if (n < 6)  hint(hi_pw, _("The passwords match. Short password - 6 or more characters is safer."), NULL);
+        else             hint(hi_pw, n < 10 ? _("The passwords match. Good password.")
+                                            : _("The passwords match. Strong password."), "good");
     }
     gtk_widget_set_sensitive(bt_acc_next, uok && hok && !strcmp(p1, p2));
 }
@@ -533,15 +535,15 @@ static GtkWidget* build_account(void) {
     gtk_widget_set_halign(card, GTK_ALIGN_CENTER); gtk_widget_set_valign(card, GTK_ALIGN_CENTER);
     gtk_widget_set_size_request(card, 520, -1);
 
-    gtk_box_pack_start(GTK_BOX(card), label("Create your account", "xi-title", 0.5), FALSE, FALSE, 0);
-    GtkWidget* s = wrapped("This is the account you will use on this computer.", "xi-sub", 0.5, 60);
+    gtk_box_pack_start(GTK_BOX(card), label(_("Create your account"), "xi-title", 0.5), FALSE, FALSE, 0);
+    GtkWidget* s = wrapped(_("This is the account you will use on this computer."), "xi-sub", 0.5, 60);
     gtk_widget_set_margin_top(s, 4); gtk_widget_set_margin_bottom(s, 18);
     gtk_box_pack_start(GTK_BOX(card), s, FALSE, FALSE, 0);
 
     en_user = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(en_user), "xxri");
     gtk_entry_set_max_length(GTK_ENTRY(en_user), 32);
-    gtk_box_pack_start(GTK_BOX(card), field("Username", en_user), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), field(_("Username"), en_user), FALSE, FALSE, 0);
     hi_user = wrapped("", "xi-hint", 0, 70);
     gtk_widget_set_margin_top(hi_user, 4); gtk_widget_set_margin_bottom(hi_user, 12);
     gtk_box_pack_start(GTK_BOX(card), hi_user, FALSE, FALSE, 0);
@@ -549,7 +551,7 @@ static GtkWidget* build_account(void) {
     en_host = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(en_host), "pc-xxri");
     gtk_entry_set_max_length(GTK_ENTRY(en_host), 63);
-    gtk_box_pack_start(GTK_BOX(card), field("Computer name", en_host), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), field(_("Computer name"), en_host), FALSE, FALSE, 0);
     hi_host = wrapped("", "xi-hint", 0, 70);
     gtk_widget_set_margin_top(hi_host, 4); gtk_widget_set_margin_bottom(hi_host, 12);
     gtk_box_pack_start(GTK_BOX(card), hi_host, FALSE, FALSE, 0);
@@ -560,8 +562,8 @@ static GtkWidget* build_account(void) {
     en_pw2 = gtk_entry_new(); gtk_entry_set_visibility(GTK_ENTRY(en_pw2), FALSE);
     gtk_entry_set_input_purpose(GTK_ENTRY(en_pw), GTK_INPUT_PURPOSE_PASSWORD);
     gtk_entry_set_input_purpose(GTK_ENTRY(en_pw2), GTK_INPUT_PURPOSE_PASSWORD);
-    gtk_box_pack_start(GTK_BOX(pwrow), field("Password", en_pw), TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(pwrow), field("Confirm password", en_pw2), TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(pwrow), field(_("Password"), en_pw), TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(pwrow), field(_("Confirm password"), en_pw2), TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(card), pwrow, FALSE, FALSE, 0);
     hi_pw = wrapped("", "xi-hint", 0, 70);
     gtk_widget_set_margin_top(hi_pw, 4); gtk_widget_set_margin_bottom(hi_pw, 14);
@@ -569,8 +571,8 @@ static GtkWidget* build_account(void) {
 
     GtkWidget* ar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
     GtkWidget* av = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-    gtk_box_pack_start(GTK_BOX(av), label("Sign in automatically", "xi-label", 0), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(av), label("Go straight to the desktop when the computer starts.", "xi-hint", 0), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(av), label(_("Sign in automatically"), "xi-label", 0), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(av), label(_("Go straight to the desktop when the computer starts."), "xi-hint", 0), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(ar), av, TRUE, TRUE, 0);
     sw_auto = gtk_switch_new();
     gtk_switch_set_active(GTK_SWITCH(sw_auto), TRUE);
@@ -580,8 +582,8 @@ static GtkWidget* build_account(void) {
 
     GtkWidget* br = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     gtk_widget_set_margin_top(br, 22);
-    gtk_box_pack_start(GTK_BOX(br), button("Back", FALSE, G_CALLBACK(cb_account_back)), FALSE, FALSE, 0);
-    bt_acc_next = button("Continue", TRUE, G_CALLBACK(cb_account_next));
+    gtk_box_pack_start(GTK_BOX(br), button(_("Back"), FALSE, G_CALLBACK(cb_account_back)), FALSE, FALSE, 0);
+    bt_acc_next = button(_("Continue"), TRUE, G_CALLBACK(cb_account_next));
     gtk_widget_set_size_request(bt_acc_next, 130, -1);
     gtk_box_pack_end(GTK_BOX(br), bt_acc_next, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(card), br, FALSE, FALSE, 0);
@@ -604,7 +606,7 @@ static void load_devices(void) {
         while (fgets(l, sizeof l, f)) {
             Disk d; char fs[128]; memset(&d, 0, sizeof d);
             if (sscanf(l, "DISK|%63[^|]|%127[^|]|%ld|%d|%127[^|\n]", d.dev, d.model, &d.mib, &d.removable, fs) == 5) {
-                snprintf(d.fs, sizeof d.fs, "Current content: %s", fs);
+                snprintf(d.fs, sizeof d.fs, _("Current content: %s"), fs);
                 g_array_append_val(g_disks, d);
             }
         }
@@ -618,8 +620,8 @@ static void load_devices(void) {
             int k = sscanf(l, "PART|%63[^|]|%ld|%63[^|]|%63[^|\n]", d.dev, &d.mib, fs, lab);
             if (k >= 3) {
                 g_strlcpy(d.model, d.dev, sizeof d.model);
-                if (lab[0]) snprintf(d.fs, sizeof d.fs, "%s  label %s  -  will be formatted ext4", fs, lab);
-                else        snprintf(d.fs, sizeof d.fs, "%s  -  will be formatted ext4", fs);
+                if (lab[0]) snprintf(d.fs, sizeof d.fs, _("%s  label %s  -  will be formatted ext4"), fs, lab);
+                else        snprintf(d.fs, sizeof d.fs, _("%s  -  will be formatted ext4"), fs);
                 g_array_append_val(g_parts, d);
             }
         }
@@ -660,10 +662,10 @@ static void dest_note(void) {
     if (!v->len) { gtk_label_set_text(GTK_LABEL(lb_dest_note), ""); }
     else if (g_manual)
         gtk_label_set_text(GTK_LABEL(lb_dest_note),
-            "Only the selected partition is formatted. The rest of the disk is left as it is.");
+            _("Only the selected partition is formatted. The rest of the disk is left as it is."));
     else {
         gtk_label_set_text(GTK_LABEL(lb_dest_note),
-            "Everything on the selected disk will be erased.");
+            _("Everything on the selected disk will be erased."));
         css(lb_dest_note, "warn");
     }
     gtk_widget_set_sensitive(bt_install, g_sel[0] != 0);
@@ -704,7 +706,7 @@ static void rebuild_disklist(void) {
         gtk_widget_set_valign(tv, GTK_ALIGN_CENTER);
         char l1[200];
         snprintf(l1, sizeof l1, "%s   %.1f GiB%s", d->model, d->mib / 1024.0,
-                 d->removable ? "   (removable)" : "");
+                 d->removable ? _("   (removable)") : "");
         GtkWidget* n = label(l1, "xi-disk-name", 0);
         gtk_label_set_ellipsize(GTK_LABEL(n), PANGO_ELLIPSIZE_END);
         GtkWidget* s = label(d->fs, "xi-disk-sub", 0);
@@ -724,13 +726,13 @@ static void rebuild_disklist(void) {
     }
     if (v->len > shown) {
         char more[64];
-        snprintf(more, sizeof more, "...and %u more device(s)", v->len - shown);
+        snprintf(more, sizeof more, _("...and %u more device(s)"), v->len - shown);
         gtk_box_pack_start(GTK_BOX(box_disks), label(more, "xi-note", 0.5), FALSE, FALSE, 0);
     }
     if (!v->len)
         gtk_box_pack_start(GTK_BOX(box_disks),
-            wrapped(g_manual ? "No partitions were found. Choose \"Erase disk\" to let XXRI prepare a disk."
-                             : "No disk to install on was detected.", "xi-note", 0.5, 56),
+            wrapped(g_manual ? _("No partitions were found. Choose \"Erase disk\" to let XXRI prepare a disk.")
+                             : _("No disk to install on was detected."), "xi-note", 0.5, 56),
             FALSE, FALSE, 8);
     gtk_widget_show_all(box_disks);
     dest_note();
@@ -757,16 +759,16 @@ static GtkWidget* build_dest(void) {
     gtk_widget_set_halign(card, GTK_ALIGN_CENTER); gtk_widget_set_valign(card, GTK_ALIGN_CENTER);
     gtk_widget_set_size_request(card, 540, -1);
 
-    gtk_box_pack_start(GTK_BOX(card), label("Where should XXRI be installed?", "xi-title", 0.5), FALSE, FALSE, 0);
-    GtkWidget* s = wrapped("Erase a whole disk, or choose a partition you prepared yourself.", "xi-sub", 0.5, 60);
+    gtk_box_pack_start(GTK_BOX(card), label(_("Where should XXRI be installed?"), "xi-title", 0.5), FALSE, FALSE, 0);
+    GtkWidget* s = wrapped(_("Erase a whole disk, or choose a partition you prepared yourself."), "xi-sub", 0.5, 60);
     gtk_widget_set_margin_top(s, 4); gtk_widget_set_margin_bottom(s, 16);
     gtk_box_pack_start(GTK_BOX(card), s, FALSE, FALSE, 0);
 
     GtkWidget* seg = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     css(seg, "xi-seg"); gtk_widget_set_halign(seg, GTK_ALIGN_CENTER);
     gtk_box_set_homogeneous(GTK_BOX(seg), TRUE);
-    seg_full = button("Erase disk", FALSE, G_CALLBACK(cb_seg));
-    seg_man  = button("Choose partition", FALSE, G_CALLBACK(cb_seg));
+    seg_full = button(_("Erase disk"), FALSE, G_CALLBACK(cb_seg));
+    seg_man  = button(_("Choose partition"), FALSE, G_CALLBACK(cb_seg));
     css(seg_full, "on");
     gtk_box_pack_start(GTK_BOX(seg), seg_full, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(seg), seg_man, TRUE, TRUE, 0);
@@ -782,8 +784,8 @@ static GtkWidget* build_dest(void) {
 
     GtkWidget* br = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     gtk_widget_set_margin_top(br, 18);
-    gtk_box_pack_start(GTK_BOX(br), button("Back", FALSE, G_CALLBACK(cb_dest_back)), FALSE, FALSE, 0);
-    bt_install = button("Install", TRUE, G_CALLBACK(cb_dest_next));
+    gtk_box_pack_start(GTK_BOX(br), button(_("Back"), FALSE, G_CALLBACK(cb_dest_back)), FALSE, FALSE, 0);
+    bt_install = button(_("Install"), TRUE, G_CALLBACK(cb_dest_next));
     gtk_widget_set_size_request(bt_install, 130, -1);
     gtk_box_pack_end(GTK_BOX(br), bt_install, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(card), br, FALSE, FALSE, 0);
@@ -900,8 +902,8 @@ static GtkWidget* build_prog(void) {
     GtkWidget* card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     css(card, "xi-card");
     gtk_widget_set_size_request(card, 500, -1);
-    gtk_box_pack_start(GTK_BOX(card), label("Installing XXRI OS Lite", "xi-title", 0.5), FALSE, FALSE, 0);
-    GtkWidget* s = label("This takes a few minutes. You can leave the computer to it.", "xi-sub", 0.5);
+    gtk_box_pack_start(GTK_BOX(card), label(_("Installing XXRI OS Lite"), "xi-title", 0.5), FALSE, FALSE, 0);
+    GtkWidget* s = label(_("This takes a few minutes. You can leave the computer to it."), "xi-sub", 0.5);
     gtk_widget_set_margin_top(s, 4);
     gtk_box_pack_start(GTK_BOX(card), s, FALSE, FALSE, 0);
 
@@ -912,7 +914,7 @@ static GtkWidget* build_prog(void) {
     g_signal_connect(ring, "draw", G_CALLBACK(ring_draw), NULL);
     gtk_box_pack_start(GTK_BOX(card), ring, FALSE, FALSE, 0);
 
-    lb_op = label("Preparing...", "xi-op", 0.5);
+    lb_op = label(_("Preparing..."), "xi-op", 0.5);
     gtk_label_set_ellipsize(GTK_LABEL(lb_op), PANGO_ELLIPSIZE_END);
     gtk_widget_set_margin_top(lb_op, 12); gtk_widget_set_margin_bottom(lb_op, 14);
     gtk_box_pack_start(GTK_BOX(card), lb_op, FALSE, FALSE, 0);
@@ -924,7 +926,7 @@ static GtkWidget* build_prog(void) {
         GtkWidget* m = gtk_drawing_area_new();
         gtk_widget_set_size_request(m, 18, 18); gtk_widget_set_valign(m, GTK_ALIGN_CENTER);
         g_signal_connect(m, "draw", G_CALLBACK(step_draw), GINT_TO_POINTER(i));
-        GtkWidget* lb = label(TASKS[i], "xi-step", 0);
+        GtkWidget* lb = label(_(TASKS[i]), "xi-step", 0);
         gtk_widget_set_size_request(lb, 220, -1);
         gtk_box_pack_start(GTK_BOX(r), m, FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(r), lb, FALSE, FALSE, 0);
@@ -940,11 +942,11 @@ static GtkWidget* build_prog(void) {
     GtkWidget* ec = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     css(ec, "xi-card"); css(ec, "tight");
     gtk_widget_set_size_request(ec, 500, -1);
-    gtk_box_pack_start(GTK_BOX(ec), label("Something went wrong", "xi-err-title", 0), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(ec), label(_("Something went wrong"), "xi-err-title", 0), FALSE, FALSE, 0);
     lb_err = wrapped("", "xi-err-text", 0, 66);
     gtk_label_set_selectable(GTK_LABEL(lb_err), FALSE);
     gtk_box_pack_start(GTK_BOX(ec), lb_err, FALSE, FALSE, 0);
-    GtkWidget* cl = button("Close", FALSE, G_CALLBACK(cb_err_close));
+    GtkWidget* cl = button(_("Close"), FALSE, G_CALLBACK(cb_err_close));
     gtk_widget_set_halign(cl, GTK_ALIGN_END);
     gtk_box_pack_start(GTK_BOX(ec), cl, FALSE, FALSE, 0);
     gtk_container_add(GTK_CONTAINER(rv_err), ec);
@@ -978,21 +980,21 @@ static GtkWidget* build_finish(void) {
     gtk_widget_set_size_request(bd, 58, 58); gtk_widget_set_halign(bd, GTK_ALIGN_CENTER);
     g_signal_connect(bd, "draw", G_CALLBACK(badge_draw), NULL);
     gtk_box_pack_start(GTK_BOX(card), bd, FALSE, FALSE, 0);
-    GtkWidget* t = label("All done", "xi-title", 0.5);
+    GtkWidget* t = label(_("All done"), "xi-title", 0.5);
     gtk_widget_set_margin_top(t, 14);
     gtk_box_pack_start(GTK_BOX(card), t, FALSE, FALSE, 0);
-    GtkWidget* m = wrapped("XXRI OS Lite is installed on this computer. Remove the installation "
-                           "medium, then restart to begin using it.", "xi-sub", 0.5, 52);
+    GtkWidget* m = wrapped(_("XXRI OS Lite is installed on this computer. Remove the installation "
+                           "medium, then restart to begin using it."), "xi-sub", 0.5, 52);
     gtk_widget_set_margin_top(m, 6); gtk_widget_set_margin_bottom(m, 20);
     gtk_box_pack_start(GTK_BOX(card), m, FALSE, FALSE, 0);
 
     GtkWidget* col = gtk_box_new(GTK_ORIENTATION_VERTICAL, 9);
     gtk_widget_set_halign(col, GTK_ALIGN_CENTER);
     gtk_widget_set_size_request(col, 270, -1);
-    GtkWidget* r = bt_restart = button("Restart now", TRUE, G_CALLBACK(cb_restart)); css(r, "xi-wide");
+    GtkWidget* r = bt_restart = button(_("Restart now"), TRUE, G_CALLBACK(cb_restart)); css(r, "xi-wide");
     gtk_box_pack_start(GTK_BOX(col), r, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(col), button("Shut down", FALSE, G_CALLBACK(cb_poweroff)), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(col), button("Continue live session", FALSE, G_CALLBACK(cb_live)), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(col), button(_("Shut down"), FALSE, G_CALLBACK(cb_poweroff)), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(col), button(_("Continue live session"), FALSE, G_CALLBACK(cb_live)), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(card), col, FALSE, FALSE, 0);
 
     lb_uuid = label("", "xi-mono", 0.5);
@@ -1015,14 +1017,14 @@ static void backend_line(const char* line) {
         if (t != g_step) { g_step = t; steps_refresh(); }
         anim_start();
     } else if (!strncmp(line, "E|", 2)) {
-        char* em = g_strdup_printf("%s\n\nOnly the target disk was touched. Close to review and retry.", line + 2);
+        char* em = g_strdup_printf(_("%s\n\nOnly the target disk was touched. Close to review and retry."), line + 2);
         gtk_label_set_text(GTK_LABEL(lb_err), em);
         g_free(em);
         g_running = FALSE;
-        gtk_label_set_text(GTK_LABEL(lb_op), "The installation stopped.");
+        gtk_label_set_text(GTK_LABEL(lb_op), _("The installation stopped."));
         gtk_revealer_set_reveal_child(GTK_REVEALER(rv_err), TRUE);
     } else if (!strncmp(line, "DONE|", 5)) {
-        char* u = g_strdup_printf("Root filesystem  LABEL=XXRIROOT  -  UUID %s", line + 5);
+        char* u = g_strdup_printf(_("Root filesystem  LABEL=XXRIROOT  -  UUID %s"), line + 5);
         gtk_label_set_text(GTK_LABEL(lb_uuid), u);
         g_free(u);
         g_running = FALSE;
@@ -1063,7 +1065,7 @@ static void start_install(void) {
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(rv_err), FALSE);
     g_pct_target = g_pct_shown = 0; g_step = 0; g_phase = 0;
-    gtk_label_set_text(GTK_LABEL(lb_op), "Preparing...");
+    gtk_label_set_text(GTK_LABEL(lb_op), _("Preparing..."));
     steps_refresh();
     show_page("prog");
 
@@ -1111,6 +1113,7 @@ static void theme_changed(gboolean dark, gpointer u) {
     g_list_free(tops);
 }
 int main(int argc, char** argv) {
+    xxri_i18n_init();
     if (geteuid() != 0)
         execlp("sudo", "sudo", "-E", "/usr/local/bin/xxri-installer", (char*)0);
     gtk_init(&argc, &argv);
@@ -1137,7 +1140,7 @@ int main(int argc, char** argv) {
     }
 
     win = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(win), "XXRI OS Lite Installer");
+    gtk_window_set_title(GTK_WINDOW(win), _("XXRI OS Lite Installer"));
     gtk_window_set_decorated(GTK_WINDOW(win), FALSE);
     gtk_window_set_default_size(GTK_WINDOW(win), W, H);
     gtk_window_move(GTK_WINDOW(win), 0, 0);
@@ -1150,7 +1153,7 @@ int main(int argc, char** argv) {
         gtk_widget_set_visual(win, rgba);
         /* the wallpaper, as a window of its own under the glass */
         GtkWidget* back = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-        gtk_window_set_title(GTK_WINDOW(back), "XXRI OS Lite Installer");
+        gtk_window_set_title(GTK_WINDOW(back), _("XXRI OS Lite Installer"));
         gtk_window_set_decorated(GTK_WINDOW(back), FALSE);
         gtk_window_set_default_size(GTK_WINDOW(back), W, H);
         gtk_window_move(GTK_WINDOW(back), 0, 0);

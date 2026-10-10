@@ -184,7 +184,8 @@ cmd_summary() {
 		[ -n "$_lang" ] || _lang="en_US.UTF-8"
 		_tz="$(sed -n 's/^TZ=//p' /etc/sysconfig/timezone 2>/dev/null | head -1 | cut -c1-16)"
 		[ -n "$_tz" ] || _tz="$(head -1 /etc/timezone 2>/dev/null)"
-		if [ -n "$_tz" ]; then j_str locale "$_lang.$_tz"; else j_str locale "$_lang"; fi
+		# not "$_lang.$_tz": the locale name has a dot of its own now
+		if [ -n "$_tz" ]; then j_str locale "$_lang, $_tz"; else j_str locale "$_lang"; fi
 		j_root hardware "\"summary\":$(j_obj)"
 	else
 		echo "XXRI OS Lite hardware summary"

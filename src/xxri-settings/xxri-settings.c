@@ -4,6 +4,8 @@
  * backend (hardware layer, xxri-app, xxri-desktop, xxri-system-update...).
  */
 #include <gtk/gtk.h>
+#define GETTEXT_PACKAGE "xxri-settings"
+#include "xxri-i18n.h"
 #include "xxri-chrome.h"
 #include "xxri-dialog.h"
 #include <cairo.h>
@@ -101,18 +103,18 @@ static GtkWidget* g_win;
 static const char* g_start_id = "wifi";
 typedef struct { const char* id; const char* label; const char* icon; int group; } Nav;
 static const Nav NAV[] = {
-    {"wifi","Wi-Fi & Network","wifi",0},
-    {"bluetooth","Bluetooth","bluetooth",0},
-    {"devices","Connected Devices","devices",0},
-    {"wallpaper","Wallpaper & Style","wallpaper",1},
-    {"sound","Sounds & Vibration","sound",1},
-    {"display","Display","display",1},
-    {"storage","Storage","storage",2},
-    {"battery","Battery","battery",2},
-    {"apps","Apps","apps",2},
-    {"general","General Management","general",3},
-    {"update","Software Update","update",3},
-    {"about","About Device","about",3},
+    {"wifi",N_("Wi-Fi & Network"),"wifi",0},
+    {"bluetooth",N_("Bluetooth"),"bluetooth",0},
+    {"devices",N_("Connected Devices"),"devices",0},
+    {"wallpaper",N_("Wallpaper & Style"),"wallpaper",1},
+    {"sound",N_("Sounds & Vibration"),"sound",1},
+    {"display",N_("Display"),"display",1},
+    {"storage",N_("Storage"),"storage",2},
+    {"battery",N_("Battery"),"battery",2},
+    {"apps",N_("Apps"),"apps",2},
+    {"general",N_("General Management"),"general",3},
+    {"update",N_("Software Update"),"update",3},
+    {"about",N_("About Device"),"about",3},
 };
 static const int NNAV = G_N_ELEMENTS(NAV);
 
@@ -240,36 +242,36 @@ static void devgroup(GtkWidget* box, const char* sec, const char* json, const ch
 }
 static void build_devices(GtkWidget* box) {
     char* usb=run_cmd("xxri-hardware usb --json");
-    devgroup(box,"USB Devices",usb,"usb","product","manufacturer","devices","No USB devices connected.");
+    devgroup(box,_("USB Devices"),usb,"usb","product","manufacturer","devices",_("No USB devices connected."));
     char* inp=run_cmd("xxri-input devices --json");
     /* mouse + keyboard from input backend */
-    gtk_box_pack_start(GTK_BOX(box), section("Keyboard & Mouse"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Keyboard & Mouse")), FALSE, FALSE, 0);
     GPtrArray* id=jarr(inp,"devices"); GtkWidget* ic=card_new(); gboolean anyi=FALSE;
     for (guint i=0;i<id->len;i++){char*o=id->pdata[i];char*t=jget(o,"type");char*n=jget(o,"name");
         if(!strcmp(t,"keyboard")||!strcmp(t,"mouse")||!strcmp(t,"touchpad")){anyi=TRUE;
             card_icon_row(ic,!strcmp(t,"keyboard")?"general":"devices",n,t,NULL);} g_free(t);g_free(n);}
-    if(!anyi) card_kv(ic,"No input devices","");
+    if(!anyi) card_kv(ic,_("No input devices"),"");
     gtk_box_pack_start(GTK_BOX(box), ic, FALSE, FALSE, 0);
     g_ptr_array_free(id,TRUE);
     char* cam=run_cmd("xxri-hardware camera --json");
-    devgroup(box,"Cameras",cam,"devices","name","device","camera","No camera detected. V4L2 webcam drivers install on demand.");
+    devgroup(box,_("Cameras"),cam,"devices","name","device","camera",_("No camera detected. V4L2 webcam drivers install on demand."));
     char* snd=run_cmd("xxri-audio list --json");
-    gtk_box_pack_start(GTK_BOX(box), section("Audio"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Audio")), FALSE, FALSE, 0);
     GPtrArray* sc=jarr(snd,"cards"); GtkWidget* ac=card_new();
-    if(!sc->len) card_kv(ac,"No sound card","");
+    if(!sc->len) card_kv(ac,_("No sound card"),"");
     for(guint i=0;i<sc->len;i++){char*o=sc->pdata[i];char*n=jget(o,"name");char*ty=jget(o,"type");
         card_icon_row(ac,"sound",n,ty,NULL);g_free(n);g_free(ty);}
     gtk_box_pack_start(GTK_BOX(box), ac, FALSE, FALSE, 0);
     g_ptr_array_free(sc,TRUE);
     char* dsp=run_cmd("xxri-display current --json");
-    gtk_box_pack_start(GTK_BOX(box), section("Displays"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Displays")), FALSE, FALSE, 0);
     GtkWidget* dc=card_new(); char*mode=jget(dsp,"mode");char*drv=jget(dsp,"driver");
     char* hz=hz_label(jget(dsp,"refresh"));
-    char dsub[96]; snprintf(dsub,sizeof dsub,"driver %s%s%s", drv, *hz?" · ":"", hz);
+    char dsub[96]; snprintf(dsub,sizeof dsub,_("driver %s%s%s"), drv, *hz?" · ":"", hz);
     card_icon_row(dc,"display",mode,dsub,NULL); g_free(hz);
     gtk_box_pack_start(GTK_BOX(box), dc, FALSE, FALSE, 0);
     char* pr=run_cmd("xxri-hardware printer --json");
-    devgroup(box,"Printers",pr,"devices","product","device","devices","No printer detected.");
+    devgroup(box,_("Printers"),pr,"devices","product","device","devices",_("No printer detected."));
     g_free(usb);g_free(inp);g_free(cam);g_free(snd);g_free(dsp);g_free(pr);g_free(mode);g_free(drv);
 }
 
@@ -460,12 +462,12 @@ static const char* wall_name(const char* file) {
     return NULL;
 }
 static const char* fit_label(const char* f) {
-    if (!f) return "Fill";
-    if (!strcmp(f,"fit")) return "Fit";
-    if (!strcmp(f,"stretch")) return "Stretch";
-    if (!strcmp(f,"center")) return "Center";
-    if (!strcmp(f,"tile")) return "Tile";
-    return "Fill";
+    if (!f) return _("Fill");
+    if (!strcmp(f,"fit")) return _("Fit");
+    if (!strcmp(f,"stretch")) return _("Stretch");
+    if (!strcmp(f,"center")) return _("Center");
+    if (!strcmp(f,"tile")) return _("Tile");
+    return _("Fill");
 }
 /* the words under the preview: which picture, official or not, default or not */
 static void wall_hero_text(void) {
@@ -477,14 +479,14 @@ static void wall_hero_text(void) {
     char* base = g_path_get_basename(f);
     char* dot = strrchr(base, '.'); if (dot && dot != base) *dot = 0;
     char title[256], sub[256];
-    if (!same) snprintf(title, sizeof title, "A different wallpaper on each display");
+    if (!same) snprintf(title, sizeof title, "%s", _("A different wallpaper on each display"));
     else snprintf(title, sizeof title, "%s", nm ? nm : base);
     snprintf(sub, sizeof sub, "%s%s  \xc2\xb7  %s%s",
-             !same ? "Right-click a wallpaper to choose one per display" :
-             nm ? "Official XXRI wallpaper" : "Your picture",
-             same && nm && !g_strcmp0(f, g_wp_default) ? " \xc2\xb7 Default" : "",
+             !same ? _("Right-click a wallpaper to choose one per display") :
+             nm ? _("Official XXRI wallpaper") : _("Your picture"),
+             same && nm && !g_strcmp0(f, g_wp_default) ? _(" \xc2\xb7 Default") : "",
              fit_label(g_wp_fit),
-             g_nmon > 1 ? (same ? "  \xc2\xb7  All displays" : "") : "");
+             g_nmon > 1 ? (same ? _("  \xc2\xb7  All displays") : "") : "");
     gtk_label_set_text(GTK_LABEL(g_wp_hero_title), title);
     gtk_label_set_text(GTK_LABEL(g_wp_hero_sub), sub);
     g_free(base);
@@ -575,7 +577,7 @@ static gboolean draw_wall_tile(GtkWidget* wdg, cairo_t* cr, gpointer d) {
     if (s) paint_cover(cr, s, p, p, W - 2*p, H - 2*p);
     else { cairo_set_source_rgb(cr, 0xE2/255.0, 0xE2/255.0, 0xE6/255.0); cairo_paint(cr); }
     cairo_restore(cr);
-    if (t->def) pill_text(cr, p + 7, H - p - 24, "Default", FALSE);
+    if (t->def) pill_text(cr, p + 7, H - p - 24, _("Default"), FALSE);
     if (non) {
         double cx = W - p - 15, cy = p + 15;
         if (g_nmon > 1) {
@@ -613,9 +615,9 @@ static void wall_set_done(const char* out, gboolean ok, gpointer tag) {
     (void)out; (void)tag;
     if (ok) return;
     GtkWidget* d = gtk_message_dialog_new(GTK_WINDOW(g_win), GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR,
-        GTK_BUTTONS_OK, "The wallpaper was not changed");
+        GTK_BUTTONS_OK, _("The wallpaper was not changed"));
     gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(d), "%s",
-        "XXRI can use JPEG and PNG pictures as wallpapers. Choose another picture and try again.");
+        _("XXRI can use JPEG and PNG pictures as wallpapers. Choose another picture and try again."));
     gtk_dialog_run(GTK_DIALOG(d)); gtk_widget_destroy(d);
     rebuild("wallpaper");
 }
@@ -638,12 +640,12 @@ static gboolean wall_press(GtkWidget* w, GdkEventButton* e, gpointer u) {
     if (e->button == 1) { wall_apply(t->file, 0); return TRUE; }
     if (e->button != 3) return FALSE;
     GtkWidget* m = gtk_menu_new(); css(m, "xxri-wall-menu");
-    GtkWidget* all = gtk_menu_item_new_with_label(g_nmon > 1 ? "Set for all displays" : "Set as wallpaper");
+    GtkWidget* all = gtk_menu_item_new_with_label(g_nmon > 1 ? _("Set for all displays") : _("Set as wallpaper"));
     g_object_set_data(G_OBJECT(all), "mon", GINT_TO_POINTER(0));
     g_signal_connect(all, "activate", G_CALLBACK(wall_menu_pick), t);
     gtk_menu_shell_append(GTK_MENU_SHELL(m), all);
     for (int i = 0; g_nmon > 1 && i < g_nmon; i++) {
-        char l[160]; snprintf(l, sizeof l, "Set for display %d (%s)", i + 1, g_wp_lbl[i] ? g_wp_lbl[i] : "Display");
+        char l[160]; snprintf(l, sizeof l, _("Set for display %d (%s)"), i + 1, g_wp_lbl[i] ? g_wp_lbl[i] : _("Display"));
         GtkWidget* it = gtk_menu_item_new_with_label(l);
         g_object_set_data(G_OBJECT(it), "mon", GINT_TO_POINTER(i + 1));
         g_signal_connect(it, "activate", G_CALLBACK(wall_menu_pick), t);
@@ -663,13 +665,13 @@ static gboolean wall_key(GtkWidget* w, GdkEventKey* e, gpointer u) {
 }
 static void cb_browse(GtkWidget* b, gpointer u) {
     (void)b;(void)u;
-    GtkWidget* d = gtk_file_chooser_dialog_new("Choose a photo", GTK_WINDOW(g_win), GTK_FILE_CHOOSER_ACTION_OPEN,
-        "Cancel", GTK_RESPONSE_CANCEL, "Choose picture", GTK_RESPONSE_ACCEPT, NULL);
+    GtkWidget* d = gtk_file_chooser_dialog_new(_("Choose a photo"), GTK_WINDOW(g_win), GTK_FILE_CHOOSER_ACTION_OPEN,
+        _("Cancel"), GTK_RESPONSE_CANCEL, _("Choose picture"), GTK_RESPONSE_ACCEPT, NULL);
     css(gtk_dialog_get_widget_for_response(GTK_DIALOG(d), GTK_RESPONSE_ACCEPT), "xxri-accent");
     gtk_style_context_add_class(gtk_widget_get_style_context(d), "xxri-chooser");
     gtk_window_set_modal(GTK_WINDOW(d), TRUE);
     GtkFileFilter* f = gtk_file_filter_new();
-    gtk_file_filter_set_name(f, "Pictures (JPEG, PNG)");
+    gtk_file_filter_set_name(f, _("Pictures (JPEG, PNG)"));
     const char* pats[] = { "*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG", NULL };
     for (int i = 0; pats[i]; i++) gtk_file_filter_add_pattern(f, pats[i]);
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(d), f);
@@ -680,12 +682,12 @@ static void cb_browse(GtkWidget* b, gpointer u) {
     GtkWidget* where = NULL;
     if (g_nmon > 1) {
         GtkWidget* eb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-        gtk_box_pack_start(GTK_BOX(eb), label_cls("Use on", "xxri-row-title", 0), FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(eb), label_cls(_("Use on"), "xxri-row-title", 0), FALSE, FALSE, 0);
         where = drop_new(NULL, NULL);
-        drop_append(where, "0", "All displays");
+        drop_append(where, "0", _("All displays"));
         for (int i = 0; i < g_nmon; i++) {
             char id[8], l[160]; snprintf(id, sizeof id, "%d", i + 1);
-            snprintf(l, sizeof l, "Display %d (%s)", i + 1, g_wp_lbl[i] ? g_wp_lbl[i] : "Display");
+            snprintf(l, sizeof l, _("Display %d (%s)"), i + 1, g_wp_lbl[i] ? g_wp_lbl[i] : _("Display"));
             drop_append(where, id, l);
         }
         gtk_box_pack_start(GTK_BOX(eb), where, FALSE, FALSE, 0);
@@ -783,11 +785,11 @@ static void cb_uiscale(GtkWidget* w, const char* id, gpointer u) {
     int now = (int)(es * 100 + 0.5);
     if (now == atoi(id)) return;              /* back to what the session runs */
     GtkWidget* d = gtk_message_dialog_new(GTK_WINDOW(g_win), GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION,
-        GTK_BUTTONS_NONE, "Use %s%% scale everywhere?", id);
+        GTK_BUTTONS_NONE, _("Use %s%% scale everywhere?"), id);
     gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(d),
-        "Settings shows the new scale already. Other apps use it once the desktop restarts, "
-        "which closes open apps. You can also keep working and switch the next time the desktop starts.");
-    gtk_dialog_add_buttons(GTK_DIALOG(d), "At Next Start", RES_LATER, "Restart Now", RES_NOW, NULL);
+        _("Settings shows the new scale already. Other apps use it once the desktop restarts, "
+        "which closes open apps. You can also keep working and switch the next time the desktop starts."));
+    gtk_dialog_add_buttons(GTK_DIALOG(d), _("At Next Start"), RES_LATER, _("Restart Now"), RES_NOW, NULL);
     css(gtk_dialog_get_widget_for_response(GTK_DIALOG(d), RES_NOW), "xxri-accent");
     gtk_dialog_set_default_response(GTK_DIALOG(d), RES_LATER);
     int r = gtk_dialog_run(GTK_DIALOG(d));
@@ -885,10 +887,10 @@ static void build_wallpaper(GtkWidget* box) {
     GtkWidget* hi = img("wallpaper", 28); gtk_widget_set_valign(hi, GTK_ALIGN_CENTER);
     gtk_box_pack_start(GTK_BOX(hr), hi, FALSE, FALSE, 0);
     GtkWidget* htv = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2); gtk_widget_set_valign(htv, GTK_ALIGN_CENTER);
-    gtk_box_pack_start(GTK_BOX(htv), label_cls("Personalize your background", "xxri-row-title", 0), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(htv), label_cls(_("Personalize your background"), "xxri-row-title", 0), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(htv), label_cls(g_nmon > 1
-        ? "Official XXRI wallpapers. Click one to use it everywhere, or right-click it to choose a display."
-        : "Official XXRI wallpapers, or a photo of your own.", "xxri-row-sub", 0), FALSE, FALSE, 0);
+        ? _("Official XXRI wallpapers. Click one to use it everywhere, or right-click it to choose a display.")
+        : _("Official XXRI wallpapers, or a photo of your own."), "xxri-row-sub", 0), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hr), htv, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(bc), hr, FALSE, FALSE, 0);
 
@@ -900,7 +902,7 @@ static void build_wallpaper(GtkWidget* box) {
         GtkWidget* eb = gtk_event_box_new(); css(eb, "xxri-wall-tile");
         gtk_widget_set_can_focus(eb, TRUE);
         gtk_widget_add_events(eb, GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK);
-        char tip[256]; snprintf(tip, sizeof tip, "%s%s", t->name, t->def ? " (the default wallpaper)" : "");
+        char tip[256]; snprintf(tip, sizeof tip, "%s%s", t->name, t->def ? _(" (the default wallpaper)") : "");
         gtk_widget_set_tooltip_text(eb, tip);
         t->area = gtk_drawing_area_new();
         gtk_widget_set_size_request(t->area, TILE_W + 8, TILE_H + 8);
@@ -915,53 +917,53 @@ static void build_wallpaper(GtkWidget* box) {
     }
     gtk_box_pack_start(GTK_BOX(bc), strip, FALSE, FALSE, 0);
 
-    GtkWidget* br = gtk_button_new_with_label("Browse photos"); css(br, "xxri-chip");
+    GtkWidget* br = gtk_button_new_with_label(_("Browse photos")); css(br, "xxri-chip");
     g_signal_connect(br, "clicked", G_CALLBACK(cb_browse), NULL);
-    card_action(bc, "Choose a photo", "JPEG or PNG, from your Pictures or any folder", br);
+    card_action(bc, _("Choose a photo"), _("JPEG or PNG, from your Pictures or any folder"), br);
     GtkWidget* fit = drop_new(cb_fit, NULL);
     const char* fids[] = { "fill", "fit", "stretch", "center", "tile" };
     for (int i = 0; i < 5; i++) drop_append(fit, fids[i], fit_label(fids[i]));
     drop_set_active(fit, g_wp_fit && *g_wp_fit ? g_wp_fit : "fill");
-    card_action(bc, "Choose a fit for your desktop image", NULL, fit);
+    card_action(bc, _("Choose a fit for your desktop image"), NULL, fit);
     gtk_box_pack_start(GTK_BOX(box), bc, FALSE, FALSE, 6);
 
     /* Appearance */
     char* th = run_cmd("xxri-desktop themes --json");
-    gtk_box_pack_start(GTK_BOX(box), section("Appearance"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Appearance")), FALSE, FALSE, 0);
     GtkWidget* ac = card_new();
     char* ap = jget(st, "appearance"); gboolean dark = !strcmp(ap, "dark");
     GtkWidget* mode = seg_new();
-    GtkWidget* li = seg_add(mode, NULL, "Light", !dark, G_CALLBACK(cb_mode), (gpointer)"light");
-    seg_add(mode, li, "Dark", dark, G_CALLBACK(cb_mode), (gpointer)"dark");
-    card_action(ac, "Mode", "Settings and apps that follow the system theme", mode);
+    GtkWidget* li = seg_add(mode, NULL, _("Light"), !dark, G_CALLBACK(cb_mode), (gpointer)"light");
+    seg_add(mode, li, _("Dark"), dark, G_CALLBACK(cb_mode), (gpointer)"dark");
+    card_action(ac, _("Mode"), _("Settings and apps that follow the system theme"), mode);
     char* gt = jget(th, "gtk_theme");
     g_free(g_look_theme); g_look_theme = g_strdup(gt);
     GtkWidget* tc = combo_from(th, "gtk_themes", gt, cb_theme);
-    card_action(ac, "Theme", "Buttons, menus and dialogs", tc);
+    card_action(ac, _("Theme"), _("Buttons, menus and dialogs"), tc);
     char* ct = jget(th, "cursor_theme");
     GtkWidget* cc = combo_from(th, "cursor_themes", ct, cb_cursor);
-    card_action(ac, "Cursor", NULL, cc);
+    card_action(ac, _("Cursor"), NULL, cc);
     GtkWidget* sc = drop_new(cb_uiscale, NULL);
     const char* scl[] = { "100", "125", "150", "175" };
     for (int i = 0; i < 4; i++) {
-        char l[32]; snprintf(l, sizeof l, i ? "%s%%" : "%s%% (recommended)", scl[i]);
+        char l[32]; snprintf(l, sizeof l, i ? "%s%%" : _("%s%% (recommended)"), scl[i]);
         drop_append(sc, scl[i], l);
     }
     char* us = jget(st, "ui_scale");
     drop_set_active(sc, *us ? us : "100");
-    card_action(ac, "Scale", "Text in apps; applies everywhere after a desktop restart", sc);
+    card_action(ac, _("Scale"), _("Text in apps; applies everywhere after a desktop restart"), sc);
     gtk_box_pack_start(GTK_BOX(box), ac, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(box), hint("Settings changes at once; other apps take a new look the next time they open."), FALSE, FALSE, 8);
+    gtk_box_pack_start(GTK_BOX(box), hint(_("Settings changes at once; other apps take a new look the next time they open.")), FALSE, FALSE, 8);
 
     /* Dock */
-    gtk_box_pack_start(GTK_BOX(box), section("Dock"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Dock")), FALSE, FALSE, 0);
     GtkWidget* dc = card_new();
     int dsz = atoi(jget(st, "dock_size"));
     GtkWidget* dseg = seg_new();
-    GtkWidget* sm = seg_add(dseg, NULL, "Small", dsz == 32, G_CALLBACK(cb_docksize), (gpointer)"small");
-    seg_add(dseg, sm, "Medium", dsz == 40 || !dsz, G_CALLBACK(cb_docksize), (gpointer)"medium");
-    seg_add(dseg, sm, "Large", dsz == 48, G_CALLBACK(cb_docksize), (gpointer)"large");
-    card_action(dc, "Icon size", NULL, dseg);
+    GtkWidget* sm = seg_add(dseg, NULL, _("Small"), dsz == 32, G_CALLBACK(cb_docksize), (gpointer)"small");
+    seg_add(dseg, sm, _("Medium"), dsz == 40 || !dsz, G_CALLBACK(cb_docksize), (gpointer)"medium");
+    seg_add(dseg, sm, _("Large"), dsz == 48, G_CALLBACK(cb_docksize), (gpointer)"large");
+    card_action(dc, _("Icon size"), NULL, dseg);
     gtk_box_pack_start(GTK_BOX(box), dc, FALSE, FALSE, 0);
 
     g_free(ap); g_free(gt); g_free(ct); g_free(us); g_free(th);
@@ -976,44 +978,44 @@ static void cb_test(GtkWidget* w, gpointer d){ (void)w;(void)d; run_bg("xxri-aud
 static void build_sound(GtkWidget* box) {
     char* cards=run_cmd("xxri-audio list --json");
     if (jbool(cards,"alsa")==FALSE && !strstr(cards,"\"cards\"")) {
-        page_empty(box, "sound", "No sound card detected",
-                   "Audio drivers load automatically at boot. About Device shows any firmware that is still missing.");
+        page_empty(box, "sound", _("No sound card detected"),
+                   _("Audio drivers load automatically at boot. About Device shows any firmware that is still missing."));
         g_free(cards); return;
     }
     GPtrArray* cs=jarr(cards,"cards");
-    gtk_box_pack_start(GTK_BOX(box), section("Output Device"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Output Device")), FALSE, FALSE, 0);
     GtkWidget* oc=card_new();
     for(guint i=0;i<cs->len;i++){char*o=cs->pdata[i]; if(!jbool(o,"playback"))continue;char*n=jget(o,"name");char*ty=jget(o,"type");
-        char sub[96];snprintf(sub,sizeof sub,"type %s%s",ty,jbool(o,"default")?" · default":"");
+        char sub[96];snprintf(sub,sizeof sub,_("type %s%s"),ty,jbool(o,"default")?_(" · default"):"");
         card_icon_row(oc,"sound",n,sub,NULL);g_free(n);g_free(ty);}
     gtk_box_pack_start(GTK_BOX(box),oc,FALSE,FALSE,0);
     char* vol=run_cmd("xxri-audio volume get --json");
-    gtk_box_pack_start(GTK_BOX(box), section("Volume"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Volume")), FALSE, FALSE, 0);
     GtkWidget* vc=card_new(); GtkWidget* vr=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10); css(vr,"xxri-rowitem");
     GtkWidget* vs=gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,0,100,1); gtk_scale_set_draw_value(GTK_SCALE(vs),FALSE);
     gtk_range_set_value(GTK_RANGE(vs),atoi(jget(vol,"volume"))); g_signal_connect(vs,"value-changed",G_CALLBACK(cb_vol),NULL);
     gtk_box_pack_start(GTK_BOX(vr),vs,TRUE,TRUE,0);
-    GtkWidget* mb=gtk_button_new_with_label(jbool(vol,"muted")?"Unmute":"Mute"); css(mb,"xxri-chip"); g_signal_connect(mb,"clicked",G_CALLBACK(cb_mute),NULL);
-    GtkWidget* tb=gtk_button_new_with_label("Test"); css(tb,"xxri-chip"); g_signal_connect(tb,"clicked",G_CALLBACK(cb_test),NULL);
+    GtkWidget* mb=gtk_button_new_with_label(jbool(vol,"muted")?_("Unmute"):_("Mute")); css(mb,"xxri-chip"); g_signal_connect(mb,"clicked",G_CALLBACK(cb_mute),NULL);
+    GtkWidget* tb=gtk_button_new_with_label(_("Test")); css(tb,"xxri-chip"); g_signal_connect(tb,"clicked",G_CALLBACK(cb_test),NULL);
     gtk_box_pack_start(GTK_BOX(vr),mb,FALSE,FALSE,0); gtk_box_pack_start(GTK_BOX(vr),tb,FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(vc),vr,FALSE,FALSE,0); gtk_box_pack_start(GTK_BOX(box),vc,FALSE,FALSE,0);
-    gtk_box_pack_start(GTK_BOX(box), section("Input Device"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Input Device")), FALSE, FALSE, 0);
     GtkWidget* icd=card_new(); gboolean cap=FALSE;
     for(guint i=0;i<cs->len;i++){char*o=cs->pdata[i]; if(!jbool(o,"capture"))continue;cap=TRUE;char*n=jget(o,"name");
-        card_icon_row(icd,"sound",n,"microphone / capture",NULL);g_free(n);}
-    if(!cap) card_kv(icd,"No microphone detected","");
+        card_icon_row(icd,"sound",n,_("microphone / capture"),NULL);g_free(n);}
+    if(!cap) card_kv(icd,_("No microphone detected"),"");
     gtk_box_pack_start(GTK_BOX(box),icd,FALSE,FALSE,0);
     if(cap){ char* mic=run_cmd("xxri-audio mic --json");
-        gtk_box_pack_start(GTK_BOX(box), section("Microphone Level"), FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(box), section(_("Microphone Level")), FALSE, FALSE, 0);
         GtkWidget* mc=card_new(); GtkWidget* mr=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0); css(mr,"xxri-rowitem");
         GtkWidget* ms=gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,0,100,1); gtk_scale_set_draw_value(GTK_SCALE(ms),FALSE);
         gtk_range_set_value(GTK_RANGE(ms),atoi(jget(mic,"level"))); g_signal_connect(ms,"value-changed",G_CALLBACK(cb_mic),NULL);
         gtk_box_pack_start(GTK_BOX(mr),ms,TRUE,TRUE,0); gtk_box_pack_start(GTK_BOX(mc),mr,FALSE,FALSE,0);
         gtk_box_pack_start(GTK_BOX(box),mc,FALSE,FALSE,0); g_free(mic);}
-    gtk_box_pack_start(GTK_BOX(box), section("System Sounds"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("System Sounds")), FALSE, FALSE, 0);
     GtkWidget* nc=card_new();
-    GtkWidget* n1=gtk_switch_new(); gtk_switch_set_active(GTK_SWITCH(n1),TRUE); card_action(nc,"Notification sounds",NULL,n1);
-    GtkWidget* n2=gtk_switch_new(); card_action(nc,"Startup sound","Play the XXRI chime at login",n2);
+    GtkWidget* n1=gtk_switch_new(); gtk_switch_set_active(GTK_SWITCH(n1),TRUE); card_action(nc,_("Notification sounds"),NULL,n1);
+    GtkWidget* n2=gtk_switch_new(); card_action(nc,_("Startup sound"),_("Play the XXRI chime at login"),n2);
     gtk_box_pack_start(GTK_BOX(box),nc,FALSE,FALSE,0);
     g_ptr_array_free(cs,TRUE); g_free(cards); g_free(vol);
 }
@@ -1024,15 +1026,15 @@ static void cb_umount(GtkWidget* w, gpointer d){ (void)w; run_bg("xxri-storage u
 static void build_storage(GtkWidget* box) {
     char* js=run_cmd("xxri-storage list --json");
     GPtrArray* disks=jarr(js,"disks");
-    if (!disks->len) { page_empty(box, "storage", "No storage devices",
-        "Connect a USB drive or SD card and it will appear here, ready to mount."); }
+    if (!disks->len) { page_empty(box, "storage", _("No storage devices"),
+        _("Connect a USB drive or SD card and it will appear here, ready to mount.")); }
     for (guint i=0;i<disks->len;i++) {
         char* d=disks->pdata[i]; char* dev=jget(d,"device"); char* model=jget(d,"model"); gboolean usb=jbool(d,"usb");
-        char sec[160]; snprintf(sec,sizeof sec,"%s  ·  %s%s", model, dev, usb?"  ·  removable":"");
+        char sec[160]; snprintf(sec,sizeof sec,"%s  ·  %s%s", model, dev, usb?_("  ·  removable"):"");
         gtk_box_pack_start(GTK_BOX(box), section(sec), FALSE, FALSE, 0);
         GtkWidget* c=card_new();
         GPtrArray* parts=jarr(d,"partitions");
-        if (!parts->len) { char whole[64]; snprintf(whole,sizeof whole,"Whole disk · %d MB",atoi(jget(d,"size_mb"))); card_kv(c,whole,"no partitions / not formatted"); }
+        if (!parts->len) { char whole[64]; snprintf(whole,sizeof whole,_("Whole disk · %d MB"),atoi(jget(d,"size_mb"))); card_kv(c,whole,_("no partitions / not formatted")); }
         for (guint k=0;k<parts->len;k++) {
             char* p=parts->pdata[k]; char* pdev=jget(p,"device"); char* fs=jget(p,"fs"); char* lbl=jget(p,"label");
             char* mp=jget(p,"mountpoint"); gboolean mounted=jbool(p,"mounted"); long szmb=atol(jget(p,"size_mb"));
@@ -1046,7 +1048,7 @@ static void build_storage(GtkWidget* box) {
             gtk_box_pack_start(GTK_BOX(top),tv,TRUE,TRUE,0);
             if (mounted) {
                 long fk=atol(jget(p,"free_kb")), uk=atol(jget(p,"used_kb"));
-                GtkWidget* e=gtk_button_new_with_label(usb?"Eject":"Unmount"); css(e,"xxri-chip");
+                GtkWidget* e=gtk_button_new_with_label(usb?_("Eject"):_("Unmount")); css(e,"xxri-chip");
                 g_signal_connect_data(e,"clicked",G_CALLBACK(cb_umount),g_strdup(pdev),(GClosureNotify)g_free,0);
                 gtk_widget_set_valign(e,GTK_ALIGN_CENTER); gtk_box_pack_end(GTK_BOX(top),e,FALSE,FALSE,0);
                 gtk_box_pack_start(GTK_BOX(r),top,FALSE,FALSE,0);
@@ -1054,10 +1056,10 @@ static void build_storage(GtkWidget* box) {
                 double total=(double)(uk+fk); double frac=total>0?(double)uk/total:0;
                 GtkWidget* lv=gtk_level_bar_new_for_interval(0,1); gtk_level_bar_set_value(GTK_LEVEL_BAR(lv),frac);
                 gtk_box_pack_start(GTK_BOX(r),lv,FALSE,FALSE,2);
-                char use[96]; snprintf(use,sizeof use,"%ld MB used · %ld MB free · mounted at %s", uk/1024, fk/1024, mp);
+                char use[96]; snprintf(use,sizeof use,_("%ld MB used · %ld MB free · mounted at %s"), uk/1024, fk/1024, mp);
                 gtk_box_pack_start(GTK_BOX(r),label_cls(use,"xxri-row-sub",0),FALSE,FALSE,0);
             } else {
-                GtkWidget* m=gtk_button_new_with_label("Mount"); css(m,"xxri-chip");
+                GtkWidget* m=gtk_button_new_with_label(_("Mount")); css(m,"xxri-chip");
                 g_signal_connect_data(m,"clicked",G_CALLBACK(cb_mount),g_strdup(pdev),(GClosureNotify)g_free,0);
                 gtk_widget_set_valign(m,GTK_ALIGN_CENTER); gtk_box_pack_end(GTK_BOX(top),m,FALSE,FALSE,0);
                 gtk_box_pack_start(GTK_BOX(r),top,FALSE,FALSE,0);
@@ -1068,7 +1070,7 @@ static void build_storage(GtkWidget* box) {
         /* health */
         char* pdev0 = parts->len? jget(parts->pdata[0],"device") : g_strdup(dev);
         char* hlt = run_cmd("xxri-storage health %s --json", pdev0);
-        if (jbool(hlt,"available")) { char* stt=jget(hlt,"status"); char hs[64]; snprintf(hs,sizeof hs,"SMART health: %s",stt); card_kv(c,"Health",hs); g_free(stt); }
+        if (jbool(hlt,"available")) { char* stt=jget(hlt,"status"); char hs[64]; snprintf(hs,sizeof hs,_("SMART health: %s"),stt); card_kv(c,_("Health"),hs); g_free(stt); }
         g_free(pdev0); g_free(hlt);
         gtk_box_pack_start(GTK_BOX(box), c, FALSE, FALSE, 0);
         g_ptr_array_free(parts,TRUE); g_free(dev);g_free(model);
@@ -1081,24 +1083,24 @@ static void cb_gov(GtkWidget* w, gpointer d){ (void)w; run_bg("xxri-power govern
 static void cb_bri(GtkRange* r, gpointer d){ (void)d; run_bg("xxri-power brightness set %d",(int)gtk_range_get_value(r)); }
 static void build_battery(GtkWidget* box) {
     char* js=run_cmd("xxri-power info --json");
-    gtk_box_pack_start(GTK_BOX(box), section("Power"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Power")), FALSE, FALSE, 0);
     GtkWidget* pc=card_new();
     if (jbool(js,"present")) {
         GPtrArray* bs=jarr(js,"batteries");
         for(guint i=0;i<bs->len;i++){char*o=bs->pdata[i];char*cap=jget(o,"capacity");char*stt=jget(o,"status");
-            char t[64];snprintf(t,sizeof t,"Battery %s%%",cap); card_kv(pc,t,stt);g_free(cap);g_free(stt);}
+            char t[64];snprintf(t,sizeof t,_("Battery %s%%"),cap); card_kv(pc,t,stt);g_free(cap);g_free(stt);}
         g_ptr_array_free(bs,TRUE);
-    } else card_kv(pc,"No battery detected","This is normal on a desktop system.");
-    card_kv(pc,"AC adapter", jbool(js,"online")?"online":(jbool(js,"present")?"offline":"powered (desktop)"));
+    } else card_kv(pc,_("No battery detected"),_("This is normal on a desktop system."));
+    card_kv(pc,_("AC adapter"), jbool(js,"online")?_("online"):(jbool(js,"present")?_("offline"):_("powered (desktop)")));
     gtk_box_pack_start(GTK_BOX(box),pc,FALSE,FALSE,0);
 
-    gtk_box_pack_start(GTK_BOX(box), section("Power Profile"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Power Profile")), FALSE, FALSE, 0);
     char* gv=run_cmd("xxri-power governor list --json");
-    if (jbool(gv,"available")==FALSE && !strstr(gv,"\"current\"")) gtk_box_pack_start(GTK_BOX(box), hint("CPU frequency scaling is not available on this processor."), FALSE, FALSE, 0);
+    if (jbool(gv,"available")==FALSE && !strstr(gv,"\"current\"")) gtk_box_pack_start(GTK_BOX(box), hint(_("CPU frequency scaling is not available on this processor.")), FALSE, FALSE, 0);
     else { GtkWidget* gc=card_new(); GtkWidget* r=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8); css(r,"xxri-rowitem");
         char* cur=jget(gv,"current");
         GtkWidget* tv=gtk_box_new(GTK_ORIENTATION_VERTICAL,2);
-        gtk_box_pack_start(GTK_BOX(tv),label_cls("CPU governor","xxri-row-title",0),FALSE,FALSE,0);
+        gtk_box_pack_start(GTK_BOX(tv),label_cls(_("CPU governor"),"xxri-row-title",0),FALSE,FALSE,0);
         gtk_box_pack_start(GTK_BOX(tv),label_cls(cur,"xxri-row-sub",0),FALSE,FALSE,0);
         gtk_box_pack_start(GTK_BOX(r),tv,TRUE,TRUE,0);
         const char* govs[]={"performance","powersave","ondemand","conservative","schedutil"};
@@ -1107,20 +1109,20 @@ static void build_battery(GtkWidget* box) {
             g_signal_connect(b,"clicked",G_CALLBACK(cb_gov),(gpointer)govs[gi]); gtk_box_pack_start(GTK_BOX(r),b,FALSE,FALSE,0);}
         gtk_box_pack_start(GTK_BOX(gc),r,FALSE,FALSE,0); gtk_box_pack_start(GTK_BOX(box),gc,FALSE,FALSE,0); g_free(cur);}
 
-    gtk_box_pack_start(GTK_BOX(box), section("Display Brightness"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Display Brightness")), FALSE, FALSE, 0);
     char* br=run_cmd("xxri-power brightness get --json");
-    if (jbool(br,"available")==FALSE) gtk_box_pack_start(GTK_BOX(box), hint("Brightness control is not available on this display."), FALSE, FALSE, 0);
+    if (jbool(br,"available")==FALSE) gtk_box_pack_start(GTK_BOX(box), hint(_("Brightness control is not available on this display.")), FALSE, FALSE, 0);
     else { GtkWidget* bc=card_new(); GtkWidget* r=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,0); css(r,"xxri-rowitem");
         GtkWidget* s=gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL,0,100,1); gtk_scale_set_draw_value(GTK_SCALE(s),FALSE);
         gtk_range_set_value(GTK_RANGE(s),atoi(jget(br,"percent"))); g_signal_connect(s,"value-changed",G_CALLBACK(cb_bri),NULL);
         gtk_box_pack_start(GTK_BOX(r),s,TRUE,TRUE,0); gtk_box_pack_start(GTK_BOX(bc),r,FALSE,FALSE,0);
         gtk_box_pack_start(GTK_BOX(box),bc,FALSE,FALSE,0);}
 
-    gtk_box_pack_start(GTK_BOX(box), section("Suspend"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Suspend")), FALSE, FALSE, 0);
     char* caps=run_cmd("xxri-power capabilities --json");
     GtkWidget* sc=card_new();
-    card_kv(sc,"Suspend to RAM", jbool(caps,"suspend")?"supported":"not supported");
-    card_kv(sc,"Hibernate", jbool(caps,"hibernate")?"supported":"not available (no swap)");
+    card_kv(sc,_("Suspend to RAM"), jbool(caps,"suspend")?_("supported"):_("not supported"));
+    card_kv(sc,_("Hibernate"), jbool(caps,"hibernate")?_("supported"):_("not available (no swap)"));
     gtk_box_pack_start(GTK_BOX(box),sc,FALSE,FALSE,0);
     g_free(js);g_free(gv);g_free(br);g_free(caps);
 }
@@ -1130,10 +1132,10 @@ static void cb_launch(GtkWidget* w, gpointer d){ (void)w; run_bg("xxri-app launc
 static void cb_remove(GtkWidget* w, gpointer d){ (void)w; run_bg("xxri-app remove-ui %s",(char*)d); }
 static void build_apps(GtkWidget* box) {
     char* out=run_cmd("xxri-app list");
-    if (!*out) { page_empty(box, "apps", "No apps installed yet",
-        "Install apps from the XXRI Store, or open an AppImage you downloaded and it is integrated here.");
+    if (!*out) { page_empty(box, "apps", _("No apps installed yet"),
+        _("Install apps from the XXRI Store, or open an AppImage you downloaded and it is integrated here."));
         g_free(out); return; }
-    gtk_box_pack_start(GTK_BOX(box), section("Installed Applications"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Installed Applications")), FALSE, FALSE, 0);
     GtkWidget* c=card_new();
     char** lines=g_strsplit(out,"\n",-1);
     for (int i=0;lines[i];i++) {
@@ -1148,11 +1150,11 @@ static void build_apps(GtkWidget* box) {
             gtk_widget_set_valign(ic,GTK_ALIGN_CENTER); gtk_box_pack_start(GTK_BOX(r),ic,FALSE,FALSE,0);}
         GtkWidget* tv=gtk_box_new(GTK_ORIENTATION_VERTICAL,2); gtk_widget_set_valign(tv,GTK_ALIGN_CENTER);
         gtk_box_pack_start(GTK_BOX(tv),label_cls(f[1],"xxri-row-title",0),FALSE,FALSE,0);
-        char sub[160]; snprintf(sub,sizeof sub,"version %s%s%s", f[2], nf>4?" · last launch: ":"", nf>4?f[4]:"");
+        char sub[160]; snprintf(sub,sizeof sub,_("version %s%s%s"), f[2], nf>4?_(" · last launch: "):"", nf>4?f[4]:"");
         gtk_box_pack_start(GTK_BOX(tv),label_cls(sub,"xxri-row-sub",0),FALSE,FALSE,0);
         gtk_box_pack_start(GTK_BOX(r),tv,TRUE,TRUE,0);
-        GtkWidget* l=accent_btn("Launch"); g_signal_connect_data(l,"clicked",G_CALLBACK(cb_launch),g_strdup(f[0]),(GClosureNotify)g_free,0);
-        GtkWidget* rm=gtk_button_new_with_label("Remove"); css(rm,"xxri-chip"); g_signal_connect_data(rm,"clicked",G_CALLBACK(cb_remove),g_strdup(f[0]),(GClosureNotify)g_free,0);
+        GtkWidget* l=accent_btn(_("Launch")); g_signal_connect_data(l,"clicked",G_CALLBACK(cb_launch),g_strdup(f[0]),(GClosureNotify)g_free,0);
+        GtkWidget* rm=gtk_button_new_with_label(_("Remove")); css(rm,"xxri-chip"); g_signal_connect_data(rm,"clicked",G_CALLBACK(cb_remove),g_strdup(f[0]),(GClosureNotify)g_free,0);
         gtk_widget_set_valign(l,GTK_ALIGN_CENTER); gtk_widget_set_valign(rm,GTK_ALIGN_CENTER);
         gtk_box_pack_end(GTK_BOX(r),rm,FALSE,FALSE,0); gtk_box_pack_end(GTK_BOX(r),l,FALSE,FALSE,0);
         gtk_box_pack_start(GTK_BOX(c),r,FALSE,FALSE,0);
@@ -1170,7 +1172,7 @@ static void cb_auto(GtkWidget* w, GParamSpec* p, gpointer d){ (void)p;(void)d; r
 static void cb_ntp(GtkWidget* w, gpointer d){ (void)w;(void)d; run_bg("xxri-desktop ntp-sync"); }
 static void cb_reset(GtkWidget* w, gpointer d){ (void)w;(void)d; run_bg("xxri-desktop reset"); rebuild("general"); }
 static void cb_restart(GtkWidget* w, gpointer d){ (void)w;(void)d;
-    GtkWidget* dlg=gtk_message_dialog_new(GTK_WINDOW(g_win),GTK_DIALOG_MODAL,GTK_MESSAGE_QUESTION,GTK_BUTTONS_OK_CANCEL,"Restart the desktop session? All open apps will close.");
+    GtkWidget* dlg=gtk_message_dialog_new(GTK_WINDOW(g_win),GTK_DIALOG_MODAL,GTK_MESSAGE_QUESTION,GTK_BUTTONS_OK_CANCEL,_("Restart the desktop session? All open apps will close."));
     if(gtk_dialog_run(GTK_DIALOG(dlg))==GTK_RESPONSE_OK) run_bg("xxri-desktop restart-session");
     gtk_widget_destroy(dlg);
 }
@@ -1206,8 +1208,8 @@ static gchar** jnums(const char* doc, const char* key) {
 static void dsp_error(const char* out) {
     char* err = jget(out, "error");
     GtkWidget* d = gtk_message_dialog_new(GTK_WINDOW(g_win), GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR,
-        GTK_BUTTONS_OK, "The display setting was not changed");
-    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(d), "%s", *err ? err : "xxri-display did not answer.");
+        GTK_BUTTONS_OK, _("The display setting was not changed"));
+    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(d), "%s", *err ? err : _("xxri-display did not answer."));
     gtk_dialog_run(GTK_DIALOG(d)); gtk_widget_destroy(d); g_free(err);
 }
 
@@ -1339,12 +1341,12 @@ static void on_res_activated(GtkListBox* lb, GtkListBoxRow* row, gpointer u) {
         return;
     }
     GtkWidget* d = gtk_message_dialog_new(GTK_WINDOW(g_win), GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION,
-        GTK_BUTTONS_NONE, "Use %d \xc3\x97 %d?", m->w, m->h);
+        GTK_BUTTONS_NONE, _("Use %d \xc3\x97 %d?"), m->w, m->h);
     gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(d),
-        "The desktop restarts to change resolution, so open apps will close. "
-        "You can also keep working and switch the next time the desktop starts.");
-    gtk_dialog_add_buttons(GTK_DIALOG(d), "Cancel", GTK_RESPONSE_CANCEL,
-        "At Next Start", RES_LATER, "Restart Now", RES_NOW, NULL);
+        _("The desktop restarts to change resolution, so open apps will close. "
+        "You can also keep working and switch the next time the desktop starts."));
+    gtk_dialog_add_buttons(GTK_DIALOG(d), _("Cancel"), GTK_RESPONSE_CANCEL,
+        _("At Next Start"), RES_LATER, _("Restart Now"), RES_NOW, NULL);
     css(gtk_dialog_get_widget_for_response(GTK_DIALOG(d), RES_NOW), "xxri-accent");
     gtk_dialog_set_default_response(GTK_DIALOG(d), RES_NOW);
     int r = gtk_dialog_run(GTK_DIALOG(d));
@@ -1449,7 +1451,7 @@ static void build_display(GtkWidget* box) {
     gtk_widget_set_halign(pic, GTK_ALIGN_CENTER);
     g_signal_connect(pic, "draw", G_CALLBACK(draw_display_hero), GINT_TO_POINTER(jbool(ls, "builtin")));
     gtk_box_pack_start(GTK_BOX(hero), pic, FALSE, FALSE, 0);
-    GtkWidget* nl = label_cls(*name ? name : "Display", "xxri-display-name", 0.5);
+    GtkWidget* nl = label_cls(*name ? name : _("Display"), "xxri-display-name", 0.5);
     gtk_box_pack_start(GTK_BOX(hero), nl, FALSE, FALSE, 0);
     if (curm) {
         char* hz = NULL;
@@ -1469,7 +1471,7 @@ static void build_display(GtkWidget* box) {
     g_object_set_data_full(G_OBJECT(rc), "dmodes", g_dmodes, (GDestroyNotify)g_ptr_array_unref);
     if (!g_dmodes->len) {
         char* note = jget(ls, "note");
-        card_action(rc, "Resolution", *note ? note : "No display modes were reported.", NULL);
+        card_action(rc, _("Resolution"), *note ? note : _("No display modes were reported."), NULL);
         g_free(note);
     } else {
         g_reslist = gtk_list_box_new(); css(g_reslist, "xxri-reslist");
@@ -1481,10 +1483,10 @@ static void build_display(GtkWidget* box) {
             GtkWidget* rb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
             char t[48]; snprintf(t, sizeof t, "%d \xc3\x97 %d", m->w, m->h);
             gtk_box_pack_start(GTK_BOX(rb), label_cls(t, "xxri-res-label", 0), FALSE, FALSE, 0);
-            const char* tag = m->def ? "(Default)" : (m->pref ? "(Native)" : NULL);
+            const char* tag = m->def ? _("(Default)") : (m->pref ? _("(Native)") : NULL);
             if (tag) gtk_box_pack_start(GTK_BOX(rb), label_cls(tag, "xxri-res-tag", 0), FALSE, FALSE, 0);
             if (g_dsp_saved && m->w == svw && m->h == svh)
-                gtk_box_pack_end(GTK_BOX(rb), label_cls("After restart", "xxri-res-tag", 1), FALSE, FALSE, 0);
+                gtk_box_pack_end(GTK_BOX(rb), label_cls(_("After restart"), "xxri-res-tag", 1), FALSE, FALSE, 0);
             gtk_container_add(GTK_CONTAINER(row), rb);
             gtk_list_box_insert(GTK_LIST_BOX(g_reslist), row, -1);
         }
@@ -1497,7 +1499,7 @@ static void build_display(GtkWidget* box) {
             GtkWidget* all = gtk_switch_new();
             gtk_switch_set_active(GTK_SWITCH(all), g_res_all);
             g_signal_connect(all, "notify::active", G_CALLBACK(cb_res_all), NULL);
-            card_action(rc, "Show all resolutions", NULL, all);
+            card_action(rc, _("Show all resolutions"), NULL, all);
         }
     }
     gtk_box_pack_start(GTK_BOX(box), rc, FALSE, FALSE, 6);
@@ -1505,19 +1507,19 @@ static void build_display(GtkWidget* box) {
         int sw = 0, sh = 0; sscanf(g_dsp_saved, "%dx%d", &sw, &sh);
         GtkWidget* pc = card_new();
         GtkWidget* btns = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-        GtkWidget* keep = gtk_button_new_with_label("Cancel"); css(keep, "xxri-chip");
+        GtkWidget* keep = gtk_button_new_with_label(_("Cancel")); css(keep, "xxri-chip");
         g_signal_connect(keep, "clicked", G_CALLBACK(cb_res_keep), NULL);
-        GtkWidget* now = accent_btn("Restart Now");
+        GtkWidget* now = accent_btn(_("Restart Now"));
         g_signal_connect(now, "clicked", G_CALLBACK(cb_res_restart), NULL);
         gtk_box_pack_start(GTK_BOX(btns), keep, FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(btns), now, FALSE, FALSE, 0);
-        char t[96]; snprintf(t, sizeof t, "%d \xc3\x97 %d at next start", sw, sh);
-        card_action(pc, t, "Saved. The desktop switches when it next starts, or restart now.", btns);
+        char t[96]; snprintf(t, sizeof t, _("%d \xc3\x97 %d at next start"), sw, sh);
+        card_action(pc, t, _("Saved. The desktop switches when it next starts, or restart now."), btns);
         gtk_box_pack_start(GTK_BOX(box), pc, FALSE, FALSE, 0);
     }
     if (*bootm) {
         char h[200]; snprintf(h, sizeof h,
-            "This boot was started with the xres=%s boot code, which takes priority over the resolution chosen here.", bootm);
+            _("This boot was started with the xres=%s boot code, which takes priority over the resolution chosen here."), bootm);
         gtk_box_pack_start(GTK_BOX(box), hint(h), FALSE, FALSE, 4);
     }
 
@@ -1526,7 +1528,7 @@ static void build_display(GtkWidget* box) {
     GtkWidget* bc = card_new();
     if (jbool(br, "available")) {
         GtkWidget* r = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10); css(r, "xxri-rowitem");
-        GtkWidget* bl = label_cls("Brightness", "xxri-row-title", 0);
+        GtkWidget* bl = label_cls(_("Brightness"), "xxri-row-title", 0);
         gtk_widget_set_valign(bl, GTK_ALIGN_CENTER);
         gtk_box_pack_start(GTK_BOX(r), bl, TRUE, TRUE, 0);
         gtk_box_pack_start(GTK_BOX(r), sun(16, FALSE), FALSE, FALSE, 0);
@@ -1539,7 +1541,7 @@ static void build_display(GtkWidget* box) {
         gtk_box_pack_start(GTK_BOX(r), sun(22, TRUE), FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(bc), r, FALSE, FALSE, 0);
     } else {
-        card_action(bc, "Brightness", "This display has no software backlight control. Use the buttons on the monitor.", NULL);
+        card_action(bc, _("Brightness"), _("This display has no software backlight control. Use the buttons on the monitor."), NULL);
     }
     gtk_box_pack_start(GTK_BOX(box), bc, FALSE, FALSE, 6);
     g_free(br);
@@ -1560,18 +1562,18 @@ static void build_display(GtkWidget* box) {
             drop_set_active(cb, crate);
             /* rates belong to the running size, not one waiting for a restart */
             gtk_widget_set_sensitive(cb, !g_dsp_saved);
-            card_action(fc, "Refresh rate", g_dsp_saved ? "Available after the desktop restarts" : NULL, cb);
+            card_action(fc, _("Refresh rate"), g_dsp_saved ? _("Available after the desktop restarts") : NULL, cb);
         } else {
             char* l = hz_label(n ? rates[0] : crate);
-            card_action(fc, "Refresh rate", NULL, label_cls(*l ? l : "Unknown", "xxri-val", 1));
+            card_action(fc, _("Refresh rate"), NULL, label_cls(*l ? l : _("Unknown"), "xxri-val", 1));
             g_free(l);
         }
         g_strfreev(rates); g_free(crate);
-        char d[96]; snprintf(d, sizeof d, "%s (kernel mode setting)", drv);
-        card_action(fc, "Graphics driver", NULL, label_cls(d, "xxri-val", 1));
+        char d[96]; snprintf(d, sizeof d, _("%s (kernel mode setting)"), drv);
+        card_action(fc, _("Graphics driver"), NULL, label_cls(d, "xxri-val", 1));
     } else {
-        card_action(fc, "Refresh rate", NULL, label_cls("Set by the video BIOS", "xxri-val", 1));
-        card_action(fc, "Graphics driver", NULL, label_cls("VESA BIOS (compatibility mode)", "xxri-val", 1));
+        card_action(fc, _("Refresh rate"), NULL, label_cls(_("Set by the video BIOS"), "xxri-val", 1));
+        card_action(fc, _("Graphics driver"), NULL, label_cls(_("VESA BIOS (compatibility mode)"), "xxri-val", 1));
     }
     gtk_box_pack_start(GTK_BOX(box), fc, FALSE, FALSE, 6);
 
@@ -1582,37 +1584,37 @@ static void build_general(GtkWidget* box) {
     char* st=run_cmd("xxri-desktop status --json");
     char* dt=run_cmd("xxri-desktop datetime --json");
     char* kb=run_cmd("xxri-input status --json");
-    gtk_box_pack_start(GTK_BOX(box), section("Language & Region"), FALSE, FALSE, 0);
-    GtkWidget* lc=card_new(); card_kv(lc,"Language",jget(st,"language"));
-    char* rg=jget(st,"region"); card_kv(lc,"Region",*rg?rg:"not set"); card_kv(lc,"Keyboard layout",jget(kb,"keyboard_layout"));
+    gtk_box_pack_start(GTK_BOX(box), section(_("Language & Region")), FALSE, FALSE, 0);
+    GtkWidget* lc=card_new(); card_kv(lc,_("Language"),jget(st,"language"));
+    char* rg=jget(st,"region"); card_kv(lc,_("Region"),*rg?rg:_("not set")); card_kv(lc,_("Keyboard layout"),jget(kb,"keyboard_layout"));
     gtk_box_pack_start(GTK_BOX(box),lc,FALSE,FALSE,0);
-    gtk_box_pack_start(GTK_BOX(box), section("Date & Time"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Date & Time")), FALSE, FALSE, 0);
     GtkWidget* tc=card_new(); char dtl[96]; snprintf(dtl,sizeof dtl,"%s  %s",jget(dt,"date"),jget(dt,"time"));
-    GtkWidget* sy=gtk_button_new_with_label("Sync time"); css(sy,"xxri-chip"); g_signal_connect(sy,"clicked",G_CALLBACK(cb_ntp),NULL);
-    char* tz=jget(dt,"timezone"); char tzl[64]; snprintf(tzl,sizeof tzl,"timezone %s",tz);
+    GtkWidget* sy=gtk_button_new_with_label(_("Sync time")); css(sy,"xxri-chip"); g_signal_connect(sy,"clicked",G_CALLBACK(cb_ntp),NULL);
+    char* tz=jget(dt,"timezone"); char tzl[64]; snprintf(tzl,sizeof tzl,_("timezone %s"),tz);
     card_action(tc,dtl,tzl,sy); gtk_box_pack_start(GTK_BOX(box),tc,FALSE,FALSE,0);
-    gtk_box_pack_start(GTK_BOX(box), section("Account"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Account")), FALSE, FALSE, 0);
     GtkWidget* ac=card_new();
     GtkWidget* hr=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10); css(hr,"xxri-rowitem");
     GtkWidget* htv=gtk_box_new(GTK_ORIENTATION_VERTICAL,4);
-    gtk_box_pack_start(GTK_BOX(htv),label_cls("Hostname","xxri-row-title",0),FALSE,FALSE,0);
+    gtk_box_pack_start(GTK_BOX(htv),label_cls(_("Hostname"),"xxri-row-title",0),FALSE,FALSE,0);
     g_host_entry=gtk_entry_new(); gtk_entry_set_text(GTK_ENTRY(g_host_entry),jget(st,"hostname")); gtk_widget_set_size_request(g_host_entry,220,-1);
     gtk_box_pack_start(GTK_BOX(htv),g_host_entry,FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(hr),htv,TRUE,TRUE,0);
-    GtkWidget* ap=gtk_button_new_with_label("Apply"); css(ap,"xxri-chip"); gtk_widget_set_valign(ap,GTK_ALIGN_END); g_signal_connect(ap,"clicked",G_CALLBACK(cb_host),NULL);
+    GtkWidget* ap=gtk_button_new_with_label(_("Apply")); css(ap,"xxri-chip"); gtk_widget_set_valign(ap,GTK_ALIGN_END); g_signal_connect(ap,"clicked",G_CALLBACK(cb_host),NULL);
     gtk_box_pack_end(GTK_BOX(hr),ap,FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(ac),hr,FALSE,FALSE,0);
     GtkWidget* al=gtk_switch_new(); gtk_switch_set_active(GTK_SWITCH(al), !strcmp(jget(st,"autologin"),"on"));
     g_signal_connect(al,"notify::active",G_CALLBACK(cb_auto),NULL);
-    card_action(ac,"Log in automatically","Skip the login prompt at boot",al);
+    card_action(ac,_("Log in automatically"),_("Skip the login prompt at boot"),al);
     gtk_box_pack_start(GTK_BOX(box),ac,FALSE,FALSE,0);
-    gtk_box_pack_start(GTK_BOX(box), section("Startup Applications"), FALSE, FALSE, 0);
-    GtkWidget* su=card_new(); card_kv(su,"Storage automount","Enabled (xxri-storage watch)");
-    card_kv(su,"Hardware layer","Enabled (xxri-hw-init)"); gtk_box_pack_start(GTK_BOX(box),su,FALSE,FALSE,0);
-    gtk_box_pack_start(GTK_BOX(box), section("Desktop"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Startup Applications")), FALSE, FALSE, 0);
+    GtkWidget* su=card_new(); card_kv(su,_("Storage automount"),_("Enabled (xxri-storage watch)"));
+    card_kv(su,_("Hardware layer"),_("Enabled (xxri-hw-init)")); gtk_box_pack_start(GTK_BOX(box),su,FALSE,FALSE,0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Desktop")), FALSE, FALSE, 0);
     GtkWidget* dc=card_new(); GtkWidget* dr=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8); css(dr,"xxri-rowitem");
-    GtkWidget* rs=gtk_button_new_with_label("Reset settings"); g_signal_connect(rs,"clicked",G_CALLBACK(cb_reset),NULL);
-    GtkWidget* rst=accent_btn("Restart session"); g_signal_connect(rst,"clicked",G_CALLBACK(cb_restart),NULL);
+    GtkWidget* rs=gtk_button_new_with_label(_("Reset settings")); g_signal_connect(rs,"clicked",G_CALLBACK(cb_reset),NULL);
+    GtkWidget* rst=accent_btn(_("Restart session")); g_signal_connect(rst,"clicked",G_CALLBACK(cb_restart),NULL);
     gtk_box_pack_start(GTK_BOX(dr),rs,FALSE,FALSE,0); gtk_box_pack_start(GTK_BOX(dr),rst,FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(dc),dr,FALSE,FALSE,0); gtk_box_pack_start(GTK_BOX(box),dc,FALSE,FALSE,0);
     g_free(st);g_free(dt);g_free(kb);
@@ -1636,7 +1638,7 @@ static void upd_check_done(const char* out, gboolean ok, gpointer tag) {
     upd_show_check(out ? out : "");
 }
 static void upd_start_check(void) {
-    gtk_label_set_text(GTK_LABEL(g_upd_title), "Checking for updates\xe2\x80\xa6");
+    gtk_label_set_text(GTK_LABEL(g_upd_title), _("Checking for updates\xe2\x80\xa6"));
     gtk_widget_set_sensitive(g_upd_check, FALSE);
     const char* argv[] = { "xxri-system-update", "check", "--json", NULL };
     run_async(argv, upd_check_done, GUINT_TO_POINTER(g_upd_gen));
@@ -1660,22 +1662,22 @@ static void upd_progress_done(const char* out, gboolean ok, gpointer tag) {
     } else if (!strcmp(ph, "done")) {
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(g_upd_bar), 1.0);
         gtk_label_set_text(GTK_LABEL(g_upd_step), msg);
-        gtk_label_set_text(GTK_LABEL(g_upd_title), "Update installed");
+        gtk_label_set_text(GTK_LABEL(g_upd_title), _("Update installed"));
         gtk_widget_hide(g_upd_install);
         if (!strcmp(rs, "reboot") || !strcmp(rs, "session")) {
             g_object_set_data_full(G_OBJECT(g_upd_restart), "how", g_strdup(rs), g_free);
-            gtk_button_set_label(GTK_BUTTON(g_upd_restart), !strcmp(rs, "reboot") ? "Restart now" : "Restart desktop");
+            gtk_button_set_label(GTK_BUTTON(g_upd_restart), !strcmp(rs, "reboot") ? _("Restart now") : _("Restart desktop"));
             gtk_widget_show(g_upd_restart);
         }
     } else {
         /* failed / interrupted: say why, offer it again */
         gtk_widget_hide(g_upd_bar);
-        char t[512]; snprintf(t, sizeof t, "%s%s%s", !strcmp(ph,"interrupted") ? "The installation was interrupted." : msg,
+        char t[512]; snprintf(t, sizeof t, "%s%s%s", !strcmp(ph,"interrupted") ? _("The installation was interrupted.") : msg,
                               *err ? " " : "", err);
         gtk_label_set_text(GTK_LABEL(g_upd_step), t);
         css(g_upd_step, "xxri-upd-error");
         gtk_widget_set_sensitive(g_upd_install, TRUE);
-        gtk_button_set_label(GTK_BUTTON(g_upd_install), "Try again");
+        gtk_button_set_label(GTK_BUTTON(g_upd_install), _("Try again"));
     }
     g_free(ph); g_free(msg); g_free(err); g_free(pc); g_free(rs);
 }
@@ -1695,7 +1697,7 @@ static void cb_upd_install(GtkWidget* w, gpointer u) {
     (void)u;
     gtk_widget_set_sensitive(w, FALSE);
     gtk_style_context_remove_class(gtk_widget_get_style_context(g_upd_step), "xxri-upd-error");
-    gtk_label_set_text(GTK_LABEL(g_upd_step), "Starting\xe2\x80\xa6");
+    gtk_label_set_text(GTK_LABEL(g_upd_step), _("Starting\xe2\x80\xa6"));
     gtk_widget_show(g_upd_step);
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(g_upd_bar), 0);
     gtk_widget_show(g_upd_bar);
@@ -1718,19 +1720,19 @@ static void upd_show_check(const char* out) {
     char* why = jget(out, "reason");
     if (!ok && !strcmp(why, "unpublished")) {
         /* the normal state until the project publishes its first manifest */
-        gtk_label_set_text(GTK_LABEL(g_upd_title), "No updates published yet");
-        snprintf(sub, sizeof sub, "XXRI OS Lite %s is the newest release. Last checked %s", cur, checked);
+        gtk_label_set_text(GTK_LABEL(g_upd_title), _("No updates published yet"));
+        snprintf(sub, sizeof sub, _("XXRI OS Lite %s is the newest release. Last checked %s"), cur, checked);
     } else if (!ok) {
-        gtk_label_set_text(GTK_LABEL(g_upd_title), "Couldn't check for updates");
-        snprintf(sub, sizeof sub, "%s", *err ? err : "The update source did not answer.");
+        gtk_label_set_text(GTK_LABEL(g_upd_title), _("Couldn't check for updates"));
+        snprintf(sub, sizeof sub, "%s", *err ? err : _("The update source did not answer."));
     } else if (!avail) {
-        gtk_label_set_text(GTK_LABEL(g_upd_title), "Your system is up to date");
-        snprintf(sub, sizeof sub, "%s%sLast checked %s", *note ? note : "", *note ? "\n" : "", checked);
+        gtk_label_set_text(GTK_LABEL(g_upd_title), _("Your system is up to date"));
+        snprintf(sub, sizeof sub, _("%s%sLast checked %s"), *note ? note : "", *note ? "\n" : "", checked);
     } else {
         char* ti = jget(out, "title"); char t[256];
-        snprintf(t, sizeof t, "%s is available", *ti ? ti : "A new XXRI OS Lite");
+        snprintf(t, sizeof t, _("%s is available"), *ti ? ti : _("A new XXRI OS Lite"));
         gtk_label_set_text(GTK_LABEL(g_upd_title), t);
-        snprintf(sub, sizeof sub, "Last checked %s", checked);
+        snprintf(sub, sizeof sub, _("Last checked %s"), checked);
         g_free(ti);
     }
     gtk_label_set_text(GTK_LABEL(g_upd_sub), sub);
@@ -1743,8 +1745,8 @@ static void upd_show_check(const char* out) {
         char* sz = jget(out, "size"); char* rs = jget(out, "restart");
         double mb = atof(sz) / 1048576.0;
         char meta[200];
-        snprintf(meta, sizeof meta, "%s%s%s%.1f MB%s", *rel ? "Released " : "", rel, *rel ? "  \xc2\xb7  " : "", mb,
-                 !strcmp(rs, "none") ? "" : !strcmp(rs, "session") ? "  \xc2\xb7  restarts the desktop" : "  \xc2\xb7  needs a restart");
+        snprintf(meta, sizeof meta, "%s%s%s%.1f MB%s", *rel ? _("Released ") : "", rel, *rel ? "  \xc2\xb7  " : "", mb,
+                 !strcmp(rs, "none") ? "" : !strcmp(rs, "session") ? _("  \xc2\xb7  restarts the desktop") : _("  \xc2\xb7  needs a restart"));
         GtkWidget* r = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6); css(r, "xxri-rowitem");
         gtk_box_pack_start(GTK_BOX(r), label_cls(*ti ? ti : "XXRI OS Lite", "xxri-row-title", 0), FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(r), label_cls(meta, "xxri-row-sub", 0), FALSE, FALSE, 0);
@@ -1757,10 +1759,10 @@ static void upd_show_check(const char* out) {
         gtk_box_pack_start(GTK_BOX(r), g_upd_step, FALSE, FALSE, 0);
         GtkWidget* btns = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
         gtk_widget_set_halign(btns, GTK_ALIGN_END);
-        g_upd_install = accent_btn("Download and install");
+        g_upd_install = accent_btn(_("Download and install"));
         g_signal_connect(g_upd_install, "clicked", G_CALLBACK(cb_upd_install), NULL);
         gtk_widget_set_sensitive(g_upd_install, can);
-        g_upd_restart = accent_btn("Restart now");
+        g_upd_restart = accent_btn(_("Restart now"));
         g_signal_connect(g_upd_restart, "clicked", G_CALLBACK(cb_upd_restart), NULL);
         gtk_widget_set_no_show_all(g_upd_restart, TRUE);
         gtk_box_pack_end(GTK_BOX(btns), g_upd_restart, FALSE, FALSE, 0);
@@ -1797,7 +1799,7 @@ static void build_update(GtkWidget* box) {
     g_upd_sub = label_cls("", "xxri-row-sub", 0);
     gtk_box_pack_start(GTK_BOX(tv), g_upd_sub, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hr), tv, TRUE, TRUE, 0);
-    g_upd_check = gtk_button_new_with_label("Check for updates"); css(g_upd_check, "xxri-chip");
+    g_upd_check = gtk_button_new_with_label(_("Check for updates")); css(g_upd_check, "xxri-chip");
     gtk_widget_set_valign(g_upd_check, GTK_ALIGN_CENTER);
     g_signal_connect(g_upd_check, "clicked", G_CALLBACK(cb_upd_check), NULL);
     gtk_box_pack_end(GTK_BOX(hr), g_upd_check, FALSE, FALSE, 0);
@@ -1827,13 +1829,13 @@ static void build_update(GtkWidget* box) {
     /* history */
     char* h = run_cmd("xxri-system-update history --json");
     GPtrArray* hs = jarr(h, "history");
-    gtk_box_pack_start(GTK_BOX(box), section("Update History"), FALSE, FALSE, 0);
-    if (!hs->len) gtk_box_pack_start(GTK_BOX(box), hint("No system updates have been installed yet."), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Update History")), FALSE, FALSE, 0);
+    if (!hs->len) gtk_box_pack_start(GTK_BOX(box), hint(_("No system updates have been installed yet.")), FALSE, FALSE, 0);
     else {
         GtkWidget* hc = card_new();
         for (guint i = 0; i < hs->len && i < 8; i++) {
             char* ti = jget((char*)hs->pdata[i], "title"); char* dt = jget((char*)hs->pdata[i], "date");
-            char s2[96]; snprintf(s2, sizeof s2, "Installed %s", dt);
+            char s2[96]; snprintf(s2, sizeof s2, _("Installed %s"), dt);
             card_icon_row(hc, "update", ti, s2, NULL);
             g_free(ti); g_free(dt);
         }
@@ -1843,21 +1845,21 @@ static void build_update(GtkWidget* box) {
 
     /* Tiny Core extension packages (the 2.x updater, unchanged) */
     char* ps = run_cmd("xxri-updates status --json");
-    gtk_box_pack_start(GTK_BOX(box), section("Extension Packages"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Extension Packages")), FALSE, FALSE, 0);
     GtkWidget* pc = card_new();
-    char pk[96]; snprintf(pk, sizeof pk, "%s extension packages", jget(ps, "installed"));
+    char pk[96]; snprintf(pk, sizeof pk, _("%s extension packages"), jget(ps, "installed"));
     GtkWidget* bb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-    GtkWidget* ck = gtk_button_new_with_label("Check"); css(ck, "xxri-chip");
+    GtkWidget* ck = gtk_button_new_with_label(_("Check")); css(ck, "xxri-chip");
     g_signal_connect(ck, "clicked", G_CALLBACK(cb_upd), (gpointer)"check");
-    GtkWidget* up = gtk_button_new_with_label("Update"); css(up, "xxri-chip");
+    GtkWidget* up = gtk_button_new_with_label(_("Update")); css(up, "xxri-chip");
     g_signal_connect(up, "clicked", G_CALLBACK(cb_upd), (gpointer)"apply");
     gtk_box_pack_start(GTK_BOX(bb), ck, FALSE, FALSE, 0); gtk_box_pack_start(GTK_BOX(bb), up, FALSE, FALSE, 0);
     card_action(pc, pk, jget(ps, "mirror"), bb);
     GtkWidget* lr = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0); css(lr, "xxri-rowitem");
-    g_updlog = label_cls("Check compares the extension packages in /tce with the Tiny Core mirror; Update downloads newer ones, which load at the next boot.", "xxri-val", 0);
+    g_updlog = label_cls(_("Check compares the extension packages in /tce with the Tiny Core mirror; Update downloads newer ones, which load at the next boot."), "xxri-val", 0);
     gtk_box_pack_start(GTK_BOX(lr), g_updlog, FALSE, FALSE, 0); gtk_box_pack_start(GTK_BOX(pc), lr, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), pc, FALSE, FALSE, 0);
-    char srcl[400]; snprintf(srcl, sizeof srcl, "System updates come from %s", src);
+    char srcl[400]; snprintf(srcl, sizeof srcl, _("System updates come from %s"), src);
     gtk_box_pack_start(GTK_BOX(box), label_cls(srcl, "xxri-upd-source", 0), FALSE, FALSE, 10);
     g_free(ps); g_free(st); g_free(cur); g_free(bl); g_free(src);
 }
@@ -1873,14 +1875,14 @@ static void build_about(GtkWidget* box) {
     GtkWidget* hero=card_new(); GtkWidget* hr=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,20); css(hr,"xxri-rowitem");
     GtkWidget* info=gtk_box_new(GTK_ORIENTATION_VERTICAL,10);
     struct { const char* k; char* v; } rows[]={
-        {"OS", jget(s,"os")},
-        {"Version", ({ char* v = run_cmd("sed -n 's/^IMAGE_VERSION=//p' /etc/os-release | tr -d '\"'");
+        {_("OS"), jget(s,"os")},
+        {_("Version"), ({ char* v = run_cmd("sed -n 's/^IMAGE_VERSION=//p' /etc/os-release | tr -d '\"'");
                        char* o = g_strdup_printf("%s Lite", *v ? v : "2.6"); g_free(v); o; })},
-        {"Uptime", jget(s,"uptime")},
-        {"Locale", ({ char* lc = jget(s,"locale");
+        {_("Uptime"), jget(s,"uptime")},
+        {_("Locale"), ({ char* lc = jget(s,"locale");
                       /* a bare "C" is the POSIX default, not a language */
                       char* out = (!strcmp(lc,"C")||!strcmp(lc,"POSIX"))
-                                ? g_strdup_printf("%s \xc2\xb7 POSIX default", lc)
+                                ? g_strdup_printf(_("%s \xc2\xb7 POSIX default"), lc)
                                 : g_strdup(lc);
                       g_free(lc); out; })},
     };
@@ -1894,35 +1896,35 @@ static void build_about(GtkWidget* box) {
     gtk_box_pack_start(GTK_BOX(hero),hr,FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(box),hero,FALSE,FALSE,0);
     /* Hardware */
-    gtk_box_pack_start(GTK_BOX(box), section("Hardware"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Hardware")), FALSE, FALSE, 0);
     GtkWidget* hc=card_new();
-    card_kv(hc,"CPU",jget(s,"cpu"));
-    card_kv(hc,"CPU Cores",jget(s,"cores"));
-    card_kv(hc,"GPU",jget(s,"gpu"));
-    char mem[32]; snprintf(mem,sizeof mem,"%s MiB",jget(s,"memory_mb")); card_kv(hc,"Memory",mem);
-    GPtrArray* disks=jarr(disk,"disks"); char dtxt[128]="unknown";
+    card_kv(hc,_("CPU"),jget(s,"cpu"));
+    card_kv(hc,_("CPU Cores"),jget(s,"cores"));
+    card_kv(hc,_("GPU"),jget(s,"gpu"));
+    char mem[32]; snprintf(mem,sizeof mem,"%s MiB",jget(s,"memory_mb")); card_kv(hc,_("Memory"),mem);
+    GPtrArray* disks=jarr(disk,"disks"); char dtxt[128]; g_strlcpy(dtxt,_("unknown"),sizeof dtxt);
     for(guint i=0;i<disks->len;i++){char*o=disks->pdata[i]; if(!jbool(o,"usb")){snprintf(dtxt,sizeof dtxt,"%s · %ld GiB",jget(o,"model"),atol(jget(o,"size_mb"))/1024);break;}}
-    card_kv(hc,"Storage",dtxt);
-    card_kv(hc,"Battery", jbool(bat,"present")?"present":"N/A (Desktop)");
-    card_kv(hc,"Display Resolution",jget(dsp,"mode"));
+    card_kv(hc,_("Storage"),dtxt);
+    card_kv(hc,_("Battery"), jbool(bat,"present")?_("present"):_("N/A (Desktop)"));
+    card_kv(hc,_("Display Resolution"),jget(dsp,"mode"));
     gtk_box_pack_start(GTK_BOX(box),hc,FALSE,FALSE,0);
     /* System */
-    gtk_box_pack_start(GTK_BOX(box), section("System"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("System")), FALSE, FALSE, 0);
     GtkWidget* yc=card_new();
-    card_kv(yc,"Kernel",jget(s,"kernel"));
-    card_kv(yc,"Architecture",jget(s,"arch"));
-    char bios[160]; snprintf(bios,sizeof bios,"%s %s",jget(b,"vendor"),jget(b,"version")); card_kv(yc,"BIOS",bios);
+    card_kv(yc,_("Kernel"),jget(s,"kernel"));
+    card_kv(yc,_("Architecture"),jget(s,"arch"));
+    char bios[160]; snprintf(bios,sizeof bios,"%s %s",jget(b,"vendor"),jget(b,"version")); card_kv(yc,_("BIOS"),bios);
     { char* v = run_cmd("sed -n 's/^IMAGE_VERSION=//p' /etc/os-release | tr -d '\"'");
       char* bi = run_cmd("sed -n 's/^BUILD_ID=//p' /etc/os-release | tr -d '\"'");
       char bl[160]; snprintf(bl, sizeof bl, "XXRI OS Lite %s%s%s%s", *v ? v : "2.6",
                              *bi && strcmp(bi, v) ? " (build " : "", *bi && strcmp(bi, v) ? bi : "", *bi && strcmp(bi, v) ? ")" : "");
-      card_kv(yc,"Build",bl); g_free(v); g_free(bi); }
+      card_kv(yc,_("Build"),bl); g_free(v); g_free(bi); }
     gtk_box_pack_start(GTK_BOX(box),yc,FALSE,FALSE,0);
     /* Legal */
-    gtk_box_pack_start(GTK_BOX(box), section("Legal"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), section(_("Legal")), FALSE, FALSE, 0);
     GtkWidget* lc=card_new();
-    card_kv(lc,"License","GNU General Public License by Free Software Foundation v3 or later");
-    card_kv(lc,"Copyright","Copyright (C) 2025 Jantzen Maximillian kimlim");
+    card_kv(lc,_("License"),_("GNU General Public License by Free Software Foundation v3 or later"));
+    card_kv(lc,_("Copyright"),"Copyright (C) 2025 Jantzen Maximillian kimlim");
     gtk_box_pack_start(GTK_BOX(box),lc,FALSE,FALSE,0);
     g_ptr_array_free(disks,TRUE);
     g_free(s);g_free(b);g_free(disk);g_free(dsp);g_free(bat);
@@ -2097,7 +2099,7 @@ static void pill_set(Pill* p, gboolean on, gboolean can, const char* sub) {
     gtk_switch_set_active(GTK_SWITCH(p->sw), on);
     g_signal_handler_unblock(p->sw, p->hid);
     gtk_widget_set_sensitive(p->sw, can);
-    gtk_label_set_text(GTK_LABEL(p->title), on ? "On" : "Off");
+    gtk_label_set_text(GTK_LABEL(p->title), on ? _("On") : _("Off"));
     GtkStyleContext* sc = gtk_widget_get_style_context(p->box);
     if (on) gtk_style_context_add_class(sc, "on"); else gtk_style_context_remove_class(sc, "on");
     gtk_label_set_text(GTK_LABEL(p->sub), sub ? sub : "");
@@ -2183,7 +2185,7 @@ static GtkWidget* gear_btn(void) {
     g_signal_connect(g, "draw", G_CALLBACK(draw_gear), NULL);
     gtk_container_add(GTK_CONTAINER(b), g);
     css(b, "xxri-gear");
-    gtk_widget_set_tooltip_text(b, "Details");
+    gtk_widget_set_tooltip_text(b, _("Details"));
     return b;
 }
 /* a dialog's own heading: named so xxri-dialog.h does not add the title too */
@@ -2233,15 +2235,15 @@ static void net_connect(const char* ssid, const char* psk, gboolean hidden, GtkW
 
 /* the password dialog; error = why the last try failed, or NULL */
 static void net_ask_password(const char* ssid, const char* security, const char* error, GtkWidget* sub) {
-    GtkWidget* d = gtk_dialog_new_with_buttons("Wi-Fi", GTK_WINDOW(g_win), GTK_DIALOG_MODAL,
-                                               "Cancel", GTK_RESPONSE_CANCEL, "Connect", GTK_RESPONSE_OK, NULL);
+    GtkWidget* d = gtk_dialog_new_with_buttons(_("Wi-Fi"), GTK_WINDOW(g_win), GTK_DIALOG_MODAL,
+                                               _("Cancel"), GTK_RESPONSE_CANCEL, _("Connect"), GTK_RESPONSE_OK, NULL);
     GtkWidget* ok = gtk_dialog_get_widget_for_response(GTK_DIALOG(d), GTK_RESPONSE_OK);
     css(ok, "xxri-accent");
     gtk_dialog_set_default_response(GTK_DIALOG(d), GTK_RESPONSE_OK);
     GtkWidget* c = gtk_dialog_get_content_area(GTK_DIALOG(d));
     gtk_box_set_spacing(GTK_BOX(c), 8);
     gtk_widget_set_size_request(c, 360, -1);
-    char t[300]; snprintf(t, sizeof t, "Connect to \xe2\x80\x9c%s\xe2\x80\x9d", ssid);
+    char t[300]; snprintf(t, sizeof t, _("Connect to \xe2\x80\x9c%s\xe2\x80\x9d"), ssid);
     gtk_box_pack_start(GTK_BOX(c), dlg_heading(t), FALSE, FALSE, 0);
     if (error && *error) {
         GtkWidget* e = label_cls(error, "xxri-dlg-error", 0);
@@ -2251,11 +2253,11 @@ static void net_ask_password(const char* ssid, const char* security, const char*
     GtkWidget* en = gtk_entry_new();
     gtk_entry_set_visibility(GTK_ENTRY(en), FALSE);
     gtk_entry_set_input_purpose(GTK_ENTRY(en), GTK_INPUT_PURPOSE_PASSWORD);
-    gtk_entry_set_placeholder_text(GTK_ENTRY(en), "Password");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(en), _("Password"));
     gtk_entry_set_activates_default(GTK_ENTRY(en), TRUE);
     gtk_widget_set_margin_start(en, 10); gtk_widget_set_margin_end(en, 10);
     gtk_box_pack_start(GTK_BOX(c), en, FALSE, FALSE, 0);
-    GtkWidget* show = gtk_check_button_new_with_label("Show password");
+    GtkWidget* show = gtk_check_button_new_with_label(_("Show password"));
     gtk_widget_set_margin_start(show, 10);
     g_signal_connect(show, "toggled", G_CALLBACK(+[](GtkToggleButton* b, gpointer e) {
         gtk_entry_set_visibility(GTK_ENTRY(e), gtk_toggle_button_get_active(b)); }), en);
@@ -2286,11 +2288,11 @@ static void net_connect_done(const char* out, gboolean ok, gpointer u) {
         char* why = jget(out ? out : "", "reason");
         if (!conn && !strcmp(err, "auth")) {
             net_refresh();
-            net_ask_password(t->ssid, t->security, "The password was not accepted. Try again.", NULL);
+            net_ask_password(t->ssid, t->security, _("The password was not accepted. Try again."), NULL);
         } else {
             if (!conn) {
-                char* s = sentence(*why ? why : "the network did not answer");
-                char ti[300]; snprintf(ti, sizeof ti, "Couldn't connect to \xe2\x80\x9c%s\xe2\x80\x9d", t->ssid);
+                char* s = sentence(*why ? why : _("the network did not answer"));
+                char ti[300]; snprintf(ti, sizeof ti, _("Couldn't connect to \xe2\x80\x9c%s\xe2\x80\x9d"), t->ssid);
                 alert(ti, s); g_free(s);
             }
             net_refresh();
@@ -2302,7 +2304,7 @@ static void net_connect_done(const char* out, gboolean ok, gpointer u) {
 static void net_connect(const char* ssid, const char* psk, gboolean hidden, GtkWidget* sub) {
     if (g_net_busy) return;
     g_net_busy = TRUE;
-    if (sub) row_set_sub(sub, "Connecting\xe2\x80\xa6");
+    if (sub) row_set_sub(sub, _("Connecting\xe2\x80\xa6"));
     ConnTag* t = g_new0(ConnTag, 1);
     t->gen = g_net_gen; t->ssid = g_strdup(ssid); t->security = g_strdup(psk ? "wpa" : "");
     const char* argv[8]; int n = 0;
@@ -2322,8 +2324,8 @@ static void net_forget_done(const char* out, gboolean ok, gpointer tag) {
 static void net_details(void) {
     const char* o = g_net_info ? g_net_info : "";
     char* ssid = jget(o, "ssid");
-    GtkWidget* d = gtk_dialog_new_with_buttons("Wi-Fi", GTK_WINDOW(g_win), GTK_DIALOG_MODAL,
-                                               "Forget", 1, "Close", GTK_RESPONSE_CLOSE, NULL);
+    GtkWidget* d = gtk_dialog_new_with_buttons(_("Wi-Fi"), GTK_WINDOW(g_win), GTK_DIALOG_MODAL,
+                                               _("Forget"), 1, _("Close"), GTK_RESPONSE_CLOSE, NULL);
     css(gtk_dialog_get_widget_for_response(GTK_DIALOG(d), 1), "destructive-action");
     gtk_dialog_set_default_response(GTK_DIALOG(d), GTK_RESPONSE_CLOSE);
     GtkWidget* c = gtk_dialog_get_content_area(GTK_DIALOG(d));
@@ -2339,15 +2341,15 @@ static void net_details(void) {
     char* nm = jget(o, "netmask"); char* gw = jget(o, "gateway"); char* dns = jget(o, "dns");
     char* mac = jget(o, "mac");
     const char* secname = !strcmp(sec,"wpa3") ? "WPA3" : !strcmp(sec,"wpa") ? "WPA/WPA2" :
-                          !strcmp(sec,"wep") ? "WEP" : !strcmp(sec,"eap") ? "WPA Enterprise" : "None (open)";
+                          !strcmp(sec,"wep") ? "WEP" : !strcmp(sec,"eap") ? _("WPA Enterprise") : _("None (open)");
     char b1[64] = "", b2[64] = "", b3[64] = "";
     if (*sig && strcmp(sig,"null")) snprintf(b1, sizeof b1, "%s dBm", sig);
     if (*sp && strcmp(sp,"null")) snprintf(b2, sizeof b2, "%s Mbit/s", sp);
     if (*fr && strcmp(fr,"null")) snprintf(b3, sizeof b3, "%s GHz (%s MHz)", band, fr);
     const char* kv[][2] = {
-        {"Status", jbool(o,"online") ? "Connected" : "Connected, internet may not be available"},
-        {"Signal strength", b1}, {"Link speed", b2}, {"Frequency", b3}, {"Security", secname},
-        {"IP address", ip}, {"Subnet mask", nm}, {"Gateway", gw}, {"DNS", dns}, {"MAC address", mac} };
+        {_("Status"), jbool(o,"online") ? _("Connected") : _("Connected, internet may not be available")},
+        {_("Signal strength"), b1}, {_("Link speed"), b2}, {_("Frequency"), b3}, {_("Security"), secname},
+        {_("IP address"), ip}, {_("Subnet mask"), nm}, {_("Gateway"), gw}, {_("DNS"), dns}, {_("MAC address"), mac} };
     for (guint i = 0; i < G_N_ELEMENTS(kv); i++) {
         if (!kv[i][1] || !*kv[i][1]) continue;
         GtkWidget* k = label_cls(kv[i][0], "xxri-dlg-key", 0);
@@ -2372,22 +2374,22 @@ static void net_details(void) {
 /* Add network: a name that is not broadcast, or one typed in by hand */
 static void net_add(GtkWidget* w, gpointer u) {
     (void)w; (void)u;
-    GtkWidget* d = gtk_dialog_new_with_buttons("Wi-Fi", GTK_WINDOW(g_win), GTK_DIALOG_MODAL,
-                                               "Cancel", GTK_RESPONSE_CANCEL, "Connect", GTK_RESPONSE_OK, NULL);
+    GtkWidget* d = gtk_dialog_new_with_buttons(_("Wi-Fi"), GTK_WINDOW(g_win), GTK_DIALOG_MODAL,
+                                               _("Cancel"), GTK_RESPONSE_CANCEL, _("Connect"), GTK_RESPONSE_OK, NULL);
     GtkWidget* ok = gtk_dialog_get_widget_for_response(GTK_DIALOG(d), GTK_RESPONSE_OK);
     css(ok, "xxri-accent");
     gtk_dialog_set_default_response(GTK_DIALOG(d), GTK_RESPONSE_OK);
     GtkWidget* c = gtk_dialog_get_content_area(GTK_DIALOG(d));
     gtk_box_set_spacing(GTK_BOX(c), 8);
     gtk_widget_set_size_request(c, 360, -1);
-    gtk_box_pack_start(GTK_BOX(c), dlg_heading("Add network"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(c), dlg_heading(_("Add network")), FALSE, FALSE, 0);
     GtkWidget* name = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(name), "Network name (SSID)");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(name), _("Network name (SSID)"));
     GtkWidget* pw = gtk_entry_new();
     gtk_entry_set_visibility(GTK_ENTRY(pw), FALSE);
-    gtk_entry_set_placeholder_text(GTK_ENTRY(pw), "Password (leave empty for an open network)");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(pw), _("Password (leave empty for an open network)"));
     gtk_entry_set_activates_default(GTK_ENTRY(pw), TRUE);
-    GtkWidget* hid = gtk_check_button_new_with_label("Hidden network");
+    GtkWidget* hid = gtk_check_button_new_with_label(_("Hidden network"));
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(hid), TRUE);
     GtkWidget* ws[] = { name, pw, hid };
     for (int i = 0; i < 3; i++) {
@@ -2423,7 +2425,7 @@ static void net_row_activated(GtkListBox* lb, GtkListBoxRow* row, gpointer u) {
     if (!n || g_net_busy) return;
     if (n->current) { net_details(); return; }
     if (!strcmp(n->security, "eap")) {
-        alert("Enterprise network", "Networks that sign in with a user name and certificate (WPA Enterprise, 802.1X) are not supported yet.");
+        alert(_("Enterprise network"), _("Networks that sign in with a user name and certificate (WPA Enterprise, 802.1X) are not supported yet."));
         return;
     }
     if (n->saved || !strcmp(n->security, "open")) net_connect(n->ssid, NULL, FALSE, n->sub);
@@ -2444,7 +2446,7 @@ static void net_info_done(const char* out, gboolean ok, gpointer tag) {
     g_signal_connect(gear, "clicked", G_CALLBACK(+[](GtkWidget* w, gpointer p){ (void)w;(void)p; net_details(); }), NULL);
     GtkWidget* row = tap_row(lb, wifi_glyph(atoi(bars), strcmp(sec, "open") != 0, !online), ssid,
                              !strcmp(band, "5") ? badge_new("5G") : NULL,
-                             online ? "Connected" : "Connected, internet may not be available", gear, NULL);
+                             online ? _("Connected") : _("Connected, internet may not be available"), gear, NULL);
     NetRow* n = g_new0(NetRow, 1); n->ssid = g_strdup(ssid); n->security = g_strdup(sec); n->current = TRUE; n->saved = TRUE;
     g_object_set_data_full(G_OBJECT(row), "net", n, netrow_free);
     g_signal_connect(lb, "row-activated", G_CALLBACK(net_row_activated), NULL);
@@ -2479,7 +2481,7 @@ static void net_scan_done(const char* out, gboolean ok, gpointer tag) {
         char* ss = jget(e, "ssid"); char* sec = jget(e, "security"); char* bars = jget(e, "bars");
         char* band = jget(e, "band");
         gboolean saved = jbool(e, "saved");
-        const char* sub = saved ? "Saved" : !strcmp(sec, "open") ? "Open" : !strcmp(sec, "eap") ? "Enterprise" : "";
+        const char* sub = saved ? _("Saved") : !strcmp(sec, "open") ? _("Open") : !strcmp(sec, "eap") ? _("Enterprise") : "";
         GtkWidget* subl = NULL;
         GtkWidget* row = tap_row(lb, wifi_glyph(atoi(bars), strcmp(sec, "open") != 0, FALSE), ss,
                                  !strcmp(band, "5") ? badge_new("5G") : NULL, sub, NULL, &subl);
@@ -2492,7 +2494,7 @@ static void net_scan_done(const char* out, gboolean ok, gpointer tag) {
     if (!shown) {
         GtkWidget* r = gtk_list_box_row_new();
         gtk_list_box_row_set_activatable(GTK_LIST_BOX_ROW(r), FALSE);
-        GtkWidget* l = label_cls("No other networks found nearby.", "xxri-row-sub", 0);
+        GtkWidget* l = label_cls(_("No other networks found nearby."), "xxri-row-sub", 0);
         css(l, "xxri-taprow");
         gtk_container_add(GTK_CONTAINER(r), l);
         gtk_list_box_insert(GTK_LIST_BOX(lb), r, -1);
@@ -2500,7 +2502,7 @@ static void net_scan_done(const char* out, gboolean ok, gpointer tag) {
     /* Add network, last */
     GtkWidget* plus = gtk_label_new("+");
     css(plus, "xxri-plus");
-    GtkWidget* add = tap_row(lb, plus, "Add network", NULL, NULL, NULL, NULL);
+    GtkWidget* add = tap_row(lb, plus, _("Add network"), NULL, NULL, NULL, NULL);
     g_object_set_data(G_OBJECT(add), "add", GINT_TO_POINTER(1));
     g_signal_connect(lb, "row-activated", G_CALLBACK(+[](GtkListBox* l, GtkListBoxRow* r, gpointer u) {
         (void)l; (void)u; if (g_object_get_data(G_OBJECT(r), "add")) net_add(NULL, NULL); }), NULL);
@@ -2529,10 +2531,10 @@ static void net_status_done(const char* out, gboolean ok, gpointer tag) {
         char* ip = jget(o, "ip"); char* st = jget(o, "state");
         gboolean carrier = jbool(o, "carrier");
         char sub[160];
-        if (*ip) snprintf(sub, sizeof sub, "Connected \xc2\xb7 %s", ip);
-        else if (!carrier) snprintf(sub, sizeof sub, "Cable unplugged");
-        else snprintf(sub, sizeof sub, "Getting an address\xe2\x80\xa6");
-        char t[64]; snprintf(t, sizeof t, "Ethernet (%s)", name);
+        if (*ip) snprintf(sub, sizeof sub, _("Connected \xc2\xb7 %s"), ip);
+        else if (!carrier) g_strlcpy(sub, _("Cable unplugged"), sizeof sub);
+        else snprintf(sub, sizeof sub, _("Getting an address\xe2\x80\xa6"));
+        char t[64]; snprintf(t, sizeof t, _("Ethernet (%s)"), name);
         card_icon_row(g_net_eth_card, "devices", t, sub, NULL);
         n++;
         g_free(ip); g_free(st); g_free(type); g_free(name);
@@ -2549,18 +2551,18 @@ static void net_wifi_done(const char* out, gboolean ok, gpointer tag) {
     gboolean present = jbool(o, "present"), hard = jbool(o, "hard_blocked");
     g_net_on = present && jbool(o, "enabled");
     if (!present) {
-        pill_set(&g_net_pill, FALSE, FALSE, "No Wi-Fi adapter");
+        pill_set(&g_net_pill, FALSE, FALSE, _("No Wi-Fi adapter"));
         gtk_label_set_text(GTK_LABEL(g_net_msg),
-            "No wireless adapter was detected. Drivers ship with XXRI OS; if your adapter needs firmware, About Device shows what is missing.");
+            _("No wireless adapter was detected. Drivers ship with XXRI OS; if your adapter needs firmware, About Device shows what is missing."));
         reveal(g_net_msg);
     } else if (hard) {
-        pill_set(&g_net_pill, FALSE, FALSE, "Switched off by the computer's wireless switch or key");
+        pill_set(&g_net_pill, FALSE, FALSE, _("Switched off by the computer's wireless switch or key"));
         conceal(g_net_msg);
     } else {
         pill_set(&g_net_pill, g_net_on, TRUE, NULL);
         if (g_net_on) conceal(g_net_msg);
         else {
-            gtk_label_set_text(GTK_LABEL(g_net_msg), "Turn on Wi-Fi to see the networks around you.");
+            gtk_label_set_text(GTK_LABEL(g_net_msg), _("Turn on Wi-Fi to see the networks around you."));
             reveal(g_net_msg);
         }
     }
@@ -2587,7 +2589,7 @@ static void net_toggle(GtkSwitch* sw, GParamSpec* ps, gpointer u) {
     (void)ps; (void)u;
     gboolean on = gtk_switch_get_active(sw);
     gtk_widget_set_sensitive(GTK_WIDGET(sw), FALSE);
-    gtk_label_set_text(GTK_LABEL(g_net_pill.title), on ? "Turning on\xe2\x80\xa6" : "Turning off\xe2\x80\xa6");
+    gtk_label_set_text(GTK_LABEL(g_net_pill.title), on ? _("Turning on\xe2\x80\xa6") : _("Turning off\xe2\x80\xa6"));
     const char* argv[] = { "xxri-network", "wifi", on ? "on" : "off", "--json", NULL };
     run_async(argv, net_switch_done, NET_TAG);
 }
@@ -2602,16 +2604,16 @@ static void build_wifi(GtkWidget* box) {
     gtk_box_pack_start(GTK_BOX(box), g_net_msg, FALSE, FALSE, 0);
     conceal(g_net_msg);
 
-    g_net_cur_head = section("Current network");
+    g_net_cur_head = section(_("Current network"));
     g_net_cur_card = card_new();
     GtkWidget* r = NULL;
-    g_net_av_head = section_with("Available networks", &r);
+    g_net_av_head = section_with(_("Available networks"), &r);
     g_net_av_right = r;
     g_net_spin = gtk_spinner_new();
     gtk_widget_set_no_show_all(g_net_spin, TRUE);
     gtk_box_pack_end(GTK_BOX(r), g_net_spin, FALSE, FALSE, 0);
     g_net_av_card = card_new();
-    g_net_eth_head = section("Ethernet");
+    g_net_eth_head = section(_("Ethernet"));
     g_net_eth_card = card_new();
     GtkWidget* ws[] = { g_net_cur_head, g_net_cur_card, g_net_av_head, g_net_av_card, g_net_eth_head, g_net_eth_card };
     for (guint i = 0; i < G_N_ELEMENTS(ws); i++) {
@@ -2636,14 +2638,14 @@ typedef struct { char *mac, *name, *icon; gboolean paired, connected; GtkWidget*
 static void btrow_free(gpointer p) { BtRow* b = (BtRow*)p; g_free(b->mac); g_free(b->name); g_free(b->icon); g_free(b); }
 static const char* bt_kind(const char* icon) {
     if (!icon) return "";
-    if (g_str_has_prefix(icon, "audio-head")) return "Headphones";
-    if (g_str_has_prefix(icon, "audio")) return "Audio";
-    if (g_str_has_prefix(icon, "input-keyboard")) return "Keyboard";
-    if (g_str_has_prefix(icon, "input-mouse")) return "Mouse";
-    if (g_str_has_prefix(icon, "input-tablet")) return "Tablet";
-    if (g_str_has_prefix(icon, "input-gaming")) return "Game controller";
-    if (g_str_has_prefix(icon, "phone")) return "Phone";
-    if (g_str_has_prefix(icon, "computer")) return "Computer";
+    if (g_str_has_prefix(icon, "audio-head")) return _("Headphones");
+    if (g_str_has_prefix(icon, "audio")) return _("Audio");
+    if (g_str_has_prefix(icon, "input-keyboard")) return _("Keyboard");
+    if (g_str_has_prefix(icon, "input-mouse")) return _("Mouse");
+    if (g_str_has_prefix(icon, "input-tablet")) return _("Tablet");
+    if (g_str_has_prefix(icon, "input-gaming")) return _("Game controller");
+    if (g_str_has_prefix(icon, "phone")) return _("Phone");
+    if (g_str_has_prefix(icon, "computer")) return _("Computer");
     return "";
 }
 
@@ -2669,19 +2671,19 @@ static void pair_answer(PairJob* j, gboolean yes) {
     g_output_stream_flush(j->out, NULL, NULL);
     gtk_widget_hide(j->yes);
     gtk_widget_show(j->spin); gtk_spinner_start(GTK_SPINNER(j->spin));
-    gtk_label_set_text(GTK_LABEL(j->text), yes ? "Pairing\xe2\x80\xa6" : "Cancelling\xe2\x80\xa6");
+    gtk_label_set_text(GTK_LABEL(j->text), yes ? _("Pairing\xe2\x80\xa6") : _("Cancelling\xe2\x80\xa6"));
 }
 static void pair_show_code(PairJob* j, const char* code, const char* what) {
     gtk_label_set_text(GTK_LABEL(j->code), code);
     gtk_widget_set_no_show_all(j->code, FALSE); gtk_widget_show(j->code);
     char t[400];
     if (!strcmp(what, "confirm")) {
-        snprintf(t, sizeof t, "Make sure \xe2\x80\x9c%s\xe2\x80\x9d shows this code, then choose Pair.", j->name);
+        snprintf(t, sizeof t, _("Make sure \xe2\x80\x9c%s\xe2\x80\x9d shows this code, then choose Pair."), j->name);
         gtk_widget_show(j->yes); gtk_widget_show(j->no);
         gtk_spinner_stop(GTK_SPINNER(j->spin)); gtk_widget_hide(j->spin);
         j->waiting = TRUE;
     } else {
-        snprintf(t, sizeof t, "Type this code on \xe2\x80\x9c%s\xe2\x80\x9d, then press Enter.", j->name);
+        snprintf(t, sizeof t, _("Type this code on \xe2\x80\x9c%s\xe2\x80\x9d, then press Enter."), j->name);
     }
     gtk_label_set_text(GTK_LABEL(j->text), t);
 }
@@ -2695,8 +2697,8 @@ static void pair_finish(PairJob* j) {
         j->dlg = NULL;
     } else if (j->dlg) {
         char* why = jget(o, "reason");
-        char* s = sentence(*why ? why : "pairing did not complete");
-        gtk_label_set_text(GTK_LABEL(j->title), "Couldn't pair");
+        char* s = sentence(*why ? why : _("pairing did not complete"));
+        gtk_label_set_text(GTK_LABEL(j->title), _("Couldn't pair"));
         gtk_label_set_text(GTK_LABEL(j->text), s);
         gtk_widget_hide(j->code); gtk_widget_hide(j->yes); gtk_widget_hide(j->no);
         gtk_widget_set_no_show_all(j->close, FALSE); gtk_widget_show(j->close);
@@ -2728,7 +2730,7 @@ static void bt_pair(const char* mac, const char* name) {
     const char* argv[] = { "xxri-bluetooth", "pair", mac, "--json", NULL };
     GSubprocess* p = g_subprocess_newv(argv, (GSubprocessFlags)(G_SUBPROCESS_FLAGS_STDIN_PIPE |
                                        G_SUBPROCESS_FLAGS_STDOUT_PIPE | G_SUBPROCESS_FLAGS_STDERR_SILENCE), NULL);
-    if (!p) { alert("Couldn't pair", "The Bluetooth backend did not start."); return; }
+    if (!p) { alert(_("Couldn't pair"), _("The Bluetooth backend did not start.")); return; }
     g_bt_busy = TRUE;
     PairJob* j = g_new0(PairJob, 1);
     j->gen = g_bt_gen; j->p = p; j->mac = g_strdup(mac); j->name = g_strdup(name && *name ? name : mac);
@@ -2738,11 +2740,11 @@ static void bt_pair(const char* mac, const char* name) {
     j->dlg = gtk_dialog_new();
     gtk_window_set_transient_for(GTK_WINDOW(j->dlg), GTK_WINDOW(g_win));
     gtk_window_set_modal(GTK_WINDOW(j->dlg), TRUE);
-    gtk_window_set_title(GTK_WINDOW(j->dlg), "Bluetooth");
+    gtk_window_set_title(GTK_WINDOW(j->dlg), _("Bluetooth"));
     GtkWidget* c = gtk_dialog_get_content_area(GTK_DIALOG(j->dlg));
     gtk_box_set_spacing(GTK_BOX(c), 8);
     gtk_widget_set_size_request(c, 360, -1);
-    char t[300]; snprintf(t, sizeof t, "Pairing with \xe2\x80\x9c%s\xe2\x80\x9d", j->name);
+    char t[300]; snprintf(t, sizeof t, _("Pairing with \xe2\x80\x9c%s\xe2\x80\x9d"), j->name);
     j->title = dlg_heading(t);
     gtk_box_pack_start(GTK_BOX(c), j->title, FALSE, FALSE, 0);
     j->code = label_cls("", "xxri-pair-code", 0.5);
@@ -2752,13 +2754,13 @@ static void bt_pair(const char* mac, const char* name) {
     gtk_widget_set_margin_start(hb, 10); gtk_widget_set_margin_end(hb, 10);
     j->spin = gtk_spinner_new(); gtk_spinner_start(GTK_SPINNER(j->spin));
     gtk_box_pack_start(GTK_BOX(hb), j->spin, FALSE, FALSE, 0);
-    j->text = label_cls("Waiting for the device\xe2\x80\xa6", "xxri-dlg-text", 0);
+    j->text = label_cls(_("Waiting for the device\xe2\x80\xa6"), "xxri-dlg-text", 0);
     gtk_box_pack_start(GTK_BOX(hb), j->text, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(c), hb, FALSE, FALSE, 4);
-    j->no = gtk_dialog_add_button(GTK_DIALOG(j->dlg), "Cancel", GTK_RESPONSE_NO);
-    j->yes = gtk_dialog_add_button(GTK_DIALOG(j->dlg), "Pair", GTK_RESPONSE_YES);
+    j->no = gtk_dialog_add_button(GTK_DIALOG(j->dlg), _("Cancel"), GTK_RESPONSE_NO);
+    j->yes = gtk_dialog_add_button(GTK_DIALOG(j->dlg), _("Pair"), GTK_RESPONSE_YES);
     css(j->yes, "xxri-accent");
-    j->close = gtk_dialog_add_button(GTK_DIALOG(j->dlg), "Close", GTK_RESPONSE_CLOSE);
+    j->close = gtk_dialog_add_button(GTK_DIALOG(j->dlg), _("Close"), GTK_RESPONSE_CLOSE);
     /* (add_button shows each button) Pair and Close come later */
     gtk_widget_set_no_show_all(j->yes, TRUE); gtk_widget_set_no_show_all(j->close, TRUE);
     gtk_widget_hide(j->yes); gtk_widget_hide(j->close);
@@ -2771,7 +2773,7 @@ static void bt_pair(const char* mac, const char* name) {
                it cancels the pairing on the way out */
             jb->cancelled = TRUE;
             g_subprocess_send_signal(jb->p, SIGTERM);
-            gtk_label_set_text(GTK_LABEL(jb->text), "Cancelling\xe2\x80\xa6");
+            gtk_label_set_text(GTK_LABEL(jb->text), _("Cancelling\xe2\x80\xa6"));
             return;
         }
         gtk_widget_destroy(GTK_WIDGET(d)); }), NULL);
@@ -2788,8 +2790,8 @@ static void bt_dev_done(const char* out, gboolean ok, gpointer tag) {
     if (BT_STALE(tag)) return;
     if (!ok) {
         char* why = jget(out ? out : "", "reason");
-        char* s = sentence(*why ? why : "the device did not answer");
-        alert("Bluetooth", s); g_free(s); g_free(why);
+        char* s = sentence(*why ? why : _("the device did not answer"));
+        alert(_("Bluetooth"), s); g_free(s); g_free(why);
     }
     bt_refresh();
 }
@@ -2805,22 +2807,22 @@ static void bt_menu_pick(GtkMenuItem* it, gpointer u) {
     const char* verb = (const char*)g_object_get_data(G_OBJECT(it), "verb");
     if (!strcmp(verb, "remove")) {
         GtkWidget* d = gtk_message_dialog_new(GTK_WINDOW(g_win), GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION,
-                                              GTK_BUTTONS_NONE, "Unpair \xe2\x80\x9c%s\xe2\x80\x9d?", b->name);
+                                              GTK_BUTTONS_NONE, _("Unpair \xe2\x80\x9c%s\xe2\x80\x9d?"), b->name);
         gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(d),
-            "To use it again you will have to pair it again.");
-        gtk_dialog_add_button(GTK_DIALOG(d), "Cancel", GTK_RESPONSE_CANCEL);
-        css(gtk_dialog_add_button(GTK_DIALOG(d), "Unpair", GTK_RESPONSE_OK), "destructive-action");
+            _("To use it again you will have to pair it again."));
+        gtk_dialog_add_button(GTK_DIALOG(d), _("Cancel"), GTK_RESPONSE_CANCEL);
+        css(gtk_dialog_add_button(GTK_DIALOG(d), _("Unpair"), GTK_RESPONSE_OK), "destructive-action");
         int r = gtk_dialog_run(GTK_DIALOG(d)); gtk_widget_destroy(d);
         if (r != GTK_RESPONSE_OK) return;
-        bt_dev("remove", b->mac, b->sub, "Unpairing\xe2\x80\xa6");
-    } else if (!strcmp(verb, "connect")) bt_dev("connect", b->mac, b->sub, "Connecting\xe2\x80\xa6");
-    else bt_dev("disconnect", b->mac, b->sub, "Disconnecting\xe2\x80\xa6");
+        bt_dev("remove", b->mac, b->sub, _("Unpairing\xe2\x80\xa6"));
+    } else if (!strcmp(verb, "connect")) bt_dev("connect", b->mac, b->sub, _("Connecting\xe2\x80\xa6"));
+    else bt_dev("disconnect", b->mac, b->sub, _("Disconnecting\xe2\x80\xa6"));
 }
 static void bt_gear(GtkWidget* btn, gpointer u) {
     BtRow* b = (BtRow*)u;
     GtkWidget* m = gtk_menu_new();
-    const char* items[][2] = { { b->connected ? "Disconnect" : "Connect", b->connected ? "disconnect" : "connect" },
-                               { "Unpair", "remove" } };
+    const char* items[][2] = { { b->connected ? _("Disconnect") : _("Connect"), b->connected ? "disconnect" : "connect" },
+                               { _("Unpair"), "remove" } };
     for (int i = 0; i < 2; i++) {
         GtkWidget* it = gtk_menu_item_new_with_label(items[i][0]);
         g_object_set_data(G_OBJECT(it), "verb", (gpointer)items[i][1]);
@@ -2835,8 +2837,8 @@ static void bt_row_activated(GtkListBox* lb, GtkListBoxRow* row, gpointer u) {
     BtRow* b = (BtRow*)g_object_get_data(G_OBJECT(row), "bt");
     if (!b || g_bt_busy) return;
     if (!b->paired) bt_pair(b->mac, b->name);
-    else if (b->connected) bt_dev("disconnect", b->mac, b->sub, "Disconnecting\xe2\x80\xa6");
-    else bt_dev("connect", b->mac, b->sub, "Connecting\xe2\x80\xa6");
+    else if (b->connected) bt_dev("disconnect", b->mac, b->sub, _("Disconnecting\xe2\x80\xa6"));
+    else bt_dev("connect", b->mac, b->sub, _("Connecting\xe2\x80\xa6"));
 }
 static void bt_fill(GtkWidget* card, const char* json, const char* key, gboolean paired) {
     clear_box(card);
@@ -2852,7 +2854,7 @@ static void bt_fill(GtkWidget* card, const char* json, const char* key, gboolean
         b->paired = paired; b->connected = conn;
         const char* kind = bt_kind(icon);
         char sub[96];
-        if (paired) snprintf(sub, sizeof sub, "%s", conn ? "Connected" : "Not connected");
+        if (paired) snprintf(sub, sizeof sub, "%s", conn ? _("Connected") : _("Not connected"));
         else snprintf(sub, sizeof sub, "%s", kind);
         GtkWidget* gear = NULL;
         if (paired) { gear = gear_btn(); g_signal_connect(gear, "clicked", G_CALLBACK(bt_gear), b); }
@@ -2866,9 +2868,9 @@ static void bt_fill(GtkWidget* card, const char* json, const char* key, gboolean
     if (!a->len) {
         GtkWidget* r = gtk_list_box_row_new();
         gtk_list_box_row_set_activatable(GTK_LIST_BOX_ROW(r), FALSE);
-        GtkWidget* l = label_cls(paired ? "No paired devices yet." :
-                                 g_bt_scanning ? "Looking for devices\xe2\x80\xa6" :
-                                 "Nothing found. Put the device in pairing mode and choose Scan.", "xxri-row-sub", 0);
+        GtkWidget* l = label_cls(paired ? _("No paired devices yet.") :
+                                 g_bt_scanning ? _("Looking for devices\xe2\x80\xa6") :
+                                 _("Nothing found. Put the device in pairing mode and choose Scan."), "xxri-row-sub", 0);
         css(l, "xxri-taprow");
         gtk_container_add(GTK_CONTAINER(r), l);
         gtk_list_box_insert(GTK_LIST_BOX(lb), r, -1);
@@ -2904,15 +2906,15 @@ static void bt_scan(void) {
 static void bt_rename(GtkWidget* w, gpointer u) {
     (void)w;
     const char* cur = (const char*)u;
-    GtkWidget* d = gtk_dialog_new_with_buttons("Bluetooth", GTK_WINDOW(g_win), GTK_DIALOG_MODAL,
-                                               "Cancel", GTK_RESPONSE_CANCEL, "Rename", GTK_RESPONSE_OK, NULL);
+    GtkWidget* d = gtk_dialog_new_with_buttons(_("Bluetooth"), GTK_WINDOW(g_win), GTK_DIALOG_MODAL,
+                                               _("Cancel"), GTK_RESPONSE_CANCEL, _("Rename"), GTK_RESPONSE_OK, NULL);
     css(gtk_dialog_get_widget_for_response(GTK_DIALOG(d), GTK_RESPONSE_OK), "xxri-accent");
     gtk_dialog_set_default_response(GTK_DIALOG(d), GTK_RESPONSE_OK);
     GtkWidget* c = gtk_dialog_get_content_area(GTK_DIALOG(d));
     gtk_box_set_spacing(GTK_BOX(c), 8);
     gtk_widget_set_size_request(c, 340, -1);
-    gtk_box_pack_start(GTK_BOX(c), dlg_heading("Device name"), FALSE, FALSE, 0);
-    GtkWidget* t = label_cls("The name phones, headphones and other computers see.", "xxri-dlg-text", 0);
+    gtk_box_pack_start(GTK_BOX(c), dlg_heading(_("Device name")), FALSE, FALSE, 0);
+    GtkWidget* t = label_cls(_("The name phones, headphones and other computers see."), "xxri-dlg-text", 0);
     gtk_widget_set_margin_start(t, 10);
     gtk_box_pack_start(GTK_BOX(c), t, FALSE, FALSE, 0);
     GtkWidget* en = gtk_entry_new();
@@ -2941,12 +2943,12 @@ static void bt_status_done(const char* out, gboolean ok, gpointer tag) {
         /* no radio at all isn't "off": the page becomes the explanation */
         clear_box(g_bt_body);
         char* reason = jget(o, "reason"); char* h = jget(o, "hint");
-        const char* title = strstr(reason, "adapter") ? "No Bluetooth adapter" :
-                            strstr(reason, "stack") ? "Bluetooth support not installed" : "Bluetooth is unavailable";
-        char* r = sentence(*reason ? reason : "no Bluetooth adapter was detected");
+        const char* title = strstr(reason, "adapter") ? _("No Bluetooth adapter") :
+                            strstr(reason, "stack") ? _("Bluetooth support not installed") : _("Bluetooth is unavailable");
+        char* r = sentence(*reason ? reason : _("no Bluetooth adapter was detected"));
         char msg[512];
         snprintf(msg, sizeof msg, "%s\n%s", r,
-                 *h ? h : "Connect a Bluetooth adapter to pair headphones, keyboards and other devices.");
+                 *h ? h : _("Connect a Bluetooth adapter to pair headphones, keyboards and other devices."));
         g_bt_pill.box = NULL;
         page_empty(g_bt_body, "bluetooth", title, msg);
         gtk_widget_show_all(g_bt_body);
@@ -2956,20 +2958,20 @@ static void bt_status_done(const char* out, gboolean ok, gpointer tag) {
     if (!g_bt_pill.box) return;
     gboolean hard = jbool(o, "hard_blocked");
     g_bt_on = jbool(o, "enabled");
-    if (hard) pill_set(&g_bt_pill, FALSE, FALSE, "Switched off by the computer's wireless switch or key");
+    if (hard) pill_set(&g_bt_pill, FALSE, FALSE, _("Switched off by the computer's wireless switch or key"));
     else pill_set(&g_bt_pill, g_bt_on, TRUE, NULL);
     /* the name row */
     clear_box(g_bt_name_card);
     char* name = jget(o, "name");
-    GtkWidget* ren = gtk_button_new_with_label("Rename");
+    GtkWidget* ren = gtk_button_new_with_label(_("Rename"));
     css(ren, "xxri-chip");
     g_object_set_data_full(G_OBJECT(ren), "name", g_strdup(name), g_free);
     g_signal_connect(ren, "clicked", G_CALLBACK(bt_rename), g_object_get_data(G_OBJECT(ren), "name"));
-    card_action(g_bt_name_card, "Device name", name, ren);
+    card_action(g_bt_name_card, _("Device name"), name, ren);
     reveal(g_bt_name_card);
     g_free(name);
     if (!g_bt_on) {
-        gtk_label_set_text(GTK_LABEL(g_bt_msg), hard ? "" : "Turn on Bluetooth to connect headphones, keyboards and other devices.");
+        gtk_label_set_text(GTK_LABEL(g_bt_msg), hard ? "" : _("Turn on Bluetooth to connect headphones, keyboards and other devices."));
         if (!hard) reveal(g_bt_msg); else conceal(g_bt_msg);
         GtkWidget* ws[] = { g_bt_paired_head, g_bt_paired_card, g_bt_av_head, g_bt_av_card };
         for (guint i = 0; i < G_N_ELEMENTS(ws); i++) conceal(ws[i]);
@@ -2994,7 +2996,7 @@ static void bt_toggle(GtkSwitch* sw, GParamSpec* ps, gpointer u) {
     (void)ps; (void)u;
     gboolean on = gtk_switch_get_active(sw);
     gtk_widget_set_sensitive(GTK_WIDGET(sw), FALSE);
-    gtk_label_set_text(GTK_LABEL(g_bt_pill.title), on ? "Turning on\xe2\x80\xa6" : "Turning off\xe2\x80\xa6");
+    gtk_label_set_text(GTK_LABEL(g_bt_pill.title), on ? _("Turning on\xe2\x80\xa6") : _("Turning off\xe2\x80\xa6"));
     const char* argv[] = { "xxri-bluetooth", "power", on ? "on" : "off", "--json", NULL };
     run_async(argv, bt_switch_done, BT_TAG);
 }
@@ -3014,11 +3016,11 @@ static void build_bluetooth(GtkWidget* box) {
     gtk_widget_set_margin_top(g_bt_name_card, 10);
     gtk_box_pack_start(GTK_BOX(g_bt_body), g_bt_name_card, FALSE, FALSE, 0);
     conceal(g_bt_name_card);
-    g_bt_paired_head = section("Paired devices");
+    g_bt_paired_head = section(_("Paired devices"));
     g_bt_paired_card = card_new();
     GtkWidget* r = NULL;
-    g_bt_av_head = section_with("Available devices", &r);
-    g_bt_scanbtn = gtk_button_new_with_label("Scan");
+    g_bt_av_head = section_with(_("Available devices"), &r);
+    g_bt_scanbtn = gtk_button_new_with_label(_("Scan"));
     css(g_bt_scanbtn, "xxri-chip");
     g_signal_connect(g_bt_scanbtn, "clicked", G_CALLBACK(+[](GtkWidget* w, gpointer p){ (void)w;(void)p; bt_scan(); }), NULL);
     gtk_box_pack_end(GTK_BOX(r), g_bt_scanbtn, FALSE, FALSE, 0);
@@ -3046,8 +3048,8 @@ static GtkWidget* build_page_content(const char* id) {
     gtk_widget_set_margin_top(col,24); gtk_widget_set_margin_bottom(col,32);
     gtk_widget_set_size_request(col, 600, -1);
     /* page title */
-    const char* label = "Settings";
-    for (int i=0;i<NNAV;i++) if(!strcmp(NAV[i].id,id)) label=NAV[i].label;
+    const char* label = _("Settings");
+    for (int i=0;i<NNAV;i++) if(!strcmp(NAV[i].id,id)) label=_(NAV[i].label);
     GtkWidget* tl=label_cls(label,"xxri-page-title",0);
     gtk_widget_set_margin_bottom(tl,8);
     gtk_box_pack_start(GTK_BOX(col),tl,FALSE,FALSE,0);
@@ -3140,14 +3142,14 @@ static void activate(GtkApplication* app, gpointer u) {
     css(hdrbox, "xxri-chrome-row");
     xxri_chrome_drag_area(chrome, hdrbox);
     GtkWidget* hdr = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8); css(hdr,"xxri-sidebar-header");
-    GtkWidget* stitle = label_cls("Settings","xxri-sidebar-title",0);
+    GtkWidget* stitle = label_cls(_("Settings"),"xxri-sidebar-title",0);
     gtk_box_pack_start(GTK_BOX(hdr), stitle, TRUE, TRUE, 0);
     gtk_container_add(GTK_CONTAINER(hdrbox), hdr);
     gtk_box_pack_start(GTK_BOX(side), hdrbox, FALSE, FALSE, 0);
     /* user chip */
     GtkWidget* chip = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10); css(chip,"xxri-userchip");
     GtkWidget* cv=gtk_box_new(GTK_ORIENTATION_VERTICAL,1);
-    gtk_box_pack_start(GTK_BOX(cv),label_cls("Guest","xxri-userchip-name",0),FALSE,FALSE,0);
+    gtk_box_pack_start(GTK_BOX(cv),label_cls(_("Guest"),"xxri-userchip-name",0),FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(cv),label_cls("XXRI OS","xxri-userchip-sub",0),FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(chip),cv,TRUE,TRUE,0);
     GtkWidget* logo=img("help",40); gtk_box_pack_end(GTK_BOX(chip),logo,FALSE,FALSE,0);
@@ -3170,7 +3172,7 @@ static void activate(GtkApplication* app, gpointer u) {
         g_object_set_data(G_OBJECT(row),"id",(gpointer)NAV[i].id);
         GtkWidget* rb=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,12);
         gtk_box_pack_start(GTK_BOX(rb), img(NAV[i].icon,22), FALSE, FALSE, 0);
-        gtk_box_pack_start(GTK_BOX(rb), label_cls(NAV[i].label,NULL,0), TRUE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(rb), label_cls(_(NAV[i].label),NULL,0), TRUE, TRUE, 0);
         gtk_container_add(GTK_CONTAINER(row),rb);
         gtk_list_box_insert(GTK_LIST_BOX(nav),row,-1);
     }
@@ -3195,6 +3197,7 @@ static void activate(GtkApplication* app, gpointer u) {
 }
 
 int main(int argc, char** argv) {
+    xxri_i18n_init();
     if (argc > 1 && argv[1][0] != '-') { g_start_id = argv[1]; argc = 1; }
     GtkApplication* app = gtk_application_new("best.flows.xxri.settings", G_APPLICATION_NON_UNIQUE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);

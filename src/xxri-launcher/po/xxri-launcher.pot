@@ -1,0 +1,32 @@
+# Translation template for xxri-launcher, part of XXRI OS Lite.
+# Distributed under the same license as XXRI OS Lite (GPL-3.0-or-later).
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: xxri-launcher.c
+msgid "Unpin from Dock"
+msgstr ""
+
+#: xxri-launcher.c
+msgid "Pin to Dock"
+msgstr ""
+
+#: xxri-launcher.c
+msgid "Dock is full (8/8) - unpin an app first"
+msgstr ""
+
+#: xxri-launcher.c
+msgid "Search"
+msgstr ""
