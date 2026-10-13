@@ -1,0 +1,93 @@
+# Translation template for xxri-media, part of XXRI OS Lite.
+# Distributed under the same license as XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-10-13 10:35+0100\n"
+"Last-Translator: Ricardo Simões - xmcorporation.com <xmcorporation@gmail.com>\n"
+"Language-Team: none\n"
+"Language: pt_PT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.9\n"
+
+#: xxri-media.c
+msgid "Open a file to play"
+msgstr "Abra um ficheiro para reproduzir"
+
+#: xxri-media.c
+msgid "Could not open the picture"
+msgstr "Não foi possível abrir a imagem"
+
+#: xxri-media.c
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: xxri-media.c
+msgid "Media files"
+msgstr "Ficheiros multimédia"
+
+#: xxri-media.c
+msgid "All files"
+msgstr "Todos os ficheiros"
+
+#: xxri-media.c
+msgid "Open"
+msgstr "Abrir"
+
+#: xxri-media.c
+msgid "Open Media"
+msgstr "Abrir Multimédia"
+
+#: xxri-media.c
+msgid "Nothing to save"
+msgstr "Nada para guardar"
+
+#: xxri-media.c
+msgid "Open a media file first."
+msgstr "Abra primeiro um ficheiro multimédia."
+
+#: xxri-media.c
+msgid "Save"
+msgstr "Guardar"
+
+#: xxri-media.c
+msgid "Save As"
+msgstr "Guardar Como"
+
+#: xxri-media.c
+msgid "Could not save"
+msgstr "Não foi possível guardar"
+
+#: xxri-media.c
+msgid "The copy failed."
+msgstr "A cópia falhou."
+
+#: xxri-media.c
+msgid "Normal"
+msgstr "Normal"
+
+#: xxri-media.c
+msgid "Open File…"
+msgstr "Abrir ficheiro…"
+
+#: xxri-media.c
+msgid "Save a Copy…"
+msgstr "Guardar uma Cópia…"
+
+#: xxri-media.c
+msgid "Subtitles: next track"
+msgstr "Legendas: faixa seguinte"
+
+#: xxri-media.c
+msgid "Fullscreen"
+msgstr "Ecrã inteiro"
+
+#: xxri-media.c
+msgid "Quit XXRI Media"
+msgstr "Sair do XXRI Media"
