@@ -1,0 +1,1330 @@
+# Translation template for xxri-settings, part of XXRI OS Lite.
+# Distributed under the same license as XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-10-15 12:38+0100\n"
+"Last-Translator: Ricardo Simões - xmcorporation.com <xmcorporation@gmail.com>\n"
+"Language-Team: none\n"
+"Language: pt_PT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.9\n"
+
+#: xxri-settings.c
+msgid "Wi-Fi & Network"
+msgstr "Wi-Fi & Rede"
+
+#: xxri-settings.c
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+#: xxri-settings.c
+msgid "Connected Devices"
+msgstr "Dispositivos Ligados"
+
+#: xxri-settings.c
+msgid "Wallpaper & Style"
+msgstr "Imagem de Fundo & Estilo"
+
+#: xxri-settings.c
+msgid "Sounds & Vibration"
+msgstr "Sons & Vibração"
+
+#: xxri-settings.c
+msgid "Display"
+msgstr "Ecrã"
+
+#: xxri-settings.c
+msgid "Storage"
+msgstr "Armazenamento"
+
+#: xxri-settings.c
+msgid "Battery"
+msgstr "Bateria"
+
+#: xxri-settings.c
+msgid "Apps"
+msgstr "Aplicações"
+
+#: xxri-settings.c
+msgid "General Management"
+msgstr "Gestão Geral"
+
+#: xxri-settings.c
+msgid "Software Update"
+msgstr "Atualização de Software"
+
+#: xxri-settings.c
+msgid "About Device"
+msgstr "Acerca do Dispositivo"
+
+#: xxri-settings.c
+msgid "No USB devices connected."
+msgstr "Nenhum dispositivo USB ligado."
+
+#: xxri-settings.c
+msgid "USB Devices"
+msgstr "Dispositivos USB"
+
+#: xxri-settings.c
+msgid "Keyboard & Mouse"
+msgstr "Teclado & Rato"
+
+#: xxri-settings.c
+msgid "No input devices"
+msgstr "Sem dispositivos de entrada"
+
+#: xxri-settings.c
+msgid "Cameras"
+msgstr "Câmaras"
+
+#: xxri-settings.c
+msgid "No camera detected. V4L2 webcam drivers install on demand."
+msgstr "Nenhuma câmara detetada. Os controladores de webcam V4L2 são instalados a pedido."
+
+#: xxri-settings.c
+msgid "Audio"
+msgstr "Áudio"
+
+#: xxri-settings.c
+msgid "No sound card"
+msgstr "Sem placa de som"
+
+#: xxri-settings.c
+msgid "Displays"
+msgstr "Ecrãs"
+
+#: xxri-settings.c
+#, c-format
+msgid "driver %s%s%s"
+msgstr "controlador %s%s%s"
+
+#: xxri-settings.c
+msgid "No printer detected."
+msgstr "Nenhuma impressora detetada."
+
+#: xxri-settings.c
+msgid "Printers"
+msgstr "Impressoras"
+
+#: xxri-settings.c
+msgid "Fill"
+msgstr "Preencher"
+
+#: xxri-settings.c
+msgid "Fit"
+msgstr "Ajustar"
+
+#: xxri-settings.c
+msgid "Stretch"
+msgstr "Esticar"
+
+#: xxri-settings.c
+msgid "Center"
+msgstr "Centrar"
+
+#: xxri-settings.c
+msgid "Tile"
+msgstr "Mosaico"
+
+#: xxri-settings.c
+msgid "A different wallpaper on each display"
+msgstr "Uma imagem de fundo diferente em cada ecrã"
+
+#: xxri-settings.c
+msgid "Right-click a wallpaper to choose one per display"
+msgstr "Clique com o botão direito numa imagem de fundo para escolher uma por ecrã"
+
+#: xxri-settings.c
+msgid "Official XXRI wallpaper"
+msgstr "Imagem de fundo oficial do XXRI"
+
+#: xxri-settings.c
+msgid "Your picture"
+msgstr "A sua imagem"
+
+#: xxri-settings.c
+msgid " · Default"
+msgstr " · Predefinida"
+
+#: xxri-settings.c
+msgid "  ·  All displays"
+msgstr "  ·  Todos os ecrãs"
+
+#: xxri-settings.c
+msgid "Default"
+msgstr "Predefinida"
+
+#: xxri-settings.c
+msgid "The wallpaper was not changed"
+msgstr "A imagem de fundo não foi alterada"
+
+#: xxri-settings.c
+msgid "XXRI can use JPEG and PNG pictures as wallpapers. Choose another picture and try again."
+msgstr "O XXRI pode usar imagens JPEG e PNG como imagens de fundo. Escolha outra imagem e tente novamente."
+
+#: xxri-settings.c
+msgid "Set as wallpaper"
+msgstr "Definir como imagem de fundo"
+
+#: xxri-settings.c
+msgid "Set for all displays"
+msgstr "Definir para todos os ecrãs"
+
+#: xxri-settings.c
+#, c-format
+msgid "Set for display %d (%s)"
+msgstr "Definir para o ecrã %d (%s)"
+
+#: xxri-settings.c
+msgid "Choose a photo"
+msgstr "Escolher uma fotografia"
+
+#: xxri-settings.c
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: xxri-settings.c
+msgid "Choose picture"
+msgstr "Escolher imagem"
+
+#: xxri-settings.c
+msgid "Pictures (JPEG, PNG)"
+msgstr "Imagens (JPEG, PNG)"
+
+#: xxri-settings.c
+msgid "Use on"
+msgstr "Usar em"
+
+#: xxri-settings.c
+msgid "All displays"
+msgstr "Todos os ecrãs"
+
+#: xxri-settings.c
+#, c-format
+msgid "Display %d (%s)"
+msgstr "Ecrã %d (%s)"
+
+#: xxri-settings.c
+#, c-format
+msgid "Use %s%% scale everywhere?"
+msgstr "USar a escala de %s%% em todo o lado?"
+
+#: xxri-settings.c
+msgid "Settings shows the new scale already. Other apps use it once the desktop restarts, which closes open apps. You can also keep working and switch the next time the desktop starts."
+msgstr "As definições já mostram a nova escala. As outras apps passam a usá-la quando o ambiente de trabalho reiniciar, o que fecha as apps abertas. Também pode continuar a trabalhar e mudar na próxima vez que o ambiente de trabalho arrancar."
+
+#: xxri-settings.c
+msgid "At Next Start"
+msgstr "No Próximo Arranque"
+
+#: xxri-settings.c
+msgid "Restart Now"
+msgstr "Reiniciar Agora"
+
+#: xxri-settings.c
+msgid "Personalize your background"
+msgstr "Personalize a sua imagem de fundo"
+
+#: xxri-settings.c
+msgid "Official XXRI wallpapers. Click one to use it everywhere, or right-click it to choose a display."
+msgstr "Imagens de fundo oficiais do XXRI. Clique numa para a usar em todo o lado, ou clique com o botão direito para escolher um ecrã."
+
+#: xxri-settings.c
+msgid "Official XXRI wallpapers, or a photo of your own."
+msgstr "Imagens de fundo oficiais do XXRI, ou uma fotografia sua."
+
+#: xxri-settings.c
+msgid " (the default wallpaper)"
+msgstr " (a imagem de fundo predefinida)"
+
+#: xxri-settings.c
+msgid "Browse photos"
+msgstr "Procurar fotografias"
+
+#: xxri-settings.c
+msgid "JPEG or PNG, from your Pictures or any folder"
+msgstr "JPEG ou PNG, da sua pasta Imagens ou de qualquer pasta"
+
+#: xxri-settings.c
+msgid "Choose a fit for your desktop image"
+msgstr "Escolha o ajuste da imagem do ambiente de trabalho"
+
+#: xxri-settings.c
+msgid "Appearance"
+msgstr "Aspeto"
+
+#: xxri-settings.c
+msgid "Light"
+msgstr "Claro"
+
+#: xxri-settings.c
+msgid "Dark"
+msgstr "Escuro"
+
+#: xxri-settings.c
+msgid "Mode"
+msgstr "Modo"
+
+#: xxri-settings.c
+msgid "Settings and apps that follow the system theme"
+msgstr "Definições e aplicações que seguem o tema do sistema"
+
+#: xxri-settings.c
+msgid "Buttons, menus and dialogs"
+msgstr "Botões, menus e caixas de diálogo"
+
+#: xxri-settings.c
+msgid "Theme"
+msgstr "Tema"
+
+#: xxri-settings.c
+msgid "Cursor"
+msgstr "Cursor"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s%% (recommended)"
+msgstr "%s%% (recomendado)"
+
+#: xxri-settings.c
+msgid "Scale"
+msgstr "Escala"
+
+#: xxri-settings.c
+msgid "Text in apps; applies everywhere after a desktop restart"
+msgstr "Texto nas aplicações; aplica-se em todo o lado após reiniciar o ambiente de trabalho"
+
+#: xxri-settings.c
+msgid "Settings changes at once; other apps take a new look the next time they open."
+msgstr "As definições mudam de imediato; as outras aplicações assumem o novo aspeto da próxima vez que forem abertas."
+
+#: xxri-settings.c
+msgid "Dock"
+msgstr "Dock"
+
+#: xxri-settings.c
+msgid "Small"
+msgstr "Pequeno"
+
+#: xxri-settings.c
+msgid "Medium"
+msgstr "Médio"
+
+#: xxri-settings.c
+msgid "Large"
+msgstr "Grande"
+
+#: xxri-settings.c
+msgid "Icon size"
+msgstr "Tamanho dos ícones"
+
+#: xxri-settings.c
+msgid "No sound card detected"
+msgstr "Nenhuma placa de som detetada"
+
+#: xxri-settings.c
+msgid "Audio drivers load automatically at boot. About Device shows any firmware that is still missing."
+msgstr "Os controladores de áudio são carregados automaticamente no arranque. Em Acerca do Dispositivo pode ver o firmware que ainda esteja em falta."
+
+#: xxri-settings.c
+msgid "Output Device"
+msgstr "Dispositivo de Saída"
+
+#: xxri-settings.c
+msgid " · default"
+msgstr " · predefinido"
+
+#: xxri-settings.c
+#, c-format
+msgid "type %s%s"
+msgstr "tipo %s%s"
+
+#: xxri-settings.c
+msgid "Volume"
+msgstr "Volume"
+
+#: xxri-settings.c
+msgid "Mute"
+msgstr "Silenciar"
+
+#: xxri-settings.c
+msgid "Unmute"
+msgstr "Reativar som"
+
+#: xxri-settings.c
+msgid "Test"
+msgstr "Testar"
+
+#: xxri-settings.c
+msgid "Input Device"
+msgstr "Dispositivo de Entrada"
+
+#: xxri-settings.c
+msgid "microphone / capture"
+msgstr "microfone / captura"
+
+#: xxri-settings.c
+msgid "No microphone detected"
+msgstr "Nenhum microfone detetado"
+
+#: xxri-settings.c
+msgid "Microphone Level"
+msgstr "Nível do Microfone"
+
+#: xxri-settings.c
+msgid "System Sounds"
+msgstr "Sons do Sistema"
+
+#: xxri-settings.c
+msgid "Notification sounds"
+msgstr "Sons de notificação"
+
+#: xxri-settings.c
+msgid "Play the XXRI chime at login"
+msgstr "Reproduzir o som do XXRI ao iniciar sessão"
+
+#: xxri-settings.c
+msgid "Startup sound"
+msgstr "Som de arranque"
+
+#: xxri-settings.c
+msgid "No storage devices"
+msgstr "Sem dispositivos de armazenamento"
+
+#: xxri-settings.c
+msgid "Connect a USB drive or SD card and it will appear here, ready to mount."
+msgstr "Ligue uma unidade USB ou um cartão SD e aparecerá aqui, pronto a montar."
+
+#: xxri-settings.c
+msgid "  ·  removable"
+msgstr "  ·  amovível"
+
+#: xxri-settings.c
+#, c-format
+msgid "Whole disk · %d MB"
+msgstr "Disco inteiro · %d MB"
+
+#: xxri-settings.c
+msgid "no partitions / not formatted"
+msgstr "sem partições / não formatado"
+
+#: xxri-settings.c
+msgid "Eject"
+msgstr "Ejetar"
+
+#: xxri-settings.c
+msgid "Unmount"
+msgstr "Desmontar"
+
+#: xxri-settings.c
+#, c-format
+msgid "%ld MB used · %ld MB free · mounted at %s"
+msgstr "%ld MB usados · %ld MB livres · montado em %s"
+
+#: xxri-settings.c
+msgid "Mount"
+msgstr "Montar"
+
+#: xxri-settings.c
+msgid "Health"
+msgstr "Saúde"
+
+#: xxri-settings.c
+#, c-format
+msgid "SMART health: %s"
+msgstr "Saúde SMART: %s"
+
+#: xxri-settings.c
+msgid "Power"
+msgstr "Energia"
+
+#: xxri-settings.c
+#, c-format
+msgid "Battery %s%%"
+msgstr "Bateria %s%%"
+
+#: xxri-settings.c
+msgid "No battery detected"
+msgstr "Nenhuma bateria detetada"
+
+#: xxri-settings.c
+msgid "This is normal on a desktop system."
+msgstr "Isto é normal num computador de secretária."
+
+#: xxri-settings.c
+msgid "AC adapter"
+msgstr "Adaptador de corrente"
+
+#: xxri-settings.c
+msgid "offline"
+msgstr "desligado"
+
+#: xxri-settings.c
+msgid "online"
+msgstr "ligado"
+
+#: xxri-settings.c
+msgid "powered (desktop)"
+msgstr "alimentado (computador de secretária)"
+
+#: xxri-settings.c
+msgid "Power Profile"
+msgstr "Perfil de Energia"
+
+#: xxri-settings.c
+msgid "CPU frequency scaling is not available on this processor."
+msgstr "O escalonamento de frequência do CPU não está disponível neste processador."
+
+#: xxri-settings.c
+msgid "CPU governor"
+msgstr "Regulador do CPU"
+
+#: xxri-settings.c
+msgid "Display Brightness"
+msgstr "Brilho do Ecrã"
+
+#: xxri-settings.c
+msgid "Brightness control is not available on this display."
+msgstr "O controlo de brilho não está disponível neste ecrã."
+
+#: xxri-settings.c
+msgid "Suspend"
+msgstr "Suspender"
+
+#: xxri-settings.c
+msgid "Suspend to RAM"
+msgstr "Suspender para a RAM"
+
+#: xxri-settings.c
+msgid "not supported"
+msgstr "não suportado"
+
+#: xxri-settings.c
+msgid "supported"
+msgstr "suportado"
+
+#: xxri-settings.c
+msgid "Hibernate"
+msgstr "Hibernar"
+
+#: xxri-settings.c
+msgid "not available (no swap)"
+msgstr "não disponível (sem swap)"
+
+#: xxri-settings.c
+msgid "No apps installed yet"
+msgstr "Ainda sem aplicações instaladas"
+
+#: xxri-settings.c
+msgid "Install apps from the XXRI Store, or open an AppImage you downloaded and it is integrated here."
+msgstr "Instale aplicações a partir da Loja XXRI ou abra uma AppImage que tenha transferido e será integrada aqui."
+
+#: xxri-settings.c
+msgid "Installed Applications"
+msgstr "Aplicações Instaladas"
+
+#: xxri-settings.c
+msgid " · last launch: "
+msgstr " · última abertura: "
+
+#: xxri-settings.c
+#, c-format
+msgid "version %s%s%s"
+msgstr "versão %s%s%s"
+
+#: xxri-settings.c
+msgid "Launch"
+msgstr "Iniciar"
+
+#: xxri-settings.c
+msgid "Remove"
+msgstr "Remover"
+
+#: xxri-settings.c
+msgid "Restart the desktop session? All open apps will close."
+msgstr "Reiniciar a sessão do ambiente de trabalho? Todas as aplicações abertas serão fechadas."
+
+#: xxri-settings.c
+msgid "The display setting was not changed"
+msgstr "A definição do ecrã não foi alterada"
+
+#: xxri-settings.c
+msgid "xxri-display did not answer."
+msgstr "O xxri-display não respondeu."
+
+#: xxri-settings.c
+#, c-format
+msgid "Use %d × %d?"
+msgstr "Usar %d × %d?"
+
+#: xxri-settings.c
+msgid "The desktop restarts to change resolution, so open apps will close. You can also keep working and switch the next time the desktop starts."
+msgstr "O ambiente de trabalho reinicia para mudar a resolução, por isso as aplicações abertas serão fechadas. Também pode continuar a trabalhar e mudar na próxima vez que o ambiente de trabalho arrancar."
+
+#: xxri-settings.c
+msgid "No display modes were reported."
+msgstr "Não foram reportados modos de ecrã."
+
+#: xxri-settings.c
+msgid "Resolution"
+msgstr "Resolução"
+
+#: xxri-settings.c
+msgid "(Default)"
+msgstr "(Predefinida)"
+
+#: xxri-settings.c
+msgid "(Native)"
+msgstr "(Nativa)"
+
+#: xxri-settings.c
+msgid "After restart"
+msgstr "Após reinício"
+
+#: xxri-settings.c
+msgid "Show all resolutions"
+msgstr "Mostrar todas as resoluções"
+
+#: xxri-settings.c
+#, c-format
+msgid "%d × %d at next start"
+msgstr "%d × %d no próximo arranque"
+
+#: xxri-settings.c
+msgid "Saved. The desktop switches when it next starts, or restart now."
+msgstr "Guardado. O ambiente de trabalho muda no próximo arranque, ou reinicie agora."
+
+#: xxri-settings.c
+#, c-format
+msgid "This boot was started with the xres=%s boot code, which takes priority over the resolution chosen here."
+msgstr "Este arranque foi iniciado com o código de arranque xres=%s, que tem prioridade sobre a resolução escolhida aqui."
+
+#: xxri-settings.c
+msgid "Brightness"
+msgstr "Brilho"
+
+#: xxri-settings.c
+msgid "This display has no software backlight control. Use the buttons on the monitor."
+msgstr "Este ecrã não tem controlo de retroiluminação por software. Utilize os botões do monitor."
+
+#: xxri-settings.c
+msgid "Available after the desktop restarts"
+msgstr "Disponível após reiniciar o ambiente de trabalho"
+
+#: xxri-settings.c
+msgid "Refresh rate"
+msgstr "Taxa de atualização"
+
+#: xxri-settings.c
+msgid "Unknown"
+msgstr "Desconhecido"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s (kernel mode setting)"
+msgstr "%s (definição de modo do kernel)"
+
+#: xxri-settings.c
+msgid "Graphics driver"
+msgstr "Controlador gráfico"
+
+#: xxri-settings.c
+msgid "Set by the video BIOS"
+msgstr "Definido pela BIOS de vídeo"
+
+#: xxri-settings.c
+msgid "VESA BIOS (compatibility mode)"
+msgstr "BIOS VESA (modo de compatibilidade)"
+
+#: xxri-settings.c
+msgid "Language & Region"
+msgstr "Idioma & Região"
+
+#: xxri-settings.c
+msgid "Language"
+msgstr "Idioma"
+
+#: xxri-settings.c
+msgid "Keyboard layout"
+msgstr "Disposição do teclado"
+
+#: xxri-settings.c
+msgid "Region"
+msgstr "Região"
+
+#: xxri-settings.c
+msgid "not set"
+msgstr "não definido"
+
+#: xxri-settings.c
+msgid "Date & Time"
+msgstr "Data & Hora"
+
+#: xxri-settings.c
+msgid "Sync time"
+msgstr "Sincronizar hora"
+
+#: xxri-settings.c
+#, c-format
+msgid "timezone %s"
+msgstr "fuso horário %s"
+
+#: xxri-settings.c
+msgid "Account"
+msgstr "Conta"
+
+#: xxri-settings.c
+msgid "Hostname"
+msgstr "Nome do computador"
+
+#: xxri-settings.c
+msgid "Apply"
+msgstr "Aplicar"
+
+#: xxri-settings.c
+msgid "Log in automatically"
+msgstr "Iniciar sessão automaticamente"
+
+#: xxri-settings.c
+msgid "Skip the login prompt at boot"
+msgstr "Saltar o pedido de início de sessão no arranque"
+
+#: xxri-settings.c
+msgid "Startup Applications"
+msgstr "Aplicações de Arranque"
+
+#: xxri-settings.c
+msgid "Enabled (xxri-storage watch)"
+msgstr "Ativado (xxri-storage watch)"
+
+#: xxri-settings.c
+msgid "Storage automount"
+msgstr "Montagem automática do armazenamento"
+
+#: xxri-settings.c
+msgid "Enabled (xxri-hw-init)"
+msgstr "Ativado (xxri-hw-init)"
+
+#: xxri-settings.c
+msgid "Hardware layer"
+msgstr "Camada de hardware"
+
+#: xxri-settings.c
+msgid "Desktop"
+msgstr "Ambiente de trabalho"
+
+#: xxri-settings.c
+msgid "Reset settings"
+msgstr "Repor definições"
+
+#: xxri-settings.c
+msgid "Restart session"
+msgstr "Reiniciar sessão"
+
+#: xxri-settings.c
+msgid "Checking for updates…"
+msgstr "A procurar atualizações…"
+
+#: xxri-settings.c
+msgid "Update installed"
+msgstr "Atualização instalada"
+
+#: xxri-settings.c
+msgid "Restart desktop"
+msgstr "Reiniciar ambiente de trabalho"
+
+#: xxri-settings.c
+msgid "Restart now"
+msgstr "Reiniciar agora"
+
+#: xxri-settings.c
+msgid "The installation was interrupted."
+msgstr "A instalação foi interrompida."
+
+#: xxri-settings.c
+msgid "Try again"
+msgstr "Tentar novamente"
+
+#: xxri-settings.c
+msgid "Starting…"
+msgstr "A iniciar…"
+
+#: xxri-settings.c
+msgid "No updates published yet"
+msgstr "Ainda não há atualizações publicadas"
+
+#: xxri-settings.c
+#, c-format
+msgid "XXRI OS Lite %s is the newest release. Last checked %s"
+msgstr "O XXRI OS Lite %s é a versão mais recente. Última verificação: %s"
+
+#: xxri-settings.c
+msgid "Couldn't check for updates"
+msgstr "Não foi possível procurar atualizações"
+
+#: xxri-settings.c
+msgid "The update source did not answer."
+msgstr "A origem das atualizações não respondeu."
+
+#: xxri-settings.c
+msgid "Your system is up to date"
+msgstr "O seu sistema está atualizado"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s%sLast checked %s"
+msgstr "%s%sÚltima verificação: %s"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s is available"
+msgstr "%s está disponível"
+
+#: xxri-settings.c
+msgid "A new XXRI OS Lite"
+msgstr "Um novo XXRI OS Lite"
+
+#: xxri-settings.c
+#, c-format
+msgid "Last checked %s"
+msgstr "Última verificação: %s"
+
+#: xxri-settings.c
+msgid "Released "
+msgstr "Lançado em "
+
+#: xxri-settings.c
+msgid "  ·  needs a restart"
+msgstr "  ·  requer reinício"
+
+#: xxri-settings.c
+msgid "  ·  restarts the desktop"
+msgstr "  ·  reinicia o ambiente de trabalho"
+
+#: xxri-settings.c
+msgid "Download and install"
+msgstr "Transferir e instalar"
+
+#: xxri-settings.c
+msgid "Check for updates"
+msgstr "Procurar atualizações"
+
+#: xxri-settings.c
+msgid "Update History"
+msgstr "Histórico de atualizações"
+
+#: xxri-settings.c
+msgid "No system updates have been installed yet."
+msgstr "Ainda não foram instaladas atualizações do sistema."
+
+#: xxri-settings.c
+#, c-format
+msgid "Installed %s"
+msgstr "Instalado: %s"
+
+#: xxri-settings.c
+msgid "Extension Packages"
+msgstr "Pacotes de Extensão"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s extension packages"
+msgstr "%s pacotes de extensão"
+
+#: xxri-settings.c
+msgid "Check"
+msgstr "Verificar"
+
+#: xxri-settings.c
+msgid "Update"
+msgstr "Atualizar"
+
+#: xxri-settings.c
+msgid "Check compares the extension packages in /tce with the Tiny Core mirror; Update downloads newer ones, which load at the next boot."
+msgstr "Verificar compara os pacotes de extensão em /tce com o mirror do Tiny Core; Atualizar transfere os mais recentes, que são carregados no próximo arranque."
+
+#: xxri-settings.c
+#, c-format
+msgid "System updates come from %s"
+msgstr "As atualizações do sistema provêm de %s"
+
+#: xxri-settings.c
+msgid "OS"
+msgstr "SO"
+
+#: xxri-settings.c
+msgid "Version"
+msgstr "Versão"
+
+#: xxri-settings.c
+msgid "Uptime"
+msgstr "Tempo de atividade"
+
+#: xxri-settings.c
+msgid "Locale"
+msgstr "Configuração regional"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s · POSIX default"
+msgstr "%s · predefinição POSIX"
+
+#: xxri-settings.c
+msgid "Hardware"
+msgstr "Hardware"
+
+#: xxri-settings.c
+msgid "CPU"
+msgstr "CPU"
+
+#: xxri-settings.c
+msgid "CPU Cores"
+msgstr "Núcleos do CPU"
+
+#: xxri-settings.c
+msgid "GPU"
+msgstr "GPU"
+
+#: xxri-settings.c
+msgid "Memory"
+msgstr "Memória"
+
+#: xxri-settings.c
+msgid "unknown"
+msgstr "desconhecido"
+
+#: xxri-settings.c
+msgid "N/A (Desktop)"
+msgstr "N/D (computador de secretária)"
+
+#: xxri-settings.c
+msgid "present"
+msgstr "presente"
+
+#: xxri-settings.c
+msgid "Display Resolution"
+msgstr "Resolução do Ecrã"
+
+#: xxri-settings.c
+msgid "System"
+msgstr "Sistema"
+
+#: xxri-settings.c
+msgid "Kernel"
+msgstr "Kernel"
+
+#: xxri-settings.c
+msgid "Architecture"
+msgstr "Arquitetura"
+
+#: xxri-settings.c
+msgid "BIOS"
+msgstr "BIOS"
+
+#: xxri-settings.c
+msgid "Build"
+msgstr "Compilação"
+
+#: xxri-settings.c
+msgid "Legal"
+msgstr "Legalidade"
+
+#: xxri-settings.c
+msgid "GNU General Public License by Free Software Foundation v3 or later"
+msgstr "Licença Pública Geral GNU da Free Software Foundation, versão 3 ou posterior"
+
+#: xxri-settings.c
+msgid "License"
+msgstr "Licença"
+
+#: xxri-settings.c
+msgid "Copyright"
+msgstr "Direitos de autor"
+
+#: xxri-settings.c
+msgid "Off"
+msgstr "Desligado"
+
+#: xxri-settings.c
+msgid "On"
+msgstr "Ligado"
+
+#: xxri-settings.c
+msgid "Details"
+msgstr "Detalhes"
+
+#: xxri-settings.c
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+#: xxri-settings.c
+msgid "Connect"
+msgstr "Ligar"
+
+#: xxri-settings.c
+#, c-format
+msgid "Connect to “%s”"
+msgstr "Ligar a “%s”"
+
+#: xxri-settings.c
+msgid "Password"
+msgstr "Palavra-passe"
+
+#: xxri-settings.c
+msgid "Show password"
+msgstr "Mostrar palavra-passe"
+
+#: xxri-settings.c
+msgid "The password was not accepted. Try again."
+msgstr "A palavra-passe não foi aceite. Tente novamente."
+
+#: xxri-settings.c
+msgid "the network did not answer"
+msgstr "a rede não respondeu"
+
+#: xxri-settings.c
+#, c-format
+msgid "Couldn't connect to “%s”"
+msgstr "Não foi possível ligar a “%s”"
+
+#: xxri-settings.c
+msgid "Connecting…"
+msgstr "A ligar…"
+
+#: xxri-settings.c
+msgid "Close"
+msgstr "Fechar"
+
+#: xxri-settings.c
+msgid "Forget"
+msgstr "Esquecer"
+
+#: xxri-settings.c
+msgid "None (open)"
+msgstr "Nenhuma (aberta)"
+
+#: xxri-settings.c
+msgid "WPA Enterprise"
+msgstr "WPA Enterprise"
+
+#: xxri-settings.c
+msgid "Connected"
+msgstr "Ligado"
+
+#: xxri-settings.c
+msgid "Connected, internet may not be available"
+msgstr "Ligado, a internet pode não estar disponível"
+
+#: xxri-settings.c
+msgid "Status"
+msgstr "Estado"
+
+#: xxri-settings.c
+msgid "Frequency"
+msgstr "Frequência"
+
+#: xxri-settings.c
+msgid "Link speed"
+msgstr "Velocidade da ligação"
+
+#: xxri-settings.c
+msgid "Security"
+msgstr "Segurança"
+
+#: xxri-settings.c
+msgid "Signal strength"
+msgstr "Intensidade do sinal"
+
+#: xxri-settings.c
+msgid "DNS"
+msgstr "DNS"
+
+#: xxri-settings.c
+msgid "Gateway"
+msgstr "Gateway"
+
+#: xxri-settings.c
+msgid "IP address"
+msgstr "Endereço IP"
+
+#: xxri-settings.c
+msgid "MAC address"
+msgstr "Endereço MAC"
+
+#: xxri-settings.c
+msgid "Subnet mask"
+msgstr "Máscara de sub-rede"
+
+#: xxri-settings.c
+msgid "Add network"
+msgstr "Adicionar rede"
+
+#: xxri-settings.c
+msgid "Network name (SSID)"
+msgstr "Nome da rede (SSID)"
+
+#: xxri-settings.c
+msgid "Password (leave empty for an open network)"
+msgstr "Palavra-passe (deixe vazio para uma rede aberta)"
+
+#: xxri-settings.c
+msgid "Hidden network"
+msgstr "Rede oculta"
+
+#: xxri-settings.c
+msgid "Enterprise network"
+msgstr "Rede empresarial"
+
+#: xxri-settings.c
+msgid "Networks that sign in with a user name and certificate (WPA Enterprise, 802.1X) are not supported yet."
+msgstr "As redes que iniciam sessão com um nome de utilizador e um certificado (WPA Enterprise, 802.1X) ainda não são suportadas."
+
+#: xxri-settings.c
+msgid "Enterprise"
+msgstr "Empresarial"
+
+#: xxri-settings.c
+msgid "Open"
+msgstr "Aberta"
+
+#: xxri-settings.c
+msgid "Saved"
+msgstr "Guardada"
+
+#: xxri-settings.c
+msgid "No other networks found nearby."
+msgstr "Não foram encontradas outras redes nas proximidades."
+
+#: xxri-settings.c
+#, c-format
+msgid "Connected · %s"
+msgstr "Ligado · %s"
+
+#: xxri-settings.c
+msgid "Cable unplugged"
+msgstr "Cabo desligado"
+
+#: xxri-settings.c
+#, c-format
+msgid "Getting an address…"
+msgstr "A obter um endereço…"
+
+#: xxri-settings.c
+#, c-format
+msgid "Ethernet (%s)"
+msgstr "Rede cablada (%s)"
+
+#: xxri-settings.c
+msgid "No Wi-Fi adapter"
+msgstr "Sem adaptador Wi-Fi"
+
+#: xxri-settings.c
+msgid "No wireless adapter was detected. Drivers ship with XXRI OS; if your adapter needs firmware, About Device shows what is missing."
+msgstr "Não foi detetado nenhum adaptador sem fios. Os controladores vêm incluídos no XXRI OS; se o seu adaptador precisar de firmware, pode ver qual está em falta no Acerca do Dispositivo."
+
+#: xxri-settings.c
+msgid "Switched off by the computer's wireless switch or key"
+msgstr "Desligado pelo interruptor ou tecla de rede sem fios do computador"
+
+#: xxri-settings.c
+msgid "Turn on Wi-Fi to see the networks around you."
+msgstr "Ative o Wi-Fi para ver as redes à sua volta."
+
+#: xxri-settings.c
+msgid "Turning off…"
+msgstr "A desativar…"
+
+#: xxri-settings.c
+msgid "Turning on…"
+msgstr "A ativar…"
+
+#: xxri-settings.c
+msgid "Current network"
+msgstr "Rede atual"
+
+#: xxri-settings.c
+msgid "Available networks"
+msgstr "Redes disponíveis"
+
+#: xxri-settings.c
+msgid "Ethernet"
+msgstr "Rede cablada"
+
+#: xxri-settings.c
+msgid "Headphones"
+msgstr "Auscultadores"
+
+#: xxri-settings.c
+msgid "Keyboard"
+msgstr "Teclado"
+
+#: xxri-settings.c
+msgid "Mouse"
+msgstr "Rato"
+
+#: xxri-settings.c
+msgid "Tablet"
+msgstr "Tablet"
+
+#: xxri-settings.c
+msgid "Game controller"
+msgstr "Comando de jogos"
+
+#: xxri-settings.c
+msgid "Phone"
+msgstr "Telemóvel"
+
+#: xxri-settings.c
+msgid "Computer"
+msgstr "Computador"
+
+#: xxri-settings.c
+msgid "Cancelling…"
+msgstr "A cancelar…"
+
+#: xxri-settings.c
+msgid "Pairing…"
+msgstr "A emparelhar…"
+
+#: xxri-settings.c
+#, c-format
+msgid "Make sure “%s” shows this code, then choose Pair."
+msgstr "Confirme que “%s” mostra este código, e depois escolha Emparelhar."
+
+#: xxri-settings.c
+#, c-format
+msgid "Type this code on “%s”, then press Enter."
+msgstr "Escreva este código em “%s”, e depois prima Enter."
+
+#: xxri-settings.c
+msgid "pairing did not complete"
+msgstr "o emparelhamento não foi concluído"
+
+#: xxri-settings.c
+msgid "Couldn't pair"
+msgstr "Não foi possível emparelhar"
+
+#: xxri-settings.c
+msgid "The Bluetooth backend did not start."
+msgstr "O serviço Bluetooth não arrancou."
+
+#: xxri-settings.c
+#, c-format
+msgid "Pairing with “%s”"
+msgstr "A emparelhar com “%s”"
+
+#: xxri-settings.c
+msgid "Waiting for the device…"
+msgstr "A aguardar pelo dispositivo…"
+
+#: xxri-settings.c
+msgid "Pair"
+msgstr "Emparelhar"
+
+#: xxri-settings.c
+msgid "the device did not answer"
+msgstr "o dispositivo não respondeu"
+
+#: xxri-settings.c
+#, c-format
+msgid "Unpair “%s”?"
+msgstr "Desemparelhar “%s”?"
+
+#: xxri-settings.c
+msgid "To use it again you will have to pair it again."
+msgstr "Para voltar a usá-lo terá de o emparelhar novamente."
+
+#: xxri-settings.c
+msgid "Unpair"
+msgstr "Desemparelhar"
+
+#: xxri-settings.c
+msgid "Unpairing…"
+msgstr "A desemparelhar…"
+
+#: xxri-settings.c
+msgid "Disconnecting…"
+msgstr "A desligar…"
+
+#: xxri-settings.c
+msgid "Disconnect"
+msgstr "Desligar"
+
+#: xxri-settings.c
+msgid "Not connected"
+msgstr "Não ligado"
+
+#: xxri-settings.c
+msgid "No paired devices yet."
+msgstr "Ainda não há dispositivos emparelhados."
+
+#: xxri-settings.c
+msgid "Looking for devices…"
+msgstr "A procurar dispositivos…"
+
+#: xxri-settings.c
+msgid "Nothing found. Put the device in pairing mode and choose Scan."
+msgstr "Nada encontrado. Coloque o dispositivo em modo de emparelhamento e escolha Procurar."
+
+#: xxri-settings.c
+msgid "Rename"
+msgstr "Mudar o nome"
+
+#: xxri-settings.c
+msgid "Device name"
+msgstr "Nome do dispositivo"
+
+#: xxri-settings.c
+msgid "The name phones, headphones and other computers see."
+msgstr "O nome que os telemóveis, auscultadores e outros computadores veem."
+
+#: xxri-settings.c
+msgid "No Bluetooth adapter"
+msgstr "Sem adaptador Bluetooth"
+
+#: xxri-settings.c
+msgid "Bluetooth is unavailable"
+msgstr "O Bluetooth está indisponível"
+
+#: xxri-settings.c
+msgid "Bluetooth support not installed"
+msgstr "Suporte Bluetooth não instalado"
+
+#: xxri-settings.c
+msgid "no Bluetooth adapter was detected"
+msgstr "não foi detetado nenhum adaptador Bluetooth"
+
+#: xxri-settings.c
+msgid "Connect a Bluetooth adapter to pair headphones, keyboards and other devices."
+msgstr "Ligue um adaptador Bluetooth para emparelhar auscultadores, teclados e outros dispositivos."
+
+#: xxri-settings.c
+msgid "Turn on Bluetooth to connect headphones, keyboards and other devices."
+msgstr "Ative o Bluetooth para ligar auscultadores, teclados e outros dispositivos."
+
+#: xxri-settings.c
+msgid "Paired devices"
+msgstr "Dispositivos emparelhados"
+
+#: xxri-settings.c
+msgid "Available devices"
+msgstr "Dispositivos disponíveis"
+
+#: xxri-settings.c
+msgid "Scan"
+msgstr "Procurar"
+
+#: xxri-settings.c
+msgid "Settings"
+msgstr "Definições"
+
+#: xxri-settings.c
+msgid "Guest"
+msgstr "Convidado"
