@@ -30,9 +30,22 @@ card_name() { # description after the "<driver> - " prefix, else the [id]
 }
 card_type() { # usb (usbid) / hdmi (HDMI-only card) / analog
 	[ -e "/proc/asound/card$1/usbid" ] && { echo usb; return; }
+	# HD Audio names HDMI/DP PCMs "HDMI n"; the card name alone can't tell
+	# (AMD's HDMI and analog controllers can both be "HD-Audio Generic")
+	ids="$(cat /proc/asound/card$1/pcm*p/info 2>/dev/null | sed -n 's/^id: //p')"
+	if [ -n "$ids" ]; then
+		echo "$ids" | grep -qv '^HDMI' && echo analog || echo hdmi
+		return
+	fi
 	n="$(card_name "$1")"
 	case "$n" in *HDMI*|*hdmi*) echo hdmi; return;; esac
 	echo analog
+}
+card_id() { cat "/proc/asound/card$1/id" 2>/dev/null; }
+card_by_id() { # ALSA card id -> current index
+	for c in $(card_ids); do
+		[ "$(card_id "$c")" = "$1" ] && { echo "$c"; return; }
+	done
 }
 has_playback() { ls /proc/asound/card$1/pcm*p >/dev/null 2>&1 && echo 1 || echo 0; }
 has_capture()  { ls /proc/asound/card$1/pcm*c >/dev/null 2>&1 && echo 1 || echo 0; }
@@ -113,11 +126,18 @@ cmd_mute()   { alsa_ready || { not_ready; return 1; }; amixer -q -c "${CARD:-$(d
 cmd_unmute() { alsa_ready || { not_ready; return 1; }; amixer -q -c "${CARD:-$(default_card)}" set "$(mixer_ctl)" unmute 2>/dev/null; cmd_volume; }
 cmd_toggle() { alsa_ready || { not_ready; return 1; }; amixer -q -c "${CARD:-$(default_card)}" set "$(mixer_ctl)" toggle 2>/dev/null; cmd_volume; }
 
+write_default() { # card index -> /etc/asound.conf
+	sudo_if sh -c "printf 'defaults.pcm.card %s\ndefaults.ctl.card %s\n' '$1' '$1' > /etc/asound.conf"
+}
+
 cmd_default() {
 	case "$1" in
 		set)
-			sudo_if sh -c "printf 'defaults.pcm.card %s\ndefaults.ctl.card %s\n' '$2' '$2' > /etc/asound.conf"
-			cfg_set audio DEFAULT_CARD "$2"
+			# index or ALSA id; saved by id, the index can change between boots
+			c="$2"; case "$c" in *[!0-9]*) c="$(card_by_id "$c")" ;; esac
+			[ -n "$c" ] && [ -n "$(card_id "$c")" ] || { echo "no sound card $2" >&2; return 1; }
+			write_default "$c"
+			cfg_set audio DEFAULT_CARD "$(card_id "$c")"
 		;;
 	esac
 	d="$(default_card)"
@@ -139,9 +159,13 @@ cmd_init() {
 	done
 	sleep 1
 	alsa_ready || { not_ready; return 1; }
-	# 2. automatic card selection: keep saved choice; else first analog
-	# playback card, else first playback card
-	want="$(cfg_get audio DEFAULT_CARD "")"
+	# 2. card selection: the one chosen with `default set`; else first analog
+	# playback card, else first playback card. Not saved: a saved number
+	# could point at another card after a reboot, and nothing in Settings
+	# could change it. A bare number is such an old automatic pick.
+	want=""
+	saved="$(cfg_get audio DEFAULT_CARD "")"
+	case "$saved" in *[!0-9]*) want="$(card_by_id "$saved")" ;; esac
 	if [ -z "$want" ]; then
 		for c in $(card_ids); do
 			[ "$(has_playback "$c")" = 1 ] && [ "$(card_type "$c")" = analog ] && { want=$c; break; }
@@ -150,7 +174,7 @@ cmd_init() {
 			[ "$(has_playback "$c")" = 1 ] && { want=$c; break; }
 		done
 	fi
-	[ -n "$want" ] && JSON=0 cmd_default set "$want" >/dev/null
+	[ -n "$want" ] && write_default "$want"
 	# 3. restore mixer, or unmute to sane level on first boot
 	if [ -f "$STATE" ]; then
 		cmd_restore >/dev/null

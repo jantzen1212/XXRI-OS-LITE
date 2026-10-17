@@ -99,7 +99,8 @@ cmd_cache_modes() { # boot helper: X is not running yet
 }
 
 # ---- Xorg / RandR ---------------------------------------------------------
-# One line per distinct WxH of the first connected output:
+# One line per distinct WxH of the primary output (.xsession sets one when
+# several are connected), else of the first connected output:
 #   OUT <output>
 #   M <WxH> <current 0|1> <preferred 0|1> <rates,comma,separated> <current rate> <preferred rate>
 # xrandr prints each rate as "%6.2f" followed by '*' (current) and '+'
@@ -107,8 +108,10 @@ cmd_cache_modes() { # boot helper: X is not running yet
 # Interlaced modes (1920x1080i) are skipped, and a size listed on several
 # lines (different timings) is merged into one entry.
 xr_query() {
-	xrandr --query 2>/dev/null | awk '
-		/^[^ \t]/ { if (out != "") exit; if ($2 == "connected") { out = $1; print "OUT " out }; next }
+	q="$(xrandr --query 2>/dev/null)"
+	pri="$(echo "$q" | awk '$2 == "connected" && $3 == "primary" { print $1; exit }')"
+	echo "$q" | awk -v want="$pri" '
+		/^[^ \t]/ { if (out != "") exit; if ($2 == "connected" && (want == "" || $1 == want)) { out = $1; print "OUT " out }; next }
 		out == "" || $1 !~ /^[0-9]+x[0-9]+$/ { next }
 		{
 			m = $1
