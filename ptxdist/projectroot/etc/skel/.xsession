@@ -104,26 +104,46 @@ start_xorg_vesa() {
 	XORG_CFG=""; nosse2 && XORG_CFG="-config xxri-nosse2.conf"
 	run_xorg
 }
-# Xorg picks the monitor's preferred mode; the layout expects $XRES.
+# Xorg picks the monitor's preferred mode; the layout expects $XRES. Set on
+# the built-in panel if there is one, else the first connected output.
 apply_xres() {
 	command -v xrandr >/dev/null 2>&1 || return 0
 	out=""
 	# RandR may still be settling (output or mode not listed yet); asking
 	# once sometimes came up 1280x800 instead of 1024x768
 	for _try in 1 2 3 4 5 6 7 8 9 10; do
-		out=$(xrandr 2>/dev/null | awk '/ connected/{print $1; exit}')
+		out=$(xrandr 2>/dev/null | awk '/ connected/ { f = f ? f : $1; if (!p && $1 ~ /^(eDP|LVDS|DSI)/) p = $1 } END { print p ? p : f }')
 		[ -n "$out" ] && xrandr 2>/dev/null | grep -q "[ ]${XRES}[ ]" && break
 		sleep 0.3
 	done
 	[ -n "$out" ] || return 0
 	for _try in 1 2 3; do
-		xrandr --output "$out" --mode "${XRES%x*}x${XRES#*x}" ${XRATE:+--rate "$XRATE"} 2>/dev/null && return 0
+		xrandr --output "$out" --mode "${XRES%x*}x${XRES#*x}" ${XRATE:+--rate "$XRATE"} 2>/dev/null && { mirror_others "$out"; return 0; }
 		# a saved rate this output no longer offers must not cost the saved size
 		XRATE=
 		sleep 0.4
 	done
 	# only now settle for whatever the display says it prefers
 	xrandr --output "$out" --preferred 2>/dev/null
+	mirror_others "$out"
+}
+# Other displays mirror the primary. XLibre puts a second output right of
+# the first, but the dock, Quick Control and maximised windows are placed on
+# the whole root window, so the desktop straddled both screens. One that
+# can't show the primary's mode is switched off.
+mirror_others() {
+	_xr=$(xrandr 2>/dev/null)
+	[ "$(echo "$_xr" | grep -c ' connected')" -gt 1 ] || return 0
+	_mode=$(echo "$_xr" | sed -n "s/^$1 connected[^0-9]*\([0-9]*x[0-9]*\)+.*/\1/p")
+	[ -n "$_mode" ] || return 0
+	# first, as --same-as copies its position
+	xrandr --output "$1" --pos 0x0 --primary 2>/dev/null
+	for _o in $(echo "$_xr" | awk '/ connected/{print $1}'); do
+		[ "$_o" = "$1" ] && continue
+		echo "$_xr" | sed -n "/^$_o /,/^[^ ]/p" | grep -q "^ *$_mode " &&
+			xrandr --output "$_o" --mode "$_mode" --same-as "$1" 2>/dev/null ||
+			xrandr --output "$_o" --off 2>/dev/null
+	done
 }
 # Xfbdev: vesafb/efifb or a legacy fbdev driver, console keyboard and
 # /dev/input/mice like Xvesa; the mode is the framebuffer's.

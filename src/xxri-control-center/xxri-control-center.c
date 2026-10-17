@@ -843,6 +843,8 @@ static void on_bright(GtkRange* r, gpointer d) {
 static GtkWidget* clickable(GtkWidget* child, GCallback cb) {
     GtkWidget* ev = gtk_event_box_new();
     gtk_event_box_set_visible_window(GTK_EVENT_BOX(ev), FALSE);
+    /* a glyph's drawing area has its own window and took the clicks */
+    gtk_event_box_set_above_child(GTK_EVENT_BOX(ev), TRUE);
     gtk_container_add(GTK_CONTAINER(ev), child);
     if (cb) g_signal_connect(ev, "button-press-event", cb, NULL);
     return ev;

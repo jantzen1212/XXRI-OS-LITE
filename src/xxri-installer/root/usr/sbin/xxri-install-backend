@@ -55,10 +55,46 @@ fs_summary() { # whole-disk fs summary from its partitions
 	echo "$out"
 }
 
+# Disks the running system was started from (extensions, packages, kernel),
+# through loop (iso=) and device-mapper (Ventoy) devices. A live boot's / is
+# RAM, so the check against / never caught the USB stick.
+blk_disks() { # $1 block device node; recursive, hence local
+	local b f s
+	b="$(readlink -f "$1")"; b=${b##*/}
+	[ -e "/sys/class/block/$b" ] || return 0
+	case "$b" in
+		loop*) f="$(cat "/sys/block/$b/loop/backing_file" 2>/dev/null)"
+		       [ -n "$f" ] && path_disks "$f"
+		       return 0 ;;
+	esac
+	if ls "/sys/class/block/$b/slaves/"* >/dev/null 2>&1; then
+		for s in "/sys/class/block/$b/slaves/"*; do blk_disks "/dev/${s##*/}"; done
+		return 0
+	fi
+	[ -e "/sys/class/block/$b/partition" ] &&
+		b="$(basename "$(dirname "$(readlink -f "/sys/class/block/$b")")")"
+	echo "$b"
+}
+path_disks() { # $1 path -> the disk(s) of the filesystem it is on
+	local dev
+	dev="$(awk -v p="$1/" '{ m = ($2 == "/") ? "/" : $2 "/" }
+		index(p, m) == 1 && length(m) > best { best = length(m); d = $1 }
+		END { print d }' /proc/mounts)"
+	case "$dev" in /dev/*) blk_disks "$dev" ;; esac
+}
+medium_disks() {
+	for p in "$(cat /etc/sysconfig/cde 2>/dev/null)" \
+	         "$(readlink /etc/sysconfig/tcedir 2>/dev/null)" "$(find_kernel_src)"; do
+		[ -n "$p" ] && path_disks "$p"
+	done | sort -u
+}
+
 list_disks() {
+	MEDIUM=" $(medium_disks | tr '\n' ' ') "
 	for b in /sys/block/*; do
 		d=${b##*/}
 		case "$d" in loop*|ram*|sr*|fd*|zram*|dm-*) continue;; esac
+		case "$MEDIUM" in *" $d "*) continue;; esac
 		[ "$(cat $b/size 2>/dev/null || echo 0)" -gt 0 ] || continue
 		rm=$(cat $b/removable 2>/dev/null || echo 0)
 		echo "DISK|/dev/$d|$(disk_model $d)|$(disk_mib $d)|$rm|$(fs_summary $d)"
@@ -591,6 +627,9 @@ run_install() {
 		# refuse to nuke the disk we are running from
 		LIVE=$(awk '$2=="/" {print $1}' /proc/mounts)
 		case "$LIVE" in "$DISK"*) fail "cannot install onto the running system disk";; esac
+		case " $(medium_disks | tr '\n' ' ') " in
+			*" ${DISK##*/} "*) fail "$DISK holds the system XXRI was started from" ;;
+		esac
 		for p in $(awk -v d="$DISK" '$1 ~ d {print $1}' /proc/mounts); do
 			umount "$p" 2>/dev/null
 		done
