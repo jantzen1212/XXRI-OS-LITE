@@ -1,0 +1,59 @@
+# Translation template for xxri-power-menu, part of XXRI OS Lite.
+# Distributed under the same license as XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/"
+"jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-10-13 10:15+0100\n"
+"Last-Translator: Ricardo Simões - xmcorporation.com "
+"<xmcorporation@gmail.com>\n"
+"Language-Team: none\n"
+"Language: pt_PT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.9\n"
+
+#: xxri-power-menu.c
+msgid "Power"
+msgstr "Energia"
+
+#: xxri-power-menu.c
+msgid "Save state and power off"
+msgstr "Guardar o estado e desligar"
+
+#: xxri-power-menu.c
+msgid "Shut down"
+msgstr "Desligar"
+
+#: xxri-power-menu.c
+msgid "Reboot this computer"
+msgstr "Reiniciar este computador"
+
+#: xxri-power-menu.c
+msgid "Restart"
+msgstr "Reiniciar"
+
+#: xxri-power-menu.c
+msgid "Sleep"
+msgstr "Suspender"
+
+#: xxri-power-menu.c
+msgid "Suspend to RAM"
+msgstr "Suspender para a RAM"
+
+#: xxri-power-menu.c
+msgid "End this desktop session"
+msgstr "Terminar esta sessão do ambiente de trabalho"
+
+#: xxri-power-menu.c
+msgid "Log out"
+msgstr "Terminar sessão"
+
+#: xxri-power-menu.c
+msgid "Cancel"
+msgstr "Cancelar"

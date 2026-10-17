@@ -1,0 +1,298 @@
+# Translation template for xxri-installer, part of XXRI OS Lite.
+# Distributed under the same license as XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-10-13 10:57+0100\n"
+"Last-Translator: Ricardo Simões - xmcorporation.com <xmcorporation@gmail.com>\n"
+"Language-Team: none\n"
+"Language: pt_PT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.9\n"
+
+#: xxri-dialog.c
+msgid "OK"
+msgstr "OK"
+
+#: xxri-dialog.c
+msgid "Yes"
+msgstr "Sim"
+
+#: xxri-dialog.c
+msgid "Not now"
+msgstr "Agora não"
+
+#: xxri-installer.c
+msgid "Copy system files"
+msgstr "Copiar os ficheiros do sistema"
+
+#: xxri-installer.c
+msgid "Format the XXRI partition"
+msgstr "Formatar a partição XXRI"
+
+#: xxri-installer.c
+msgid "Prepare the disk"
+msgstr "Preparar o disco"
+
+#: xxri-installer.c
+msgid "Add apps and extensions"
+msgstr "Adicionar aplicações e extensões"
+
+#: xxri-installer.c
+msgid "Create your account"
+msgstr "Criar a sua conta"
+
+#: xxri-installer.c
+msgid "Set name and language"
+msgstr "Definir o nome e o idioma"
+
+#: xxri-installer.c
+msgid "Finish up"
+msgstr "Concluir"
+
+#: xxri-installer.c
+msgid "Install the boot loader"
+msgstr "Instalar o carregador de arranque"
+
+#: xxri-installer.c
+msgid "Welcome"
+msgstr "Bem-vindo"
+
+#: xxri-installer.c
+msgid "to <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"
+msgstr "ao <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"
+
+#: xxri-installer.c
+msgid "US (default)"
+msgstr "EUA (predefinido)"
+
+#: xxri-installer.c
+msgid "Region"
+msgstr "Região"
+
+#: xxri-installer.c
+msgid "Language"
+msgstr "Idioma"
+
+#: xxri-installer.c
+msgid "Keyboard"
+msgstr "Teclado"
+
+#: xxri-installer.c
+msgid "Continue"
+msgstr "Continuar"
+
+#: xxri-installer.c
+msgid "You sign in with this name. It is also the name of your home folder."
+msgstr "Este é o nome com que inicia sessão. É também o nome da sua pasta pessoal."
+
+#: xxri-installer.c
+msgid "Type a name to sign in with, for example your first name."
+msgstr "Escreva um nome para iniciar sessão, por exemplo o seu primeiro nome."
+
+#: xxri-installer.c
+msgid "The name cannot start with a number."
+msgstr "O nome não pode começar com um número."
+
+#: xxri-installer.c
+msgid "Use lowercase letters and numbers only, without spaces."
+msgstr "Use apenas letras minúsculas e números, sem espaços."
+
+#: xxri-installer.c
+msgid "How this computer is called on a network."
+msgstr "Como este computador é identificado numa rede."
+
+#: xxri-installer.c
+msgid "Give this computer a name, for example pc-xxri."
+msgstr "Dê um nome a este computador, por exemplo pc-xxri."
+
+#: xxri-installer.c
+msgid "Use letters, numbers and hyphens only, without spaces."
+msgstr "Utilize apenas letras, números e hífenes, sem espaços."
+
+#: xxri-installer.c
+msgid "Type the same password again to confirm it."
+msgstr "Escreva novamente a mesma palavra-passe para a confirmar."
+
+#: xxri-installer.c
+msgid "The two passwords are not the same yet."
+msgstr "As duas palavras-passe ainda não são iguais."
+
+#: xxri-installer.c
+msgid "Optional. Leave both empty to use this computer without a password."
+msgstr "Opcional. Deixe ambos os campos vazios para utilizar este computador sem palavra-passe."
+
+#: xxri-installer.c
+msgid "The passwords match. Short password - 6 or more characters is safer."
+msgstr "As palavras-passe coincidem. Palavra-passe curta - 6 ou mais carateres é mais seguro."
+
+#: xxri-installer.c
+msgid "The passwords match. Good password."
+msgstr "As palavras-passe coincidem. Boa palavra-passe."
+
+#: xxri-installer.c
+msgid "The passwords match. Strong password."
+msgstr "As palavras-passe coincidem. Palavra-passe forte."
+
+#: xxri-installer.c
+msgid "This is the account you will use on this computer."
+msgstr "Esta é a conta que irá usar neste computador."
+
+#: xxri-installer.c
+msgid "Username"
+msgstr "Nome de utilizador"
+
+#: xxri-installer.c
+msgid "Computer name"
+msgstr "Nome do computador"
+
+#: xxri-installer.c
+msgid "Password"
+msgstr "Palavra-passe"
+
+#: xxri-installer.c
+msgid "Confirm password"
+msgstr "Confirmar palavra-passe"
+
+#: xxri-installer.c
+msgid "Sign in automatically"
+msgstr "Iniciar sessão automaticamente"
+
+#: xxri-installer.c
+msgid "Go straight to the desktop when the computer starts."
+msgstr "Entrar diretamente no ambiente de trabalho quando o computador arranca."
+
+#: xxri-installer.c
+msgid "Back"
+msgstr "Voltar"
+
+#: xxri-installer.c
+#, c-format
+msgid "Current content: %s"
+msgstr "Conteúdo atual: %s"
+
+#: xxri-installer.c
+#, c-format
+msgid "%s  label %s  -  will be formatted ext4"
+msgstr "%s  label %s  -  será formatado em ext4"
+
+#: xxri-installer.c
+#, c-format
+msgid "%s  -  will be formatted ext4"
+msgstr "%s  -  será formatado em ext4"
+
+#: xxri-installer.c
+msgid "Only the selected partition is formatted. The rest of the disk is left as it is."
+msgstr "Apenas a partição selecionada é formatada. O resto do disco é deixado como está."
+
+#: xxri-installer.c
+msgid "Everything on the selected disk will be erased."
+msgstr "Tudo o que está no disco selecionado será apagado."
+
+#: xxri-installer.c
+msgid "   (removable)"
+msgstr "   (removível)"
+
+#: xxri-installer.c
+#, c-format
+msgid "...and %u more device(s)"
+msgstr "...e mais %u dispositivo(s)"
+
+#: xxri-installer.c
+msgid "No partitions were found. Choose \"Erase disk\" to let XXRI prepare a disk."
+msgstr "Não foram encontradas partições. Escolha \"Apagar disco\" para deixar o XXRI preparar um disco."
+
+#: xxri-installer.c
+msgid "No disk to install on was detected."
+msgstr "Não foi detetado nenhum disco para instalação."
+
+#: xxri-installer.c
+msgid "Where should XXRI be installed?"
+msgstr "Onde deverá ser instalado o XXRI?"
+
+#: xxri-installer.c
+msgid "Erase a whole disk, or choose a partition you prepared yourself."
+msgstr "Apague um disco inteiro, ou escolha uma partição que tenha preparado."
+
+#: xxri-installer.c
+msgid "Erase disk"
+msgstr "Apagar disco"
+
+#: xxri-installer.c
+msgid "Choose partition"
+msgstr "Escolher partição"
+
+#: xxri-installer.c
+msgid "Install"
+msgstr "Instalar"
+
+#: xxri-installer.c
+msgid "Installing XXRI OS Lite"
+msgstr "A instalar o XXRI OS Lite"
+
+#: xxri-installer.c
+msgid "This takes a few minutes. You can leave the computer to it."
+msgstr "Isto demora alguns minutos. Pode deixar o computador a trabalhar."
+
+#: xxri-installer.c
+msgid "Preparing..."
+msgstr "A preparar..."
+
+#: xxri-installer.c
+msgid "Something went wrong"
+msgstr "Algo correu mal"
+
+#: xxri-installer.c
+msgid "Close"
+msgstr "Fechar"
+
+#: xxri-installer.c
+msgid "All done"
+msgstr "Tudo pronto"
+
+#: xxri-installer.c
+msgid "XXRI OS Lite is installed on this computer. Remove the installation medium, then restart to begin using it."
+msgstr ""
+"O XXRI OS Lite está instalado neste computador. Remova o suporte de instalação, e reinicie para começar a utilizá-lo."
+
+#: xxri-installer.c
+msgid "Restart now"
+msgstr "Reiniciar agora"
+
+#: xxri-installer.c
+msgid "Shut down"
+msgstr "Encerrar"
+
+#: xxri-installer.c
+msgid "Continue live session"
+msgstr "Continuar a sessão live"
+
+#: xxri-installer.c
+#, c-format
+msgid ""
+"%s\n"
+"\n"
+"Only the target disk was touched. Close to review and retry."
+msgstr ""
+"%s\n"
+"\n"
+"Apenas o disco de destino foi alterado. Feche para rever e tentar novamente."
+
+#: xxri-installer.c
+msgid "The installation stopped."
+msgstr "A instalação foi interrompida."
+
+#: xxri-installer.c
+#, c-format
+msgid "Root filesystem  LABEL=XXRIROOT  -  UUID %s"
+msgstr "Sistema de ficheiros root  LABEL=XXRIROOT  -  UUID %s"
+
+#: xxri-installer.c
+msgid "XXRI OS Lite Installer"
+msgstr "Instalador do XXRI OS Lite"

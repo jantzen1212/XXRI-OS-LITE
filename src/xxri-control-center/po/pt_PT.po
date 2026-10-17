@@ -1,0 +1,57 @@
+# Translation template for xxri-control-center, part of XXRI OS Lite.
+# Distributed under the same license as XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-10-13 10:33+0100\n"
+"Last-Translator: Ricardo Simões - xmcorporation.com <xmcorporation@gmail.com>\n"
+"Language-Team: none\n"
+"Language: pt_PT\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.9\n"
+
+#: xxri-control-center.c
+msgid "Ethernet"
+msgstr "Rede por cabo"
+
+#: xxri-control-center.c
+msgid "Wi-Fi"
+msgstr "Rede Sem-Fios"
+
+#: xxri-control-center.c
+msgid "Network"
+msgstr "Rede"
+
+#: xxri-control-center.c
+msgid "Not connected"
+msgstr "Não ligado"
+
+#: xxri-control-center.c
+msgid "Not available"
+msgstr "Não disponível"
+
+#: xxri-control-center.c
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+#: xxri-control-center.c
+msgid "Off"
+msgstr "Desligado"
+
+#: xxri-control-center.c
+msgid "On"
+msgstr "Ligado"
+
+#: xxri-control-center.c
+msgid "Unavailable"
+msgstr "Indisponível"
+
+#: xxri-control-center.c
+msgid "No audio device"
+msgstr "Sem dispositivo de áudio"
