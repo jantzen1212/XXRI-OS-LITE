@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "product": "xxri-os-lite",
+  "arch": "i686",
+  "channel": "stable",
+  "version": "2.6.1",
+  "build": "2.6.1",
+  "released": "2026-10-18",
+  "title": "XXRI OS Lite 2.6.1",
+  "notes": "Quick Control: the Settings, Power and mute buttons work again.\nNew login screen when automatic login is off, for user accounts created after this update.\nLog out with automatic login off no longer leaves a text console logged in as administrator.\nSound picks the speakers instead of an HDMI output on more computers.\nTwo displays show the same desktop instead of a broken extended one (new user accounts).\nNo more udev messages over the boot screen.\nLanguage support: Portuguese (Portugal) translations, and the language and keyboard layout settings.\nSoftware Update explains why an update cannot be installed instead of saying the system is up to date.",
+  "min_version": "2.6",
+  "payload_url": "https://github.com/jantzen1212/XXRI-OS-LITE/releases/download/XXRI-OS-Lite-2.6.1/xxri-update-2.6.1.tar.gz",
+  "payload_sha256": "6c89a1c8a6a1c6e13d58989ca655b7d62e049eca3eebec58a03e3826596b29de",
+  "payload_size": 964056,
+  "restart": "reboot"
+}

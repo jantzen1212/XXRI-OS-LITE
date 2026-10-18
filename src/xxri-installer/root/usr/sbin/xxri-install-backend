@@ -20,7 +20,7 @@
 #   DISK=/dev/sdX           (auto)
 #   PART=/dev/sdX1          (manual)
 #   USERNAME= PASSWORD= HOSTNAME= AUTOLOGIN=1|0
-#   TZSTR=WIB-7  LANGUAGE=en_US  KEYMAP=us
+#   TZSTR=WIB-7  LANGUAGE=en_US  KEYMAP=us  XKB=us
 
 fail() { echo "E|$1"; cleanup; exit 1; }
 say()  { echo "P|$1|$2"; }
@@ -315,6 +315,8 @@ configure_system() {
 	[ -n "$TZSTR" ]    && echo "TZ=$TZSTR" > "$MNT/etc/sysconfig/timezone"
 	[ -n "$LANGUAGE" ] && echo "LANG=$LANGUAGE" > "$MNT/etc/sysconfig/language"
 	[ -n "$KEYMAP" ]   && echo "KEYMAP=$KEYMAP" > "$MNT/etc/sysconfig/keymap"
+	# X layout, applied at boot by xxri-config; plain us needs no file
+	case "$XKB" in ''|us) ;; *) echo "XKB=$XKB" > "$MNT/etc/sysconfig/xkb" ;; esac
 }
 
 # ---------------------------------------------------------------- baking --

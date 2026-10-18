@@ -2,7 +2,9 @@
 
 What the code shows for each report, what was changed, and what is still
 needed from the tester. Checked on the host only (device busybox in bwrap,
-Xvfb, fake sysfs/procfs/xrandr), not on the reporters' machines.
+Xvfb, fake sysfs/procfs/xrandr), not on the reporters' machines. "Fixed"
+below means a code fix checked that way; none of it has run on an image or
+on the machine that reported it.
 
 ## Dock icons missing
 
@@ -24,11 +26,26 @@ handler. The Wi-Fi and Bluetooth tiles only worked on their labels. Fixed
 with `gtk_event_box_set_above_child()`. The Store's rail buttons use the
 same pattern; not reported, not changed.
 
-## Text during boot
+## Text during boot (one cause fixed)
+
+Seen on a recorded boot of the ISO (QEMU, every screen change kept), over
+the splash while it pauses for the graphics driver handover:
+
+    udevd[110]: IMPORT{builtin}: 'hwdb --subsystem=input '--lookup-prefix=libwacom:name:$attr{name}:'' unknown /etc/udev/rules.d/65-libwacom.rules:19
+
+once per input device. libwacom.tcz installs a udev rule that asks for the
+`hwdb` builtin; Tiny Core's udev has only input_id, path_id and usb_id, and
+no hwdb database, so that rule could never run. Fixed: XXRI ships the rule
+without that lookup (`/etc/udev/rules.d/65-libwacom.rules`, which libwacom's
+install script leaves alone); the serial-tablet rules that do work are kept.
+A recorded boot of the rebuilt ISO no longer shows it.
+
+Still shown, left as they are:
 
 | Text | Cause |
 |---|---|
-| `Welcome to GRUB!` | upstream GRUB 2.14 banner, harmless |
+| `Welcome to GRUB!`, the menu, `Booting 'XXRI OS Lite 2.6'` | upstream GRUB; hiding it means hiding the menu with its recovery entries |
+| `login[…]: root login on 'tty1'` | BusyBox login, from Tiny Core's autologin; visible only during the handover, then cleared |
 | `Booting in blind mode` | BIOS without any gfxpayload mode; no splash |
 | kernel lines (`loglevel=3`) | emergency/alert/critical messages only |
 | `Errors occured during the loading of the extensions` | real failure |
@@ -92,5 +109,6 @@ Needed: the page it stopped on, firmware boot mode and storage setting,
 
 `xxri-desktop restart-session` removed `/var/log/autologin`, so tty1 ran
 root's `.profile` again. With `noautologin` already emptied at boot it
-matched neither branch and stayed a root shell. Logout now keeps
-`/var/log/autologin` when autologin is off.
+matched neither branch and stayed a root shell. Logout with autologin off
+now writes `noautologin` again, so root's `.profile` shows the login screen
+(docs/login-screen.md) or the text prompt.

@@ -521,10 +521,13 @@ cmd_restart() {
 	#  - pidof, not pkill -x: busybox compares the whole argv[0]
 	#    (/usr/local/lib/xorg/Xorg), so "pkill -x Xorg" never matched
 	#  - busybox pkill has no -t, so tty1's shell is found by its fd 0
-	#  - autologin off: leave it, tty1 goes back to the login prompt (root's
-	#    .profile run again with noautologin used up left a root shell)
-	[ -e /etc/sysconfig/noautologin ] || [ -e /etc/sysconfig/noautologin.persist ] ||
-		sudo_if rm -f /var/log/autologin
+	#  - autologin off: arm noautologin again, so root's .profile shows the
+	#    login screen (or the text prompt); an empty one, used up at boot,
+	#    left a root shell
+	if [ -e /etc/sysconfig/noautologin ] || [ -e /etc/sysconfig/noautologin.persist ]; then
+		sudo_if sh -c 'echo manual > /etc/sysconfig/noautologin'
+	fi
+	sudo_if rm -f /var/log/autologin
 	sudo_if sh -c '(sleep 1
 		for s in Xorg Xfbdev; do p=$(pidof $s) && kill $p; done
 		sleep 2

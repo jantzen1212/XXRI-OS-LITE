@@ -9,6 +9,7 @@
 #                                          apply (runs as root through sudo)
 #   xxri-system-update progress [--json]   where a running install is
 #   xxri-system-update history [--json]    updates applied to this system
+#   xxri-system-update help
 #
 # The source is manifest.json in the XXRI repository on GitHub
 # (MANIFEST_URL in /usr/local/etc/xxri/update.conf overrides it; so does
@@ -124,6 +125,15 @@ vercmp() {
 		print 0 }'
 }
 valid_version() { echo "$1" | grep -qE '^[0-9]+(\.[0-9]+){0,3}$'; }
+system_arch() { case "$(uname -m)" in i?86) echo i686 ;; *) uname -m ;; esac; }
+# why a manifest does not fit this system (empty: it does); schema 1
+# manifests from before "arch" existed were all i686
+manifest_mismatch() {
+	s="$(jv "$1" schema)"
+	[ -z "$s" ] || [ "$s" = 1 ] || { echo "This update uses a newer format (schema $s). Install it from a new XXRI OS Lite ISO."; return; }
+	a="$(jv "$1" arch)"
+	[ "${a:=i686}" = "$(system_arch)" ] || echo "This update is for $a computers; this one is $(system_arch)."
+}
 
 current_version() {
 	v="$(sed -n 's/^IMAGE_VERSION=//p' /etc/os-release 2>/dev/null | tr -d '"' | head -1)"
@@ -174,18 +184,23 @@ cmd_check() {
 	j_str current "$cur"; j_str source "$MANIFEST_URL"; j_str checked "$(date '+%Y-%m-%d %H:%M')"
 	j_bool can_install "$([ -z "$bl" ] && echo 1 || echo 0)"; j_str blocker "$bl"
 	fetch "$MANIFEST_URL" "$t" 20; rc=$?
+	err=""
 	if [ $rc != 0 ] || [ ! -s "$t" ]; then
 		rm -f "$t"
-		j_bool ok 0; j_bool available 0; j_str reason "$(fetch_reason "$rc")"; j_str error "$(fetch_error "$rc")"
+		err="$(fetch_error "$rc")"
+		j_bool ok 0; j_bool available 0; j_str reason "$(fetch_reason "$rc")"; j_str error "$err"
 	elif [ "$(jv "$t" product)" != "xxri-os-lite" ] || ! valid_version "$(jv "$t" version)"; then
 		rm -f "$t"
-		j_bool ok 0; j_bool available 0; j_str reason invalid; j_str error "The update information is not an XXRI OS Lite manifest."
+		err="The update information is not an XXRI OS Lite manifest."
+		j_bool ok 0; j_bool available 0; j_str reason invalid; j_str error "$err"
 	else
 		ver="$(jv "$t" version)"; url="$(jv "$t" payload_url)"; sha="$(jv "$t" payload_sha256)"
 		min="$(jv "$t" min_version)"
 		avail=0; note=""
 		if [ "$(vercmp "$cur" "$ver")" = -1 ]; then
-			if [ -z "$url" ] || ! echo "$sha" | grep -qE '^[0-9a-f]{64}$'; then
+			if [ -n "$(manifest_mismatch "$t")" ]; then
+				note="$(manifest_mismatch "$t")"
+			elif [ -z "$url" ] || ! echo "$sha" | grep -qE '^[0-9a-f]{64}$'; then
 				note="XXRI OS Lite $ver is announced, but its download is not published yet."
 			elif [ -n "$min" ] && [ "$(vercmp "$cur" "$min")" = -1 ]; then
 				note="XXRI OS Lite $ver needs version $min or newer to be installed first."
@@ -204,10 +219,11 @@ cmd_check() {
 		echo "installed: XXRI OS Lite $cur"
 		case "$out" in
 			*'"available":true'*) echo "available: XXRI OS Lite $ver" ;;
-			*'"ok":false'*) echo "check failed" ;;
-			*) echo "up to date${note:+ ($note)}" ;;
+			*'"ok":false'*) echo "check failed: $err" ;;
+			*) echo "${note:-up to date}" ;;
 		esac
 	fi
+	[ -z "$err" ]
 }
 
 cmd_status() {
@@ -359,6 +375,7 @@ cmd_install() {
 	m="$WORK/manifest.json"
 	fetch "$MANIFEST_URL" "$m" 30 || fail "$(fetch_error $?)"
 	[ "$(jv "$m" product)" = xxri-os-lite ] || fail "The update information is not an XXRI OS Lite manifest."
+	mm="$(manifest_mismatch "$m")"; [ -z "$mm" ] || fail "$mm"
 	S_VER="$(jv "$m" version)"; valid_version "$S_VER" || fail "The manifest names no valid version."
 	url="$(jv "$m" payload_url)"; sha="$(jv "$m" payload_sha256 | tr 'A-F' 'a-f')"
 	size="$(jv "$m" payload_size)"; min="$(jv "$m" min_version)"; build="$(jv "$m" build)"
@@ -393,7 +410,9 @@ cmd_install() {
 		fi
 		sleep 1
 	done
-	wait $fp || { rc=$?; rm -rf "$dir"; fail "The download failed. $(fetch_error $rc)"; }
+	wait $fp || { rc=$?; rm -rf "$dir"
+		[ $rc = 8 ] && fail "The update file is not at its published address. Nothing was changed."
+		fail "The download failed. $(fetch_error $rc)"; }
 	mv -f "$pay.part" "$pay"
 
 	state verifying 100 "Verifying the download (SHA-256)"
@@ -472,5 +491,6 @@ case "$1" in
 	progress) cmd_progress ;;
 	history) cmd_history ;;
 	--json) cmd_status ;;
-	*) echo "usage: xxri-system-update status|check|install|progress|history [--json]" >&2; exit 1 ;;
+	help|-h|--help) sed -n '4,12p' "$0" | sed 's/^# \{0,1\}//' ;;
+	*) echo "usage: xxri-system-update status|check|install|progress|history|help [--json]" >&2; exit 1 ;;
 esac

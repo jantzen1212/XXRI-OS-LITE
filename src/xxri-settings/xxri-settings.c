@@ -1726,7 +1726,9 @@ static void upd_show_check(const char* out) {
         gtk_label_set_text(GTK_LABEL(g_upd_title), _("Couldn't check for updates"));
         snprintf(sub, sizeof sub, "%s", *err ? err : _("The update source did not answer."));
     } else if (!avail) {
-        gtk_label_set_text(GTK_LABEL(g_upd_title), _("Your system is up to date"));
+        /* a note: there is a newer release, but not one this system can install */
+        gtk_label_set_text(GTK_LABEL(g_upd_title), *note ? _("No update for this system")
+                                                         : _("Your system is up to date"));
         snprintf(sub, sizeof sub, _("%s%sLast checked %s"), *note ? note : "", *note ? "\n" : "", checked);
     } else {
         char* ti = jget(out, "title"); char t[256];

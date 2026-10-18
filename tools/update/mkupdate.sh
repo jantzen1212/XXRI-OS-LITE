@@ -4,6 +4,7 @@
 #
 #   tools/update/mkupdate.sh -v VERSION -t TREE -u URL_BASE -o OUTDIR \
 #       [-T TITLE] [-n NOTES_FILE] [-m MIN_VERSION] [-r reboot|session|none] [-b BUILD]
+#       [-a ARCH]   (i686, the default, or x86_64: devices refuse another one)
 #
 # TREE holds what the release changes, in the payload's own layout:
 #   TREE/files/...    normal files, as they sit under /  (usr/local/bin/xxri-foo)
@@ -19,18 +20,19 @@
 # manifest.json to the repository's main branch - devices read it from
 # raw.githubusercontent.com/jantzen1212/XXRI-OS-LITE/main/manifest.json.
 set -e
-usage() { sed -n '4,6p' "$0" >&2; exit 2; }
-VER="" TREE="" URLBASE="" OUT="" TITLE="" NOTES="" MIN="" RESTART=reboot BUILD=""
-while getopts v:t:u:o:T:n:m:r:b: o; do
+usage() { sed -n '4,7p' "$0" >&2; exit 2; }
+VER="" TREE="" URLBASE="" OUT="" TITLE="" NOTES="" MIN="" RESTART=reboot BUILD="" ARCH=i686
+while getopts v:t:u:o:T:n:m:r:b:a: o; do
 	case $o in
 		v) VER=$OPTARG ;; t) TREE=$OPTARG ;; u) URLBASE=${OPTARG%/} ;; o) OUT=$OPTARG ;;
 		T) TITLE=$OPTARG ;; n) NOTES=$OPTARG ;; m) MIN=$OPTARG ;; r) RESTART=$OPTARG ;;
-		b) BUILD=$OPTARG ;; *) usage ;;
+		b) BUILD=$OPTARG ;; a) ARCH=$OPTARG ;; *) usage ;;
 	esac
 done
 [ -n "$VER" ] && [ -d "$TREE" ] && [ -n "$URLBASE" ] && [ -n "$OUT" ] || usage
 echo "$VER" | grep -qE '^[0-9]+(\.[0-9]+){0,3}$' || { echo "version must be numeric, dot-separated: $VER" >&2; exit 2; }
 case "$RESTART" in reboot|session|none) ;; *) usage ;; esac
+case "$ARCH" in i686|x86_64) ;; *) usage ;; esac
 [ -n "$TITLE" ] || TITLE="XXRI OS Lite $VER"
 [ -z "$NOTES" ] || [ -r "$NOTES" ] || { echo "notes file not readable: $NOTES" >&2; exit 2; }
 
@@ -56,7 +58,7 @@ SIZE=$(wc -c < "$OUT/$PAY")
 
 # the values travel in the environment, so a title or notes can hold any text
 U_VER="$VER" U_BUILD="${BUILD:-$VER}" U_TITLE="$TITLE" U_NOTES="$NOTES" U_MIN="$MIN" \
-U_URL="$URLBASE/$PAY" U_SHA="$SHA" U_SIZE="$SIZE" U_RESTART="$RESTART" \
+U_URL="$URLBASE/$PAY" U_SHA="$SHA" U_SIZE="$SIZE" U_RESTART="$RESTART" U_ARCH="$ARCH" \
 python3 - "$OUT/manifest.json" <<'PY'
 import json, os, sys, datetime
 e = os.environ
@@ -64,6 +66,7 @@ notes = open(e["U_NOTES"], encoding="utf-8").read().strip() if e["U_NOTES"] else
 m = {
     "schema": 1,
     "product": "xxri-os-lite",
+    "arch": e["U_ARCH"],
     "channel": "stable",
     "version": e["U_VER"],
     "build": e["U_BUILD"],

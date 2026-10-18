@@ -32,6 +32,7 @@ declare -A DIR=(
 	[xxri-control-center]=xxri-control-center
 	[xxri-media]=xxri-media
 	[xxri-power-menu]=xxri-power-menu
+	[xxri-login]=xxri-login
 )
 DOMAINS=$(printf '%s\n' "${!DIR[@]}" | sort)
 
