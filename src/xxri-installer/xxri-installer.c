@@ -155,6 +155,7 @@ static const TzRegion REGIONS[] = {
     {"United States / Central","CST6CDT,M3.2.0,M11.1.0"},
     {"United States / Pacific","PST8PDT,M3.2.0,M11.1.0"},
     {"United Kingdom / London","GMT0BST,M3.5.0/1,M10.5.0"},
+    {"Portugal / Lisbon",      "WET0WEST,M3.5.0/1,M10.5.0/2"},
     {"Europe / Berlin",        "CET-1CEST,M3.5.0,M10.5.0/3"},
     {"Europe / Moscow",        "MSK-3"},
     {"India / New Delhi",      "IST-5:30"},
@@ -164,11 +165,13 @@ static const TzRegion REGIONS[] = {
     {"Australia / Sydney",     "AEST-10AEDT,M10.1.0,M4.1.0/3"},
     {"Brazil / Sao Paulo",     "BRT3"},
 };
-typedef struct { const char *label, *code; } Lang;
+/* the keyboard follows the language: console keymap, X layout */
+typedef struct { const char *label, *code, *keymap, *xkb; } Lang;
 static const Lang LANGS[] = {
-    {"English (United States)", "en_US"},
-    {"English (United Kingdom)","en_GB"},
-    {"Bahasa Indonesia",        "id_ID"},
+    {"English (United States)", "en_US", "us",        "us"},
+    {"English (United Kingdom)","en_GB", "uk",        "gb"},
+    {"Bahasa Indonesia",        "id_ID", "us",        "us"},
+    {"Português (Portugal)",    "pt_PT", "pt-latin1", "pt"},
 };
 /* backend phases; task_for_pct() must match xxri-install-backend's P| values */
 static const char* TASKS[] = {
@@ -1059,8 +1062,10 @@ static void start_install(void) {
     fprintf(c, "HOSTNAME=%s\n", gtk_entry_get_text(GTK_ENTRY(en_host)));
     fprintf(c, "AUTOLOGIN=%d\n", gtk_switch_get_active(GTK_SWITCH(sw_auto)) ? 1 : 0);
     fprintf(c, "TZSTR=%s\n", REGIONS[drop_get(dr_region)].tz);
-    fprintf(c, "LANGUAGE=%s\n", LANGS[drop_get(dr_lang)].code);
-    fprintf(c, "KEYMAP=us\n");
+    const Lang* lg = &LANGS[drop_get(dr_lang)];
+    fprintf(c, "LANGUAGE=%s\n", lg->code);
+    fprintf(c, "KEYMAP=%s\n", lg->keymap);
+    fprintf(c, "XKB=%s\n", lg->xkb);
     fclose(c);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(rv_err), FALSE);

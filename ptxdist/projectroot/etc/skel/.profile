@@ -29,6 +29,8 @@ if [ -f "$HOME/.ashrc" ]; then
 fi
 
 TERMTYPE=`/usr/bin/tty`
+# login screen (see root's .profile): straight to X, no shell on tty1
+[ "$TERMTYPE" = /dev/tty1 ] && [ -e /tmp/.xxri-login ] && exec startx >/dev/null 2>&1
 [ ${TERMTYPE:5:3} == "tty" ] && (
 [ ! -f /etc/sysconfig/Xserver ] ||
 [ -f /etc/sysconfig/text ] ||

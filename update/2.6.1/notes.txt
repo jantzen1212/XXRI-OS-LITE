@@ -1,0 +1,8 @@
+Quick Control: the Settings, Power and mute buttons work again.
+New login screen when automatic login is off, for user accounts created after this update.
+Log out with automatic login off no longer leaves a text console logged in as administrator.
+Sound picks the speakers instead of an HDMI output on more computers.
+Two displays show the same desktop instead of a broken extended one (new user accounts).
+No more udev messages over the boot screen.
+Language support: Portuguese (Portugal) translations, and the language and keyboard layout settings.
+Software Update explains why an update cannot be installed instead of saying the system is up to date.

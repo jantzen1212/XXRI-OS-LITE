@@ -1,0 +1,19 @@
+# udev rules for libwacom supported devices
+#
+# XXRI: libwacom.tcz's rules without the hwdb lookup. Tiny Core's udev has no
+# hwdb builtin (or hwdb database), so that rule failed once per input device on
+# every boot and its error was printed over the boot splash. libwacom.tcz's
+# install script keeps this file because one already exists.
+
+ACTION=="remove", GOTO="libwacom_end"
+KERNEL!="event[0-9]*", GOTO="libwacom_end"
+
+# HUION and GAOMON consumer and system control devices are not tablets.
+ATTRS{name}=="* Consumer Control", GOTO="libwacom_end"
+ATTRS{name}=="* System Control", GOTO="libwacom_end"
+
+# Match all serial wacom tablets with a serial ID starting with WACf
+ENV{ID_BUS}=="tty|pnp", ATTRS{id}=="WACf*", ENV{ID_INPUT}="1", ENV{ID_INPUT_TABLET}="1", GOTO="libwacom_end"
+ENV{ID_BUS}=="tty|pnp", ATTRS{id}=="FUJ*", ENV{ID_INPUT}="1", ENV{ID_INPUT_TABLET}="1", GOTO="libwacom_end"
+
+LABEL="libwacom_end"

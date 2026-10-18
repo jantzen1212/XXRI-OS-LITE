@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: XXRI OS Lite 2.6\n"
 "Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
-"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"POT-Creation-Date: 2026-10-18 16:24+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -788,6 +788,10 @@ msgstr ""
 
 #: xxri-settings.c
 msgid "The update source did not answer."
+msgstr ""
+
+#: xxri-settings.c
+msgid "No update for this system"
 msgstr ""
 
 #: xxri-settings.c

@@ -9,7 +9,8 @@ previous kernel and initrd as a fallback. There is no A/B partition scheme.
 |---|---|
 | Backend | `/usr/local/bin/xxri-system-update` (`ptxdist/projectroot`) |
 | Front end | Settings > Software Update (`src/xxri-settings`) |
-| Publishing tool | `tools/update/mkupdate.sh` |
+| Command line | `xxri-system-update status\|check\|install\|progress\|history\|help` |
+| Publishing tools | `tools/update/mktree.sh` (what changed between two ISOs), `tools/update/mkupdate.sh` (payload and manifest) |
 | Update source | `manifest.json` in the root of the `main` branch of github.com/jantzen1212/XXRI-OS-LITE, read from `https://raw.githubusercontent.com/jantzen1212/XXRI-OS-LITE/main/manifest.json` |
 | Override | `MANIFEST_URL=` in `/usr/local/etc/xxri/update.conf` (or `XXRI_UPDATE_MANIFEST` in the environment, for testing) |
 
@@ -19,7 +20,10 @@ previous kernel and initrd as a fallback. There is no A/B partition scheme.
    updates*). The manifest is fetched with GNU wget and the system CA bundle,
    the same client the Store uses; busybox wget has no TLS here. It is newer
    when `version` is numerically greater than `IMAGE_VERSION` in
-   `/etc/os-release`.
+   `/etc/os-release`. A manifest for another architecture (`arch`) or a newer
+   format (`schema` above 1) is reported, not offered. On the command line
+   `check` exits 1 when it could not check (no network, nothing published,
+   not a manifest), so a failure is never shown as "up to date".
 2. **Install** (*Download and install*). The backend re-runs itself as root
    through `sudo` and writes its progress to `/tmp/xxri-update/state`, which
    the page polls. The steps are:
@@ -61,6 +65,7 @@ The manifest is a flat JSON object (the device reads it with awk):
 {
   "schema": 1,
   "product": "xxri-os-lite",
+  "arch": "i686",
   "channel": "stable",
   "version": "2.6.1",
   "build": "20261015",
@@ -75,18 +80,20 @@ The manifest is a flat JSON object (the device reads it with awk):
 }
 ```
 
-`restart` is `reboot`, `session` or `none`. A manifest whose `version` is not
+`restart` is `reboot`, `session` or `none`. `arch` is `i686` or `x86_64`; a
+schema 1 manifest without it means `i686`, the only architecture before it
+existed (devices with the 2.6 updater ignore the field). A manifest whose `version` is not
 newer than the device, or that has no payload, means "up to date". Until the
 first `manifest.json` is published, devices show *No updates published yet*.
 
 ## Publishing an update
 
 ```sh
-# 1. put what the release changes in a tree
-mkdir -p upd/files/usr/local/bin upd/boot
-cp …/xxri-settings upd/files/usr/local/bin/        # normal files, as under /
-cp …/vmlinuz …/core.gz upd/boot/                   # system files (optional)
-# a new kernel needs its modules as upd/files/lib/modules/<release>/…
+# 1. what changed between the ISO devices run and the new, built and tested
+#    ISO: files/ and remove.list, from core.gz and every changed extension
+tools/update/mktree.sh XXRI-Lite-2.6.iso XXRI-Lite-2.6.1.iso upd
+#    (or by hand: files under upd/files/ as under /, kernel and initrd under
+#    upd/boot/ - a new kernel also needs upd/files/lib/modules/<release>/…)
 
 # 2. build the payload and the manifest
 tools/update/mkupdate.sh -v 2.6.1 -t upd -o out \
@@ -102,6 +109,21 @@ The payload is reproducible: it is sorted, root-owned, stamped with
 `SOURCE_DATE_EPOCH` and written with `gzip -n`. Publish the payload before the
 manifest, because a device that reads the manifest first gets a download error
 and simply tries again later.
+
+## What an update can carry
+
+Installed systems run from their disk (`/init` switches to it), so anything
+under `/` is updated in place and stays: programs, scripts, `/etc/skel`, udev
+rules, locales, catalogs. `mktree.sh` stops when the kernel or `/init`
+changed; those go through `boot/` by hand, or a new ISO.
+
+Two kinds of change do not reach existing users through an update, because
+they live in the user's home, which an update never overwrites: anything in
+`~/.xsession` or `~/.profile` (the two-monitor layout of 2.7, and the login
+screen, which also needs both files - see docs/login-screen.md). New homes get
+them from `/etc/skel`; an existing user gets them by replacing the two files
+with the `/etc/skel` copies. The installer is left out: an installed system
+deletes it at boot.
 
 ## Trust model and limits
 

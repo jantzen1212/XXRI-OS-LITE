@@ -190,6 +190,15 @@ XXRI_WM_ARGS=""
 # Root cursor now, so a late or missing WM never leaves the "X" pointer on
 # the root window and on windows with no cursor of their own (dock, installer).
 xsetroot -cursor_name left_ptr 2>/dev/null
+# Login screen (see root's .profile): nothing starts before the password,
+# and if it fails X ends.
+XXRI_LOGIN=""
+if [ -e /tmp/.xxri-login ]; then
+	XXRI_LOGIN=1
+	[ -x $HOME/.setbackground ] && $HOME/.setbackground
+	# no session bus yet: GTK's accessibility bridge would autolaunch one
+	NO_AT_BRIDGE=1 /usr/local/bin/xxri-login || { kill "$XPID"; exit 1; }
+fi
 # DESKTOP comes from /etc/sysconfig/desktop, which flwm.tcz used to write.
 # XXRI's flwm is in core.gz, so live sessions once got DESKTOP="" and no WM.
 command -v "${DESKTOP:-}" >/dev/null 2>&1 || DESKTOP=flwm
@@ -237,7 +246,7 @@ if [ ! -f "$HOME/.config/user-dirs.dirs" ]; then
 		echo 'XDG_VIDEOS_DIR="$HOME/Videos"'
 	} > "$HOME/.config/user-dirs.dirs" 2>/dev/null
 fi
-[ -x $HOME/.setbackground ] && $HOME/.setbackground
+[ -z "$XXRI_LOGIN" ] && [ -x $HOME/.setbackground ] && $HOME/.setbackground
 [ -x $HOME/.mouse_config ] && $HOME/.mouse_config &
 [ $(which "$ICONS".sh) ] && ${ICONS}.sh &
 # The always-on surfaces start once the compositor has redirected: an
@@ -265,3 +274,5 @@ fi
 [ -x /usr/local/bin/xxri-dock-pin ] && /usr/local/bin/xxri-dock-pin watch &
 [ -d "/usr/local/etc/X.d" ] && find "/usr/local/etc/X.d" -type f -o -type l | sort | while read F; do . "$F"; done
 [ -d "$HOME/.X.d" ] && find "$HOME/.X.d" -type f -o -type l | sort | while read F; do . "$F"; done
+# no shell is behind this one (see ~/.profile): leaving would hang up X
+[ -n "$XXRI_LOGIN" ] && wait "$XPID"

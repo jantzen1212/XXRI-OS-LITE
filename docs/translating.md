@@ -14,6 +14,7 @@ program; a build does not change until one exists.
 | Media player | `xxri-media` | 19 | `src/xxri-media/po/xxri-media.pot` |
 | Control Center | `xxri-control-center` | 10 | `src/xxri-control-center/po/xxri-control-center.pot` |
 | Power menu | `xxri-power-menu` | 10 | `src/xxri-power-menu/po/xxri-power-menu.pot` |
+| Login screen | `xxri-login` | 6 | `src/xxri-login/po/xxri-login.pot` |
 | Launcher | `xxri-launcher` | 4 | `src/xxri-launcher/po/xxri-launcher.pot` |
 
 Not covered:
