@@ -9,14 +9,23 @@ LOCALEDEF=$SYSROOT/usr/bin/localedef
 I18N=$SYSROOT/usr/share/i18n
 [ -x "$LOCALEDEF" ] || { echo "xxri-locales: no localedef in $SYSROOT" >&2; exit 1; }
 
+# the 64-bit toolchain keeps its loader in lib64
+if [ -f "$SYSROOT/lib64/ld-linux-x86-64.so.2" ]; then
+	LOADER="$SYSROOT/lib64/ld-linux-x86-64.so.2"
+	LIBPATH="$SYSROOT/lib64:$SYSROOT/usr/lib64"
+else
+	LOADER="$SYSROOT/lib/ld-linux.so.2"
+	LIBPATH="$SYSROOT/lib:$SYSROOT/usr/lib"
+fi
+
 rm -rf "$OUT"; mkdir -p "$OUT"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 # localedef wants the charmap uncompressed
 zcat "$I18N/charmaps/UTF-8.gz" > "$tmp/UTF-8"
 
 for l in "$@"; do
-	# 32-bit binary: run it with the toolchain's own loader
-	"$SYSROOT/lib/ld-linux.so.2" --library-path "$SYSROOT/lib:$SYSROOT/usr/lib" \
+	# run it with the toolchain's own loader
+	"$LOADER" --library-path "$LIBPATH" \
 		"$LOCALEDEF" --no-archive --little-endian \
 		-i "$I18N/locales/$l" -f "$tmp/UTF-8" "$tmp/$l.utf8"
 	mv "$tmp/$l.utf8" "$OUT/"

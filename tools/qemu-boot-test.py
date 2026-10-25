@@ -25,6 +25,7 @@ import argparse, json, os, re, shutil, socket, subprocess, sys, tempfile, time
 OVMF32 = os.environ.get('XXRI_OVMF32', '/home/jantzen/.xxri-testenv/fw/deb/usr/share/OVMF')
 FW = {
     'bios': ('qemu-system-i386', None, None),
+    'bios64': ('qemu-system-x86_64', None, None),   # SeaBIOS, for the x86_64 ISO
     'ia32': ('qemu-system-i386', OVMF32 + '/OVMF32_CODE_4M.fd', OVMF32 + '/OVMF32_VARS_4M.fd'),
     'x64': ('qemu-system-x86_64', '/usr/share/edk2/x64/OVMF_CODE.4m.fd', '/usr/share/edk2/x64/OVMF_VARS.4m.fd'),
 }
@@ -203,7 +204,7 @@ def main():
         while time.time() - t0 < a.timeout and p.poll() is None:
             now = time.time() - t0
             if res['grub_menu'] is None:
-                text = m.vga_text() if a.fw == 'bios' else open(serial, 'rb').read().decode('latin1', 'replace')
+                text = m.vga_text() if a.fw.startswith('bios') else open(serial, 'rb').read().decode('latin1', 'replace')
                 if 'XXRI OS Lite' in text and ('Reboot' in text or 'GNU GRUB' in text):
                     res['grub_menu'] = round(now, 1)
                     if a.edit_append:

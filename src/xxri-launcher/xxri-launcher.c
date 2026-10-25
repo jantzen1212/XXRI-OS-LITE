@@ -1232,9 +1232,16 @@ int main(int argc, char **argv) {
     g_signal_connect(g_win, "size-allocate",     G_CALLBACK(on_size_allocate), NULL);
 
     /* height follows the row count up to a cap, then the grid scrolls;
-     * centred, lifted a bit clear of the dock */
-    GdkScreen *sc = gdk_screen_get_default();
-    int sw = gdk_screen_get_width(sc), sh = gdk_screen_get_height(sc);
+     * centred on the primary display (the dock's), lifted a bit clear of the dock */
+    GdkRectangle pa = { 0, 0, 0, 0 };
+    GdkMonitor *pm = gdk_display_get_primary_monitor(gdk_display_get_default());
+    if (!pm) pm = gdk_display_get_monitor(gdk_display_get_default(), 0);
+    if (pm) gdk_monitor_get_geometry(pm, &pa);
+    if (pa.width <= 0 || pa.height <= 0) {
+        GdkScreen *sc = gdk_screen_get_default();
+        pa.x = pa.y = 0; pa.width = gdk_screen_get_width(sc); pa.height = gdk_screen_get_height(sc);
+    }
+    int sw = pa.width, sh = pa.height;
     int pw = MIN(580, (int)(sw * 0.57));
 
     int n    = (int)g_apps->len;
@@ -1247,7 +1254,7 @@ int main(int argc, char **argv) {
     int W  = pw + 2*SHADOW, H = ph + 2*SHADOW;
     gtk_window_set_default_size(GTK_WINDOW(g_win), W, H);
     gtk_widget_set_size_request(g_win, W, H);
-    gtk_window_move(GTK_WINDOW(g_win), (sw - W)/2, (sh - H)/2 - (int)(sh * 0.045));
+    gtk_window_move(GTK_WINDOW(g_win), pa.x + (sw - W)/2, pa.y + (sh - H)/2 - (int)(sh * 0.045));
 
     GtkWidget *col = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_widget_set_margin_start (col, SHADOW + 18);

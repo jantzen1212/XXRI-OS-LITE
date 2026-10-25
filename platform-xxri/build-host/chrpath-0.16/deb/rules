@@ -1,0 +1,10 @@
+#! /usr/bin/make -f
+
+%:
+	dh $@ --with autotools_dev
+
+override_dh_auto_install:
+	dh_auto_install -- docdir="/usr/share/doc/chrpath"
+	rm debian/chrpath/usr/share/doc/chrpath/COPYING
+	rm debian/chrpath/usr/share/doc/chrpath/ChangeLog
+	rm debian/chrpath/usr/share/doc/chrpath/INSTALL

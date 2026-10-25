@@ -85,6 +85,10 @@ uses the primary output.
 
 The fix is in `/etc/skel/.xsession`: existing homes keep their old copy.
 
+Superseded: mirroring stays the default, but Settings > Display now offers
+Extend, Mirror and either display alone, and the choice persists
+(docs/display-layouts.md).
+
 Needed: `xrandr` with the monitor attached, and a photo.
 
 ## Installer on the Dell Inspiron 3593

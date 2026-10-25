@@ -1,0 +1,6 @@
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/tuple.lo -MD -MP -MF libpkgconf/.deps/tuple.Tpo -c libpkgconf/tuple.c -fPIC -DPIC -o libpkgconf/.libs/tuple.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/tuple.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/tuple.o"
+  }

@@ -21,6 +21,12 @@ from the raw log disk:
                             Rage 128 Pro (no KMS driver: Xfbdev on vesafb)
   apps-kvm                  KMS path under KVM, every XXRI program started and
                             screenshotted in turn (the quick app check)
+  kms-bios64, kms-x64, fbdev-bios64, fbdev-x64, apps-kvm64
+                            the same for the x86_64 ISO: SeaBIOS and 64-bit OVMF
+                            under qemu-system-x86_64
+  cpu-core2                 x86_64 ISO under TCG as a Core 2 Duo (baseline
+                            x86-64 + SSSE3; no SSE4.x, no POPCNT): QEMU's own
+                            decoder raises #UD for what the model lacks
   cpu-pentium, cpu-pentium2, cpu-pentium3, cpu-sse2
                             TCG with that CPU model (cpu-sse2 = pentium3 + SSE2,
                             a Pentium 4-class feature set) and isa-sentinel:
@@ -60,6 +66,12 @@ SCENARIOS = {
     'cpu-pentium2': dict(fw='bios', append='xxriqaapps=40', cpu='pentium2', sentinel='pentium2', timeout=3600),
     'cpu-pentium3': dict(fw='bios', append='xxriqaapps=40', cpu='pentium3', sentinel='pentium3', timeout=3600),
     'cpu-sse2':     dict(fw='bios', append='xxriqaapps=60', cpu='pentium3,+sse2', sentinel='sse2', timeout=3600),
+    'kms-bios64':   dict(fw='bios64', append='', cpu=None, timeout=420),
+    'kms-x64':      dict(fw='x64', append='', cpu=None, timeout=420),
+    'fbdev-bios64': dict(fw='bios64', append='nomodeset', cpu=None, timeout=420),
+    'fbdev-x64':    dict(fw='x64', append='nomodeset', cpu=None, timeout=420),
+    'apps-kvm64':   dict(fw='bios64', append='xxriqaapps=25', cpu=None, timeout=900),
+    'cpu-core2':    dict(fw='bios64', append='xxriqaapps=60', cpu='core2duo', timeout=3600),
 }
 
 
@@ -98,9 +110,10 @@ def run(iso, hook, name, sc, d):
         cmd += ['-accel', 'tcg']
         sc = dict(sc, timeout=int(sc['timeout'] * float(os.environ.get('XXRI_QA_TIME', '1'))))
     if sc['cpu']:
-        cmd += ['-accel', 'tcg', '-cpu', sc['cpu'],
-                '-plugin', '%s/isa-sentinel.so,cpu=%s,out=%s/hits.tsv' % (os.environ.get('XXRI_SENTINEL_DIR', HERE),
-                                                                          sc['sentinel'], d)]
+        cmd += ['-accel', 'tcg', '-cpu', sc['cpu']]
+        if sc.get('sentinel'):
+            cmd += ['-plugin', '%s/isa-sentinel.so,cpu=%s,out=%s/hits.tsv' % (os.environ.get('XXRI_SENTINEL_DIR', HERE),
+                                                                              sc['sentinel'], d)]
     elif not tcg:
         cmd += ['-enable-kvm', '-cpu', 'host']
     if code:
@@ -124,7 +137,7 @@ def run(iso, hook, name, sc, d):
         while time.time() - t0 < sc['timeout'] and p.poll() is None:
             now = time.time() - t0
             if res['grub_menu'] is None:
-                text = m.vga_text() if sc['fw'] == 'bios' else open(serial, 'rb').read().decode('latin1', 'replace')
+                text = m.vga_text() if sc['fw'].startswith('bios') else open(serial, 'rb').read().decode('latin1', 'replace')
                 if 'XXRI OS Lite' in text and ('Reboot' in text or 'GNU GRUB' in text):
                     res['grub_menu'] = round(now, 1)
                     edit = [['down'], ['type', 'search --no-floppy --set=h --file /xxri-qa-x.gz' + sc.get('grub', '')],

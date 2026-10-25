@@ -1,0 +1,110 @@
+[
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -I./libpkgconf -I./cli -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT cli/pkgconf-main.o -MD -MP -MF cli/.deps/pkgconf-main.Tpo -c -o cli/pkgconf-main.o cli/main.c ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/cli/main.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/cli/pkgconf-main.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/queue.lo -MD -MP -MF libpkgconf/.deps/queue.Tpo -c libpkgconf/queue.c -fPIC -DPIC -o libpkgconf/.libs/queue.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/queue.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/queue.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/path.lo -MD -MP -MF libpkgconf/.deps/path.Tpo -c libpkgconf/path.c -fPIC -DPIC -o libpkgconf/.libs/path.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/path.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/path.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/cache.lo -MD -MP -MF libpkgconf/.deps/cache.Tpo -c libpkgconf/cache.c -fPIC -DPIC -o libpkgconf/.libs/cache.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/cache.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/cache.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -I./libpkgconf -I./cli -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT cli/pkgconf-getopt_long.o -MD -MP -MF cli/.deps/pkgconf-getopt_long.Tpo -c -o cli/pkgconf-getopt_long.o cli/getopt_long.c ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/cli/getopt_long.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/cli/pkgconf-getopt_long.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/client.lo -MD -MP -MF libpkgconf/.deps/client.Tpo -c libpkgconf/client.c -fPIC -DPIC -o libpkgconf/.libs/client.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/client.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/client.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/pkg.lo -MD -MP -MF libpkgconf/.deps/pkg.Tpo -c libpkgconf/pkg.c -fPIC -DPIC -o libpkgconf/.libs/pkg.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/pkg.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/pkg.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/parser.lo -MD -MP -MF libpkgconf/.deps/parser.Tpo -c libpkgconf/parser.c -fPIC -DPIC -o libpkgconf/.libs/parser.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/parser.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/parser.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/fragment.lo -MD -MP -MF libpkgconf/.deps/fragment.Tpo -c libpkgconf/fragment.c -fPIC -DPIC -o libpkgconf/.libs/fragment.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/fragment.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/fragment.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/bsdstubs.lo -MD -MP -MF libpkgconf/.deps/bsdstubs.Tpo -c libpkgconf/bsdstubs.c -fPIC -DPIC -o libpkgconf/.libs/bsdstubs.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/bsdstubs.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/bsdstubs.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -I./libpkgconf -I./cli -I./cli/bomtool -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT cli/bomtool/bomtool-main.o -MD -MP -MF cli/bomtool/.deps/bomtool-main.Tpo -c -o cli/bomtool/bomtool-main.o cli/bomtool/main.c ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/cli/bomtool/main.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/cli/bomtool/bomtool-main.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/fileio.lo -MD -MP -MF libpkgconf/.deps/fileio.Tpo -c libpkgconf/fileio.c -fPIC -DPIC -o libpkgconf/.libs/fileio.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/fileio.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/fileio.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/dependency.lo -MD -MP -MF libpkgconf/.deps/dependency.Tpo -c libpkgconf/dependency.c -fPIC -DPIC -o libpkgconf/.libs/dependency.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/dependency.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/dependency.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/personality.lo -MD -MP -MF libpkgconf/.deps/personality.Tpo -c libpkgconf/personality.c -fPIC -DPIC -o libpkgconf/.libs/personality.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/personality.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/personality.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -I./libpkgconf -I./cli -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT cli/pkgconf-renderer-msvc.o -MD -MP -MF cli/.deps/pkgconf-renderer-msvc.Tpo -c -o cli/pkgconf-renderer-msvc.o cli/renderer-msvc.c ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/cli/renderer-msvc.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/cli/pkgconf-renderer-msvc.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/argvsplit.lo -MD -MP -MF libpkgconf/.deps/argvsplit.Tpo -c libpkgconf/argvsplit.c -fPIC -DPIC -o libpkgconf/.libs/argvsplit.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/argvsplit.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/argvsplit.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/tuple.lo -MD -MP -MF libpkgconf/.deps/tuple.Tpo -c libpkgconf/tuple.c -fPIC -DPIC -o libpkgconf/.libs/tuple.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/tuple.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/tuple.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -I./libpkgconf -DPERSONALITY_PATH=\"/usr/share/pkgconfig/personality.d:/etc/pkgconfig/personality.d\" -DPKG_DEFAULT_PATH=\"/usr/lib/pkgconfig:/usr/share/pkgconfig\" -DSYSTEM_INCLUDEDIR=\"/usr/include\" -DSYSTEM_LIBDIR=\"/usr/lib\" -g -O2 -Wall -Wextra -Wformat=2 -std=gnu99 -MT libpkgconf/audit.lo -MD -MP -MF libpkgconf/.deps/audit.Tpo -c libpkgconf/audit.c -fPIC -DPIC -o libpkgconf/.libs/audit.o ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/audit.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0/libpkgconf/.libs/audit.o"
+  }
+]

@@ -190,15 +190,11 @@ fetch_out() { # url [extra-header] -> stdout (short timeout: metadata/API calls)
 }
 
 have_net() {
-	# a default route is the cheap precondition; then prove a real fetch works
+	# a route doesn't mean the catalog answers: probe the catalog itself,
+	# nothing else matters to the Store
 	gw="$(route -n 2>/dev/null | awk '$1=="0.0.0.0"{print $2; exit}')"
 	[ -n "$gw" ] || return 1
-	fetch_out "$REMOTE_BASE/index.tsv" >/dev/null 2>&1 && return 0
-	fetch_out "https://api.github.com/" >/dev/null 2>&1 && return 0
-	# raw TLS handshake: works even before the CA bundle exists
-	command -v openssl >/dev/null 2>&1 &&
-		echo | timeout 8 openssl s_client -connect github.com:443 2>/dev/null | grep -q CONNECTED && return 0
-	return 1
+	fetch_out "$REPO_URL" >/dev/null 2>&1
 }
 
 # arch
@@ -495,6 +491,14 @@ fetch_loop() { # id url out total  - download (resumable) + progress keys
 	return 1
 }
 
+is_html_page() { # file -> 0 when a download is plainly an HTML page
+	# a catalog link can answer fine and still be a directory listing or a
+	# download page. Only a file that opens like HTML counts, so extensionless
+	# binaries still get through
+	head -c 1024 "$1" 2>/dev/null | tr 'A-Z' 'a-z' |
+		grep -qE '<!doctype[[:space:]]+html|<html[[:space:]>]'
+}
+
 cmd_install() { # id  (also used by resume/retry/update)
 	id="$1"
 	TRACE_ID="$id"
@@ -589,8 +593,9 @@ cmd_install() { # id  (also used by resume/retry/update)
 		dl_set "$id" STATE downloading; dl_set "$id" FILE "$TCE_OPT/$ref.tcz"
 		est=$(( tot * 4 )); [ "$est" -gt 0 ] || est=$((64 * 1024 * 1024))
 		base="$(num "$(du -sk "$TCE_OPT" 2>/dev/null | awk '{print $1}')")"
+		install_log="$CACHE/install-$id.log"
 		XXRI_APP_VERSION="$ver" xxri-app install-tcz "$ref" --quiet --as "$id" \
-		     --name "$nm" ${ex:+--exec "$ex"} >/dev/null 2>&1 &
+		     --name "$nm" ${ex:+--exec "$ex"} >"$install_log" 2>&1 &
 		wp=$!; echo "$wp" > "$DL_STATE/$id.pid"
 		prev=0
 		while kill -0 "$wp" 2>/dev/null; do
@@ -616,9 +621,10 @@ cmd_install() { # id  (also used by resume/retry/update)
 			echo "OK:$id"; return 0
 		fi
 		rm -f "$DL_STATE/$id.pid"
-		trace backend-call "FAIL: xxri-app install-tcz rc=$irc"
+		detail="$(tail -n 1 "$install_log" 2>/dev/null | tr '\r\n' ' ')"
+		trace backend-call "FAIL: xxri-app install-tcz rc=$irc${detail:+: $detail}"
 		dl_set "$id" STATE failed; dl_set "$id" SPEED 0
-		if have_net; then dl_set "$id" ERROR "$name could not be installed"
+		if have_net; then dl_set "$id" ERROR "$name could not be installed (details saved in install-$id.log)"
 		else dl_set "$id" ERROR "You are offline - this app needs an internet connection"; fi
 		echo "ERR:install"; return 1
 	fi
@@ -635,6 +641,13 @@ cmd_install() { # id  (also used by resume/retry/update)
 	fi
 	trace download-done "$(num "$(wc -c 2>/dev/null < "$out")") bytes"
 	b=$(num "$(wc -c < "$out")"); dl_set "$id" BYTES "$b"; dl_set "$id" PCT 100
+	if [ "$(idx_field "$id" 11)" = archive ] && is_html_page "$out"; then
+		dl_set "$id" STATE failed
+		dl_set "$id" ERROR "The catalog link returned a web page, not an installable package"
+		trace validate "FAIL: download is HTML, not an archive (catalog URL needs updating)"
+		rm -f "$out"
+		echo "ERR:metadata"; return 1
+	fi
 
 	# no digest tool (stripped build): skip rather than block installs
 	if [ -n "$sha" ] && [ "$sha" != "-" ] && have_sha256; then
@@ -658,8 +671,9 @@ cmd_install() { # id  (also used by resume/retry/update)
 		# official 32-bit portable build (tar.xz / tar.gz / zip)
 		nm="$(idx_field "$id" 2)"; ex="$(idx_field "$id" 17)"; ic="$(idx_field "$id" 18)"
 		trace backend-call "xxri-app install-archive $out"
+		install_log="$CACHE/install-$id.log"
 		if XXRI_APP_VERSION="$ver" xxri-app install-archive "$out" --quiet --as "$id" \
-		     --name "$nm" ${ex:+--exec "$ex"} ${ic:+--icon "$ic"} >/dev/null 2>&1; then
+		     --name "$nm" ${ex:+--exec "$ex"} ${ic:+--icon "$ic"} >"$install_log" 2>&1; then
 			rm -f "$DL_STATE/$id.pid"; rm -f "$out"
 			dl_set "$id" STATE completed
 			trace integrated "desktop=$([ -f /usr/local/share/applications/xxri-app-$id.desktop ] && echo yes || echo NO) dock=$(grep -c "launch $id\$" /usr/local/tce.icons 2>/dev/null) reg=$([ -f /usr/local/share/xxri-apps/$id.reg ] && echo yes || echo NO)"
@@ -667,8 +681,10 @@ cmd_install() { # id  (also used by resume/retry/update)
 			echo "OK:$id"; return 0
 		fi
 		rm -f "$DL_STATE/$id.pid"
-		trace backend-call "FAIL: xxri-app install-archive returned non-zero"
-		dl_set "$id" STATE failed; dl_set "$id" ERROR "The package could not be installed"
+		detail="$(tail -n 1 "$install_log" 2>/dev/null | tr '\r\n' ' ')"
+		trace backend-call "FAIL: xxri-app install-archive returned non-zero${detail:+: $detail}"
+		dl_set "$id" STATE failed
+		dl_set "$id" ERROR "The package could not be installed (details saved in install-$id.log)"
 		echo "ERR:install"; return 1
 	fi
 	if xxri-app integrate "$out" --quiet --as "$id" >/dev/null 2>&1; then

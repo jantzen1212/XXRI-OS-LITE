@@ -408,8 +408,15 @@ int main(int argc, char** argv) {
     /* can't check passwords here: end X, tty1 asks at the text prompt */
     if (password_ok("") < 0) return 1;
 
+    /* the primary display, which xxri-display keeps at 0,0: with displays
+       extended the screen spans them all and the card sat in the gap */
     GdkScreen* scr = gdk_screen_get_default();
     int W = gdk_screen_get_width(scr), H = gdk_screen_get_height(scr);
+    GdkMonitor* pm = gdk_display_get_primary_monitor(gdk_display_get_default());
+    if (pm) {
+        GdkRectangle pa; gdk_monitor_get_geometry(pm, &pa);
+        if (pa.x == 0 && pa.y == 0 && pa.width > 0 && pa.height > 0) { W = pa.width; H = pa.height; }
+    }
     g_wall = root_wallpaper(W, H);
     g_name = display_name();
 

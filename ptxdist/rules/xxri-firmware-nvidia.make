@@ -21,6 +21,8 @@ XXRI_FIRMWARE_NVIDIA_DIR		:= $(BUILDDIR)/$(XXRI_FIRMWARE_NVIDIA)
 XXRI_FIRMWARE_NVIDIA_LICENSE	:= LicenseRef-nvidia-firmware
 XXRI_FIRMWARE_NVIDIA_DEVPKG	:= NO
 XXRI_FIRMWARE_NVIDIA_LIST	:= $(PTXDIST_WORKSPACE)/config/firmware/nvidia.list
+# the x86_64 system also runs on current hardware: its additions
+XXRI_FIRMWARE_NVIDIA_LIST64	:= $(if $(PTXCONF_ARCH_X86_64),$(PTXDIST_WORKSPACE)/config/firmware/nvidia-x86_64.list)
 XXRI_FIRMWARE_NVIDIA_SELECT	:= $(PTXDIST_WORKSPACE)/scripts/xxri-fw-select.py
 
 # 650 MB tarball: nothing is unpacked in extract. The selection runs in
@@ -30,11 +32,12 @@ $(STATEDIR)/xxri-firmware-nvidia.extract:
 	@rm -rf $(XXRI_FIRMWARE_NVIDIA_DIR) && mkdir -p $(XXRI_FIRMWARE_NVIDIA_DIR)
 	@$(call touch)
 
-$(STATEDIR)/xxri-firmware-nvidia.prepare: $(XXRI_FIRMWARE_NVIDIA_LIST) $(XXRI_FIRMWARE_NVIDIA_SELECT)
+$(STATEDIR)/xxri-firmware-nvidia.prepare: $(XXRI_FIRMWARE_NVIDIA_LIST) $(XXRI_FIRMWARE_NVIDIA_LIST64) \
+		$(XXRI_FIRMWARE_NVIDIA_SELECT)
 	@$(call targetinfo)
 	@rm -rf $(XXRI_FIRMWARE_NVIDIA_DIR)/firmware $(XXRI_FIRMWARE_NVIDIA_DIR)/licenses
 	@$(XXRI_HOST_PYTHON) $(XXRI_FIRMWARE_NVIDIA_SELECT) extract $(XXRI_FIRMWARE_NVIDIA_SOURCE) \
-		$(XXRI_FIRMWARE_NVIDIA_DIR)/firmware $(XXRI_FIRMWARE_NVIDIA_LIST)
+		$(XXRI_FIRMWARE_NVIDIA_DIR)/firmware $(XXRI_FIRMWARE_NVIDIA_LIST) $(XXRI_FIRMWARE_NVIDIA_LIST64)
 	@$(call touch)
 
 $(STATEDIR)/xxri-firmware-nvidia.compile $(STATEDIR)/xxri-firmware-nvidia.install:
@@ -53,6 +56,10 @@ $(STATEDIR)/xxri-firmware-nvidia.targetinstall:
 	@$(call install_tree, xxri-firmware-nvidia, 0, 0, $(XXRI_FIRMWARE_NVIDIA_DIR)/licenses, /usr/local/share/doc/xxri-firmware-nvidia, n)
 	@$(call install_copy, xxri-firmware-nvidia, 0, 0, 0644, $(XXRI_FIRMWARE_NVIDIA_LIST), \
 		/usr/local/share/doc/xxri-firmware-nvidia/nvidia.list)
+ifdef PTXCONF_ARCH_X86_64
+	@$(call install_copy, xxri-firmware-nvidia, 0, 0, 0644, $(XXRI_FIRMWARE_NVIDIA_LIST64), \
+		/usr/local/share/doc/xxri-firmware-nvidia/nvidia-x86_64.list)
+endif
 	@$(call install_finish, xxri-firmware-nvidia)
 	@$(call touch)
 

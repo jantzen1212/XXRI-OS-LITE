@@ -10,7 +10,14 @@
 # below then burned ~2.4s on a wbar that could never start.
 if [ "$ICONS" = "wbar" ] && [ -e /tmp/.X11-unix/X0 ]; then
 	pidof wbar >/dev/null && killall wbar 2>/dev/null
-	nohup wbar >/dev/null 2>&1 &
+	# wbar centres itself on the whole X screen; with displays extended the
+	# shim makes that the primary display (xxri-primary-screen.c)
+	SHIM=/usr/local/lib/xxri/xxri-primary-screen.so
+	if [ -e "$SHIM" ]; then
+		LD_PRELOAD="$SHIM" nohup wbar >/dev/null 2>&1 &
+	else
+		nohup wbar >/dev/null 2>&1 &
+	fi
 	# wbar must be fully started or the parent dying would kill it.
 	for i in $(seq 100); do
 		pidof wbar >/dev/null && break

@@ -49,7 +49,6 @@ gmp.tcz 07ca35105c5c8219a7f1b460f02b0508 tc16
 gnutls3.6.tcz 6f32a0e01df9309d17b1218a71aa0e5b tc16
 graphics-6.12.11-tinycore.tcz 4531c8a5b26e8603629202a4e0264594 tc16
 graphite2.tcz 96db97e6d37292461108db44565987fe tc16
-gtk2.tcz 88908973332d5addbf6478c0375bf959 tc16
 gtk3.tcz 404d1bde57d6f16379226e3955239a84 tc16
 gtk-update-icon-cache.tcz b6ef83fdc0bf9a8501748ff5cece93fc tc16
 harfbuzz.tcz 0ea6bd3cc7cfd2a5b000dcd71c588f44 tc16
@@ -60,7 +59,6 @@ imlib2-bin.tcz daf6c274c813e728c40a9f76bc43ac68 tc16
 imlib2.tcz 445c91efa6d226bc4c7199aa396351c1 tc16
 input-joystick-6.12.11-tinycore.tcz 83348a570abdd9d61d2badf9f39e012e tc16
 iw.tcz 42dc4628fb12e35c1b4045ca3de227f8 tc16
-jwm.tcz 7f9812c29396388a504f879c9b1ff4e4 tc16
 kmaps.tcz f1f84634b393a58b6072a7da63249c1a tc16
 lame.tcz 06e81d143b954fb6942f9e32db003bc6 tc16
 lcms2.tcz 26c17394f4081de6bd9e0f57b857c089 tc16

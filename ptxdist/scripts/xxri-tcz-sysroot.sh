@@ -1,13 +1,14 @@
 #!/bin/bash
-# xxri-tcz-sysroot.sh MANIFEST CACHE SYSROOT PCLIST TC_CORE_GZ
-# Fetch each Tiny Core 16.x package in MANIFEST (name md5) from the mirror,
+# xxri-tcz-sysroot.sh MANIFEST CACHE SYSROOT PCLIST TC_CORE_GZ [ARCH]
+# Fetch each Tiny Core 16.x package in MANIFEST (name md5) from the mirror
+# of ARCH (x86, the default, or x86_64),
 # check its md5, and unpack it into SYSROOT (Tiny Core installs under
 # /usr/local, so headers, libraries and .pc files land in SYSROOT/usr/local).
 # PCLIST receives the pkg-config module names the packages provide: PTXdist's
 # pkg-config wrapper only answers for modules a package's dependencies declare.
 set -euo pipefail
-M=$1 CACHE=$2 SYSROOT=$3 PCLIST=$4 CORE=$5
-MIRROR=http://repo.tinycorelinux.net/16.x/x86/tcz
+M=$1 CACHE=$2 SYSROOT=$3 PCLIST=$4 CORE=$5 ARCH=${6:-x86}
+MIRROR=http://repo.tinycorelinux.net/16.x/$ARCH/tcz
 mkdir -p "$CACHE" "$SYSROOT"
 : > "$PCLIST.tmp"
 n=0

@@ -191,6 +191,17 @@ static int task_for_pct(int p) {
 }
 
 /* ---------------------------------------------------------------- helpers */
+/* the primary display's size: with displays extended the screen spans them
+ * all, and xxri-display keeps the primary at 0,0 */
+static void primary_size(int* w, int* h) {
+    GdkScreen* sc = gdk_screen_get_default();
+    *w = gdk_screen_get_width(sc); *h = gdk_screen_get_height(sc);
+    GdkMonitor* m = gdk_display_get_primary_monitor(gdk_display_get_default());
+    if (m) {
+        GdkRectangle r; gdk_monitor_get_geometry(m, &r);
+        if (r.x == 0 && r.y == 0 && r.width > 0 && r.height > 0) { *w = r.width; *h = r.height; }
+    }
+}
 static void css(GtkWidget* w, const char* c) {
     gtk_style_context_add_class(gtk_widget_get_style_context(w), c);
 }
@@ -692,9 +703,10 @@ static void rebuild_disklist(void) {
     g_list_free(kids);
 
     GArray* v = g_manual ? g_parts : g_disks;
-    GdkScreen* sc = gdk_screen_get_default();
-    /* as many rows as the screen has room for under the heading */
-    guint maxrows = (guint)MAX(1, (gdk_screen_get_height(sc) - 430) / 76);
+    /* as many rows as the display has room for under the heading */
+    int sw_, sh_;
+    primary_size(&sw_, &sh_);
+    guint maxrows = (guint)MAX(1, (sh_ - 430) / 76);
     guint shown = MIN(v->len, maxrows);
     for (guint i = 0; i < shown; i++) {
         Disk* d = &g_array_index(v, Disk, i);
@@ -1133,7 +1145,8 @@ int main(int argc, char** argv) {
     xxri_theme_init("/usr/local/share/xxri-installer/xxri-installer-dark.css", theme_changed, NULL);
     xxri_dialogs_init();                         /* real corners on the menus */
 
-    int W = gdk_screen_get_width(scr), H = gdk_screen_get_height(scr);
+    int W, H;
+    primary_size(&W, &H);
     if (W < 640) W = 1024;
     if (H < 480) H = 768;
 

@@ -33,7 +33,7 @@ chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null
 export XDG_RUNTIME_DIR
 
 # shared memory
-# santai - Qt's XCB backend paints through MIT-SHM, so /dev/shm has to exist
+# Qt's XCB backend paints through MIT-SHM, so /dev/shm has to exist
 if ! mountpoint -q /dev/shm 2>/dev/null && [ ! -w /dev/shm ]; then
 	sudo mkdir -p /dev/shm 2>/dev/null
 	sudo mount -t tmpfs -o rw,nosuid,nodev,mode=1777 tmpfs /dev/shm 2>/dev/null

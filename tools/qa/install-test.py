@@ -21,6 +21,9 @@ SCENARIOS = {
     'bios-manual-gpt':    ('bios', 'gpt-biosboot', 'manual:2', ['bios']),
     'ia32-manual-mbr':    ('ia32', 'mbr-esp', 'manual:2', ['ia32']),
     'bios-manual-mbr63':  ('bios', 'mbr-sector63', 'manual:1', ['bios']),
+    # the x86_64 ISO (qemu-system-x86_64: SeaBIOS / 64-bit OVMF)
+    'bios64-auto-mbr':    ('bios64', 'blank', 'auto', ['bios64']),
+    'x64-auto-gpt':       ('x64', 'blank', 'auto', ['x64', 'bios64']),
 }
 
 

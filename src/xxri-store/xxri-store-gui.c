@@ -651,10 +651,10 @@ static gboolean poll_icons(gpointer u){
         }
         i++;
     }
-    /* a cold cache fetches dozens of icons one by one: only give up after
-       40 polls with nothing landing */
+    /* the engine pulls four icons at a time, so a cold page can outlast the
+       old 40 polls and leave placeholders until the page gets rebuilt */
     if (landed) tries = 0;
-    if (++tries > 40) { tries=0; return G_SOURCE_REMOVE; }
+    if (++tries > 240) { tries=0; return G_SOURCE_REMOVE; }
     return G_SOURCE_CONTINUE;
 }
 /* ask the engine to cache the icons this page wants (one batched call) */
@@ -2068,6 +2068,8 @@ static GtkWidget* build_rail(void){
         g_signal_connect(da,"draw",G_CALLBACK(draw_rail_btn),rb);
         GtkWidget* ev=gtk_event_box_new();
         gtk_event_box_set_visible_window(GTK_EVENT_BOX(ev),FALSE);
+        /* the drawing area's own GdkWindow would swallow the click otherwise */
+        gtk_event_box_set_above_child(GTK_EVENT_BOX(ev),TRUE);
         gtk_widget_add_events(ev,GDK_BUTTON_PRESS_MASK);
         gtk_container_add(GTK_CONTAINER(ev),da);
         g_signal_connect(ev,"button-press-event",G_CALLBACK(on_rail_click),rb);
@@ -2157,11 +2159,10 @@ static gboolean poll_startup(gpointer u){ (void)u;
 static void kick_startup(void){
     char cmd[1024];
     snprintf(cmd,sizeof cmd,
-        "xxri-store status > '%s/status.json' 2>/dev/null; "
         "xxri-store refresh > '%s/refresh.log' 2>&1; "
         "xxri-store status > '%s/status.json' 2>/dev/null; "
         "touch '%s/startup.done'",
-        g_cache,g_cache,g_cache,g_cache);
+        g_cache,g_cache,g_cache);
     dbg("REFRESH_STARTED cmd=%s", cmd);
     run_bg("%s",cmd);
     g_timeout_add(700,poll_startup,NULL);
@@ -2173,11 +2174,10 @@ static void on_toggle_incompat(GtkWidget* w,gpointer u){ (void)u;
 static void on_refresh_click(GtkWidget* w,gpointer u){ (void)w;(void)u;
     char cmd[1024];
     snprintf(cmd,sizeof cmd,
-        "xxri-store status > '%s/status.json' 2>/dev/null; "
         "xxri-store refresh --force > '%s/refresh.log' 2>&1; "
         "xxri-store status > '%s/status.json' 2>/dev/null; "
         "touch '%s/startup.done'",
-        g_cache,g_cache,g_cache,g_cache);
+        g_cache,g_cache,g_cache);
     run_bg("%s",cmd);
     g_timeout_add(700,poll_startup,NULL);
 }

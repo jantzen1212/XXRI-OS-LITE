@@ -2,7 +2,7 @@
 #
 # The XXRI OS Lite ISO: kernel, core.gz, the early CPU microcode images, the
 # extension set (Tiny Core's, pinned, plus XXRI's own .tcz) and GRUB 2.14 for
-# BIOS and IA32 UEFI.
+# BIOS and UEFI (IA32 for 32-bit, x64 for 64-bit).
 # Assembly: scripts/xxri-mkiso.sh.  The Corresponding Source of every
 # package goes to images/sources/.
 #
@@ -10,7 +10,13 @@ IMAGE_PACKAGES-$(PTXCONF_IMAGE_XXRI_ISO) += image-xxri-iso
 
 IMAGE_XXRI_ISO		:= image-xxri-iso
 IMAGE_XXRI_ISO_DIR	:= $(BUILDDIR)/$(IMAGE_XXRI_ISO)
+ifeq ($(PTXCONF_ARCH_X86_64),y)
+IMAGE_XXRI_ISO_IMAGE	:= $(IMAGEDIR)/XXRI-Lite-$(XXRI_OS_VERSION)-x86_64.iso
+IMAGE_XXRI_ISO_ARCH	:= x86_64
+else
 IMAGE_XXRI_ISO_IMAGE	:= $(IMAGEDIR)/XXRI-Lite-$(XXRI_OS_VERSION).iso
+IMAGE_XXRI_ISO_ARCH	:= i686
+endif
 
 # The Corresponding Source, published in images/sources/ next to the ISO (the
 # ISO's boot/grub/SOURCE.txt points there): the source archives of every
@@ -19,6 +25,7 @@ IMAGE_XXRI_ISO_IMAGE	:= $(IMAGEDIR)/XXRI-Lite-$(XXRI_OS_VERSION).iso
 # one archive; and where Tiny Core publishes the sources of its unmodified
 # binaries.  Deferred (=): the package variables are defined in later files.
 IMAGE_XXRI_ISO_SRC_PKGS	= $(XXRI_CORE_PKGS) $(XXRI_BROWSER_TCZ_PKGS) $(XXRI_XLIBRE_TCZ_PKGS) \
+			  $(if $(PTXCONF_ARCH_X86_64),$(XXRI_SOUND_TCZ_PKGS)) \
 			  $(XXRI_GRUB_TCZ_PKGS) host-xxri-grub
 IMAGE_XXRI_ISO_SOURCES	= $(sort $(wildcard $(foreach pkg,$(IMAGE_XXRI_ISO_SRC_PKGS), \
 	$(foreach part,$($(PTX_MAP_TO_PACKAGE_$(pkg))_PARTS),$($(part)_SOURCE)))))
@@ -30,6 +37,9 @@ ifdef PTXCONF_IMAGE_XXRI_ISO
 IMAGE_XXRI_ISO_TCZ	:= xxri-browser.tcz xxri-xlibre.tcz xxri-grub.tcz \
 	xxri-firmware-gpu.tcz xxri-firmware-intel.tcz xxri-firmware-amd.tcz xxri-firmware-nvidia.tcz \
 	xxri-firmware-wireless.tcz
+ifeq ($(PTXCONF_ARCH_X86_64),y)
+IMAGE_XXRI_ISO_TCZ	+= xxri-sound.tcz
+endif
 $(IMAGE_XXRI_ISO_IMAGE): $(IMAGEDIR)/core.gz $(addprefix $(IMAGEDIR)/,$(IMAGE_XXRI_ISO_TCZ)) \
 		$(PTXDIST_WORKSPACE)/scripts/xxri-mkiso.sh \
 		$(STATEDIR)/host-xxri-grub.install.post $(STATEDIR)/host-xxri-xorriso.install.post \
@@ -47,7 +57,7 @@ $(IMAGE_XXRI_ISO_IMAGE): $(IMAGEDIR)/core.gz $(addprefix $(IMAGEDIR)/,$(IMAGE_XX
 	@PATH=$(PTXDIST_SYSROOT_HOST)/bin:$(PTXDIST_SYSROOT_HOST)/sbin:$$PATH \
 		$(PTXDIST_WORKSPACE)/scripts/xxri-mkiso.sh $(XXRI_OS_VERSION) $@ \
 		$(IMAGE_XXRI_CORE_IMAGE) $(XXRI_KERNEL_IMAGE) $(IMAGE_XXRI_ISO_DIR)/cde \
-		$(HOST_XXRI_GRUB_PREFIX) $(HOST_XXRI_GRUB_SOURCE) --ucode $(XXRI_UCODE_OUT)
+		$(HOST_XXRI_GRUB_PREFIX) $(HOST_XXRI_GRUB_SOURCE) --arch $(IMAGE_XXRI_ISO_ARCH) --ucode $(XXRI_UCODE_OUT)
 	@rm -rf $(IMAGE_XXRI_ISO_DIR)
 #	# Corresponding Source (see above)
 	@rm -rf $(IMAGEDIR)/sources && mkdir -p $(IMAGEDIR)/sources

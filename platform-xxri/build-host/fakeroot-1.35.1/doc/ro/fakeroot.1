@@ -1,0 +1,261 @@
+.de  CW
+.sp
+.nf
+.ft CW
+..
+.\" Process this file with
+.\" groff -man -Tascii foo.1
+.\"
+.\" "verbatim" environment (from strace.1)
+.de  CE
+.ft
+.fi
+.sp
+..
+.\"
+.\"*******************************************************************
+.\"
+.\" This file was generated with po4a. Translate the source file.
+.\"
+.\"*******************************************************************
+.TH fakeroot 1 "5 octombrie 2014" "Proiectul Debian" "Manual de Debian"
+.\" Manpage by J.H.M. Dassen <jdassen@debian.org>
+.\" and Clint Adams <clint@debian.org>
+.SH NUME
+fakeroot \- rulează o comandă într\-un mediu care simulează privilegii de root
+pentru manipularea fișierelor
+.SH REZUMAT
+\fBfakeroot\fP \fB[\-l|\-\-lib\fP \fIlibrary]\fP \fB[\-\-faked\fP \fIbinar_precum_faked\fP\fB]\fP
+\fB[\-i\fP \fIfișier\-încărcare\fP\fB]\fP \fB[\-s\fP \fIfișier\-de\-salvare\fP\fB]\fP
+\fB[\-u|\-\-unknown\-is\-real ]\fP \fB[\-b|\-\-fd\-base ]\fP \fB[\-h|\-\-help ]\fP
+\fB[\-v|\-\-version ]\fP \fB[\-\-]\fP \fB[comanda]\fP
+.SH DESCRIERE
+\fBfakeroot\fP execută o comandă într\-un mediu în care pare să aibă privilegii
+de root pentru manipularea fișierelor.  Acest lucru este util pentru a
+permite utilizatorilor să creeze arhive (tar, ar, .deb etc.) care conțin
+fișiere cu permisiuni/proprietate de root.  Fără \fBfakeroot\fP ar trebui să se
+aibă privilegii de root pentru a crea fișierele constitutive ale arhivelor
+cu permisiunile și proprietatea corecte și apoi să le împacheteze, sau ar
+trebui să se construiască arhivele direct, fără a se utiliza arhivatorul.
+
+\fBfakeroot\fP funcționează prin înlocuirea funcțiilor de manipulare a
+fișierelor din bibliotecă (chmod(2), stat(2) etc.) cu funcții care simulează
+efectul pe care l\-ar fi avut funcțiile reale de bibliotecă, dacă
+utilizatorul ar fi fost cu adevărat root. Aceste funcții de învăluire se
+află într\-o bibliotecă partajată \fB/usr/lib/*/libfakeroot\-*.so\fP sau într\-o
+locație similară pe platforma dumneavoastră.  Obiectul partajat este
+încărcat prin intermediul mecanismului \fBLD_PRELOAD\fP al încărcătorului
+dinamic. (A se vedea \fBld.so\fP(8))
+
+Dacă intenționați să construiți pachete cu \fBfakeroot\fP, vă rugăm să
+încercați să construiți mai întâi pachetul „fakeroot”: etapa «debian/rules
+build» are câteva teste (testând mai ales pentru erorile din vechile
+versiuni «fakeroot»). Dacă aceste teste eșuează (de exemplu, pentru că aveți
+anumite programe libc5 pe sistemul dumneavoastră), este foarte probabil ca
+și alte pachete pe care le construiți cu «fakeroot» să eșueze, dar posibil
+în moduri mult mai subtile.
+
+De asemenea, rețineți că cel mai bine este să nu construiți fișierele binare
+sub «fakeroot». În special lui «configure» și prietenilor săi nu le place
+când sistemul se comportă brusc diferit de ceea ce se așteaptă. (sau,
+aceștia dereglează la întâmplare unele variabile de mediu, dintre care unele
+sunt necesare pentru «fakeroot»).
+
+.SH OPȚIUNI
+.TP 
+\fB\-l\fP \fIbiblioteca\fP, \fB\-\-lib\fP \fIbiblioteca\fP
+Specifică o bibliotecă de învăluire alternativă.
+.TP 
+\fB\-\-faked\fP\fI\ binar\fP
+Specifică un binar alternativ care să fie utilizat ca faked(1).
+.TP 
+\fB[\-\-]\fP\fI\ comanda\fP
+Orice comandă ce care doriți să fie executată sub «fakeroot» (ca root
+simulat). Folosiți \(oq\-\-\(cq(cq dacă în comandă aveți alte opțiuni care pot
+deruta analiza opțiunilor lui «fakeroot».
+.TP 
+\fB\-s\fP\fI\ fișier\-de\-salvare\fP
+Salvează mediul „fakeroot” în fișierul\-de\-salvare la ieșire. Acest fișier
+poate fi utilizat pentru a restaura mediul mai târziu, utilizând opțiunea
+„\-i”. Cu toate acestea, acest fișier va avea pierderi de informații și
+«fakeroot» se va comporta de\-o formă ciudată dacă nu lăsați fișierele
+modificate în interiorul mediului „fakeroot” neatinse atunci când sunteți în
+afara mediului. Totuși, acest lucru poate fi util. De exemplu, poate fi
+utilizat cu rsync(1) pentru a face copii de rezervă și a restaura arbori
+întregi de directoare, cu informații despre utilizatori, grupuri și
+dispozitive, fără a fi nevoie să fiți root. Consultați
+\fI/usr/share/doc/fakeroot/README.saving\fP pentru mai multe detalii.
+.TP 
+\fB\-i\fP\fI\ fișier\-încărcare\fP
+Încarcă un mediu „fakeroot” salvat anterior folosind opțiunea „\-s” din
+fișier\-încărcare.  Rețineți că această opțiune nu salvează implicit
+fișierul, utilizați și opțiunea „\-i” pentru acest comportament. Utilizarea
+aceluiași fișier ca argument atât pentru „\-i”, cât și pentru „\-s” într\-o
+singură invocare \fBfakeroot\fP este sigură.
+.TP 
+\fB\-u\fP, \fB\-\-unknown\-is\-real\fP
+Utilizează proprietatea reală a fișierelor necunoscute anterior de
+«fakeroot», în loc să pretindă că acestea sunt deținute de root:root.
+.TP 
+\fB\-b\fP\fI\ fd\fP
+Specifică valoarea de bază a descriptorului de fișier (numai în modul
+TCP). fd este numărul minim al descriptorului de fișiere care trebuie
+utilizat pentru conexiunile TCP; acest lucru poate fi important pentru a
+evita conflictele cu descriptorii de fișiere utilizați de programele care
+rulează sub «fakeroot».
+.TP 
+\fB\-h\fP
+Afișează mesajul de ajutor.
+.TP 
+\fB\-v\fP
+Afișează informațiile despre versiune.
+
+.SH EXEMPLE
+Iată un exemplu de sesiune cu \fBfakeroot\fP.  Observați că în interiorul
+mediului de root fals (simulat), manipularea de fișiere ce necesită
+privilegii de root reușește, dar nu se întâmplă cu adevărat.
+.CW
+$  whoami
+joost
+$ fakeroot /bin/bash
+#  whoami
+root
+# mknod hda3 b 3 1
+# ls \-ld hda3
+brw\-r\-\-r\-\-   1 root     root       3,   1 iul  2 22:58 hda3
+# chown joost:root hda3
+# ls \-ld hda3
+brw\-r\-\-r\-\-   1 joost    root       3,   1 iul  2 22:58 hda3
+# ls \-ld /
+drwxr\-xr\-x  20 root     root         1024 iun 17 21:50 /
+# chown joost:users /
+# chmod a+w /
+# ls \-ld /
+drwxrwxrwx  20 joost    users        1024 iun 17 21:50 /
+# exit
+$ ls \-ld /
+drwxr\-xr\-x  20 root     root         1024 iun 17 21:50 //
+$ ls \-ld hda3
+\-rw\-r\-\-r\-\-   1 joost    users           0 iul  2 22:58 hda3
+.CE
+Doar efectele acțiunilor pe care utilizatorul \fBjoost\fP le\-ar putea face
+oricum, se întâmplă cu adevărat.
+
+\fBfakeroot\fP a fost scris special pentru a permite utilizatorilor să creeze
+pachete Debian GNU/Linux (în formatul \fBdeb(5)\fP) fără a le oferi privilegii
+de root.  Acest lucru se poate face prin comenzi precum \fBdpkg\-buildpackage \-rfakeroot\fP sau \fBdebuild \-rfakeroot\fP (de fapt, „\-rfakeroot” este implicit
+în «debuild» în momentul de față, așa că nu mai aveți nevoie de acest
+argument).
+.SH "ASPECTE DE SECURITATE"
+\fBfakeroot\fP este un program normal, fără bitul „setuid” activat. Acesta nu
+sporește privilegiile unui utilizator și nici nu reduce securitatea
+sistemului.
+.SH FIȘIERE
+\fI/usr/lib/*/libfakeroot\-*.so\fP Biblioteca partajată care conține funcțiile
+de învăluire (simulare).
+.SH "VARIABILE DE MEDIU"
+.IP \fBFAKEROOTKEY\fP
+Cheia utilizată pentru a comunica cu demonul „fakeroot”. Orice program
+pornit cu \fBLD_PRELOAD\fP corect și cu \fBFAKEROOTKEY\fP a unui demon în execuție
+se va conecta automat la acel demon și va avea aceeași vedere „falsă” a
+permisiunilor/proprietăților sistemului de fișiere (presupunând că demonul
+și programul de conectare au fost pornite de același utilizator).
+.IP \fBLD_LIBRARY_PATH\fP
+.IP \fBLD_PRELOAD\fP
+Fakeroot este implementat prin învăluirea apelurilor de sistem.  Acest lucru
+se realizează prin configurarea variabilelor
+LD_LIBRARY_PATH=/usr/lib/fakeroot și LD_PRELOAD=libfakeroot.so.0.  Această
+bibliotecă este încărcată înaintea bibliotecii C a sistemului și, prin
+urmare, majoritatea funcțiilor bibliotecii sunt interceptate de aceasta.
+Dacă trebuie să configurați fie \fBLD_LIBRARY_PATH\fP, fie \fBLD_PRELOAD\fP din
+interiorul unui mediu „fakeroot”, ar trebui să fie configurate relativ la
+rutele date, ca în \fBLD_LIBRARY_PATH=$LD_LIBRARY_PATH:/foo/bar/\fP.
+
+.SH LIMITĂRI
+.IP "\fBVersiunile de bibliotecă\fP"
+Fiecare comandă executată în \fBfakeroot\fP trebuie să fie legată la aceeași
+versiune a bibliotecii C ca și \fBfakeroot\fP însăși.
+.IP \fBopen()/create()\fP
+fakeroot nu învăluie open(), create(), etc. Astfel, dacă utilizatorul
+\fBjoost\fP face fie
+.CW
+touch foo
+fakeroot
+ls \-al foo
+.CE
+sau invers,
+.CW
+fakeroot
+touch foo
+ls \-al foo
+.CE
+«fakeroot» nu are cum să știe că, în primul caz, proprietarul lui foo ar
+trebui să fie \fBjoost\fP, în timp ce în al doilea caz ar fi trebuit să fie
+\fBroot\fP.  În cazul pachetului Debian, este întotdeauna în regulă să se
+atribuie în mod implicit tuturor fișierelor „necunoscute”
+uid=gid=0. Adevărata modalitate de a ocoli acest lucru este de a învălui
+\fBopen()\fP și \fBcreate()\fP, dar acest lucru creează alte probleme, după cum
+demonstrează pachetul „libtricks”. Acest pachet a învăluit mult mai multe
+funcții și a încercat să facă mult mai multe decât \fBfakeroot . \fP S\-a
+dovedit că o actualizare minoră a „libc” (de la una în care funcția
+\fBstat()\fP nu folosea \fBopen()\fP la una cu o funcție \fBstat()\fP care folosea
+(în unele cazuri) \fBopen()\fP), ar fi cauzat erori de segmentare inexplicabile
+(adică, „libc6” \fBstat()\fP a apelat \fBopen()\fP învăluit, care ar fi apelat
+apoi „libc6” \fBstat()\fP, etc).  Corectarea lor nu a fost chiar atât de
+ușoară, dar odată rezolvate, era doar o chestiune de timp până când o altă
+funcție începea să folosească open(), fără a mai vorbi de încercarea de a
+transpune această bibliotecă pe un alt sistem de operare. Astfel, am decis
+să păstrez numărul de funcții învăluite de «fakeroot» cât mai mic posibil,
+pentru a limita probabilitatea de \(oqciocniri\(cq.
+.IP "\fBGNU configure (și alte programe de acest tip)\fP"
+«fakeroot», de fapt, schimbă modul în care se comportă sistemul. Programele
+care sondează sistemul, cum ar fi GNU «configure», pot fi derutate de acest
+lucru (sau, dacă nu o fac, pot solicita «fakeroot» atât de mult încât
+«fakeroot» însuși devine confuz). Așadar, este recomandabil să nu executați
+«configure» din „fakeroot”. Deoarece «configure» ar trebui să fie apelat în
+ținta «debian/rules build», rularea «dpkg\-buildpackage \-rfakeroot» se ocupă
+corect de acest lucru.
+.SH ERORI
+Acesta nu învăluie open(). Acest lucru nu este rău în sine, dar dacă un
+program face open("file", O_WRONLY, 000), scrie în fișierul „file”, îl
+închide și apoi încearcă din nou să deschidă pentru a citi fișierul, atunci
+deschiderea eșuează, deoarece modul fișierului va fi 000. Eroarea este că,
+dacă root face același lucru, open() va reuși, deoarece permisiunile
+fișierului nu sunt verificate deloc pentru root. Am ales să nu învăluim
+open(), deoarece open() este folosit de multe alte funcții din „libc”
+(inclusiv de cele care sunt deja învăluite), creând astfel bucle (sau
+posibile bucle viitoare, atunci când implementarea diferitelor funcții
+„libc” se va schimba un pic).
+.SH COPIEREA
+\fBfakeroot\fP este distribuit sub Licența Publică Generală GNU.  (GPL 2.0 sau
+ulterioară).
+.SH AUTORI
+.TP 
+joost witteveen
+<\fIjoostje@debian.org\fP>
+.TP 
+Clint Adams
+<\fIclint@debian.org\fP>
+.TP 
+Timo Savola
+.SH "PAGINA DE MANUAL"
+în cea mai mare parte scrisă de J.H.M. Dassen <jdassen@debian.org>
+Destul de multe modificări/adăugiri făcute de joost și Clint.
+.SH "CONSULTAȚI ȘI"
+\fBfaked\fP(1)  \fBdpkg\-buildpackage\fP(1), \fBdebuild\fP(1)
+\fB/usr/share/doc/fakeroot/DEBUG\fP
+
+.SH TRADUCERE
+Această traducere a fost creată în 2023 de Remus-Gabriel Chelu. Ea este supusă
+licenței GNU GPL versiunea 2 (sau ulterioară).
+
+Pentru a citi versiunea originală în limba engleză, tastați «man -L C COMMAND».
+
+Vă rugăm să raportați erorile de traducere prin baza de date a erorilor (BTS)
+de la Debian sau trimițând un e-mail la
+.nh
+&lt;debian\-l10\-romanian@lists.debian.org&gt;, lista de discuții a traducerilor
+în limba romănă a progrmelor și documentelor din Debian, sau direct autorului
+acestei traduceri la
+.hy
+&lt;remusgabriel.chelu@disroot.org&gt;

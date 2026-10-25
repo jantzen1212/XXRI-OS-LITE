@@ -4,9 +4,15 @@ PACKAGES-$(PTXCONF_XXRI_TC_SYSROOT) += xxri-tc-sysroot
 XXRI_TC_SYSROOT_VERSION	:= 16.x
 XXRI_TC_SYSROOT		:= xxri-tc-sysroot-$(XXRI_TC_SYSROOT_VERSION)
 XXRI_TC_SYSROOT_LICENSE	:= various (Tiny Core 16.x packages)
+# re-run from prepare whenever the manifest changes; the two architectures'
+# packages share names, so each has its own download cache
+ifeq ($(PTXCONF_ARCH_X86_64),y)
+XXRI_TC_SYSROOT_CACHE	:= $(SRCDIR)/xxri-tc-sysroot64
+XXRI_TC_SYSROOT_CONFIG	:= $(PTXDIST_WORKSPACE)/config/tc-sysroot-64.manifest
+else
 XXRI_TC_SYSROOT_CACHE	:= $(SRCDIR)/xxri-tc-sysroot
-# re-run from prepare whenever the manifest changes
 XXRI_TC_SYSROOT_CONFIG	:= $(PTXDIST_WORKSPACE)/config/tc-sysroot.manifest
+endif
 
 # install.post too: PTXdist's default would rewrite xxri-tc-sysroot.pkgconfig
 # (the module list written by .install) from the empty package directory.
@@ -19,7 +25,7 @@ $(STATEDIR)/xxri-tc-sysroot.install.post $(STATEDIR)/xxri-tc-sysroot.targetinsta
 $(STATEDIR)/xxri-tc-sysroot.install:
 	@$(call targetinfo)
 	@PATH=$(PTXDIST_SYSROOT_HOST)/bin:$$PATH $(PTXDIST_WORKSPACE)/scripts/xxri-tcz-sysroot.sh \
-		$(PTXDIST_WORKSPACE)/config/tc-sysroot.manifest $(XXRI_TC_SYSROOT_CACHE) \
+		$(XXRI_TC_SYSROOT_CONFIG) $(XXRI_TC_SYSROOT_CACHE) \
 		$(PTXDIST_SYSROOT_TARGET) $(STATEDIR)/xxri-tc-sysroot.pkgconfig \
-		$(XXRI_TC_BASE_SOURCE)
+		$(XXRI_TC_BASE_SOURCE) $(XXRI_TC_ARCH)
 	@$(call touch)

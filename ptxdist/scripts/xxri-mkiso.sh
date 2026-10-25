@@ -1,10 +1,13 @@
 #!/bin/bash
-# xxri-mkiso.sh - assemble the XXRI OS Lite ISO: one image for BIOS and 32-bit
-# UEFI.  Called by rules/image-xxri-iso.make with everything already built:
+# xxri-mkiso.sh - assemble the XXRI OS Lite ISO: one image for BIOS and UEFI
+# (32-bit UEFI for the i686 system, 64-bit UEFI for the x86_64 system).
+# Called by rules/image-xxri-iso.make with everything already built:
 #
 #   xxri-mkiso.sh VERSION ISO CORE_GZ VMLINUZ CDE_DIR GRUB_PREFIX GRUB_TARBALL
-#                 [--ucode UCODE_DIR] [--with-x64-efi]
+#                 [--arch i686|x86_64] [--ucode UCODE_DIR] [--with-x64-efi]
 #
+#   --arch       the system on the medium (default i686); it picks the UEFI
+#                loader and names the build in /.disk/info
 #   CDE_DIR      the cde/ tree (onboot.lst, copy2fs.lst, xbase.lst, optional/*.tcz)
 #   GRUB_PREFIX  host-xxri-grub's install prefix: <GRUB_PREFIX>/<platform>/usr/{bin,lib/grub}
 #   UCODE_DIR    early CPU microcode (rules/xxri-ucode.make): intel-ucode.img,
@@ -19,9 +22,12 @@
 #                         CD:  El Torito EFI entry -> appended ESP image
 #                         USB: MBR partition 2, type 0xEF (the same ESP image)
 #                         file copy (Rufus ISO mode etc.): /EFI/BOOT in the tree
-#   x64 UEFI              NOT supported by default: BOOTIA32.EFI cannot run on
-#                         64-bit firmware.  --with-x64-efi adds an experimental
-#                         BOOTX64.EFI (GRUB x86_64-efi), see the doc.
+#   x64 UEFI              i686: NOT supported by default: BOOTIA32.EFI cannot
+#                         run on 64-bit firmware.  --with-x64-efi adds an
+#                         experimental BOOTX64.EFI (GRUB x86_64-efi), see the doc.
+#                         x86_64: upstream GRUB 2.14 x86_64-efi as
+#                         EFI/BOOT/BOOTX64.EFI, in place of BOOTIA32.EFI, on the
+#                         same CD/USB/file-copy paths as above.
 #
 # Every loader finds this medium by the marker file /.disk/<id> rather than by
 # a volume label or the ISO9660 UUID, so the same core images work from a CD,
@@ -33,10 +39,11 @@
 # of one tree are byte-identical.
 set -euo pipefail
 VERSION=$1 ISO=$2 CORE=$3 KERNEL=$4 CDE=$5 G=$6 T=$7
-X64EFI=0 UCODE=""
+X64EFI=0 UCODE="" ARCH=i686
 shift 7
 while [ $# -gt 0 ]; do
 	case "$1" in
+	--arch) ARCH=$2; shift ;;
 	--with-x64-efi) X64EFI=1 ;;
 	--ucode) UCODE=$2; shift ;;
 	*) echo "xxri-mkiso.sh: unknown option $1" >&2; exit 1 ;;
@@ -45,7 +52,12 @@ while [ $# -gt 0 ]; do
 done
 : "${SOURCE_DATE_EPOCH:?SOURCE_DATE_EPOCH must be set}"
 export TZ=UTC LC_ALL=C
-PLATS="i386-pc i386-efi"; [ $X64EFI = 1 ] && PLATS="$PLATS x86_64-efi"
+case "$ARCH" in
+i686)	EFI=i386-efi EFILOADER=BOOTIA32.EFI ;;
+x86_64)	EFI=x86_64-efi EFILOADER=BOOTX64.EFI X64EFI=0 ;;
+*)	echo "xxri-mkiso.sh: unknown architecture $ARCH" >&2; exit 1 ;;
+esac
+PLATS="i386-pc $EFI"; [ $X64EFI = 1 ] && PLATS="$PLATS x86_64-efi"
 for p in $PLATS; do
 	[ -d "$G/$p/usr/lib/grub/$p" ] || { echo "no GRUB $p build in $G" >&2; exit 1; }
 done
@@ -72,7 +84,7 @@ cp -rL "$CDE" "$R/cde"
 ID=$(cat "$R/boot/vmlinuz" "$R/boot/core.gz" | sha256sum | cut -c1-16)
 MARK="/.disk/xxri-lite-$VERSION-$ID"
 : > "$R$MARK"
-printf 'XXRI OS Lite %s (i686) %s\n' "$VERSION" "$ID" > "$R/.disk/info"
+printf 'XXRI OS Lite %s (%s) %s\n' "$VERSION" "$ARCH" "$ID" > "$R/.disk/info"
 
 for p in $PLATS; do
 	mkdir -p "$R/boot/grub/$p"
@@ -105,7 +117,7 @@ INITRD=/boot/core.gz
 [ -n "$UCODE_IMGS" ] && INITRD='$xxri_ucode /boot/core.gz'
 {
 cat <<EOF
-# XXRI OS Lite $VERSION - shared by BIOS (i386-pc) and UEFI (i386-efi) GRUB.
+# XXRI OS Lite $VERSION - shared by BIOS (i386-pc) and UEFI ($EFI) GRUB.
 set default=0
 set timeout=5
 set menu_color_normal=light-gray/black
@@ -203,7 +215,7 @@ mk() { # platform format output modules...
 }
 echo ">> GRUB $GRUB_VERSION core images"
 mk i386-pc i386-pc-eltorito "$R/boot/grub/i386-pc/eltorito.img" biosdisk $COMMON
-mk i386-efi i386-efi "$R/EFI/BOOT/BOOTIA32.EFI" $COMMON efi_gop efi_uga efifwsetup all_video
+mk $EFI $EFI "$R/EFI/BOOT/$EFILOADER" $COMMON efi_gop efi_uga efifwsetup all_video
 [ $X64EFI = 1 ] &&
 	mk x86_64-efi x86_64-efi "$R/EFI/BOOT/BOOTX64.EFI" $COMMON efi_gop efi_uga efifwsetup all_video
 

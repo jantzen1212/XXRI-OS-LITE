@@ -1,0 +1,12 @@
+libepoxy.tcz
+at-spi2-core.tcz
+gdk-pixbuf2.tcz
+libXcomposite.tcz
+pango.tcz
+libXcursor.tcz
+libXinerama.tcz
+libXrandr.tcz
+libXi.tcz
+libxkbcommon.tcz
+wayland-protocols.tcz
+libXdamage.tcz

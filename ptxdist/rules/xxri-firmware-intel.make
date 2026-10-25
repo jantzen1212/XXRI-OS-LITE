@@ -21,6 +21,8 @@ XXRI_FIRMWARE_INTEL_DIR		:= $(BUILDDIR)/$(XXRI_FIRMWARE_INTEL)
 XXRI_FIRMWARE_INTEL_LICENSE	:= LicenseRef-i915-firmware AND LicenseRef-xe-firmware
 XXRI_FIRMWARE_INTEL_DEVPKG	:= NO
 XXRI_FIRMWARE_INTEL_LIST	:= $(PTXDIST_WORKSPACE)/config/firmware/intel.list
+# the x86_64 system also runs on current hardware: its additions
+XXRI_FIRMWARE_INTEL_LIST64	:= $(if $(PTXCONF_ARCH_X86_64),$(PTXDIST_WORKSPACE)/config/firmware/intel-x86_64.list)
 XXRI_FIRMWARE_INTEL_SELECT	:= $(PTXDIST_WORKSPACE)/scripts/xxri-fw-select.py
 
 # 650 MB tarball: nothing is unpacked in extract. The selection runs in
@@ -30,11 +32,12 @@ $(STATEDIR)/xxri-firmware-intel.extract:
 	@rm -rf $(XXRI_FIRMWARE_INTEL_DIR) && mkdir -p $(XXRI_FIRMWARE_INTEL_DIR)
 	@$(call touch)
 
-$(STATEDIR)/xxri-firmware-intel.prepare: $(XXRI_FIRMWARE_INTEL_LIST) $(XXRI_FIRMWARE_INTEL_SELECT)
+$(STATEDIR)/xxri-firmware-intel.prepare: $(XXRI_FIRMWARE_INTEL_LIST) $(XXRI_FIRMWARE_INTEL_LIST64) \
+		$(XXRI_FIRMWARE_INTEL_SELECT)
 	@$(call targetinfo)
 	@rm -rf $(XXRI_FIRMWARE_INTEL_DIR)/firmware $(XXRI_FIRMWARE_INTEL_DIR)/licenses
 	@$(XXRI_HOST_PYTHON) $(XXRI_FIRMWARE_INTEL_SELECT) extract $(XXRI_FIRMWARE_INTEL_SOURCE) \
-		$(XXRI_FIRMWARE_INTEL_DIR)/firmware $(XXRI_FIRMWARE_INTEL_LIST)
+		$(XXRI_FIRMWARE_INTEL_DIR)/firmware $(XXRI_FIRMWARE_INTEL_LIST) $(XXRI_FIRMWARE_INTEL_LIST64)
 	@$(call touch)
 
 $(STATEDIR)/xxri-firmware-intel.compile $(STATEDIR)/xxri-firmware-intel.install:
@@ -53,6 +56,10 @@ $(STATEDIR)/xxri-firmware-intel.targetinstall:
 	@$(call install_tree, xxri-firmware-intel, 0, 0, $(XXRI_FIRMWARE_INTEL_DIR)/licenses, /usr/local/share/doc/xxri-firmware-intel, n)
 	@$(call install_copy, xxri-firmware-intel, 0, 0, 0644, $(XXRI_FIRMWARE_INTEL_LIST), \
 		/usr/local/share/doc/xxri-firmware-intel/intel.list)
+ifdef PTXCONF_ARCH_X86_64
+	@$(call install_copy, xxri-firmware-intel, 0, 0, 0644, $(XXRI_FIRMWARE_INTEL_LIST64), \
+		/usr/local/share/doc/xxri-firmware-intel/intel-x86_64.list)
+endif
 	@$(call install_finish, xxri-firmware-intel)
 	@$(call touch)
 

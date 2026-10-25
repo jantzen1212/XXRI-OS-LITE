@@ -1,0 +1,94 @@
+New in 0.16 released 2014-01-14:
+ * Fixed all minor bugs discovered by Coverity.
+ * Updated config.sub and config.guess from the GNU project.
+ * Mention new project mailing list in the documentation.
+
+New in 0.15 released 2013-11-24:
+ * Updated config.sub and config.guess from the GNU project to work with
+   newer architectures.  Thanks to isha vishnoi for the heads up.
+ * Updated README with current URLs.
+ * Added byteswap fix found in Ubuntu, credited Jeremy Kerr and
+   Matthias Klose.
+ * Added missing help for -k|--keepgoing option, using patch by Petr
+   Machata found in Fedora.
+ * Rewrite removal of RPATH/RUNPATH to make sure the entry in .dynamic
+   is a NULL terminated string.  Based on patch found in Fedora
+   credited Axel Thimm and Christian Krause.
+
+New in 0.14 released 2011-09-27:
+ * Updated debian build rules from the current Debian package.
+ * Applied patch from debian to support Hurd and k*BSD.
+ * Moved project to <URL: https://alioth.debian.org/projects/chrpath/ >
+ * Updated autoconf/automake-related files to latest versions.
+ * Document rpath size limitation better in the manual page.
+   Patch from Eric Raymond.
+ * Fix typo in handling of long arguments.  Patch from Eric Raymond.
+ * Now works even when the ELF file has endianness/word length 
+   different from the host machime.  Patch from Javier Serrano Polo,
+   adjusted to compile with -ansi and -pedantic.
+
+New in 0.13 released 2004-09-19:
+ * Change exit code handling.  Return an error if the operation fail.
+ * New argument -k (--keepgoing) to not stop on first error.
+ * Improve test code.
+ * Fix typo in manual page.
+
+New in 0.12 released 2003-12-12:
+ * Use p_filesz instead p_memsz when checking if the elf
+   header exist.  This should get it working on Solaris.
+ * Try to get it compiling on Mac OS X / Darwin.
+
+New in 0.11 released 2003-09-15:
+ * Make chrpath work better on 64 bit arches.
+ * Try to make the test code more portable (choosing
+   -rpath/-R depending on arch).
+
+New in 0.10 released 2002-11-30:
+ * Avoid segfaulting when derefering a NULL pointer.
+ * Added simple self test code.
+ * Converted to use newer autoconf (2.53).
+
+New in 0.9 released 2002-10-28:
+ * Bugfix in option parsing.  Now only --replace takes a parameter.
+ * Port to Irix 6.5.
+ * Avoid compile warning on platforms without getopt_long().
+
+New in 0.8 released 2002-09-17:
+ * Handle platforms without runpath support (ie missing DT_RUNPATH).
+ * Fix compile problem on Solaris 2.6.
+
+New in 0.7 released 2002-08-01:
+ * Fixed small memleak.
+ * Fixed crash bug on Solaris, when reading unknown/broken formats.
+ * Fix typos in manpage (s/--remove/--replace/ and some s/ rpath/ chrpath/).
+ * Added runpath-support.
+
+New in 0.6 released 2002-05-05:
+ * Added manual page, thanks to Tollef Fog Heen.
+ * Fix file descriptor leak when elf_open fails.
+ * Update URLs and contact information in documentation.
+ * Added debian/ package scripts.
+
+New in 0.5 released 2001-11-03:
+ * Compile fixes for platforms without getopt_long().
+ * Handle more then one file on one run.
+
+New in 0.4 released 2001-10-25:
+
+ * Fixes for SPARC/Solaris.
+ * Corrected link to elfhack.
+
+New in 0.3 released 2001-10-16:
+
+ * Fix typo in ELF header reading.
+ * Get rid of some compiler warnings.
+
+New in 0.2 released 2001-10-12:
+
+ * Fixed some typos in option parsing.
+ * Added link to elfhack.
+
+New in 0.1 released 2001-03-01:
+
+ * First release
+ * Support deleting and modifying the rpath information

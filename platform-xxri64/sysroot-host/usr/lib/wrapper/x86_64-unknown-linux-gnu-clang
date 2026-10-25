@@ -1,0 +1,18 @@
+#!/bin/sh
+
+WRAPPER_DIR="$(dirname "$(readlink -f "$0")")"
+. "${WRAPPER_DIR}/libwrapper.sh" || exit
+
+cc_check_args "${@}"
+
+cc_add_target_clang
+cc_add_target_reproducible
+cc_add_target_extra
+cc_add_target_ld_args
+cc_add_fortify
+cc_add_pie
+cc_add_glibcxx
+clang_check_target_icecc
+cc_add_target_icecc clang
+
+wrapper_exec "$@"

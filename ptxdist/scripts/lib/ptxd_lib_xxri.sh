@@ -28,10 +28,16 @@ export -f ptxd_make_xxri_extract
 #
 # core.gz: Tiny Core's initramfs + the XXRI packages
 # $1: Tiny Core core.gz  $2: removal list
+# $3: "lib64" on x86_64. The toolchain links everything against
+#     /lib64/ld-linux-x86-64.so.2 but Tiny Core's pure64 base only has /lib,
+#     so /lib64 becomes a link to it.
 #
 ptxd_make_xxri_core_impl() {
     ptxd_make_xxri_extract &&
     mkdir -p "${pkg_dir}" &&
+    if [ "${3}" = lib64 ]; then
+	ln -s lib "${pkg_dir}/lib64"
+    fi &&
     "${XXRI_HOST_PYTHON}" "${PTXDIST_WORKSPACE}/scripts/xxri-mkinitramfs.py" \
 	"${1}" "${2}" "${pkg_dir}" "${image_image}" &&
     rm -rf "${pkg_dir}"
@@ -51,8 +57,9 @@ ptxd_make_xxri_tcz_impl() {
     ptxd_make_xxri_extract &&
     find "${pkg_dir}" -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} + &&
     rm -f "${image_image}" &&
-    # timestamps: mksquashfs takes SOURCE_DATE_EPOCH (set by PTXdist) itself
-    mksquashfs "${pkg_dir}" "${image_image}" -noappend -no-xattrs -comp xz > /dev/null &&
+    # timestamps: mksquashfs takes SOURCE_DATE_EPOCH (set by PTXdist) itself.
+    # The x86 filter shrinks code by 3-5% and both Tiny Core kernels decode it.
+    mksquashfs "${pkg_dir}" "${image_image}" -noappend -no-xattrs -comp xz -Xbcj x86 > /dev/null &&
     ( cd "$(dirname "${image_image}")" &&
 	md5sum "$(basename "${image_image}")" > "$(basename "${image_image}").md5.txt" ) &&
     if [ -n "${1}" ]; then

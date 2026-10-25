@@ -1,6 +1,6 @@
 # XXRI OS — Technical Documentation
 
-## 🧱 Overview
+## Overview
 
 XXRI OS is a Linux derivative built on top of Tiny Core Linux.
 
@@ -10,7 +10,7 @@ Components that already work well and fit the lightweight design are retained, w
 
 ---
 
-# 🏗️ Base System
+# Base System
 
 XXRI OS makes several changes to the base system for modern usage 
 
@@ -24,7 +24,7 @@ The provided item:
 
 XXRI migrate to:
 
-✏️ Writable System
+Writable System
 
 this is One of the major changes made by XXRI is that the installed system uses a writable root filesystem instead of using Tiny Core's traditional immutable/loop-mounted core workflow.
 This allows XXRI to behave more like a conventional installed Linux system:
@@ -37,7 +37,7 @@ The goal is to keep the low resource usage of Tiny Core while providing a conven
 
 ---
 
-# 🖥️ Desktop Environment
+# Desktop Environment
 
 The default Tiny Core desktop experience has been heavily customized for XXRI OS.
 
@@ -63,7 +63,7 @@ The desktop is designed to be usable without requiring the user to understand Ti
 
 ---
 
-# 🪟 Window Manager and Compositor
+# Window Manager and Compositor
 
 XXRI retains a lightweight window-management, not heavy D.E.
 
@@ -81,7 +81,7 @@ The compositor is intentionally kept lightweight so that these effects can still
 
 ---
 
-# 🎨 User Interface
+# User Interface
 
 One of the largest differences is the GUI.
 
@@ -104,7 +104,7 @@ The interface is designed around the idea that a lightweight operating system do
 
 ---
 
-# ⚙️ XXRI Settings
+# XXRI Settings
 
 XXRI replaces the need to configure many parts of the system through individual Tiny Core utilities.
 
@@ -129,16 +129,16 @@ The Settings application communicates with XXRI's backend utilities instead of d
 
 ---
 
-# 🔄 XXRI System Update
+# XXRI System Update
 
 One of the major additions in XXRI OS is its built-in system update system, designed to make updating the operating system feel more like updating a modern desktop or mobile OS.
 
 Instead of requiring users to download and reinstall a complete ISO for every update, XXRI can deliver small incremental update packages containing only the files that changed.
 
-✨ How it works
+How it works
 
 1. Check for updates
-XXRI checks the official update at /update.
+XXRI reads the update manifest (`manifest.json`, in the root of the project's `main` branch).
 
 
 2. Download the update
@@ -161,7 +161,7 @@ Normal system files are replaced while protected files such as the kernel and co
 Kernel and boot-related updates can be activated during reboot.
 
 
-🛡️ Designed for safer updates
+Designed for safer updates
 
 The updater includes protections against:
 
@@ -199,7 +199,7 @@ XXRI OS 2.6.x
 The system is designed so that future updates can remain relatively small while still being capable of updating core system components, applications, and even the kernel.
 
 
-# 🖥️ Display System
+# Display System
 
 XXRI doesn't use Tiny Core's original Xvesa-based display.
 
@@ -214,6 +214,7 @@ XXRI supports:
 - Automatic display mode detection
 - Manual resolution selection
 - Refresh-rate detection
+- Several displays: Extend, Mirror, or one display only, chosen in Settings > Display (see `docs/display-layouts.md`)
 - Framebuffer fallback
 
 The system selects an appropriate display path depending on the available hardware.
@@ -222,7 +223,7 @@ XLibre was chosen to provide a more modern display stack while keeping compatibi
 
 ---
 
-# 🚀 Boot System
+# Boot System
 
 XXRI has moved away from the older tce bootloader configuration.
 
@@ -244,7 +245,7 @@ The planned x86-64 Lite generation will remove this limitation.
 
 ---
 
-# 📦 Package System
+# Package System
 
 XXRI adds its own package-management layer and graphical Store using .appimage cuz tce-load is very very outdated.
 
@@ -257,11 +258,11 @@ The XXRI Store provides a user-friendly UI for:
 - Managing installed software
 
 The goal is to make software installation possible without requiring users to manually work with Tiny Core extension commands.
-with 🛍️ XXRI Store, The Store is an XXRI application store that uses appimage support from xxri-repo 
+The Store is an XXRI application store that uses AppImage support from xxri-repo.
 
 ---
 
-# 📁 XXRI File
+# XXRI File
 
 XXRI File is based on a source-level fork of **PCManFM**.
 
@@ -282,7 +283,7 @@ The underlying file-management functionality remains based on the mature PCManFM
 
 ---
 
-# 🌐 Networking
+# Networking
 
 XXRI adds its own networking layer around the underlying Linux networking tools.
 
@@ -305,7 +306,7 @@ The GUI communicates with the backend rather than implementing networking direct
 
 ---
 
-# 📶 Bluetooth
+# Bluetooth
 
 XXRI includes its own Bluetooth management utility, `xxri-bluetooth`.
 
@@ -327,7 +328,7 @@ BlueZ remains the underlying Bluetooth implementation.
 
 ---
 
-# 🔧 Hardware and Firmware
+# Hardware and Firmware
 
 XXRI includes additional hardware firmware compared with the minimal Tiny Core base.
 
@@ -349,7 +350,7 @@ Newer GPUs may require firmware or platform features outside the scope of the cu
 
 ---
 
-# 📡 Wireless Firmware
+# Wireless Firmware
 
 XXRI also includes a selected wireless firmware set covering a range of common Wi-Fi hardware.
 
@@ -366,7 +367,7 @@ Some hardware, especially certain proprietary Broadcom devices, may require firm
 
 ---
 
-# 🧠 CPU Microcode
+# CPU Microcode
 
 XXRI includes CPU microcode support for supported Intel and AMD processors.
 
@@ -376,7 +377,7 @@ This provides processor-level fixes and compatibility improvements without requi
 
 ---
 
-# 🧩 XXRI Applications
+# XXRI Applications
 
 XXRI includes a collection of custom applications and system utilities.
 
@@ -400,7 +401,7 @@ Some are original XXRI applications, while others are modified forks of existing
 
 ---
 
-# 💿 Installer
+# Installer
 
 XXRI includes a graphical installer designed specifically for the distribution.
 
@@ -419,7 +420,7 @@ The installer integrates with the XXRI desktop instead of exposing the user dire
 
 ---
 
-# 🛠️ Build System
+# Build System
 
 The original XXRI development process used a custom Tiny Core-style build system based around a prepared root filesystem and ISO assembly scripts.
 

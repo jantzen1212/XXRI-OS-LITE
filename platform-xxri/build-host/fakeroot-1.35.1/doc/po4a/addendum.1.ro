@@ -1,0 +1,15 @@
+PO4A-HEADER:mode=after;position=AUTORI;beginboundary=FausseLimitePo4a
+.SH TRADUCERE
+Această traducere a fost creată în 2023 de Remus-Gabriel Chelu. Ea este supusă
+licenței GNU GPL versiunea 2 (sau ulterioară).
+
+Pentru a citi versiunea originală în limba engleză, tastați «man -L C COMMAND».
+
+Vă rugăm să raportați erorile de traducere prin baza de date a erorilor (BTS)
+de la Debian sau trimițând un e-mail la
+.nh
+&lt;debian\-l10\-romanian@lists.debian.org&gt;, lista de discuții a traducerilor
+în limba romănă a progrmelor și documentelor din Debian, sau direct autorului
+acestei traduceri la
+.hy
+&lt;remusgabriel.chelu@disroot.org&gt;

@@ -15,8 +15,13 @@ XXRI_XLIBRE_LICENSE	:= MIT AND X11
 XXRI_XLIBRE_LICENSE_FILES := file://COPYING;md5=b2636b4caedb65bffd833b33ac98bfcf
 XXRI_XLIBRE_CPPFLAGS	:= $(XXRI_TC_CPPFLAGS)
 XXRI_XLIBRE_LDFLAGS	:= $(XXRI_TC_LDFLAGS)
-# the server's inner loops (fb, damage, input) are CPU-bound: -O2, i586
+# the server's inner loops (fb, damage, input) are CPU-bound: -O2, i586 for 32-bit,
+# the x86-64 baseline for 64-bit (see XXRI_OS_CFLAGS)
+ifeq ($(PTXCONF_ARCH_X86_64),y)
+XXRI_XLIBRE_CFLAGS	:= -march=x86-64 -mtune=generic -O2 $(XXRI_REPRO_CFLAGS)
+else
 XXRI_XLIBRE_CFLAGS	:= -march=i586 -mtune=generic -O2 $(XXRI_REPRO_CFLAGS)
+endif
 
 # GLX loads Mesa's DRI drivers from DRI_DRIVER_PATH, which meson takes from
 # `pkg-config --variable=dridriverdir dri`.  The sysroot's .pc files are

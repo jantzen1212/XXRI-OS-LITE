@@ -22,6 +22,8 @@ XXRI_FIRMWARE_AMD_DIR		:= $(BUILDDIR)/$(XXRI_FIRMWARE_AMD)
 XXRI_FIRMWARE_AMD_LICENSE	:= LicenseRef-amdgpu-firmware AND LicenseRef-radeon-firmware
 XXRI_FIRMWARE_AMD_DEVPKG	:= NO
 XXRI_FIRMWARE_AMD_LIST	:= $(PTXDIST_WORKSPACE)/config/firmware/amd.list
+# the x86_64 system also runs on current hardware: its additions
+XXRI_FIRMWARE_AMD_LIST64	:= $(if $(PTXCONF_ARCH_X86_64),$(PTXDIST_WORKSPACE)/config/firmware/amd-x86_64.list)
 XXRI_FIRMWARE_AMD_SELECT	:= $(PTXDIST_WORKSPACE)/scripts/xxri-fw-select.py
 
 # 650 MB tarball: nothing is unpacked in extract. The selection runs in
@@ -31,11 +33,12 @@ $(STATEDIR)/xxri-firmware-amd.extract:
 	@rm -rf $(XXRI_FIRMWARE_AMD_DIR) && mkdir -p $(XXRI_FIRMWARE_AMD_DIR)
 	@$(call touch)
 
-$(STATEDIR)/xxri-firmware-amd.prepare: $(XXRI_FIRMWARE_AMD_LIST) $(XXRI_FIRMWARE_AMD_SELECT)
+$(STATEDIR)/xxri-firmware-amd.prepare: $(XXRI_FIRMWARE_AMD_LIST) $(XXRI_FIRMWARE_AMD_LIST64) \
+		$(XXRI_FIRMWARE_AMD_SELECT)
 	@$(call targetinfo)
 	@rm -rf $(XXRI_FIRMWARE_AMD_DIR)/firmware $(XXRI_FIRMWARE_AMD_DIR)/licenses
 	@$(XXRI_HOST_PYTHON) $(XXRI_FIRMWARE_AMD_SELECT) extract $(XXRI_FIRMWARE_AMD_SOURCE) \
-		$(XXRI_FIRMWARE_AMD_DIR)/firmware $(XXRI_FIRMWARE_AMD_LIST)
+		$(XXRI_FIRMWARE_AMD_DIR)/firmware $(XXRI_FIRMWARE_AMD_LIST) $(XXRI_FIRMWARE_AMD_LIST64)
 	@$(call touch)
 
 $(STATEDIR)/xxri-firmware-amd.compile $(STATEDIR)/xxri-firmware-amd.install:
@@ -54,6 +57,10 @@ $(STATEDIR)/xxri-firmware-amd.targetinstall:
 	@$(call install_tree, xxri-firmware-amd, 0, 0, $(XXRI_FIRMWARE_AMD_DIR)/licenses, /usr/local/share/doc/xxri-firmware-amd, n)
 	@$(call install_copy, xxri-firmware-amd, 0, 0, 0644, $(XXRI_FIRMWARE_AMD_LIST), \
 		/usr/local/share/doc/xxri-firmware-amd/amd.list)
+ifdef PTXCONF_ARCH_X86_64
+	@$(call install_copy, xxri-firmware-amd, 0, 0, 0644, $(XXRI_FIRMWARE_AMD_LIST64), \
+		/usr/local/share/doc/xxri-firmware-amd/amd-x86_64.list)
+endif
 	@$(call install_finish, xxri-firmware-amd)
 	@$(call touch)
 

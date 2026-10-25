@@ -16,7 +16,7 @@ mkdir -p "$XXRI_RUN_DIR" 2>/dev/null
 mkdir -p "$XXRI_TMP" 2>/dev/null
 
 # generic
-# santai: small helpers, not magic
+# small helpers
 sf() { cat "$1" 2>/dev/null; }                    # read a sysfs file
 have() { command -v "$1" >/dev/null 2>&1; }
 

@@ -1,0 +1,14 @@
+#!/bin/sh
+
+WRAPPER_DIR="$(dirname "$(readlink -f "$0")")"
+. "${WRAPPER_DIR}/libwrapper.sh" || exit
+
+HOST=true
+
+cc_check_args "${@}"
+
+cc_add_host_ld_args
+cxx_add_host_extra
+cxx_add_host_icecc
+
+wrapper_exec "$@"

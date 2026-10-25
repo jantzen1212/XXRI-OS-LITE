@@ -1,0 +1,15 @@
+#!/bin/sh
+
+WRAPPER_DIR="$(dirname "$(readlink -f "$0")")"
+. "${WRAPPER_DIR}/libwrapper.sh" || exit
+
+cc_check_args "${@}"
+
+LINKING=false
+unset PTXDIST_CCACHE
+
+cpp_add_target_extra
+cc_add_fortify
+cc_add_glibcxx
+
+wrapper_exec "$@"

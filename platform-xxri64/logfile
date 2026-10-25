@@ -1,0 +1,69 @@
+# -*- mode:outline; outline-regexp:"{{{" -*-
+# vim: set fdm=marker fdl=1:
+
+{{{ 2026-10-21T23:55:20+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go
+
+}}} 2026-10-21T23:55:23+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go; (exit value: 2)
+
+
+
+{{{ 2026-10-21T23:57:27+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go
+
+}}} 2026-10-21T23:57:30+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go; (exit value: 2)
+
+
+
+{{{ 2026-10-21T23:57:51+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go
+
+-----------------------------------------------------
+target: base.71075d4685479eda385ec68764aa0017.srchash
+-----------------------------------------------------
+
+finished target base.71075d4685479eda385ec68764aa0017.srchash
+
+----------------
+target: base.get
+----------------
+
+finished target base.get
+
+--------------------
+target: base.extract
+--------------------
+
+patchin: no patches found
+finished target base.extract
+
+-----------------------------------------------------------
+target: usr-rootfs.6d9c7acc2cccca2745a5e83c8ca15be6.srchash
+-----------------------------------------------------------
+
+finished target usr-rootfs.6d9c7acc2cccca2745a5e83c8ca15be6.srchash
+
+----------------------
+target: usr-rootfs.get
+----------------------
+
+
+ptxdist: error: 'usr-rootfs' is not selected.
+ptxdist: error: This can happen if the ptxconfig is outdated or
+ptxdist: error: the package is disabled for the current architecture
+
+make: *** [/home/jantzen/.local/lib/ptxdist-2026.09.0/rules/post/ptxd_make_world_get.make:26: /home/jantzen/xxri-wt/ptx/platform-xxri64/state/usr-rootfs.get] Error 1
+
+}}} 2026-10-21T23:57:54+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go; (exit value: 2)
+
+
+
+{{{ 2026-10-22T17:14:30+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go
+
+}}} 2026-10-22T17:14:33+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go; (exit value: 1)
+
+
+
+{{{ 2026-10-23T20:17:54+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist print CROSS_BINPATH
+
+}}} 2026-10-23T20:17:55+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist print CROSS_BINPATH; (exit value: 1)
+
+
+

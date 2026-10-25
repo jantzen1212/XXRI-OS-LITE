@@ -1,0 +1,5 @@
+## SECTION=image
+
+config IMAGE_XXRI_SOUND_TCZ
+	tristate
+	prompt "Generate xxri-sound.tcz (x86_64)"

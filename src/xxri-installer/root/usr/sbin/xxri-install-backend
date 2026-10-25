@@ -144,7 +144,10 @@ wait_node() { # $1 block device node that partitioning just created
 # the installed system boots the way this one did:
 #   bios   legacy BIOS or UEFI-CSM   -> GRUB i386-pc in the MBR / BIOS boot partition
 #   efi32  32-bit (IA32) UEFI        -> GRUB i386-efi on an EFI system partition
-#   efi64  64-bit UEFI               -> not bootable with the i686 kernel (see docs)
+#                                       (i686 XXRI only)
+#   efi64  64-bit UEFI               -> GRUB x86_64-efi on an EFI system partition
+#                                       (x86_64 XXRI only; the i686 kernel cannot
+#                                       start from it, see docs)
 firmware() {
 	if [ -d /sys/firmware/efi ]; then
 		[ "$(cat /sys/firmware/efi/fw_platform_size 2>/dev/null)" = 64 ] && echo efi64 || echo efi32
@@ -498,7 +501,9 @@ write_grub_cfg() { # $1 root filesystem UUID
 	cat > "$MNT/boot/grub/grub.cfg" <<EOF
 # XXRI OS Lite - installed system.  Written by xxri-install-backend.
 set default=0
-set timeout=3
+# no menu on a normal boot; Esc (or F4) during this second shows it
+set timeout_style=hidden
+set timeout=1
 set menu_color_normal=light-gray/black
 set menu_color_highlight=white/magenta
 insmod part_msdos
@@ -580,7 +585,10 @@ install_bootloader() { # $1 partition, $2 disk, $3 partnum
 		is_gpt "$2" || set_bootflag "$2" "$3"
 	fi
 
-	if [ "$FW" = efi32 ]; then
+	if [ "$FW" = efi32 ] || [ "$FW" = efi64 ]; then
+		# GRUB's EFI platform and the removable-media loader name of this firmware
+		if [ "$FW" = efi64 ]; then EFIT=x86_64-efi EFIN=x64; else EFIT=i386-efi EFIN=ia32; fi
+		EFIB=$(echo "$EFIN" | tr a-z A-Z)
 		ESPDEV="${AUTOESP:-$(esp_of "$2")}"
 		[ -b "$ESPDEV" ] || fail "no EFI system partition on $2 - use automatic partitioning or create one (FAT32, type EF00)"
 		say 94 "Writing UEFI boot loader"
@@ -592,19 +600,19 @@ install_bootloader() { # $1 partition, $2 disk, $3 partnum
 		grep -q efivarfs /proc/filesystems && ! grep -q ' /sys/firmware/efi/efivars ' /proc/mounts &&
 			mount -t efivarfs efivarfs /sys/firmware/efi/efivars 2>/dev/null
 		command -v efibootmgr >/dev/null && [ -w /sys/firmware/efi/efivars ] && NV=""
-		$GI --target=i386-efi --directory=$GRUBLIB/i386-efi --efi-directory="$ESPMNT" \
+		$GI --target=$EFIT --directory=$GRUBLIB/$EFIT --efi-directory="$ESPMNT" \
 			--bootloader-id=XXRI $NV >/tmp/xxri-grub-efi.log 2>&1 || {
 			log "$(tail -2 /tmp/xxri-grub-efi.log | tr '\n' ' ')"
 			umount "$ESPMNT"; fail "GRUB could not be installed for UEFI on $ESPDEV"
 		}
 		[ -n "$NV" ] && log "no writable EFI variables - relying on the removable-media path"
-		# ... and always the removable-media path EFI/BOOT/BOOTIA32.EFI, which
-		# firmware finds without any NVRAM entry.  Never replace another OS's.
+		# ... and always the removable-media path EFI/BOOT/BOOT<IA32|X64>.EFI,
+		# which firmware finds without any NVRAM entry.  Never replace another OS's.
 		mkdir -p "$ESPMNT/EFI/BOOT"
-		if [ -n "$AUTOESP" ] || [ ! -e "$ESPMNT/EFI/BOOT/BOOTIA32.EFI" ]; then
-			cp -f "$ESPMNT/EFI/XXRI/grubia32.efi" "$ESPMNT/EFI/BOOT/BOOTIA32.EFI"
+		if [ -n "$AUTOESP" ] || [ ! -e "$ESPMNT/EFI/BOOT/BOOT$EFIB.EFI" ]; then
+			cp -f "$ESPMNT/EFI/XXRI/grub$EFIN.efi" "$ESPMNT/EFI/BOOT/BOOT$EFIB.EFI"
 		else
-			log "kept the existing EFI/BOOT/BOOTIA32.EFI; XXRI is EFI/XXRI/grubia32.efi"
+			log "kept the existing EFI/BOOT/BOOT$EFIB.EFI; XXRI is EFI/XXRI/grub$EFIN.efi"
 		fi
 		sync; umount "$ESPMNT"; rmdir "$ESPMNT"
 	fi
@@ -620,7 +628,11 @@ run_install() {
 
 	FW=$(firmware)
 	log "firmware: $FW"
-	[ "$FW" = efi64 ] && fail "this machine started XXRI through 64-bit UEFI; the 32-bit (i686) XXRI 2.6 can only be installed to start from BIOS/CSM (legacy) or 32-bit UEFI firmware"
+	if [ "$(uname -m)" = x86_64 ]; then
+		[ "$FW" = efi32 ] && fail "this machine started XXRI through 32-bit UEFI; the 64-bit (x86_64) XXRI 2.6 can only be installed to start from BIOS/CSM (legacy) or 64-bit UEFI firmware"
+	else
+		[ "$FW" = efi64 ] && fail "this machine started XXRI through 64-bit UEFI; the 32-bit (i686) XXRI 2.6 can only be installed to start from BIOS/CSM (legacy) or 32-bit UEFI firmware"
+	fi
 	load_install_tools
 	sgdisk --version >/dev/null 2>&1 || fail "sgdisk does not run (gdisk.tcz needs popt.tcz)"
 

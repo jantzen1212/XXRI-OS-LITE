@@ -1,0 +1,151 @@
+# Wi-Fi 6/6E/7 and Bluetooth firmware, x86_64 only, on top of wireless.list
+# (rules/xxri-firmware-wireless.make; the 32-bit system ships wireless.list alone).
+#
+# Names are what the drivers declare (MODULE_FIRMWARE, scripts/xxri-fw-requested.sh),
+# minus what wireless.list has, resolved against linux-firmware 20260810 by
+# scripts/xxri-fw-select.py. If a driver wants a newer API than the release
+# has, the newest one the release has is named instead.
+#
+# Scope: Intel AX200/AX201/AX203/AX210/AX211/AX411/BE200 (iwlwifi cc/Qu/QuZ/so/
+# ty/ma/gl) and the intel/ibt-* Bluetooth firmware (the driver picks the file
+# at run time, so all of the TLV generations are in); MediaTek MT7921/7922/7925
+# Wi-Fi and Bluetooth; Realtek RTL8852AE/BE/CE, RTL8851BE, RTL8922AE (rtw89),
+# the rtw88 PCIe parts and Bluetooth (btrtl); Qualcomm WCN6855/QCA6390 (ath11k)
+# and WCN7850 (ath12k).
+# Left out: names the release doesn't have (pre-production iwlwifi bz/sc2,
+# ma-a0 steppings).
+iwlwifi-cc-a0-77.ucode
+iwlwifi-gl-c0-fm-c0-92.ucode
+iwlwifi-gl-c0-fm-c0.pnvm
+iwlwifi-ma-b0-gf4-a0-89.ucode
+iwlwifi-ma-b0-gf4-a0.pnvm
+iwlwifi-ma-b0-gf-a0-89.ucode
+iwlwifi-ma-b0-gf-a0.pnvm
+iwlwifi-ma-b0-hr-b0-89.ucode
+iwlwifi-Qu-b0-hr-b0-77.ucode
+iwlwifi-Qu-b0-jf-b0-77.ucode
+iwlwifi-Qu-c0-hr-b0-77.ucode
+iwlwifi-QuZ-a0-hr-b0-77.ucode
+iwlwifi-QuZ-a0-jf-b0-77.ucode
+iwlwifi-so-a0-gf4-a0.pnvm
+iwlwifi-so-a0-gf-a0-89.ucode
+iwlwifi-so-a0-gf-a0.pnvm
+iwlwifi-so-a0-hr-b0-89.ucode
+iwlwifi-so-a0-jf-b0-77.ucode
+iwlwifi-ty-a0-gf-a0-89.ucode
+iwlwifi-ty-a0-gf-a0.pnvm
+mediatek/WIFI_MT7922_patch_mcu_1_1_hdr.bin
+mediatek/WIFI_MT7961_patch_mcu_1_2_hdr.bin
+mediatek/WIFI_MT7961_patch_mcu_1a_2_hdr.bin
+mediatek/WIFI_RAM_CODE_MT7922_1.bin
+mediatek/WIFI_RAM_CODE_MT7961_1a.bin
+mediatek/WIFI_RAM_CODE_MT7961_1.bin
+mediatek/mt7925/WIFI_MT7925_PATCH_MCU_1_1_hdr.bin
+mediatek/mt7925/WIFI_RAM_CODE_MT7925_1_1.bin
+rtw89/rtw8851b_fw.bin
+rtw89/rtw8852a_fw.bin
+rtw89/rtw8852b_fw-1.bin
+rtw89/rtw8852c_fw-1.bin
+rtw89/rtw8922a_fw-1.bin
+rtw88/rtw8822c_wow_fw.bin
+ath11k/QCA6390/hw2.0/amss.bin
+ath11k/QCA6390/hw2.0/board-2.bin
+ath11k/QCA6390/hw2.0/m3.bin
+ath11k/WCN6855/hw2.0/amss.bin
+ath11k/WCN6855/hw2.0/board-2.bin
+ath11k/WCN6855/hw2.0/m3.bin
+ath11k/WCN6855/hw2.0/nfa765/amss.bin
+ath11k/WCN6855/hw2.0/nfa765/m3.bin
+ath11k/WCN6855/hw2.0/regdb.bin
+ath12k/WCN7850/hw2.0/amss.bin
+ath12k/WCN7850/hw2.0/board-2.bin
+ath12k/WCN7850/hw2.0/m3.bin
+ath12k/WCN7850/hw2.0/ncm865/amss.bin
+ath12k/WCN7850/hw2.0/ncm865/m3.bin
+intel/ibt-0040-0041.ddc
+intel/ibt-0040-0041.sfi
+intel/ibt-0040-1020.ddc
+intel/ibt-0040-1020.sfi
+intel/ibt-0041-0041.ddc
+intel/ibt-0041-0041.sfi
+intel/ibt-0093-0041.ddc
+intel/ibt-0093-0041.sfi
+intel/ibt-0093-0291.ddc
+intel/ibt-0093-0291.sfi
+intel/ibt-0093-1050.ddc
+intel/ibt-0093-1050.sfi
+intel/ibt-0093-4150.ddc
+intel/ibt-0093-4150.sfi
+intel/ibt-00a0-0041-iml.sfi
+intel/ibt-00a0-0041-pci.ddc
+intel/ibt-00a0-0041-pci.sfi
+intel/ibt-00a0-01a1-iml.sfi
+intel/ibt-00a0-01a1-pci.ddc
+intel/ibt-00a0-01a1-pci.sfi
+intel/ibt-00a0-01a1-usb.ddc
+intel/ibt-00a0-01a1-usb.sfi
+intel/ibt-00a0-0291-iml.sfi
+intel/ibt-00a0-0291-pci.ddc
+intel/ibt-00a0-0291-pci.sfi
+intel/ibt-00a0-0291-usb.ddc
+intel/ibt-00a0-0291-usb.sfi
+intel/ibt-0180-0041.ddc
+intel/ibt-0180-0041.sfi
+intel/ibt-0180-1050.ddc
+intel/ibt-0180-1050.sfi
+intel/ibt-0180-4150.ddc
+intel/ibt-0180-4150.sfi
+intel/ibt-0190-0041-iml.sfi
+intel/ibt-0190-0041-pci.ddc
+intel/ibt-0190-0041-pci.sfi
+intel/ibt-0190-0041-usb.ddc
+intel/ibt-0190-0041-usb.sfi
+intel/ibt-0190-0291-iml.sfi
+intel/ibt-0190-0291-pci.ddc
+intel/ibt-0190-0291-pci.sfi
+intel/ibt-0190-0291-usb.ddc
+intel/ibt-0190-0291-usb.sfi
+intel/ibt-0190-0291.ddc
+intel/ibt-0190-0291.sfi
+intel/ibt-0291-0291.ddc
+intel/ibt-0291-0291.sfi
+intel/ibt-19-0-4.ddc
+intel/ibt-19-0-4.sfi
+intel/ibt-20-0-3.ddc
+intel/ibt-20-0-3.sfi
+intel/ibt-20-1-3.ddc
+intel/ibt-20-1-3.sfi
+intel/ibt-20-1-4.ddc
+intel/ibt-20-1-4.sfi
+rtl_bt/rtl8723b_config.bin
+rtl_bt/rtl8723bs_config.bin
+rtl_bt/rtl8723bs_fw.bin
+rtl_bt/rtl8723cs_xx_config.bin
+rtl_bt/rtl8723cs_xx_fw.bin
+rtl_bt/rtl8723d_config.bin
+rtl_bt/rtl8761a_config.bin
+rtl_bt/rtl8821a_config.bin
+rtl_bt/rtl8821cs_config.bin
+rtl_bt/rtl8821cs_fw.bin
+rtl_bt/rtl8822cs_config.bin
+rtl_bt/rtl8822cs_fw.bin
+rtl_bt/rtl8822cu_config.bin
+rtl_bt/rtl8851bu_config.bin
+rtl_bt/rtl8851bu_fw.bin
+rtl_bt/rtl8852au_config.bin
+rtl_bt/rtl8852au_fw.bin
+rtl_bt/rtl8852btu_config.bin
+rtl_bt/rtl8852btu_fw.bin
+rtl_bt/rtl8852bu_config.bin
+rtl_bt/rtl8852bu_fw.bin
+rtl_bt/rtl8852cu_config.bin
+rtl_bt/rtl8852cu_fw.bin
+rtl_bt/rtl8852cu_fw_v2.bin
+rtl_bt/rtl8922au_config.bin
+rtl_bt/rtl8922au_fw.bin
+mediatek/BT_RAM_CODE_MT7922_1_1_hdr.bin
+mediatek/BT_RAM_CODE_MT7961_1_2_hdr.bin
+mediatek/mt7622pr2h.bin
+mediatek/mt7663pr2h.bin
+mediatek/mt7668pr2h.bin
+mediatek/mt7925/BT_RAM_CODE_MT7925_1_1_hdr.bin
