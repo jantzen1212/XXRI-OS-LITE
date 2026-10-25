@@ -46,11 +46,13 @@ XXRI_FLWM_FLAGS		:= $(XXRI_OS_CFLAGS) -w -fno-exceptions -fno-rtti \
 # ----------------------------------------------------------------------------
 
 XXRI_FLWM_LIBS		:= $(XXRI_TC_LDFLAGS) -lfltk -lXcursor -lXext -lX11 -lm -static-libgcc
+# the XXRI build also links Xrandr (patch 0004: one display at a time)
+XXRI_FLWM_RANDR_LIBS	:= $(XXRI_TC_LDFLAGS) -lfltk -lXcursor -lXext -lXrandr -lX11 -lm -static-libgcc
 
 $(STATEDIR)/xxri-flwm.compile:
 	@$(call targetinfo)
 	@$(call world/execute, XXRI_FLWM, \
-		$(CROSS_CXX) $(XXRI_FLWM_FLAGS) -DTOPSIDE -DXXRI -I. *.C -o flwm-xxri $(XXRI_FLWM_LIBS))
+		$(CROSS_CXX) $(XXRI_FLWM_FLAGS) -DTOPSIDE -DXXRI -I. *.C -o flwm-xxri $(XXRI_FLWM_RANDR_LIBS))
 	@$(call world/execute, XXRI_FLWM, \
 		cd $(XXRI_FLWM_DIR)-stock && \
 		$(CROSS_CXX) $(XXRI_FLWM_FLAGS) -I. *.C -o flwm-stock $(XXRI_FLWM_LIBS))

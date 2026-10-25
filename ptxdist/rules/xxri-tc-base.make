@@ -1,6 +1,7 @@
 # -*-makefile-*-
 #
-# Tiny Core 16.0's core.gz, the base layer of XXRI's initramfs.
+# Tiny Core 16.0's core.gz (32-bit) or corepure64.gz (64-bit), the base layer
+# of XXRI's initramfs.
 #
 
 #
@@ -12,9 +13,15 @@ PACKAGES-$(PTXCONF_XXRI_TC_BASE) += xxri-tc-base
 # Paths and names
 #
 XXRI_TC_BASE_VERSION	:= 16.0
+ifeq ($(PTXCONF_ARCH_X86_64),y)
+XXRI_TC_BASE_SHA256	:= 8144b8b7d70df2400dd92d2b5ba4551c7ff65ce3fd4f6b9b5880822b5bbb13e5
+XXRI_TC_BASE		:= tinycore-corepure64-$(XXRI_TC_BASE_VERSION)
+XXRI_TC_BASE_URL	:= http://tinycorelinux.net/16.x/x86_64/archive/16.0/distribution_files/corepure64.gz
+else
 XXRI_TC_BASE_SHA256	:= 5d5c282ac7b07120f3a39f35cb935b4d7f0621cca3940fa541de4d96dbc6d060
 XXRI_TC_BASE		:= tinycore-core-$(XXRI_TC_BASE_VERSION)
 XXRI_TC_BASE_URL	:= http://tinycorelinux.net/16.x/x86/archive/16.0/distribution_files/core.gz
+endif
 XXRI_TC_BASE_SOURCE	:= $(SRCDIR)/$(XXRI_TC_BASE).gz
 XXRI_TC_BASE_LICENSE	:= GPL-2.0-only AND various (Tiny Core Linux 16.0)
 

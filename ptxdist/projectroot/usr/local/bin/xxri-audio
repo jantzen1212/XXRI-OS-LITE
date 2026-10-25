@@ -208,7 +208,13 @@ cmd_mic() {
 cmd_test() {
 	alsa_ready || { not_ready; return 1; }
 	if have speaker-test; then
-		( speaker-test -D "plughw:${CARD:-$(default_card)}" -t sine -f 440 -l 1 -p 500 >/dev/null 2>&1 ) &
+		# gotcha: plughw: grabs the card out from under dmix, so no tone while
+		# the browser plays and the browser is locked out while the tone does.
+		# default is what everything else uses; open a card directly only when
+		# --card names one that isn't the default
+		dev=default
+		[ -n "$CARD" ] && [ "$CARD" != "$(default_card)" ] && dev="plughw:$CARD"
+		( speaker-test -D "$dev" -t sine -f 440 -l 1 -p 500 >/dev/null 2>&1 ) &
 		echo "playing test tone"
 	else
 		echo "speaker-test not available" >&2; return 1

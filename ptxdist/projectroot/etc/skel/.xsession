@@ -1,14 +1,3 @@
-# Resolution: xres=WxH boot code, then Tiny Core's xvesa=WxHxD (old boot
-# menus still pass it), then Settings > Display, then 1024x768.
-XRES=$(sed -n 's/.*\bxres=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /proc/cmdline 2>/dev/null | head -1)
-[ -n "$XRES" ] || XRES=$(sed -n 's/.*\bxvesa=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /proc/cmdline 2>/dev/null | head -1)
-XRATE=
-if [ -z "$XRES" ]; then
-	XRES=$(sed -n 's/^MODE=\([0-9]\{3,\}x[0-9]\{3,\}\).*/\1/p' /usr/local/etc/xxri/display.conf 2>/dev/null | head -1)
-	# and the rate saved with it
-	[ -n "$XRES" ] && XRATE=$(sed -n 's/^RATE=\([0-9]\{1,3\}\(\.[0-9]\{1,2\}\)\{0,1\}\)$/\1/p' /usr/local/etc/xxri/display.conf 2>/dev/null | head -1)
-fi
-[ -n "$XRES" ] || XRES=1024x768
 # X servers (XLibre), best first:
 #   Xorg         modesetting on KMS: XInput2, DRI3, glamor, GLX - what
 #                Chromium/Electron and Qt need (Electron needs XInput2)
@@ -104,46 +93,14 @@ start_xorg_vesa() {
 	XORG_CFG=""; nosse2 && XORG_CFG="-config xxri-nosse2.conf"
 	run_xorg
 }
-# Xorg picks the monitor's preferred mode; the layout expects $XRES. Set on
-# the built-in panel if there is one, else the first connected output.
-apply_xres() {
+# Xorg gives every display its preferred mode and puts a second one right of
+# the first. xxri-display sets the desktop's size (an xres= boot code, else
+# Settings > Display, else 1024x768) and the arrangement saved in Settings
+# (mirror when nothing is saved) on the displays connected, before anything
+# is laid out on the screen.
+apply_display() {
 	command -v xrandr >/dev/null 2>&1 || return 0
-	out=""
-	# RandR may still be settling (output or mode not listed yet); asking
-	# once sometimes came up 1280x800 instead of 1024x768
-	for _try in 1 2 3 4 5 6 7 8 9 10; do
-		out=$(xrandr 2>/dev/null | awk '/ connected/ { f = f ? f : $1; if (!p && $1 ~ /^(eDP|LVDS|DSI)/) p = $1 } END { print p ? p : f }')
-		[ -n "$out" ] && xrandr 2>/dev/null | grep -q "[ ]${XRES}[ ]" && break
-		sleep 0.3
-	done
-	[ -n "$out" ] || return 0
-	for _try in 1 2 3; do
-		xrandr --output "$out" --mode "${XRES%x*}x${XRES#*x}" ${XRATE:+--rate "$XRATE"} 2>/dev/null && { mirror_others "$out"; return 0; }
-		# a saved rate this output no longer offers must not cost the saved size
-		XRATE=
-		sleep 0.4
-	done
-	# only now settle for whatever the display says it prefers
-	xrandr --output "$out" --preferred 2>/dev/null
-	mirror_others "$out"
-}
-# Other displays mirror the primary. XLibre puts a second output right of
-# the first, but the dock, Quick Control and maximised windows are placed on
-# the whole root window, so the desktop straddled both screens. One that
-# can't show the primary's mode is switched off.
-mirror_others() {
-	_xr=$(xrandr 2>/dev/null)
-	[ "$(echo "$_xr" | grep -c ' connected')" -gt 1 ] || return 0
-	_mode=$(echo "$_xr" | sed -n "s/^$1 connected[^0-9]*\([0-9]*x[0-9]*\)+.*/\1/p")
-	[ -n "$_mode" ] || return 0
-	# first, as --same-as copies its position
-	xrandr --output "$1" --pos 0x0 --primary 2>/dev/null
-	for _o in $(echo "$_xr" | awk '/ connected/{print $1}'); do
-		[ "$_o" = "$1" ] && continue
-		echo "$_xr" | sed -n "/^$_o /,/^[^ ]/p" | grep -q "^ *$_mode " &&
-			xrandr --output "$_o" --mode "$_mode" --same-as "$1" 2>/dev/null ||
-			xrandr --output "$_o" --off 2>/dev/null
-	done
+	/usr/local/bin/xxri-display apply --session >/dev/null 2>&1
 }
 # Xfbdev: vesafb/efifb or a legacy fbdev driver, console keyboard and
 # /dev/input/mice like Xvesa; the mode is the framebuffer's.
@@ -173,7 +130,7 @@ start_xorg || { { [ -e /dev/dri/card0 ] || [ -e /dev/dri/card1 ]; } && sleep 2 &
 	{ XSERVER=xfbdev; start_xfbdev; } ||
 	{ XSERVER=xorg-vesa; start_xorg_vesa || ! echo failed in waitforX || exit; }
 export XSERVER
-[ "$XSERVER" = xfbdev ] || apply_xres
+[ "$XSERVER" = xfbdev ] || apply_display
 # No `xset +fp` / `fp rehash` here: -fp above covers it, and that block cost
 # 0.62s of boot for a pixel-identical result. Re-measure before re-adding.
 # Maximized windows stop above the dock: icon size (DOCK_SIZE from Settings,

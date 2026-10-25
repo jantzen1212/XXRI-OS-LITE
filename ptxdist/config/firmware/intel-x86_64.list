@@ -1,0 +1,48 @@
+# Intel GPU firmware, x86_64 only, on top of intel.list
+# (rules/xxri-firmware-intel.make; the 32-bit system ships intel.list alone).
+#
+# Names are what i915 and xe declare (MODULE_FIRMWARE, scripts/xxri-fw-requested.sh),
+# minus what intel.list has, resolved against linux-firmware 20260810 by
+# scripts/xxri-fw-select.py. If a driver wants a newer API than the release
+# has, the newest one the release has is named instead.
+#
+# Scope: Ice Lake up to Alder/Raptor Lake (DMC, GuC, HuC, GSC), Meteor Lake,
+# DG1/DG2 (Arc A), Lunar Lake and Battlemage (xe).
+i915/adlp_dmc_ver2_16.bin
+i915/adlp_guc_69.0.3.bin
+i915/adlp_guc_70.1.1.bin
+i915/bmg_dmc.bin
+i915/bxt_guc_70.1.1.bin
+i915/bxt_huc_2.0.0.bin
+i915/cml_guc_70.1.1.bin
+i915/cml_huc_4.0.0.bin
+i915/dg1_dmc_ver2_02.bin
+i915/dg1_guc_70.bin
+i915/dg1_huc.bin
+i915/dg2_dmc_ver2_08.bin
+i915/dg2_guc_70.bin
+i915/dg2_huc_gsc.bin
+i915/ehl_guc_70.1.1.bin
+i915/ehl_huc_9.0.0.bin
+i915/glk_guc_70.1.1.bin
+i915/glk_huc_4.0.0.bin
+i915/icl_guc_70.1.1.bin
+i915/icl_huc_9.0.0.bin
+i915/kbl_guc_70.1.1.bin
+i915/kbl_huc_4.0.0.bin
+i915/mtl_dmc.bin
+i915/mtl_gsc_1.bin
+i915/mtl_guc_70.bin
+i915/mtl_huc_gsc.bin
+i915/rkl_dmc_ver2_03.bin
+i915/skl_guc_70.1.1.bin
+i915/skl_huc_2.0.0.bin
+i915/tgl_guc_69.0.3.bin
+i915/tgl_guc_70.1.1.bin
+i915/tgl_huc_7.9.3.bin
+i915/xe2lpd_dmc.bin
+xe/bmg_guc_70.bin
+xe/bmg_huc.bin
+xe/lnl_gsc_1.bin
+xe/lnl_guc_70.bin
+xe/lnl_huc.bin

@@ -26,7 +26,7 @@ XXRI_BOOTSPLASH_CONF_TOOL	:= NO
 $(STATEDIR)/xxri-bootsplash.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_BOOTSPLASH_BUILD_DIR) && mkdir -p $(XXRI_BOOTSPLASH_BUILD_DIR)
-	@$(call world/execute, XXRI_BOOTSPLASH, $(CROSS_CC) -march=i586 -mtune=generic -O2 -Wall -static $(XXRI_BOOTSPLASH_DIR)/xxri-bootsplash.c -o $(XXRI_BOOTSPLASH_BUILD_DIR)/xxri-bootsplash -lm)
+	@$(call world/execute, XXRI_BOOTSPLASH, $(CROSS_CC) $(XXRI_OS_CFLAGS) -O2 -Wall -static $(XXRI_BOOTSPLASH_DIR)/xxri-bootsplash.c -o $(XXRI_BOOTSPLASH_BUILD_DIR)/xxri-bootsplash -lm)
 	@$(call touch)
 
 $(STATEDIR)/xxri-bootsplash.install:

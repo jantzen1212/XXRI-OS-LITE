@@ -1,0 +1,32 @@
+[
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes -MT killrpath.o -MD -MP -MF .deps/killrpath.Tpo -c -o killrpath.o killrpath.c ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/killrpath.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/killrpath.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite",
+    "command": "gcc   -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -Wl,-rpath,/usr/local/lib -o prog prog.c  -B/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib -L/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib -Wl,-rpath -Wl,/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib -Wl,-rpath,$ORIGIN/../lib:/with/some/extra/space",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite/prog.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite/prog"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes -MT main.o -MD -MP -MF .deps/main.Tpo -c -o main.o main.c ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/main.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/main.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes -MT chrpath.o -MD -MP -MF .deps/chrpath.Tpo -c -o chrpath.o chrpath.c ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/chrpath.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/chrpath.o"
+  },
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16",
+    "command": "gcc  -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -DHAVE_CONFIG_H -I. -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes -MT elf.o -MD -MP -MF .deps/elf.Tpo -c -o elf.o elf.c ",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/elf.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/elf.o"
+  }
+]

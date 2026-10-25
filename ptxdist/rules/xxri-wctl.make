@@ -28,7 +28,8 @@ XXRI_WCTL_CONF_TOOL	:= NO
 $(STATEDIR)/xxri-wctl.compile:
 	@$(call targetinfo)
 	@rm -rf $(XXRI_WCTL_BUILD_DIR) && mkdir -p $(XXRI_WCTL_BUILD_DIR)
-	@$(call world/execute, XXRI_WCTL, $(CROSS_CC) $(XXRI_OS_CFLAGS) -Wall -Wextra -std=gnu99 $(XXRI_WCTL_DIR)/xxri-wctl.c -o $(XXRI_WCTL_BUILD_DIR)/xxri-wctl $(XXRI_TC_LDFLAGS) $$($(XXRI_PKG_CONFIG) --libs x11))
+	@$(call world/execute, XXRI_WCTL, $(CROSS_CC) $(XXRI_OS_CFLAGS) -Wall -Wextra -std=gnu99 $(XXRI_WCTL_DIR)/xxri-wctl.c -o $(XXRI_WCTL_BUILD_DIR)/xxri-wctl $(XXRI_TC_LDFLAGS) $$($(XXRI_PKG_CONFIG) --libs xrandr x11))
+	@$(call world/execute, XXRI_WCTL, $(CROSS_CC) $(XXRI_OS_CFLAGS) -Wall -Wextra -std=gnu99 -shared -fPIC $(XXRI_WCTL_DIR)/xxri-primary-screen.c -o $(XXRI_WCTL_BUILD_DIR)/xxri-primary-screen.so $(XXRI_TC_LDFLAGS) $$($(XXRI_PKG_CONFIG) --libs xrandr x11) -ldl)
 	@$(call touch)
 
 $(STATEDIR)/xxri-wctl.install:
@@ -46,9 +47,10 @@ $(STATEDIR)/xxri-wctl.targetinstall:
 	@$(call install_fixup, xxri-wctl,PRIORITY,optional)
 	@$(call install_fixup, xxri-wctl,SECTION,base)
 	@$(call install_fixup, xxri-wctl,AUTHOR,"XXRI OS Team")
-	@$(call install_fixup, xxri-wctl,DESCRIPTION,"window control helper")
+	@$(call install_fixup, xxri-wctl,DESCRIPTION,"window control and display helpers")
 
 	@$(call install_copy, xxri-wctl, 0, 0, 0755, $(XXRI_WCTL_BUILD_DIR)/xxri-wctl, /usr/local/bin/xxri-wctl)
+	@$(call install_copy, xxri-wctl, 0, 0, 0644, $(XXRI_WCTL_BUILD_DIR)/xxri-primary-screen.so, /usr/local/lib/xxri/xxri-primary-screen.so)
 
 	@$(call install_finish, xxri-wctl)
 

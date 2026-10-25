@@ -4,15 +4,20 @@
 #   xxri-display list [--json]        available modes
 #   xxri-display current [--json]
 #   xxri-display monitors [--json]    connected displays and where they sit
-#   xxri-display set-resolution WxH[xBPP] [--rate HZ] [--apply]
+#   xxri-display layout [--json]      every connected output, its modes, and
+#                                     how they are arranged
+#   xxri-display set-layout extend|mirror|internal|external [--keep]
+#   xxri-display confirm-layout | revert-layout
+#   xxri-display apply [--session|--hotplug]
+#   xxri-display set-resolution WxH[xBPP] [--rate HZ] [--apply] [--output OUT]
 #   xxri-display set-refresh HZ [--json]
 #   xxri-display edid [--json]
 #   xxri-display cache-modes          (boot helper, run before X starts)
 #
 # The desktop runs on the XLibre X server (~/.xsession picks it):
 #   kms    Xorg with the modesetting driver on a KMS/DRM device - modes and
-#          refresh rates come from RandR for the first connected output (the
-#          output .xsession's apply_xres drives), or from DRM sysfs before X
+#          refresh rates come from RandR for the primary display (the one
+#          `apply` gives the desktop's size), or from DRM sysfs before X
 #          starts
 #   vesa   Xorg with the vesa driver (video BIOS) on a BIOS machine left with
 #          no kernel display device - RandR lists what the BIOS offers
@@ -22,6 +27,21 @@
 # session. A new resolution needs a new session (dock, CC and launcher are
 # laid out once at start), so --apply restarts the desktop; a refresh-rate
 # change is applied live. The CLI/JSON API stays stable whatever the server.
+#
+# Several displays (Xorg only). Roles come from what xrandr reports, not from
+# names: "internal" is the first connected built-in panel (eDP/LVDS/DSI), else
+# the first connected output; "external" is the first other one. Layouts:
+#   extend    internal at 0,0 as the primary (dock, Control Center, maximise),
+#             the others to its right, each at its own size
+#   mirror    all at 0,0 in one mode
+#   internal | external   that display alone, the others off
+# The primary always sits at 0,0: wbar's shim and flwm rely on it. The saved
+# LAYOUT is applied by `apply` at session start, by the X.d hook for old homes
+# and on hotplug, fitted to what is connected; it never turns off the last
+# display. MODE is the primary's size, MODE_<output> any other's. set-layout is
+# a trial: unless confirm-layout comes within $TRIAL_SECS the screen goes back,
+# so a layout that shows nothing undoes itself (--keep skips that, for scripts).
+# More in docs/display-layouts.md.
 . /usr/local/lib/xxri/hw-lib.sh
 
 JSON=0
@@ -31,6 +51,11 @@ MODES_CACHE="$XXRI_RUN_DIR/display.modes"
 # .xsession's own fallback when neither an xres= boot code nor a saved MODE is
 # set - the size the desktop layout is designed around.  Keep the two in step.
 DEFAULT_MODE=1024x768
+# Nothing saved: mirror. Every display shows the whole desktop, so a closed
+# lid or a projector never hides the dock or a dialog.
+DEFAULT_LAYOUT=mirror
+TRIAL="$XXRI_TMP/display.trial"   # "<token> <layout> <started>"; the screen before it in .plan
+TRIAL_SECS=20
 
 [ -n "$DISPLAY" ] || export DISPLAY=:0
 
@@ -99,19 +124,36 @@ cmd_cache_modes() { # boot helper: X is not running yet
 }
 
 # ---- Xorg / RandR ---------------------------------------------------------
-# One line per distinct WxH of the primary output (.xsession sets one when
-# several are connected), else of the first connected output:
-#   OUT <output>
-#   M <WxH> <current 0|1> <preferred 0|1> <rates,comma,separated> <current rate> <preferred rate>
+# xrandr --query, every output in one pass:
+#   O <output> <connected 0|1> <primary 0|1> <active 0|1> <w> <h> <x> <y>
+#   M <output> <WxH> <current 0|1> <preferred 0|1> <rates,comma,separated> <current rate> <preferred rate>
 # xrandr prints each rate as "%6.2f" followed by '*' (current) and '+'
 # (preferred); with no '*' the '+' becomes a token of its own ("60.00 +").
 # Interlaced modes (1920x1080i) are skipped, and a size listed on several
-# lines (different timings) is merged into one entry.
-xr_query() {
-	q="$(xrandr --query 2>/dev/null)"
-	pri="$(echo "$q" | awk '$2 == "connected" && $3 == "primary" { print $1; exit }')"
-	echo "$q" | awk -v want="$pri" '
-		/^[^ \t]/ { if (out != "") exit; if ($2 == "connected" && (want == "" || $1 == want)) { out = $1; print "OUT " out }; next }
+# lines (different timings) is merged into one entry. "unknown connection"
+# counts as not connected, as it always has.
+xr_scan() {
+	xrandr --query 2>/dev/null | awk '
+		function flush(   i, m) {
+			for (i = 1; i <= n; i++) { m = order[i]
+				printf "M %s %s %d %d %s %s %s\n", out, m, cur[m] + 0, pref[m] + 0, (rates[m] == "" ? "-" : rates[m]), cr[m], pr[m] }
+			n = 0; split("", seen); split("", rates); split("", cur); split("", pref); split("", cr); split("", pr)
+		}
+		/^Screen / { next }
+		/^[^ \t]/ {
+			flush()
+			out = $1; conn = ($2 == "connected") ? 1 : 0; prim = 0; act = 0; g = ""
+			for (i = 3; i <= NF; i++) {
+				if ($i == "primary") continue
+				if ($i ~ /^[0-9]+x[0-9]+[+-][0-9]+[+-][0-9]+$/) { g = $i; act = 1 }
+				break
+			}
+			for (i = 3; i <= NF && i <= 4; i++) if ($i == "primary") prim = 1
+			w = h = x = y = 0
+			if (act) { split(g, a, /[x+]/); w = a[1]; h = a[2]; x = a[3]; y = a[4] }
+			print "O", out, conn, prim, act, w, h, x, y
+			next
+		}
 		out == "" || $1 !~ /^[0-9]+x[0-9]+$/ { next }
 		{
 			m = $1
@@ -127,18 +169,243 @@ xr_query() {
 				if (f ~ /\+/) { pref[m] = 1; pr[m] = last }
 			}
 		}
+		END { flush() }'
+}
+
+# One output in the shape the single-display commands use: the given one,
+# else the primary (`apply` sets one), else the first connected.
+#   OUT <output>
+#   M <WxH> <current 0|1> <preferred 0|1> <rates> <current rate> <preferred rate>
+xr_query() { # [OUTPUT]
+	echo "$XS" | awk -v want="$1" '
+		{ line[NR] = $0 }
+		$1 == "O" && $3 == 1 { if (first == "") first = $2; if ($4 == 1 && pri == "") pri = $2 }
 		END {
-			for (i = 1; i <= n; i++) { m = order[i]
-				printf "M %s %d %d %s %s %s\n", m, cur[m] + 0, pref[m] + 0, (rates[m] == "" ? "-" : rates[m]), cr[m], pr[m] }
+			o = want != "" ? want : (pri != "" ? pri : first)
+			if (o == "") exit
+			print "OUT " o
+			for (i = 1; i <= NR; i++) {
+				split(line[i], f, " ")
+				if (f[1] == "M" && f[2] == o) printf "M %s %s %s %s %s %s\n", f[3], f[4], f[5], f[6], f[7], f[8]
+			}
 		}'
 }
 
-xr_load() { [ -n "$XR_DONE" ] && return 0; XR="$(xr_query)"; XR_OUT="$(echo "$XR" | sed -n 's/^OUT //p')"; XR_DONE=1; }
+xr_rescan() { XS="$(xr_scan)"; }
+xr_load() { # [OUTPUT]
+	[ -n "$XR_DONE" ] && return 0
+	xr_rescan
+	XR="$(xr_query "$1")"; XR_OUT="$(echo "$XR" | sed -n 's/^OUT //p')"; XR_DONE=1
+}
 xr_modes()     { echo "$XR" | sed -n 's/^M \([^ ]*\) .*/\1/p'; }
 xr_field()     { echo "$XR" | awk -v m="$1" -v f="$2" '$1 == "M" && $2 == m { print $f; exit }'; }
 xr_current()   { echo "$XR" | awk '$1 == "M" && $3 == 1 { print $2; exit }'; }
 xr_preferred() { echo "$XR" | awk '$1 == "M" && $4 == 1 { print $2; exit }'; }
 xr_has_rate()  { case ",$(xr_field "$1" 5)," in *",$2,"*) return 0;; esac; return 1; }
+
+# ---- outputs, from $XS
+xs_connected() { echo "$XS" | awk '$1 == "O" && $3 == 1 { print $2 }'; }
+xs_count()     { xs_connected | grep -c .; }
+xs_rec()       { echo "$XS" | awk -v o="$1" '$1 == "O" && $2 == o { print; exit }'; }
+out_modes()    { echo "$XS" | awk -v o="$1" '$1 == "M" && $2 == o { print $3 }'; }
+out_offers()   { out_modes "$1" | grep -qx "$2"; }
+out_has_rate() { # OUTPUT MODE RATE
+	case ",$(echo "$XS" | awk -v o="$1" -v m="$2" '$1 == "M" && $2 == o && $3 == m { print $6; exit }')," in
+		*",$3,"*) return 0;; esac
+	return 1
+}
+# what the output prefers, else the first mode it lists
+out_best() {
+	b="$(echo "$XS" | awk -v o="$1" '$1 == "M" && $2 == o && $5 == 1 { print $3; exit }')"
+	[ -n "$b" ] || b="$(out_modes "$1" | head -1)"
+	echo "$b"
+}
+role_internal() {
+	for o in $(xs_connected); do
+		[ "$(output_builtin "$o")" = 1 ] && { echo "$o"; return; }
+	done
+	xs_connected | head -1
+}
+role_externals() {
+	_i="$(role_internal)"
+	for o in $(xs_connected); do [ "$o" = "$_i" ] || echo "$o"; done
+}
+mode_key() { echo "MODE_$1" | tr -c 'A-Za-z0-9_\n' '_'; }
+
+# The desktop's size on OUTPUT, as "WxH RATE": an xres= boot code, else the
+# saved MODE, else DEFAULT_MODE - when OUTPUT offers it - else what OUTPUT
+# prefers. RATE is "-" unless the saved one goes with that size.
+desk_want() {
+	_w="$(boot_mode)"
+	[ -n "$_w" ] || _w="$(wxh "$(saved_mode)")"
+	[ -n "$_w" ] || _w="$DEFAULT_MODE"
+	echo "$_w"
+}
+desk_mode() { # OUTPUT
+	_w="$(desk_want)"; _r=-
+	[ -z "$(boot_mode)" ] && [ "$_w" = "$(wxh "$(saved_mode)")" ] && _r="$(cfg_get display RATE -)"
+	if out_offers "$1" "$_w"; then
+		[ "$_r" != - ] && ! out_has_rate "$1" "$_w" "$_r" && _r=-
+		echo "$_w $_r"
+	else
+		echo "$(out_best "$1") -"
+	fi
+}
+# a display that is not the primary: its saved size, else what it prefers
+side_mode() { # OUTPUT
+	_m="$(cfg_get display "$(mode_key "$1")" "")"
+	out_offers "$1" "$_m" && echo "$_m" || out_best "$1"
+}
+# The one mode a mirror shows on OUTPUTS: the desktop's size if they all
+# offer it, else the internal display's preferred, else the largest they
+# share. Empty when they share none.
+mirror_mode() { # OUTPUT...
+	_c=""
+	for o in "$@"; do
+		if [ -z "$_c" ]; then _c="$(out_modes "$o")"
+		else _c="$(echo "$_c" | grep -Fx "$(out_modes "$o")")"; fi
+		[ -n "$_c" ] || return 0
+	done
+	for _m in "$(desk_want)" "$(out_best "$1")"; do
+		echo "$_c" | grep -qx "$_m" && { echo "$_m"; return; }
+	done
+	echo "$_c" | awk -F x '{ a = $1 * $2; if (a > best) { best = a; m = $0 } } END { print m }'
+}
+
+# A plan is the whole screen, one line per output; the primary comes first:
+#   on <output> <WxH> <x> <y> <primary 0|1> <rate|->
+#   off <output>
+# PLAN_ONE_EXT=1 leaves out all external displays but the first (a GPU with
+# two CRTCs cannot drive three).
+plan_layout() { # LAYOUT
+	_int="$(role_internal)"
+	[ -n "$_int" ] || return 1
+	_exts="$(role_externals)"
+	_ext="$(echo "$_exts" | head -1)"
+	_rest=""
+	if [ -n "$PLAN_ONE_EXT" ]; then _rest="$(echo "$_exts" | sed 1d)"; _exts="$_ext"; fi
+	for o in $_rest; do echo "off $o"; done
+	_l="$1"
+	case "$_l" in extend|mirror|internal|external) ;; *) _l="$DEFAULT_LAYOUT" ;; esac
+	[ -n "$_ext" ] || _l=internal
+	if [ "$_l" = mirror ]; then
+		_mm="$(mirror_mode $_int $_exts)"
+		[ -n "$_mm" ] || _l=internal
+	fi
+	# displays unplugged while they still had a picture (CRTC) give it up
+	echo "$XS" | awk '$1 == "O" && $3 == 0 && $5 == 1 { print "off", $2 }'
+	case "$_l" in
+	internal|external)
+		_on="$_int"; [ "$_l" = external ] && _on="$_ext"
+		set -- $(desk_mode "$_on")
+		echo "on $_on $1 0 0 1 $2"
+		for o in $_int $_exts; do [ "$o" = "$_on" ] || echo "off $o"; done ;;
+	mirror)
+		set -- $(desk_mode "$_int")
+		_r=-; [ "$1" = "$_mm" ] && _r="$2"
+		echo "on $_int $_mm 0 0 1 $_r"
+		for o in $_exts; do echo "on $o $_mm 0 0 0 -"; done ;;
+	extend)
+		set -- $(desk_mode "$_int")
+		echo "on $_int $1 0 0 1 $2"
+		_x="${1%x*}"
+		for o in $_exts; do
+			_m="$(side_mode "$o")"
+			[ -n "$_m" ] || { echo "off $o"; continue; }
+			echo "on $o $_m $_x 0 0 -"
+			_x=$((_x + ${_m%x*}))
+		done ;;
+	esac
+}
+# what a plan (or the screen, as current_plan) amounts to
+plan_kind() { # PLAN
+	echo "$1" | awk '$1 == "on" { n++; g = $3 " " $4 " " $5; if (n == 1) { first = $2; g1 = g } else if (g != g1) ext = 1 }
+		END { if (n == 0) print "none"; else if (n == 1) print "single " first; else print (ext ? "extend" : "mirror") }'
+}
+layout_name() { # PLAN -> extend | mirror | internal | external | none
+	set -- $(plan_kind "$1")
+	case "$1" in
+		single) [ "$2" = "$(role_internal)" ] && echo internal || echo external ;;
+		*) echo "$1" ;;
+	esac
+}
+# the screen as it is now
+current_plan() {
+	echo "$XS" | awk '$1 == "O" && $5 == 1 && $4 == 1 { print "on", $2, $6 "x" $7, $8, $9, 1, "-" }'
+	echo "$XS" | awk '$1 == "O" && $5 == 1 && $4 != 1 { print "on", $2, $6 "x" $7, $8, $9, 0, "-" }
+		$1 == "O" && $5 == 0 && $3 == 1 { print "off", $2 }'
+}
+plan_args() {
+	echo "$1" | awk '
+		$1 == "on" { printf " --output %s --mode %s --pos %sx%s", $2, $3, $4, $5
+			if ($6 == 1) printf " --primary"
+			if ($7 != "-") printf " --rate %s", $7 }
+		$1 == "off" { printf " --output %s --off", $2 }'
+}
+# does the screen ($XS) already look like PLAN?
+plan_matches() {
+	echo "$XS" | awk -v plan="$(echo "$1" | tr '\n' ';')" '
+		$1 == "O" { act[$2] = $5; geo[$2] = $6 "x" $7 " " $8 " " $9; pri[$2] = $4 }
+		END {
+			n = split(plan, P, ";")
+			for (i = 1; i <= n; i++) {
+				if (split(P[i], f, " ") < 2) continue
+				if (f[1] == "off" && act[f[2]] == 1) exit 1
+				if (f[1] == "on" && (act[f[2]] != 1 || geo[f[2]] != f[3] " " f[4] " " f[5] || (f[6] == 1 && pri[f[2]] != 1))) exit 1
+			}
+			exit 0
+		}'
+}
+# LAYOUT on the screen, and with one external display if all of them do
+# not fit (CRTCs)
+apply_layout() { # LAYOUT
+	apply_plan "$(plan_layout "$1")" && return 0
+	[ "$(role_externals | grep -c .)" -gt 1 ] || return 1
+	apply_plan "$(PLAN_ONE_EXT=1 plan_layout "$1")"
+}
+# Set PLAN in one xrandr call (it orders the CRTC changes and sizes the
+# screen) and check the result: xrandr can fail half way.
+apply_plan() { # PLAN
+	[ -n "$1" ] || return 1
+	xrandr $(plan_args "$1") 2>/dev/null
+	xr_rescan; plan_matches "$1" && return 0
+	# a saved rate the display no longer offers must not cost the layout
+	_p="$(echo "$1" | awk '$1 == "on" { $7 = "-" } { print }')"
+	[ "$_p" = "$1" ] && return 1
+	xrandr $(plan_args "$_p") 2>/dev/null
+	xr_rescan; plan_matches "$_p"
+}
+# Never leave the screen dark: the internal display alone (at the desktop
+# size, else at what it prefers); then just switch it on.
+safe_fallback() {
+	xr_rescan
+	_int="$(role_internal)"
+	[ -n "$_int" ] || return 1
+	apply_plan "$(plan_layout internal)" && return 0
+	_a="--output $_int --auto --primary --pos 0x0"
+	for o in $(echo "$XS" | awk '$1 == "O" && $5 == 1 { print $2 }'); do
+		[ "$o" = "$_int" ] || _a="$_a --output $o --off"
+	done
+	xrandr $_a 2>/dev/null || xrandr --output "$_int" --auto 2>/dev/null
+	xr_rescan
+}
+# Wallpaper and dock were laid out on the old screen (the dock snapshots the
+# wallpaper behind it, so that first). The Control Center, the launcher
+# button, flwm and the compositor follow RandR themselves.
+refresh_shell() {
+	( /usr/local/bin/xxri-desktop wallpaper apply
+	  /usr/local/bin/xxri-dock-pin regen ) </dev/null >/dev/null 2>&1 &
+}
+
+trial_token() { cut -d' ' -f1 "$TRIAL" 2>/dev/null; }
+trial_layout() { cut -d' ' -f2 "$TRIAL" 2>/dev/null; }
+trial_left() { # seconds until the watchdog reverts
+	_s="$(cut -d' ' -f3 "$TRIAL" 2>/dev/null)"
+	case "$_s" in ''|*[!0-9]*) echo 0; return ;; esac
+	_t=$(( TRIAL_SECS - ($(date +%s) - _s) ))
+	[ "$_t" -gt 0 ] && echo "$_t" || echo 0
+}
+trial_end() { rm -f "$TRIAL" "$TRIAL.plan"; }
 
 # connector name -> what a person calls it
 output_name() {
@@ -165,7 +432,7 @@ root_depth()  { xdpyinfo 2>/dev/null | sed -n 's/^ *depth of root window: *\([0-
 # what the next session will use when nothing overrides it
 default_mode() { # $1 = server
 	if [ "$1" = xorg ]; then
-		# apply_xres settles for the output's preferred mode when it does not
+		# desk_mode settles for the output's preferred mode when it does not
 		# offer $DEFAULT_MODE
 		xr_modes | grep -qx "$DEFAULT_MODE" && echo "$DEFAULT_MODE" || xr_preferred
 	else echo "$DEFAULT_MODE"; fi
@@ -197,7 +464,7 @@ common_fields() { # $1 = server, $2 = current WxH
 	j_str boot_mode "$bm"
 	# A saved size that differs from the running one waits for a new session -
 	# unless the next session would not use it either: a boot code overrides
-	# it, or the output does not offer it (apply_xres then falls back).
+	# it, or the output does not offer it (desk_mode then falls back).
 	p=0
 	if [ "$1" = xorg ] && [ -n "$sm" ] && [ -n "$2" ] && [ -z "$bm" ] && [ "$(wxh "$sm")" != "$2" ]; then
 		p=1
@@ -345,21 +612,27 @@ set_fail() { # message
 	return 1
 }
 
-cmd_set() { # WxH[xBPP] [--rate HZ] [--apply]
-	M="" RATE="" APPLY=0
+cmd_set() { # WxH[xBPP] [--rate HZ] [--apply] [--output OUT]
+	M="" RATE="" APPLY=0 OUT=""
 	while [ $# -gt 0 ]; do
 		case "$1" in
-			--apply) APPLY=1 ;;
-			--rate)  RATE="$2"; shift ;;
-			--json)  ;;
-			*)       [ -z "$M" ] && M="$1" ;;
+			--apply)  APPLY=1 ;;
+			--rate)   RATE="$2"; shift ;;
+			--output) OUT="$2"; shift ;;
+			--json)   ;;
+			*)        [ -z "$M" ] && M="$1" ;;
 		esac
 		shift
 	done
 	case "$M" in
 		[0-9]*x[0-9]*) ;;
-		*) echo "usage: xxri-display set-resolution WxH[xBPP] [--rate HZ] [--apply]" >&2; return 1 ;;
+		*) echo "usage: xxri-display set-resolution WxH[xBPP] [--rate HZ] [--apply] [--output OUT]" >&2; return 1 ;;
 	esac
+	if [ -n "$OUT" ] && [ "$(server)" = xorg ]; then
+		xr_load
+		# the primary display is the desktop's size, as without --output
+		[ "$OUT" = "$XR_OUT" ] || { cmd_set_side "$OUT" "$(wxh "$M")"; return; }
+	fi
 	case "$RATE" in ''|[0-9]*) ;; *) set_fail "refresh rate must be a number"; return 1 ;; esac
 	srv="$(server)"
 	if [ "$srv" = xfbdev ] || [ "$(driver)" = fbdev ]; then
@@ -371,6 +644,12 @@ cmd_set() { # WxH[xBPP] [--rate HZ] [--apply]
 		xr_load
 		xr_modes | grep -qx "$M" || { set_fail "$M is not offered by ${XR_OUT:-the display}"; return 1; }
 		[ -z "$RATE" ] || xr_has_rate "$M" "$RATE" || { set_fail "$M does not offer ${RATE}Hz"; return 1; }
+		# mirrored displays all show this size
+		if [ "$(layout_name "$(current_plan)")" = mirror ]; then
+			for o in $(echo "$XS" | awk '$1 == "O" && $5 == 1 { print $2 }'); do
+				out_offers "$o" "$M" || { set_fail "The $(output_name "$o") does not offer $M, so the displays cannot mirror at that size."; return 1; }
+			done
+		fi
 	else
 		m="$(drm_modes | sed 's/x32$//')"
 		[ -n "$m" ] && ! echo "$m" | grep -qx "$M" && { set_fail "$M is not offered by the display"; return 1; }
@@ -411,6 +690,220 @@ cmd_set_refresh() { # HZ - live; keeps the running mode, so no new session
 	else echo "refresh rate set to ${RATE}Hz ($cur)"; fi
 }
 
+# a display that is not the primary: saved per output and set live - the
+# desktop stays where it is, so no new session
+cmd_set_side() { # OUTPUT WxH
+	xr_rescan
+	[ "$(xs_rec "$1" | cut -d' ' -f3)" = 1 ] || { set_fail "$1 is not connected"; return 1; }
+	out_offers "$1" "$2" || { set_fail "$2 is not offered by the $(output_name "$1")"; return 1; }
+	[ "$(layout_name "$(current_plan)")" = extend ] ||
+		{ set_fail "The $(output_name "$1") has its own resolution only when the displays are extended."; return 1; }
+	_before="$(current_plan)"
+	_old="$(cfg_get display "$(mode_key "$1")" "")"
+	cfg_set display "$(mode_key "$1")" "$2"
+	if ! apply_plan "$(plan_layout extend)"; then
+		if [ -n "$_old" ]; then cfg_set display "$(mode_key "$1")" "$_old"; else cfg_del display "$(mode_key "$1")"; fi
+		apply_plan "$_before" || safe_fallback
+		refresh_shell
+		set_fail "The $(output_name "$1") did not accept $2."
+		return 1
+	fi
+	refresh_shell
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok 1; j_str output "$1"; j_str mode "$2"; j_bool applied 1
+		j_root display "\"set\":$(j_obj)"
+	else echo "$1 set to $2"; fi
+}
+
+# Every connected display, for Settings (outputs last, see below):
+#   {"count":2,"current":"extend","saved":"","default":"mirror","layouts":[...],
+#    "internal":"eDP-1","external":"HDMI-1","mirror_mode":"1024x768",
+#    "pending":false,"revert_in":0,
+#    "outputs":[{"name":"HDMI-1","label":"HDMI Display","role":"external",
+#      "builtin":false,"active":true,"primary":false,"width":1920,
+#      "height":1080,"x":1366,"y":0,"mode":"1920x1080","preferred":"1920x1080",
+#      "saved_mode":"","modes":[{"mode":"1920x1080","rates":[60.00],
+#      "current":true,"preferred":true}]}]}
+# "layouts" lists what this hardware can do: nothing to choose with one
+# display, no mirror when the displays share no mode.
+cmd_layout() {
+	srv="$(server)"
+	XS=""; [ "$srv" = xorg ] && xr_rescan
+	_int="$(role_internal)"; _exts="$(role_externals)"; _ext="$(echo "$_exts" | head -1)"
+	_n="$(xs_count)"
+	_mm=""; [ -n "$_ext" ] && _mm="$(mirror_mode $_int $_exts)"
+	_cur="$(layout_name "$(current_plan)")"
+	_lays=""
+	if [ "$_n" -ge 2 ]; then
+		_lays="extend"; [ -n "$_mm" ] && _lays="$_lays mirror"; _lays="$_lays internal external"
+	fi
+	[ -e "$TRIAL" ] && _pend=1 || _pend=0
+	if [ $JSON = 1 ]; then
+		a_new
+		for o in $(xs_connected); do
+			set -- $(xs_rec "$o")
+			_act="$5" _pri="$4" _w="$6" _h="$7" _x="$8" _y="$9"
+			_role=external; [ "$o" = "$_int" ] && _role=internal
+			_om=""; [ "$_act" = 1 ] && _om="${_w}x${_h}"
+			_ms="$(echo "$XS" | awk -v o="$o" '$1 == "M" && $2 == o {
+				printf "%s{\"mode\":\"%s\",\"rates\":[%s],\"current\":%s,\"preferred\":%s}", (n++ ? "," : ""), $3, ($6 == "-" ? "" : $6), ($4 == 1 ? "true" : "false"), ($5 == 1 ? "true" : "false") }')"
+			j_new
+			j_str name "$o"; j_str label "$(output_name "$o")"; j_str role "$_role"
+			j_bool builtin "$(output_builtin "$o")"; j_bool active "$_act"; j_bool primary "$_pri"
+			j_num width "$_w"; j_num height "$_h"; j_num x "$_x"; j_num y "$_y"
+			j_str mode "$_om"; j_str preferred "$(out_best "$o")"
+			j_str saved_mode "$(cfg_get display "$(mode_key "$o")" "")"
+			j_raw modes "[$_ms]"
+			a_add "$(j_obj)"
+		done
+		_lj=""; for l in $_lays; do _lj="$_lj${_lj:+,}\"$l\""; done
+		# outputs last: their modes carry "current" too, and Settings' flat
+		# reader takes the first match
+		j_new
+		j_num count "$_n"
+		j_str server "$srv"
+		j_bool changeable "$([ "$srv" = xorg ] && [ "$_n" -ge 2 ] && echo 1 || echo 0)"
+		j_str current "$_cur"
+		j_str saved "$(cfg_get display LAYOUT "")"
+		j_str default "$DEFAULT_LAYOUT"
+		j_raw layouts "[$_lj]"
+		j_str internal "$_int"; j_str external "$_ext"
+		j_str mirror_mode "$_mm"
+		j_bool pending "$_pend"; j_str pending_layout "$(trial_layout)"; j_num revert_in "$(trial_left)"
+		j_raw outputs "$(a_out)"
+		j_root display "\"layout\":$(j_obj)"
+	else
+		[ "$srv" = xorg ] || { echo "layout: one display ($(driver_label))"; return 0; }
+		echo "layout: $_cur$([ $_pend = 1 ] && echo " (trial, reverts in $(trial_left)s)")  saved: $(cfg_get display LAYOUT "(default $DEFAULT_LAYOUT)")"
+		for o in $(xs_connected); do
+			set -- $(xs_rec "$o")
+			printf '  %-10s %-20s %s%s%s\n' "$o" "$(output_name "$o")" \
+				"$([ "$5" = 1 ] && echo "${6}x${7}+${8}+${9}" || echo off)" \
+				"$([ "$4" = 1 ] && echo '  primary')" "$([ "$o" = "$_int" ] && echo '  (internal)')"
+		done
+		[ -n "$_lays" ] && echo "possible: $_lays"
+	fi
+	return 0
+}
+
+layout_fail() { # message: as set_fail, under "set_layout"
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok 0; j_str error "$1"
+		j_root display "\"set_layout\":$(j_obj)"
+	else echo "$1" >&2; fi
+	return 1
+}
+
+cmd_set_layout() { # LAYOUT [--keep]
+	L="" KEEP=0
+	for a in "$@"; do
+		case "$a" in --keep) KEEP=1 ;; --json) ;; *) [ -z "$L" ] && L="$a" ;; esac
+	done
+	case "$L" in
+		extend|mirror|internal|external) ;;
+		*) echo "usage: xxri-display set-layout extend|mirror|internal|external [--keep]" >&2; return 1 ;;
+	esac
+	[ "$(server)" = xorg ] || { layout_fail "Displays can be arranged only on the Xorg display path ($(driver_label))."; return 1; }
+	xr_rescan
+	[ -n "$(role_internal)" ] || { layout_fail "RandR reports no connected display."; return 1; }
+	[ "$(xs_count)" -ge 2 ] || [ "$L" = internal ] || { layout_fail "Only one display is connected."; return 1; }
+	# a trial already running: what it replaced is still the way back
+	if [ -e "$TRIAL" ]; then _before="$(cat "$TRIAL.plan" 2>/dev/null)"; else _before="$(current_plan)"; fi
+	_plan="$(plan_layout "$L")"
+	if [ "$(layout_name "$_plan")" != "$L" ]; then
+		[ "$L" = mirror ] && { layout_fail "These displays have no resolution in common, so they cannot mirror."; return 1; }
+		layout_fail "This arrangement is not possible with the displays connected."; return 1
+	fi
+	if ! apply_layout "$L"; then
+		apply_plan "$_before" || safe_fallback
+		refresh_shell
+		layout_fail "The graphics driver did not accept this arrangement. The previous one was restored."
+		return 1
+	fi
+	refresh_shell
+	if [ $KEEP = 1 ]; then
+		trial_end
+		cfg_set display LAYOUT "$L"
+	else
+		_tok="$$.$(date +%s)"
+		echo "$_before" > "$TRIAL.plan"
+		echo "$_tok $L $(date +%s)" > "$TRIAL"
+		# the watchdog outlives Settings: a layout that shows nothing, or a
+		# Settings that died, still comes back
+		( sleep $TRIAL_SECS
+		  [ "$(trial_token)" = "$_tok" ] && exec /usr/local/bin/xxri-display revert-layout
+		) </dev/null >/dev/null 2>&1 &
+	fi
+	if [ $JSON = 1 ]; then
+		j_new; j_bool ok 1; j_str layout "$L"; j_bool pending "$([ $KEEP = 1 ] && echo 0 || echo 1)"
+		j_num revert_in "$([ $KEEP = 1 ] && echo 0 || echo $TRIAL_SECS)"
+		j_root display "\"set_layout\":$(j_obj)"
+	else
+		echo "layout: $L$([ $KEEP = 1 ] || echo " - run 'xxri-display confirm-layout' within ${TRIAL_SECS}s to keep it")"
+	fi
+}
+
+cmd_confirm_layout() {
+	[ -e "$TRIAL" ] || { layout_fail "No display arrangement is waiting to be kept."; return 1; }
+	L="$(trial_layout)"
+	trial_end
+	cfg_set display LAYOUT "$L"
+	if [ $JSON = 1 ]; then j_new; j_bool ok 1; j_str layout "$L"; j_root display "\"set_layout\":$(j_obj)"
+	else echo "layout $L kept"; fi
+}
+
+cmd_revert_layout() {
+	if [ -e "$TRIAL" ]; then
+		_before="$(cat "$TRIAL.plan" 2>/dev/null)"
+		trial_end
+		xr_rescan
+		# back to the screen as it was; if a display went meanwhile, the saved
+		# layout on what is left; if all else fails, the internal display
+		apply_plan "$_before" || apply_layout "$(cfg_get display LAYOUT "")" || safe_fallback
+		refresh_shell
+	fi
+	xr_rescan
+	if [ $JSON = 1 ]; then j_new; j_bool ok 1; j_str layout "$(layout_name "$(current_plan)")"; j_root display "\"set_layout\":$(j_obj)"
+	else echo "layout: $(layout_name "$(current_plan)")"; fi
+}
+
+# The saved layout on the displays connected now. --session: from
+# ~/.xsession before the desktop starts (RandR may still be settling, and
+# nothing needs to follow); --hotplug: a display came or went.
+cmd_apply() {
+	MODE_=""
+	for a in "$@"; do case "$a" in --session|--hotplug) MODE_="$a" ;; esac; done
+	command -v xrandr >/dev/null 2>&1 || return 0
+	if [ "$MODE_" = --session ]; then
+		# asking once sometimes came up 1280x800 instead of 1024x768: wait
+		# (3s at most) until an output is listed with the size wanted
+		_w="$(desk_want)"
+		for _try in 1 2 3 4 5 6 7 8 9 10; do
+			xr_rescan
+			[ -n "$(role_internal)" ] && echo "$XS" | awk -v m="$_w" '$1 == "M" && $3 == m { f = 1 } END { exit !f }' && break
+			sleep 0.3
+		done
+	else
+		[ "$(server)" = xorg ] || return 0
+		xr_rescan
+	fi
+	[ -n "$(role_internal)" ] || return 0
+	# a plug or unplug ends a trial: the saved layout is what counts now
+	[ -e "$TRIAL" ] && [ -n "$MODE_" ] && trial_end
+	_lay="$(cfg_get display LAYOUT "")"
+	plan_matches "$(plan_layout "$_lay")" && return 0
+	_ok=0
+	for _try in 1 2 3; do
+		apply_layout "$_lay" && { _ok=1; break; }
+		[ "$MODE_" = --session ] || break
+		sleep 0.4
+		xr_rescan
+	done
+	[ $_ok = 1 ] || safe_fallback
+	[ "$MODE_" = --session ] || refresh_shell
+	return 0
+}
+
 cmd_edid() {
 	found=0
 	for c in /sys/class/drm/card*-*/edid; do
@@ -433,9 +926,14 @@ case "$1" in
 	list) cmd_list ;;
 	current) cmd_current ;;
 	monitors) cmd_monitors ;;
+	layout) cmd_layout ;;
+	set-layout) shift; cmd_set_layout "$@" ;;
+	confirm-layout) cmd_confirm_layout ;;
+	revert-layout) cmd_revert_layout ;;
+	apply) shift; cmd_apply "$@" ;;
 	set-resolution) shift; cmd_set "$@" ;;
 	set-refresh) shift; cmd_set_refresh "$@" ;;
 	edid) cmd_edid ;;
 	cache-modes) cmd_cache_modes ;;
-	*) echo "usage: xxri-display list|current|monitors|set-resolution WxH[xBPP] [--rate HZ] [--apply]|set-refresh HZ|edid [--json]" >&2; exit 1 ;;
+	*) echo "usage: xxri-display list|current|monitors|layout|set-layout extend|mirror|internal|external [--keep]|confirm-layout|revert-layout|apply [--session|--hotplug]|set-resolution WxH[xBPP] [--rate HZ] [--apply] [--output OUT]|set-refresh HZ|edid [--json]" >&2; exit 1 ;;
 esac

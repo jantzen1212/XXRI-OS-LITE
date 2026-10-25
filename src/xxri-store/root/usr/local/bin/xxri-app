@@ -116,7 +116,7 @@ resolve_icon() { # id name hint_path desktop_file tree_root -> path (may be empt
 	return 0
 }
 
-# udah: one canonical icon, copied into the Store's cache too so the Store
+# one canonical icon, copied into the Store's cache too so the Store
 # shows exactly what the dock and menu show
 install_icon() { # id src -> canonical path on stdout
 	_id="$1"; _src="$2"

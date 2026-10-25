@@ -1,0 +1,14 @@
+#!/bin/sh
+
+WRAPPER_DIR="$(dirname "$(readlink -f "$0")")"
+. "${WRAPPER_DIR}/libwrapper.sh" || exit
+
+unset PTXDIST_ICECC
+unset PTXDIST_CCACHE
+
+wrapper_exec \
+	--init-eval-command="set debug-file-directory ${PTXDIST_PLATFORMDIR}/root/usr/lib/debug" \
+	--init-eval-command="add-auto-load-safe-path ${PTXDIST_PLATFORMDIR}/root" \
+	--init-eval-command="set sysroot ${PTXDIST_PLATFORMDIR}/root" \
+	--init-eval-command="set substitute-path $(basename "${PTXDIST_PLATFORMDIR}") ${PTXDIST_PLATFORMDIR}" \
+	"$@"

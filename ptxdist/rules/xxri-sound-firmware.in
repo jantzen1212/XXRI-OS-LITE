@@ -1,0 +1,13 @@
+## SECTION=project_specific
+
+config XXRI_SOUND_FIRMWARE
+	bool
+	select HOST_PYTHON3
+	prompt "xxri-sound-firmware: SOF DSP and HDA amplifier firmware (x86_64)"
+	help
+	  x86_64 only, packaged in xxri-sound.tcz with the sound modules of
+	  xxri-kernel: Intel's Sound Open Firmware DSP firmware and topologies
+	  (sof-bin, pinned release) for the SOF driver, and the Cirrus
+	  CS35L41/CS35L56 and TI TAS2781/TAS2563 speaker-amplifier firmware
+	  from the pinned linux-firmware release
+	  (config/firmware/sound-x86_64.list).

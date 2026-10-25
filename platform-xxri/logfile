@@ -1,0 +1,1119 @@
+# -*- mode:outline; outline-regexp:"{{{" -*-
+# vim: set fdm=marker fdl=1:
+
+{{{ 2026-10-22T00:03:44+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go
+
+}}} 2026-10-22T00:03:47+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go; (exit value: 2)
+
+
+
+{{{ 2026-10-22T00:05:57+0700 /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/ptxdist --force go
+
+}}} 2026-10-22T00:05:57+0700 /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/ptxdist --force go; (exit value: 0)
+
+
+
+{{{ 2026-10-22T00:06:03+0700 /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/ptxdist --force go
+
+-----------------------------------------------------
+target: base.71075d4685479eda385ec68764aa0017.srchash
+-----------------------------------------------------
+
+finished target base.71075d4685479eda385ec68764aa0017.srchash
+
+----------------
+target: base.get
+----------------
+
+finished target base.get
+
+--------------------
+target: base.extract
+--------------------
+
+patchin: no patches found
+finished target base.extract
+
+------------------------------------------------------------------
+target: cross-dummy-strip.392a8fe085dc5471e50766ef6e7e5e80.srchash
+------------------------------------------------------------------
+
+finished target cross-dummy-strip.392a8fe085dc5471e50766ef6e7e5e80.srchash
+
+-----------------------------
+target: cross-dummy-strip.get
+-----------------------------
+
+finished target cross-dummy-strip.get
+
+---------------------------------
+target: cross-dummy-strip.extract
+---------------------------------
+
+patchin: no patches found
+finished target cross-dummy-strip.extract
+
+------------------------------------------------------------------------
+target: host-dummy-install-info.1434bbf980f0f25efa8cc6a65153d31e.srchash
+------------------------------------------------------------------------
+
+finished target host-dummy-install-info.1434bbf980f0f25efa8cc6a65153d31e.srchash
+
+-----------------------------------
+target: host-dummy-install-info.get
+-----------------------------------
+
+finished target host-dummy-install-info.get
+
+---------------------------------------
+target: host-dummy-install-info.extract
+---------------------------------------
+
+patchin: no patches found
+finished target host-dummy-install-info.extract
+
+--------------------------------------------
+target: host-dummy-install-info.extract.post
+--------------------------------------------
+
+finished target host-dummy-install-info.extract.post
+
+------------------------------------------------------------------------
+target: host-dummy-install-info.aa503ac3160e0db2b14ccf0fd61a3269.cfghash
+------------------------------------------------------------------------
+
+finished target host-dummy-install-info.aa503ac3160e0db2b14ccf0fd61a3269.cfghash
+
+---------------------------------------
+target: host-dummy-install-info.prepare
+---------------------------------------
+
+finished target host-dummy-install-info.prepare
+
+---------------------------------------
+target: host-dummy-install-info.compile
+---------------------------------------
+
+finished target host-dummy-install-info.compile
+
+---------------------------------------
+target: host-dummy-install-info.install
+---------------------------------------
+
+'/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/bin/install-info' -> '/bin/true'
+finished target host-dummy-install-info.install
+
+--------------------------------------------
+target: host-dummy-install-info.install.pack
+--------------------------------------------
+
+finished target host-dummy-install-info.install.pack
+
+--------------------------------------------
+target: host-dummy-install-info.install.post
+--------------------------------------------
+
+finished target host-dummy-install-info.install.post
+
+----------------------------
+target: pkgconf-2.2.0.tar.xz
+----------------------------
+
+--2026-10-22 00:06:08--  https://distfiles.ariadne.space/pkgconf/pkgconf-2.2.0.tar.xz
+Loaded CA certificate '/etc/ssl/certs/ca-certificates.crt'
+Resolving distfiles.ariadne.space (distfiles.ariadne.space)... 2606:7940:32:3e::10, 199.255.18.183
+Connecting to distfiles.ariadne.space (distfiles.ariadne.space)|2606:7940:32:3e::10|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 311920 (305K) [application/octet-stream]
+Saving to: '/home/jantzen/xxri-wt/ptx/src/pkgconf-2.2.0.tar.xz.dJTDj8Raec'
+
+          /home/jan   0%[                    ]       0  --.-KB/s                        /home/jant   4%[                    ]  14.22K  65.9KB/s                       /home/jantz  13%[=>                  ]  42.42K  98.0KB/s                      /home/jantze  30%[=====>              ]  92.96K   144KB/s                     /home/jantzen  68%[============>       ] 208.00K   240KB/s               /home/jantzen/xxri- 100%[===================>] 304.61K   341KB/s    in 0.9s    
+
+2026-10-22 00:06:09 (341 KB/s) - '/home/jantzen/xxri-wt/ptx/src/pkgconf-2.2.0.tar.xz.dJTDj8Raec' saved [311920/311920]
+
+
+-------------------------------------------------------------
+target: host-pkgconf.bfbd6e8ccd582ca6b90fe8f9e5e8a2cf.srchash
+-------------------------------------------------------------
+
+finished target host-pkgconf.bfbd6e8ccd582ca6b90fe8f9e5e8a2cf.srchash
+
+------------------------
+target: host-pkgconf.get
+------------------------
+
+finished target host-pkgconf.get
+
+----------------------------
+target: host-pkgconf.extract
+----------------------------
+
+extract: pkg_src=ptx/src/pkgconf-2.2.0.tar.xz
+extract: pkg_extract_dir=ptx/platform-xxri/build-host/pkgconf-2.2.0
+patchin: no patches found
+finished target host-pkgconf.extract
+
+---------------------------------
+target: host-pkgconf.extract.post
+---------------------------------
+
+finished target host-pkgconf.extract.post
+
+-------------------------------------------------------------
+target: host-pkgconf.b5b9351fd88e64854139ff7b9e15c83f.cfghash
+-------------------------------------------------------------
+
+finished target host-pkgconf.b5b9351fd88e64854139ff7b9e15c83f.cfghash
+
+----------------------------
+target: host-pkgconf.prepare
+----------------------------
+
+ptxdist: executing: PATH=/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/bin:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/sbin:/home/jantzen/xxri-wt/ptx/selected_toolchain:/home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/android-ndk:/opt/android-sdk/platform-tools:/opt/android-sdk/tools:/opt/android-sdk/tools/bin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin HTTPS_PROXY=PTXDIST-UNALLOWED-DOWNLOAD HTTP_PROXY=PTXDIST-UNALLOWED-DOWNLOAD https_proxy=PTXDIST-UNALLOWED-DOWNLOAD http_proxy=PTXDIST-UNALLOWED-DOWNLOAD PKGCONFIG_WHITELIST_HOST='' PKGCONFIG_WHITELIST_TARGET='' PKGCONFIG_WHITELIST_SRC='host-pkgconf' SYSROOT='/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host' V=0 VERBOSE= KBUILD_BUILD_TIMESTAMP=2024-11-01T00:00:00+00:00 KBUILD_BUILD_USER=ptxdist KBUILD_BUILD_HOST=ptxdist PTXDIST_ICECC= enable_option_checking=fatal enable_maintainer_mode=no enable_static=no CC="gcc" CXX="g++" ./configure --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib
+
+checking for gcc... gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether the compiler supports GNU C... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to enable C11 features... none needed
+checking whether gcc understands -c and -o together... yes
+checking whether C compiler accepts -Wall... yes
+checking whether C compiler accepts -Wextra... yes
+checking whether C compiler accepts -Wformat=2... yes
+checking whether C compiler accepts -std=gnu99... yes
+checking for gcc options needed to detect all undeclared functions... none needed
+checking whether strlcpy is declared... yes
+checking whether strlcat is declared... yes
+checking whether strndup is declared... yes
+checking for stdio.h... yes
+checking for stdlib.h... yes
+checking for string.h... yes
+checking for inttypes.h... yes
+checking for stdint.h... yes
+checking for strings.h... yes
+checking for sys/stat.h... yes
+checking for sys/types.h... yes
+checking for unistd.h... yes
+checking whether reallocarray is declared... yes
+checking for sys/stat.h... (cached) yes
+checking for a BSD-compatible install... /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c
+checking whether build environment is sane... yes
+checking for a race-free mkdir -p... /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p
+checking for gawk... gawk
+checking whether make sets $(MAKE)... yes
+checking whether make supports the include directive... yes (GNU style)
+checking whether make supports nested variables... yes
+checking dependency style of gcc... gcc3
+checking whether make supports nested variables... (cached) yes
+checking build system type... x86_64-pc-linux-gnu
+checking host system type... x86_64-pc-linux-gnu
+checking how to print strings... printf
+checking for a sed that does not truncate output... /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/sed
+checking for grep that handles long lines and -e... /usr/bin/grep
+checking for egrep... /usr/bin/grep -E
+checking for fgrep... /usr/bin/grep -F
+checking for ld used by gcc... /usr/bin/ld
+checking if the linker (/usr/bin/ld) is GNU ld... yes
+checking for BSD- or MS-compatible name lister (nm)... /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper/nm -B
+checking the name lister (/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper/nm -B) interface... BSD nm
+checking whether ln -s works... yes
+checking the maximum length of command line arguments... 1572864
+checking how to convert x86_64-pc-linux-gnu file names to x86_64-pc-linux-gnu format... func_convert_file_noop
+checking how to convert x86_64-pc-linux-gnu file names to toolchain format... func_convert_file_noop
+checking for /usr/bin/ld option to reload object files... -r
+checking for file... file
+checking for objdump... objdump
+checking how to recognize dependent libraries... pass_all
+checking for dlltool... no
+checking how to associate runtime and link libraries... printf %s\n
+checking for ar... ar
+checking for archiver @FILE support... @
+checking for strip... strip
+checking for ranlib... ranlib
+checking command to parse /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper/nm -B output from gcc object... ok
+checking for sysroot... no
+checking for a working dd... /usr/bin/dd
+checking how to truncate binary pipes... /usr/bin/dd bs=4096 count=1
+checking for mt... no
+checking if : is a manifest tool... no
+checking for dlfcn.h... yes
+checking for objdir... .libs
+checking if gcc supports -fno-rtti -fno-exceptions... no
+checking for gcc option to produce PIC... -fPIC -DPIC
+checking if gcc PIC flag -fPIC -DPIC works... yes
+checking if gcc static flag -static works... yes
+checking if gcc supports -c -o file.o... yes
+checking if gcc supports -c -o file.o... (cached) yes
+checking whether the gcc linker (/usr/bin/ld -m elf_x86_64) supports shared libraries... yes
+checking whether -lc should be explicitly linked in... no
+checking dynamic linker characteristics... GNU/Linux ld.so
+checking how to hardcode library paths into programs... immediate
+checking whether stripping libraries is possible... yes
+checking if libtool supports shared libraries... yes
+checking whether to build shared libraries... yes
+checking whether to build static libraries... no
+checking for special C compiler options needed for large files... no
+checking for _FILE_OFFSET_BITS value needed for large files... no
+checking how to run the C preprocessor... gcc -E
+checking for gcc... (cached) gcc
+checking whether the compiler supports GNU C... (cached) yes
+checking whether gcc accepts -g... (cached) yes
+checking for gcc option to enable C11 features... (cached) none needed
+checking whether gcc understands -c and -o together... (cached) yes
+checking whether ln -s works... yes
+checking that generated files are newer than configure... done
+configure: creating ./config.status
+config.status: creating Makefile
+config.status: creating Kyuafile
+config.status: creating libpkgconf.pc
+config.status: creating tests/Kyuafile
+config.status: creating tests/test_env.sh
+config.status: creating libpkgconf/config.h
+config.status: executing depfiles commands
+config.status: executing libtool commands
+finished target host-pkgconf.prepare
+
+----------------------------
+target: host-pkgconf.compile
+----------------------------
+
+ptxdist: executing: PATH=/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/bin:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/sbin:/home/jantzen/xxri-wt/ptx/selected_toolchain:/home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/android-ndk:/opt/android-sdk/platform-tools:/opt/android-sdk/tools:/opt/android-sdk/tools/bin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin HTTPS_PROXY=PTXDIST-UNALLOWED-DOWNLOAD HTTP_PROXY=PTXDIST-UNALLOWED-DOWNLOAD https_proxy=PTXDIST-UNALLOWED-DOWNLOAD http_proxy=PTXDIST-UNALLOWED-DOWNLOAD PKGCONFIG_WHITELIST_HOST='' PKGCONFIG_WHITELIST_TARGET='' PKGCONFIG_WHITELIST_SRC='host-pkgconf' SYSROOT='/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host' V=0 VERBOSE= KBUILD_BUILD_TIMESTAMP=2024-11-01T00:00:00+00:00 KBUILD_BUILD_USER=ptxdist KBUILD_BUILD_HOST=ptxdist  make -C /home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0  -j32  
+
+make: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0'
+  CC       cli/pkgconf-getopt_long.o
+  CC       cli/bomtool-getopt_long.o
+  CC       cli/pkgconf-main.o
+  CC       libpkgconf/audit.lo
+  CC       libpkgconf/cache.lo
+  CC       libpkgconf/client.lo
+  CC       cli/pkgconf-renderer-msvc.o
+  CC       libpkgconf/pkg.lo
+  CC       libpkgconf/fileio.lo
+  CC       libpkgconf/bsdstubs.lo
+  CC       libpkgconf/tuple.lo
+  CC       libpkgconf/argvsplit.lo
+  CC       libpkgconf/dependency.lo
+  CC       libpkgconf/path.lo
+  CC       libpkgconf/fragment.lo
+  CC       cli/bomtool/bomtool-main.o
+  CC       libpkgconf/personality.lo
+  CC       libpkgconf/queue.lo
+  CC       libpkgconf/parser.lo
+  CCLD     libpkgconf.la
+  CCLD     pkgconf
+  CCLD     bomtool
+make: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0'
+finished target host-pkgconf.compile
+
+----------------------------
+target: host-pkgconf.install
+----------------------------
+
+ptxdist: executing: PATH=/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/bin:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/sbin:/home/jantzen/xxri-wt/ptx/selected_toolchain:/home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/android-ndk:/opt/android-sdk/platform-tools:/opt/android-sdk/tools:/opt/android-sdk/tools/bin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin HTTPS_PROXY=PTXDIST-UNALLOWED-DOWNLOAD HTTP_PROXY=PTXDIST-UNALLOWED-DOWNLOAD https_proxy=PTXDIST-UNALLOWED-DOWNLOAD http_proxy=PTXDIST-UNALLOWED-DOWNLOAD PKGCONFIG_WHITELIST_HOST='' PKGCONFIG_WHITELIST_TARGET='' PKGCONFIG_WHITELIST_SRC='host-pkgconf' SYSROOT='/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host' V=0 VERBOSE= KBUILD_BUILD_TIMESTAMP=2024-11-01T00:00:00+00:00 KBUILD_BUILD_USER=ptxdist KBUILD_BUILD_HOST=ptxdist   make -C /home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0 DESTDIR="/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0" INSTALL_ROOT="/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0" install -j1
+make: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0'
+make[1]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/lib'
+ /bin/sh ./libtool   --mode=install /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c   libpkgconf.la '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/lib'
+libtool: install: /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c .libs/libpkgconf.so.5.0.0 /home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/lib/libpkgconf.so.5.0.0
+libtool: install: (cd /home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/lib && { ln -s -f libpkgconf.so.5.0.0 libpkgconf.so.5 || { rm -f libpkgconf.so.5 && ln -s libpkgconf.so.5.0.0 libpkgconf.so.5; }; })
+libtool: install: (cd /home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/lib && { ln -s -f libpkgconf.so.5.0.0 libpkgconf.so || { rm -f libpkgconf.so && ln -s libpkgconf.so.5.0.0 libpkgconf.so; }; })
+libtool: install: /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c .libs/libpkgconf.lai /home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/lib/libpkgconf.la
+libtool: warning: remember to run 'libtool --finish /usr/lib'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/bin'
+  /bin/sh ./libtool   --mode=install /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c pkgconf bomtool '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/bin'
+libtool: warning: 'libpkgconf.la' has not been installed in '/usr/lib'
+libtool: install: /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c .libs/pkgconf /home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/bin/pkgconf
+libtool: warning: 'libpkgconf.la' has not been installed in '/usr/lib'
+libtool: install: /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c .libs/bomtool /home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/bin/bomtool
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/doc/pkgconf'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c -m 644 README.md AUTHORS '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/doc/pkgconf'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/aclocal'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c -m 644 pkg.m4 '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/aclocal'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/man/man1'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c -m 644 man/pkgconf.1 '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/man/man1'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/man/man5'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c -m 644 man/pc.5 man/pkgconf-personality.5 '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/man/man5'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/man/man7'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c -m 644 man/pkg.m4.7 '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/share/man/man7'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/include/pkgconf'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/include/pkgconf/libpkgconf'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c -m 644  libpkgconf/bsdstubs.h libpkgconf/iter.h libpkgconf/libpkgconf.h libpkgconf/stdinc.h libpkgconf/libpkgconf-api.h '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/include/pkgconf/libpkgconf'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/lib/pkgconfig'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c -m 644 libpkgconf.pc '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/lib/pkgconfig'
+make[1]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0'
+make: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/pkgconf-2.2.0'
+'/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-pkgconf-2.2.0/usr/bin/pkg-config' -> '/home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/scripts/pkg-config-wrapper'
+finished target host-pkgconf.install
+
+---------------------------------
+target: host-pkgconf.install.pack
+---------------------------------
+
+finished target host-pkgconf.install.pack
+
+---------------------------------
+target: host-pkgconf.install.post
+---------------------------------
+
+finished target host-pkgconf.install.post
+
+---------------------------
+target: chrpath-0.16.tar.gz
+---------------------------
+
+URL transformed to HTTPS due to an HSTS policy
+--2026-10-22 00:06:22--  https://snapshot.debian.org/archive/debian/20140119T220629Z/pool/main/c/chrpath/chrpath_0.16.orig.tar.gz
+Loaded CA certificate '/etc/ssl/certs/ca-certificates.crt'
+Resolving snapshot.debian.org (snapshot.debian.org)... 2a04:4e42:7b::644, 146.75.46.132
+Connecting to snapshot.debian.org (snapshot.debian.org)|2a04:4e42:7b::644|:443... connected.
+HTTP request sent, awaiting response... 302 FOUND
+Location: /file/174bb38c899229f4c928734b20e730f61191795a/chrpath_0.16.orig.tar.gz [following]
+URL transformed to HTTPS due to an HSTS policy
+--2026-10-22 00:06:22--  https://snapshot.debian.org/file/174bb38c899229f4c928734b20e730f61191795a/chrpath_0.16.orig.tar.gz
+Reusing existing connection to [snapshot.debian.org]:443.
+HTTP request sent, awaiting response... 200 OK
+Length: 134506 (131K)
+Saving to: '/home/jantzen/xxri-wt/ptx/src/chrpath-0.16.tar.gz.Fw0CMLTnQn'
+
+          /home/jan   0%[                    ]       0  --.-KB/s               /home/jantzen/xxri- 100%[===================>] 131.35K  --.-KB/s    in 0.1s    
+
+2026-10-22 00:06:22 (1.10 MB/s) - '/home/jantzen/xxri-wt/ptx/src/chrpath-0.16.tar.gz.Fw0CMLTnQn' saved [134506/134506]
+
+
+-------------------------------------------------------------
+target: host-chrpath.9d3933ab3ddda7a924eccb211fb87a81.srchash
+-------------------------------------------------------------
+
+finished target host-chrpath.9d3933ab3ddda7a924eccb211fb87a81.srchash
+
+------------------------
+target: host-chrpath.get
+------------------------
+
+finished target host-chrpath.get
+
+----------------------------
+target: host-chrpath.extract
+----------------------------
+
+extract: pkg_src=ptx/src/chrpath-0.16.tar.gz
+extract: pkg_extract_dir=ptx/platform-xxri/build-host/chrpath-0.16
+patchin: no patches found
+finished target host-chrpath.extract
+
+---------------------------------
+target: host-chrpath.extract.post
+---------------------------------
+
+finished target host-chrpath.extract.post
+
+-------------------------------------------------------------
+target: host-chrpath.c591bd4bd02fe688a0101305bd814233.cfghash
+-------------------------------------------------------------
+
+finished target host-chrpath.c591bd4bd02fe688a0101305bd814233.cfghash
+
+----------------------------
+target: host-chrpath.prepare
+----------------------------
+
+ptxdist: executing: PATH=/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/bin:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/sbin:/home/jantzen/xxri-wt/ptx/selected_toolchain:/home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/android-ndk:/opt/android-sdk/platform-tools:/opt/android-sdk/tools:/opt/android-sdk/tools/bin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin HTTPS_PROXY=PTXDIST-UNALLOWED-DOWNLOAD HTTP_PROXY=PTXDIST-UNALLOWED-DOWNLOAD https_proxy=PTXDIST-UNALLOWED-DOWNLOAD http_proxy=PTXDIST-UNALLOWED-DOWNLOAD PKGCONFIG_WHITELIST_HOST='' PKGCONFIG_WHITELIST_TARGET='' PKGCONFIG_WHITELIST_SRC='host-chrpath' SYSROOT='/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host' V=0 VERBOSE= KBUILD_BUILD_TIMESTAMP=2024-11-01T00:00:00+00:00 KBUILD_BUILD_USER=ptxdist KBUILD_BUILD_HOST=ptxdist PTXDIST_ICECC= enable_option_checking=fatal enable_maintainer_mode=no enable_static=no CC="gcc" CXX="g++" ./configure --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib
+
+checking build system type... x86_64-unknown-linux-gnu
+checking host system type... x86_64-unknown-linux-gnu
+checking target system type... x86_64-unknown-linux-gnu
+checking for a BSD-compatible install... /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c
+checking whether build environment is sane... yes
+checking for a thread-safe mkdir -p... /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p
+checking for gawk... gawk
+checking whether make sets $(MAKE)... yes
+checking whether to enable maintainer-specific portions of Makefiles... no
+checking for gcc... gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether we are using the GNU C compiler... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to accept ISO C89... none needed
+checking for style of include used by make... GNU
+checking dependency style of gcc... gcc3
+checking how to run the C preprocessor... gcc -E
+checking for grep that handles long lines and -e... /usr/bin/grep
+checking for egrep... /usr/bin/grep -E
+checking for ANSI C header files... yes
+checking for sys/types.h... yes
+checking for sys/stat.h... yes
+checking for stdlib.h... yes
+checking for string.h... yes
+checking for memory.h... yes
+checking for strings.h... yes
+checking for inttypes.h... yes
+checking for stdint.h... yes
+checking for unistd.h... yes
+checking getopt.h usability... yes
+checking getopt.h presence... yes
+checking for getopt.h... yes
+checking elf.h usability... yes
+checking elf.h presence... yes
+checking for elf.h... yes
+checking fcntl.h usability... yes
+checking fcntl.h presence... yes
+checking for fcntl.h... yes
+checking for unistd.h... (cached) yes
+checking link.h usability... yes
+checking link.h presence... yes
+checking for link.h... yes
+checking sys/link.h usability... no
+checking sys/link.h presence... no
+checking for sys/link.h... no
+checking for an ANSI C-conforming const... yes
+checking whether byte ordering is bigendian... no
+checking size of void *... 8
+checking for getopt_long... yes
+configure: creating ./config.status
+config.status: creating Makefile
+config.status: creating testsuite/Makefile
+config.status: creating deb/Makefile
+config.status: creating config.h
+config.status: executing depfiles commands
+Configure status:
+-----------------
+ CC     = gcc
+ CFLAGS = -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes
+ LDRPATH= -Wl,-rpath,
+
+finished target host-chrpath.prepare
+
+----------------------------
+target: host-chrpath.compile
+----------------------------
+
+ptxdist: executing: PATH=/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/bin:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/sbin:/home/jantzen/xxri-wt/ptx/selected_toolchain:/home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/android-ndk:/opt/android-sdk/platform-tools:/opt/android-sdk/tools:/opt/android-sdk/tools/bin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin HTTPS_PROXY=PTXDIST-UNALLOWED-DOWNLOAD HTTP_PROXY=PTXDIST-UNALLOWED-DOWNLOAD https_proxy=PTXDIST-UNALLOWED-DOWNLOAD http_proxy=PTXDIST-UNALLOWED-DOWNLOAD PKGCONFIG_WHITELIST_HOST='' PKGCONFIG_WHITELIST_TARGET='' PKGCONFIG_WHITELIST_SRC='host-chrpath' SYSROOT='/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host' V=0 VERBOSE= KBUILD_BUILD_TIMESTAMP=2024-11-01T00:00:00+00:00 KBUILD_BUILD_USER=ptxdist KBUILD_BUILD_HOST=ptxdist  make -C /home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16  -j32  
+
+make: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+make  all-recursive
+make[1]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+Making all in testsuite
+make[2]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite'
+gcc -Wl,-rpath,/usr/local/lib -o prog prog.c
+make[2]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite'
+Making all in deb
+make[2]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/deb'
+make[2]: Nothing to be done for 'all'.
+make[2]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/deb'
+make[2]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+gcc -DHAVE_CONFIG_H -I.     -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes -MT chrpath.o -MD -MP -MF .deps/chrpath.Tpo -c -o chrpath.o chrpath.c
+gcc -DHAVE_CONFIG_H -I.     -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes -MT killrpath.o -MD -MP -MF .deps/killrpath.Tpo -c -o killrpath.o killrpath.c
+gcc -DHAVE_CONFIG_H -I.     -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes -MT main.o -MD -MP -MF .deps/main.Tpo -c -o main.o main.c
+gcc -DHAVE_CONFIG_H -I.     -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes -MT elf.o -MD -MP -MF .deps/elf.Tpo -c -o elf.o elf.c
+mv -f .deps/main.Tpo .deps/main.Po
+mv -f .deps/killrpath.Tpo .deps/killrpath.Po
+mv -f .deps/elf.Tpo .deps/elf.Po
+mv -f .deps/chrpath.Tpo .deps/chrpath.Po
+gcc  -g -O2 -W -Wall -Wcast-align -Wcast-qual -Wcomments -Wmissing-declarations -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wstrict-prototypes   -o chrpath chrpath.o killrpath.o main.o elf.o  
+make[2]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+make[1]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+make: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+finished target host-chrpath.compile
+
+----------------------------
+target: host-chrpath.install
+----------------------------
+
+ptxdist: executing: PATH=/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/bin:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/sbin:/home/jantzen/xxri-wt/ptx/selected_toolchain:/home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/android-ndk:/opt/android-sdk/platform-tools:/opt/android-sdk/tools:/opt/android-sdk/tools/bin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin HTTPS_PROXY=PTXDIST-UNALLOWED-DOWNLOAD HTTP_PROXY=PTXDIST-UNALLOWED-DOWNLOAD https_proxy=PTXDIST-UNALLOWED-DOWNLOAD http_proxy=PTXDIST-UNALLOWED-DOWNLOAD PKGCONFIG_WHITELIST_HOST='' PKGCONFIG_WHITELIST_TARGET='' PKGCONFIG_WHITELIST_SRC='host-chrpath' SYSROOT='/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host' V=0 VERBOSE= KBUILD_BUILD_TIMESTAMP=2024-11-01T00:00:00+00:00 KBUILD_BUILD_USER=ptxdist KBUILD_BUILD_HOST=ptxdist   make -C /home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16 DESTDIR="/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-chrpath-0.16" INSTALL_ROOT="/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-chrpath-0.16" install -j1
+make: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+Making install in testsuite
+make[1]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite'
+make[2]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite'
+make[2]: Nothing to be done for 'install-exec-am'.
+make[2]: Nothing to be done for 'install-data-am'.
+make[2]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite'
+make[1]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite'
+Making install in deb
+make[1]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/deb'
+make[2]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/deb'
+make[2]: Nothing to be done for 'install-exec-am'.
+make[2]: Nothing to be done for 'install-data-am'.
+make[2]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/deb'
+make[1]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/deb'
+make[1]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+make[2]: Entering directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-chrpath-0.16/usr/bin'
+  /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c chrpath '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-chrpath-0.16/usr/bin'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-chrpath-0.16/usr/doc/chrpath-0.16'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c -m 644 AUTHORS COPYING ChangeLog INSTALL NEWS README '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-chrpath-0.16/usr/doc/chrpath-0.16'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-chrpath-0.16/usr/share/man/man1'
+ /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c -m 644 chrpath.1 '/home/jantzen/xxri-wt/ptx/platform-xxri/packages/host-chrpath-0.16/usr/share/man/man1'
+make[2]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+make[1]: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+make: Leaving directory '/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16'
+finished target host-chrpath.install
+
+---------------------------------
+target: host-chrpath.install.pack
+---------------------------------
+
+finished target host-chrpath.install.pack
+
+---------------------------------
+target: host-chrpath.install.post
+---------------------------------
+
+finished target host-chrpath.install.post
+
+----------------------------------
+target: virtual-host-tools.install
+----------------------------------
+
+finished target virtual-host-tools.install
+
+--------------------------------------
+target: cross-dummy-strip.extract.post
+--------------------------------------
+
+finished target cross-dummy-strip.extract.post
+
+------------------------------------------------------------------
+target: cross-dummy-strip.c41a58ebe36f298d11bd22272c15ca7e.cfghash
+------------------------------------------------------------------
+
+finished target cross-dummy-strip.c41a58ebe36f298d11bd22272c15ca7e.cfghash
+
+---------------------------------
+target: cross-dummy-strip.prepare
+---------------------------------
+
+finished target cross-dummy-strip.prepare
+
+---------------------------------
+target: cross-dummy-strip.compile
+---------------------------------
+
+finished target cross-dummy-strip.compile
+
+---------------------------------
+target: cross-dummy-strip.install
+---------------------------------
+
+install -D -m 755 /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/scripts/dummy-strip.sh /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-cross/usr/bin/strip
+finished target cross-dummy-strip.install
+
+--------------------------------------
+target: cross-dummy-strip.install.pack
+--------------------------------------
+
+finished target cross-dummy-strip.install.pack
+
+--------------------------------------
+target: cross-dummy-strip.install.post
+--------------------------------------
+
+finished target cross-dummy-strip.install.post
+
+-----------------------------------
+target: fakeroot_1.35.1.orig.tar.gz
+-----------------------------------
+
+--2026-10-22 00:06:31--  https://snapshot.debian.org/archive/debian/20240713T143724Z/pool/main/f/fakeroot/fakeroot_1.35.1.orig.tar.gz
+Loaded CA certificate '/etc/ssl/certs/ca-certificates.crt'
+Resolving snapshot.debian.org (snapshot.debian.org)... 2a04:4e42:7b::644, 146.75.46.132
+Connecting to snapshot.debian.org (snapshot.debian.org)|2a04:4e42:7b::644|:443... connected.
+HTTP request sent, awaiting response... 302 FOUND
+Location: /file/7ca10589647ebb737a9d2514561c917c54b9cf0d/fakeroot_1.35.1.orig.tar.gz [following]
+--2026-10-22 00:06:32--  https://snapshot.debian.org/file/7ca10589647ebb737a9d2514561c917c54b9cf0d/fakeroot_1.35.1.orig.tar.gz
+Reusing existing connection to [snapshot.debian.org]:443.
+HTTP request sent, awaiting response... 200 OK
+Length: 572985 (560K)
+Saving to: '/home/jantzen/xxri-wt/ptx/src/fakeroot_1.35.1.orig.tar.gz.861XUDgwL6'
+
+          /home/jan   0%[                    ]       0  --.-KB/s                        /home/jant   3%[                    ]  17.28K  37.0KB/s                       /home/jantz  14%[=>                  ]  79.81K   112KB/s                      /home/jantze  28%[====>               ] 159.75K   171KB/s                     /home/jantzen  57%[==========>         ] 319.12K   281KB/s               /home/jantzen/xxri- 100%[===================>] 559.56K   432KB/s    in 1.3s    
+
+2026-10-22 00:06:33 (432 KB/s) - '/home/jantzen/xxri-wt/ptx/src/fakeroot_1.35.1.orig.tar.gz.861XUDgwL6' saved [572985/572985]
+
+
+--------------------------------------------------------------
+target: host-fakeroot.1e4ce15af9bb7dd913dd30539ebace04.srchash
+--------------------------------------------------------------
+
+finished target host-fakeroot.1e4ce15af9bb7dd913dd30539ebace04.srchash
+
+-------------------------
+target: host-fakeroot.get
+-------------------------
+
+finished target host-fakeroot.get
+
+-----------------------------
+target: host-fakeroot.extract
+-----------------------------
+
+extract: pkg_src=ptx/src/fakeroot_1.35.1.orig.tar.gz
+extract: pkg_extract_dir=ptx/platform-xxri/build-host/fakeroot-1.35.1
+
+pkg_patch_dir:     'sources/ptxdist-2024.11.0/patches/fakeroot-1.35.1'
+pkg_patch_series:  'sources/ptxdist-2024.11.0/patches/fakeroot-1.35.1/series'
+
+patchin: patch: apply 'sources/ptxdist-2024.11.0/patches/fakeroot-1.35.1/series'
+applying '0001-make-fakeroot-relocatable.patch'
+patching file scripts/fakeroot.in
+patchin: patch: done
+
+finished target host-fakeroot.extract
+
+------------------------
+target: acl-2.3.2.tar.gz
+------------------------
+
+--2026-10-22 00:06:34--  http://download.savannah.gnu.org/releases/acl/acl-2.3.2.tar.gz
+Resolving download.savannah.gnu.org (download.savannah.gnu.org)... 2001:470:142::79, 209.51.188.79
+Connecting to download.savannah.gnu.org (download.savannah.gnu.org)|2001:470:142::79|:80... connected.
+HTTP request sent, awaiting response... Read error (Connection timed out) in headers.
+Retrying.
+
+--2026-10-22 00:07:07--  (try: 2)  http://download.savannah.gnu.org/releases/acl/acl-2.3.2.tar.gz
+Connecting to download.savannah.gnu.org (download.savannah.gnu.org)|2001:470:142::79|:80... connected.
+HTTP request sent, awaiting response... 302 Moved Temporarily
+Location: http://mirror.accum.se/mirror/gnu.org/savannah/acl/acl-2.3.2.tar.gz [following]
+--2026-10-22 00:07:22--  http://mirror.accum.se/mirror/gnu.org/savannah/acl/acl-2.3.2.tar.gz
+Resolving mirror.accum.se (mirror.accum.se)... 2001:6b0:19::163, 2001:6b0:19::173, 194.71.11.173, ...
+Connecting to mirror.accum.se (mirror.accum.se)|2001:6b0:19::163|:80... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 555754 (543K) [application/x-gzip]
+Saving to: '/home/jantzen/xxri-wt/ptx/src/acl-2.3.2.tar.gz.IWS7YpxyYi'
+
+          /home/jan   0%[                    ]       0  --.-KB/s                        /home/jant   2%[                    ]  14.56K  48.9KB/s                       /home/jantz   7%[>                   ]  40.17K  79.3KB/s                      /home/jantze   7%[>                   ]  41.51K  58.4KB/s                     /home/jantzen  14%[=>                  ]  76.51K  70.8KB/s                    /home/jantzen/  26%[====>               ] 145.28K   113KB/s                   /home/jantzen/x  30%[=====>              ] 166.85K   112KB/s                  /home/jantzen/xx  46%[========>           ] 253.10K   150KB/s                 /home/jantzen/xxr  71%[=============>      ] 387.86K   205KB/s               /home/jantzen/xxri- 100%[===================>] 542.73K   261KB/s    in 2.1s    
+
+2026-10-22 00:07:26 (261 KB/s) - '/home/jantzen/xxri-wt/ptx/src/acl-2.3.2.tar.gz.IWS7YpxyYi' saved [555754/555754]
+
+
+---------------------------------------------------------
+target: host-acl.e41df5618465556fb8afa125c32dcd54.srchash
+---------------------------------------------------------
+
+finished target host-acl.e41df5618465556fb8afa125c32dcd54.srchash
+
+--------------------
+target: host-acl.get
+--------------------
+
+finished target host-acl.get
+
+------------------------
+target: host-acl.extract
+------------------------
+
+extract: pkg_src=ptx/src/acl-2.3.2.tar.gz
+extract: pkg_extract_dir=ptx/platform-xxri/build-host/acl-2.3.2
+
+pkg_patch_dir:     'sources/ptxdist-2024.11.0/patches/acl-2.3.2'
+pkg_patch_series:  'sources/ptxdist-2024.11.0/patches/acl-2.3.2/series'
+
+patchin: patch: apply 'sources/ptxdist-2024.11.0/patches/acl-2.3.2/series'
+applying '0001-Switch-to-sys-xattr.h.patch'
+patching file configure.ac
+patching file libacl/Makemodule.am
+patching file libacl/error_context.h
+patching file libacl/perm_copy_fd.c
+patching file libacl/perm_copy_file.c
+patchin: patch: done
+
+finished target host-acl.extract
+
+----------------------------
+target: autoconf-2.71.tar.xz
+----------------------------
+
+--2026-10-22 00:07:26--  https://ftp.gnu.org/gnu/autoconf/autoconf-2.71.tar.xz
+Loaded CA certificate '/etc/ssl/certs/ca-certificates.crt'
+Resolving ftp.gnu.org (ftp.gnu.org)... 2001:470:142:3::b, 209.51.188.20
+Connecting to ftp.gnu.org (ftp.gnu.org)|2001:470:142:3::b|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 1292296 (1.2M) [application/x-xz]
+Saving to: '/home/jantzen/xxri-wt/ptx/src/autoconf-2.71.tar.xz.W5nlhfL9Cn'
+
+          /home/jan   0%[                    ]       0  --.-KB/s                        /home/jant   1%[                    ]  15.08K  63.5KB/s                       /home/jantz   3%[                    ]  38.51K  81.7KB/s                      /home/jantze   6%[>                   ]  85.39K   120KB/s                     /home/jantzen  14%[=>                  ] 186.95K   198KB/s                    /home/jantzen/  30%[=====>              ] 390.08K   330KB/s                   /home/jantzen/x  62%[===========>        ] 788.51K   558KB/s               /home/jantzen/xxri- 100%[===================>]   1.23M   816KB/s    in 1.5s    
+
+2026-10-22 00:07:29 (816 KB/s) - '/home/jantzen/xxri-wt/ptx/src/autoconf-2.71.tar.xz.W5nlhfL9Cn' saved [1292296/1292296]
+
+
+------------------------------------------------------------------------
+target: host-autotools-autoconf.5045797af77ebf4674819d13e3e51dc1.srchash
+------------------------------------------------------------------------
+
+finished target host-autotools-autoconf.5045797af77ebf4674819d13e3e51dc1.srchash
+
+-----------------------------------
+target: host-autotools-autoconf.get
+-----------------------------------
+
+finished target host-autotools-autoconf.get
+
+---------------------------------------
+target: host-autotools-autoconf.extract
+---------------------------------------
+
+extract: pkg_src=ptx/src/autoconf-2.71.tar.xz
+extract: pkg_extract_dir=ptx/platform-xxri/build-host/autoconf-2.71
+patchin: no patches found
+finished target host-autotools-autoconf.extract
+
+------------------------
+target: m4-1.4.19.tar.xz
+------------------------
+
+URL transformed to HTTPS due to an HSTS policy
+--2026-10-22 00:07:29--  https://ftp.gnu.org/gnu/m4/m4-1.4.19.tar.xz
+Loaded CA certificate '/etc/ssl/certs/ca-certificates.crt'
+Resolving ftp.gnu.org (ftp.gnu.org)... 2001:470:142:3::b, 209.51.188.20
+Connecting to ftp.gnu.org (ftp.gnu.org)|2001:470:142:3::b|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 1654908 (1.6M) [application/x-xz]
+Saving to: '/home/jantzen/xxri-wt/ptx/src/m4-1.4.19.tar.xz.xOMmvIXsWc'
+
+          /home/jan   0%[                    ]       0  --.-KB/s                        /home/jant   0%[                    ]  15.08K  62.7KB/s                       /home/jantz   2%[                    ]  38.51K  80.7KB/s                      /home/jantze   5%[>                   ]  85.39K   120KB/s                     /home/jantzen  11%[=>                  ] 186.95K   196KB/s                    /home/jantzen/  23%[===>                ] 382.26K   319KB/s                   /home/jantzen/x  47%[========>           ] 772.89K   539KB/s                  /home/jantzen/xx  96%[==================> ]   1.52M   929KB/s               /home/jantzen/xxri- 100%[===================>]   1.58M   954KB/s    in 1.7s    
+
+2026-10-22 00:07:32 (954 KB/s) - '/home/jantzen/xxri-wt/ptx/src/m4-1.4.19.tar.xz.xOMmvIXsWc' saved [1654908/1654908]
+
+
+--------------------------------------------------------
+target: host-m4.7008b86d3839ff5e5f11ae4aa7e31d92.srchash
+--------------------------------------------------------
+
+finished target host-m4.7008b86d3839ff5e5f11ae4aa7e31d92.srchash
+
+-------------------
+target: host-m4.get
+-------------------
+
+finished target host-m4.get
+
+-----------------------
+target: host-m4.extract
+-----------------------
+
+extract: pkg_src=ptx/src/m4-1.4.19.tar.xz
+extract: pkg_extract_dir=ptx/platform-xxri/build-host/m4-1.4.19
+patchin: no patches found
+finished target host-m4.extract
+
+----------------------------
+target: host-m4.extract.post
+----------------------------
+
+finished target host-m4.extract.post
+
+--------------------------------------------------------
+target: host-m4.0793d0e500f7af620e11380d85d3fc00.cfghash
+--------------------------------------------------------
+
+finished target host-m4.0793d0e500f7af620e11380d85d3fc00.cfghash
+
+-----------------------
+target: host-m4.prepare
+-----------------------
+
+ptxdist: executing: PATH=/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib/wrapper:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/bin:/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/sbin:/home/jantzen/xxri-wt/ptx/selected_toolchain:/home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin:/usr/local/sbin:/usr/local/bin:/usr/bin:/opt/android-ndk:/opt/android-sdk/platform-tools:/opt/android-sdk/tools:/opt/android-sdk/tools/bin:/var/lib/flatpak/exports/bin:/usr/lib/jvm/default/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/usr/lib/rustup/bin HTTPS_PROXY=PTXDIST-UNALLOWED-DOWNLOAD HTTP_PROXY=PTXDIST-UNALLOWED-DOWNLOAD https_proxy=PTXDIST-UNALLOWED-DOWNLOAD http_proxy=PTXDIST-UNALLOWED-DOWNLOAD PKGCONFIG_WHITELIST_HOST='' PKGCONFIG_WHITELIST_TARGET='' PKGCONFIG_WHITELIST_SRC='host-m4' SYSROOT='/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host' V=0 VERBOSE= KBUILD_BUILD_TIMESTAMP=2024-11-01T00:00:00+00:00 KBUILD_BUILD_USER=ptxdist KBUILD_BUILD_HOST=ptxdist PTXDIST_ICECC= enable_option_checking=fatal enable_maintainer_mode=no enable_static=no CC="gcc" CXX="g++" ./configure --prefix=/usr --sysconfdir=/etc --libdir=/usr/lib --enable-threads=posix --disable-gcc-warnings --enable-assert --disable-rpath --disable-c++ --disable-changeword --without-included-regex --with-syscmd-shell=/bin/sh --without-dmalloc
+
+checking for a BSD-compatible install... /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/install -c
+checking whether build environment is sane... yes
+checking for a race-free mkdir -p... /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/mkdir -p
+checking for gawk... gawk
+checking whether make sets $(MAKE)... yes
+checking whether make supports nested variables... yes
+checking whether make supports nested variables... (cached) yes
+checking for gcc... gcc
+checking whether the C compiler works... yes
+checking for C compiler default output file name... a.out
+checking for suffix of executables... 
+checking whether we are cross compiling... no
+checking for suffix of object files... o
+checking whether the compiler supports GNU C... yes
+checking whether gcc accepts -g... yes
+checking for gcc option to enable C11 features... none needed
+checking whether gcc understands -c and -o together... yes
+checking whether the compiler is clang... no
+checking for compiler option needed when checking for declarations... none
+checking whether make supports the include directive... yes (GNU style)
+checking dependency style of gcc... gcc3
+checking for stdio.h... yes
+checking for stdlib.h... yes
+checking for string.h... yes
+checking for inttypes.h... yes
+checking for stdint.h... yes
+checking for strings.h... yes
+checking for sys/stat.h... yes
+checking for sys/types.h... yes
+checking for unistd.h... yes
+checking for wchar.h... yes
+checking for minix/config.h... no
+checking for pthread.h... yes
+checking for sys/param.h... yes
+checking for sys/socket.h... yes
+checking for dirent.h... yes
+checking for stdio_ext.h... yes
+checking for getopt.h... yes
+checking for sys/cdefs.h... yes
+checking for threads.h... yes
+checking for iconv.h... yes
+checking for limits.h... yes
+checking for crtdefs.h... no
+checking for wctype.h... yes
+checking for langinfo.h... yes
+checking for xlocale.h... no
+checking for math.h... yes
+checking for sys/mman.h... yes
+checking for malloc.h... yes
+checking for spawn.h... yes
+checking for sys/time.h... yes
+checking for sys/random.h... yes
+checking for sys/wait.h... yes
+checking for features.h... yes
+checking for arpa/inet.h... yes
+checking for semaphore.h... yes
+checking for netdb.h... yes
+checking for netinet/in.h... yes
+checking for sys/select.h... yes
+checking for sys/ioctl.h... yes
+checking for sys/uio.h... yes
+checking whether it is safe to define __EXTENSIONS__... yes
+checking whether _XOPEN_SOURCE should be defined... no
+checking build system type... x86_64-pc-linux-gnu
+checking host system type... x86_64-pc-linux-gnu
+checking how to run the C preprocessor... gcc -E
+checking for grep that handles long lines and -e... /usr/bin/grep
+checking for egrep... /usr/bin/grep -E
+checking for Minix Amsterdam compiler... no
+checking for ar... ar
+checking for ranlib... ranlib
+checking whether to use C++... no
+checking for _LARGEFILE_SOURCE value needed for large files... no
+checking for special C compiler options needed for large files... no
+checking for _FILE_OFFSET_BITS value needed for large files... no
+configure: autobuild project... GNU M4
+configure: autobuild revision... 1.4.19
+./configure: line 8334: hostname: command not found
+configure: autobuild timestamp... 20261021T170740Z
+checking for unsigned long long int... yes
+checking for long long int... yes
+checking for unsigned long long int... (cached) yes
+checking for size_t... yes
+checking for working alloca.h... yes
+checking for alloca... yes
+checking for inline... inline
+checking whether <wchar.h> uses 'inline' correctly... yes
+checking for btowc... yes
+checking for canonicalize_file_name... yes
+checking for faccessat... yes
+checking for realpath... yes
+checking for lstat... yes
+checking for _set_invalid_parameter_handler... no
+checking for fchdir... yes
+checking for fcntl... yes
+checking for symlink... yes
+checking for fdopendir... yes
+checking for mempcpy... yes
+checking for fpurge... no
+checking for __fpurge... yes
+checking for __freadahead... no
+checking for __freading... yes
+checking for fstatat... yes
+checking for getdtablesize... yes
+checking for getprogname... no
+checking for getexecname... no
+checking for getrandom... yes
+checking for iswcntrl... yes
+checking for iswblank... yes
+checking for uselocale... yes
+checking for newlocale... yes
+checking for duplocale... yes
+checking for freelocale... yes
+checking for mbsinit... yes
+checking for mbrtowc... yes
+checking for mbslen... no
+checking for mprotect... yes
+checking for mkstemp... yes
+checking for nl_langinfo... yes
+checking for openat... yes
+checking for pipe... yes
+checking for pipe2... yes
+checking for posix_spawn_file_actions_addchdir_np... yes
+checking for posix_spawn_file_actions_addchdir... no
+checking for readlink... yes
+checking for isblank... yes
+checking for iswctype... yes
+checking for link... yes
+checking for secure_getenv... yes
+checking for getuid... yes
+checking for geteuid... yes
+checking for getgid... yes
+checking for getegid... yes
+checking for sigaction... yes
+checking for sigaltstack... yes
+checking for siginterrupt... yes
+checking for setrlimit... yes
+checking for getrlimit... yes
+checking for snprintf... yes
+checking for strerror_r... yes
+checking for __xpg_strerror_r... yes
+checking for strndup... yes
+checking for vasnprintf... no
+checking for wcrtomb... yes
+checking for wcwidth... yes
+checking for explicit_bzero... yes
+checking for memset_s... no
+checking for ftruncate... yes
+checking for gettimeofday... yes
+checking for pthread_sigmask... yes
+checking for setenv... yes
+checking for sleep... yes
+checking for catgets... yes
+checking for shutdown... yes
+checking for mquery... no
+checking for pstat_getprocvm... no
+checking for wctob... yes
+checking for nl_langinfo and CODESET... yes
+checking for a traditional french locale... none
+checking whether malloc is ptrdiff_t safe... yes
+checking whether malloc, realloc, calloc set errno on failure... yes
+checking whether lstat correctly handles trailing slash... yes
+checking whether // is distinct from /... no
+checking whether realpath works... yes
+checking for getcwd... yes
+checking whether the preprocessor supports include_next... yes
+checking whether source code line length is unlimited... yes
+checking for gcc options needed to detect all undeclared functions... none needed
+checking if environ is properly declared... yes
+checking for complete errno.h... yes
+checking whether strerror_r is declared... yes
+checking whether strerror_r returns char *... yes
+checking for mode_t... yes
+checking for sig_atomic_t... yes
+checking whether fchdir is declared... yes
+checking for working fcntl.h... yes
+checking for pid_t... yes
+checking for eaccess... yes
+checking whether frexp() can be used without linking with libm... yes
+checking whether alarm is declared... yes
+checking whether long double and double are the same... no
+checking whether stdin defaults to large file offsets... yes
+checking whether fseeko is declared... yes
+checking for fseeko... yes
+checking whether fflush works on input streams... yes
+checking whether stat file-mode macros are broken... no
+checking for C/C++ restrict keyword... __restrict__
+checking for nlink_t... yes
+checking whether ftello is declared... yes
+checking whether ungetc works on arbitrary bytes... yes
+checking for ftello... yes
+checking whether ftello works... yes
+checking whether getcwd (NULL, 0) allocates memory for result... yes
+checking for getcwd with POSIX signature... yes
+checking whether getcwd is declared... yes
+checking whether getdtablesize is declared... yes
+checking for getopt.h... (cached) yes
+checking for getopt_long_only... yes
+checking whether getopt is POSIX compatible... yes
+checking for working GNU getopt function... yes
+checking for working GNU getopt_long function... yes
+checking for pthread.h... (cached) yes
+checking for pthread_kill in -lpthread... yes
+checking whether POSIX threads API is available... yes
+checking whether setlocale (LC_ALL, NULL) is multithread-safe... yes
+checking whether setlocale (category, NULL) is multithread-safe... yes
+checking host CPU and C ABI... x86_64
+checking for ld used by gcc... /usr/bin/ld
+checking if the linker (/usr/bin/ld) is GNU ld... yes
+checking for shared library run path origin... done
+checking 32-bit host C ABI... no
+checking for ELF binary format... yes
+checking for the common suffixes of directories in the library search path... lib,lib,lib64
+checking for iconv... yes
+checking for working iconv... yes
+checking whether iconv is compatible with its POSIX signature... yes
+checking whether limits.h has LLONG_MAX, WORD_BIT, ULLONG_WIDTH etc.... yes
+checking for wint_t... yes
+checking whether wint_t is large enough... yes
+checking whether the compiler produces multi-arch binaries... no
+checking whether stdint.h conforms to C99... yes
+checking whether stdint.h works without ISO C predefines... yes
+checking whether stdint.h has UINTMAX_WIDTH etc.... yes
+checking where to find the exponent in a 'double'... word 1 bit 20
+checking where to find the exponent in a 'float'... word 0 bit 23
+checking whether byte ordering is bigendian... no
+checking whether iswcntrl works... yes
+checking for towlower... yes
+checking for wctype_t... yes
+checking for wctrans_t... yes
+checking for a traditional japanese locale... none
+checking for a french Unicode locale... none
+checking for a transitional chinese locale... none
+checking whether langinfo.h defines CODESET... yes
+checking whether langinfo.h defines T_FMT_AMPM... yes
+checking whether langinfo.h defines ALTMON_1... yes
+checking whether langinfo.h defines ERA... yes
+checking whether langinfo.h defines YESEXPR... yes
+checking for wchar_t... yes
+checking for good max_align_t... yes
+checking whether NULL can be used in arbitrary expressions... yes
+checking whether locale.h defines locale_t... yes
+checking whether locale.h conforms to POSIX:2001... yes
+checking whether struct lconv is properly defined... yes
+checking for LC_MESSAGES... yes
+checking whether uselocale works... yes
+checking for fake locale system (OpenBSD)... no
+checking for Solaris 11.4 locale system... no
+checking for getlocalename_l... no
+checking for CFPreferencesCopyAppValue... no
+checking for CFLocaleCopyPreferredLanguages... no
+checking whether imported symbols can be declared weak... yes
+checking for multithread API to use... posix
+checking for a sed that does not truncate output... /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/sed
+checking whether malloc (0) returns nonnull... yes
+checking whether NAN macro works... yes
+checking whether HUGE_VAL works... yes
+checking for mbstate_t... yes
+checking for mmap... yes
+checking for MAP_ANONYMOUS... yes
+checking whether memchr works... yes
+checking whether memrchr is declared... yes
+checking whether <limits.h> defines MIN and MAX... no
+checking whether <sys/param.h> defines MIN and MAX... yes
+checking for O_CLOEXEC... yes
+checking for promoted mode_t type... mode_t
+checking for library containing posix_spawn... none required
+checking for posix_spawn... yes
+checking whether posix_spawn is declared... yes
+checking whether posix_spawn works... 
+}}} 2026-10-22T00:08:03+0700 /home/jantzen/xxri-wt/sources/ptxdist-2024.11.0/bin/ptxdist --force go; (exit value: 143)
+
+
+
+{{{ 2026-10-22T17:13:25+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go
+
+-----------------------------------------------------------
+target: usr-rootfs.6d9c7acc2cccca2745a5e83c8ca15be6.srchash
+-----------------------------------------------------------
+
+finished target usr-rootfs.6d9c7acc2cccca2745a5e83c8ca15be6.srchash
+
+----------------------
+target: usr-rootfs.get
+----------------------
+
+
+ptxdist: error: 'usr-rootfs' is not selected.
+ptxdist: error: This can happen if the ptxconfig is outdated or
+ptxdist: error: the package is disabled for the current architecture
+
+make: *** [/home/jantzen/.local/lib/ptxdist-2026.09.0/rules/post/ptxd_make_world_get.make:26: /home/jantzen/xxri-wt/ptx/platform-xxri/state/usr-rootfs.get] Error 1
+
+}}} 2026-10-22T17:13:30+0700 /home/jantzen/.local/lib/ptxdist-2026.09.0/bin/ptxdist go; (exit value: 2)
+
+
+

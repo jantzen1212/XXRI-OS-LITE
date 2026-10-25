@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: XXRI OS Lite 2.6\n"
 "Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
-"POT-Creation-Date: 2026-10-18 16:24+0700\n"
+"POT-Creation-Date: 2026-10-20 22:51+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -14,6 +14,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
 
 #: xxri-settings.c
 msgid "Wi-Fi & Network"
@@ -388,22 +389,6 @@ msgid "Microphone Level"
 msgstr ""
 
 #: xxri-settings.c
-msgid "System Sounds"
-msgstr ""
-
-#: xxri-settings.c
-msgid "Notification sounds"
-msgstr ""
-
-#: xxri-settings.c
-msgid "Play the XXRI chime at login"
-msgstr ""
-
-#: xxri-settings.c
-msgid "Startup sound"
-msgstr ""
-
-#: xxri-settings.c
 msgid "No storage devices"
 msgstr ""
 
@@ -582,11 +567,107 @@ msgid ""
 msgstr ""
 
 #: xxri-settings.c
-msgid "No display modes were reported."
+msgid " (off)"
+msgstr ""
+
+#: xxri-settings.c
+#, c-format
+msgid "The previous arrangement comes back in %d second."
+msgid_plural "The previous arrangement comes back in %d seconds."
+msgstr[0] ""
+msgstr[1] ""
+
+#: xxri-settings.c
+msgid "Keep this display arrangement?"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Keep"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Revert"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Display 1"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Display 2"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Arrangement"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Extend"
+msgstr ""
+
+#: xxri-settings.c
+#, c-format
+msgid "One desktop across the displays. The dock stays on the %s."
+msgstr ""
+
+#: xxri-settings.c
+msgid "Mirror"
+msgstr ""
+
+#: xxri-settings.c
+#, c-format
+msgid "Every display shows the same picture, at %d × %d."
+msgstr ""
+
+#: xxri-settings.c
+msgid "Not possible: these displays have no resolution in common."
+msgstr ""
+
+#: xxri-settings.c
+#, c-format
+msgid "%s Only"
+msgstr ""
+
+#: xxri-settings.c
+#, c-format
+msgid "The %s is turned off."
+msgstr ""
+
+#: xxri-settings.c
+msgid "The previous arrangement comes back unless you keep this one."
+msgstr ""
+
+#: xxri-settings.c
+#, c-format
+msgid "%s Resolution"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Changes at once; the desktop stays on the main display."
 msgstr ""
 
 #: xxri-settings.c
 msgid "Resolution"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Extended"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Mirrored"
+msgstr ""
+
+#: xxri-settings.c
+msgid "One Display"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Main Display"
+msgstr ""
+
+#: xxri-settings.c
+msgid "No display modes were reported."
 msgstr ""
 
 #: xxri-settings.c
@@ -1351,8 +1432,4 @@ msgstr ""
 
 #: xxri-settings.c
 msgid "Settings"
-msgstr ""
-
-#: xxri-settings.c
-msgid "Guest"
 msgstr ""

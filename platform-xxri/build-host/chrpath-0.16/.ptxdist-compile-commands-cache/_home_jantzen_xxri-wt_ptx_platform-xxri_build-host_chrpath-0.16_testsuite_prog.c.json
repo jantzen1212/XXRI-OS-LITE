@@ -1,0 +1,6 @@
+  {
+    "directory": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite",
+    "command": "gcc   -isystem /home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/include   -Wl,-rpath,/usr/local/lib -o prog prog.c  -B/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib -L/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib -Wl,-rpath -Wl,/home/jantzen/xxri-wt/ptx/platform-xxri/sysroot-host/usr/lib -Wl,-rpath,$ORIGIN/../lib:/with/some/extra/space",
+    "file": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite/prog.c",
+    "output": "/home/jantzen/xxri-wt/ptx/platform-xxri/build-host/chrpath-0.16/testsuite/prog"
+  }

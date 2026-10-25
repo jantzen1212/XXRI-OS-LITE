@@ -40,6 +40,9 @@ xxri-audio list|volume [get|set N|up|down]|mute|unmute|toggle|
   mixer (alsactl state in /usr/local/etc/xxri/alsa.state)
 - `init` (boot): loads drivers by PCI/USB modalias, auto-selects the first
   analog playback card (saved choice wins), restores or unmutes to 70%
+- `test` plays a 440 Hz tone through the `default` device, the one every
+  program uses (dmix), so it mixes with whatever else is playing; only a
+  card asked for with `--card` that is not the default is opened directly
 
 ## xxri-network
 ```
@@ -71,17 +74,40 @@ xxri-network status|list|wifi [on|off]|scan [IF]|info [IF]|
 
 ## xxri-display  (XLibre backend; API is driver-agnostic)
 ```
-xxri-display list|current|set-resolution WxH[xBPP] [--apply]|edid|cache-modes [--json]
+xxri-display list|current|monitors|layout|edid|cache-modes [--json]
+xxri-display set-resolution WxH[xBPP] [--rate HZ] [--apply] [--output OUT] [--json]
+xxri-display set-refresh HZ [--json]
+xxri-display set-layout extend|mirror|internal|external [--keep] [--json]
+xxri-display confirm-layout | revert-layout [--json]
+xxri-display apply [--session|--hotplug]
 ```
 - `driver` is `kms` (XLibre Xorg + modesetting on a KMS/DRM device) or `fbdev`
   (XLibre Xfbdev on the firmware framebuffer, when there is no KMS device)
 - `list --json` → `"list":{modes:[{mode,width,height,depth,refresh,current}],driver,note}`;
-  kms: the connector's modes (DRM sysfs before X starts, RandR while it
+  kms: the primary display's modes (DRM sysfs before X starts, RandR while it
   runs); fbdev: the single framebuffer mode
-- `set-resolution` validates against that list and persists it (applied by
-  `~/.xsession` at every session start; an `xres=` boot code wins);
-  `--apply` switches the running display through RandR (kms).  On fbdev the
-  mode belongs to the boot loader and cannot be changed
+- `set-resolution` validates against that list and persists it as the
+  desktop's size (applied at every session start; an `xres=` boot code wins);
+  `--apply` restarts the session.  `--output OUT` for a display that is not the
+  primary sets that display's own size live (extended layout only).  On fbdev
+  the mode belongs to the boot loader and cannot be changed
+- `layout --json` → `"layout":{count,server,changeable,current,saved,default,
+  layouts:[...],internal,external,mirror_mode,pending,pending_layout,revert_in,
+  outputs:[{name,label,role,builtin,active,primary,width,height,x,y,mode,
+  preferred,saved_mode,modes:[{mode,rates,current,preferred}]}]}`.  Output
+  names come from RandR; `internal` is the first connected built-in panel
+  (eDP/LVDS/DSI), else the first connected output.  `layouts` lists what the
+  hardware allows (empty with one display, no `mirror` without a shared mode)
+- layouts: `extend` (internal at 0,0 as the primary, the others to its
+  right), `mirror` (all at 0,0, one shared mode), `internal` / `external`
+  (that display alone).  The primary display always sits at 0,0
+- `set-layout` applies at once and is a trial: unless `confirm-layout` follows
+  within 20 s the previous screen comes back by itself (`revert-layout` does it
+  now).  `--keep` saves at once.  A layout the driver refuses is undone
+- `apply` puts the saved layout (default `mirror`) on the displays connected
+  now, never leaving them all dark: `~/.xsession` (`--session`), the
+  `/usr/local/etc/X.d/xxri-display` hook, and `xxri-wctl watch-displays` on a
+  plug or unplug (`--hotplug`)
 - `edid --json` → `"edid":{available,reason?}` (from /sys/class/drm)
 - `cache-modes` records the boot-time mode list (run by xxri-hw-init)
 

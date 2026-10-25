@@ -11,6 +11,13 @@ XXRI_GRUB_TOOLS_DIR		:= $(BUILDDIR)/xxri-grub-tools-$(XXRI_GRUB_TOOLS_VERSION)
 XXRI_GRUB_TOOLS_LICENSE		:= GPL-3.0-or-later
 XXRI_GRUB_TOOLS_LICENSE_FILES	:= file://COPYING;md5=d32239bcb673463ab874e80d47fae504
 XXRI_GRUB_TOOLS_OUT		:= $(XXRI_GRUB_TOOLS_DIR)-out/sbin
+# module trees the installer writes: BIOS, plus the UEFI of this system's
+# kernel (an x86_64 kernel starts from 64-bit UEFI, the i686 one from IA32)
+ifeq ($(PTXCONF_ARCH_X86_64),y)
+XXRI_GRUB_TOOLS_PLATFORMS	:= i386-pc x86_64-efi
+else
+XXRI_GRUB_TOOLS_PLATFORMS	:= i386-pc i386-efi
+endif
 # targetinstall takes files from the build tree and from host-xxri-grub's
 # module trees, which a prebuilt development package could not provide
 XXRI_GRUB_TOOLS_DEVPKG		:= NO
@@ -46,14 +53,14 @@ $(STATEDIR)/xxri-grub-tools.targetinstall:
 	@$(call install_fixup, xxri-grub-tools,SECTION,base)
 	@$(call install_fixup, xxri-grub-tools,AUTHOR,"XXRI OS Team")
 	@$(call install_fixup, xxri-grub-tools,DESCRIPTION,"GRUB 2.14 for the installer")
-#	# the i686 utilities built here
+#	# the utilities built here
 	@$(foreach t, grub-install grub-mkimage grub-bios-setup grub-probe grub-editenv, \
 		$(call install_copy, xxri-grub-tools, 0, 0, 0755, $(XXRI_GRUB_TOOLS_OUT)/$(t), \
 			/usr/local/sbin/$(t), n)$(ptx/nl))
 #	# the module trees of the boot images on the medium (host-xxri-grub), so an
 #	# installed disk boots the same GRUB bits; *.module/*.exec/gdb_grub are
 #	# debug copies for gdb (15 MB of 18)
-	@$(foreach p, i386-pc i386-efi, \
+	@$(foreach p, $(XXRI_GRUB_TOOLS_PLATFORMS), \
 		$(call install_glob, xxri-grub-tools, 0, 0, \
 			$(HOST_XXRI_GRUB_PREFIX)/$(p)/usr/lib/grub/$(p), /usr/local/lib/grub/$(p), , \
 			*.module *.exec */gdb_grub *.py */config.h, n)$(ptx/nl))

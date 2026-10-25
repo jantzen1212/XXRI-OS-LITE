@@ -1,0 +1,303 @@
+From: XXRI OS Team
+Subject: [PATCH] One display at a time: maximise, placement and screen changes
+
+With two displays extended, the root window spans both, so maximise
+filled both screens, new windows were placed anywhere on the bounding
+box and the dock band was kept free on every display. And the root
+window was measured once: after a display was added or removed by RandR
+windows stayed clamped to the old size, or sat on a display that was
+gone.
+
+Read the RandR 1.5 monitors. Maximise fills the display under the
+window's centre, new windows go to the display the pointer is on, and
+the dock band is only kept free on the primary display (where the dock
+is; xxri-display keeps it at 0,0). On a RandR screen change the root
+size, the monitor list and every window follow: maximised windows fill
+their display again, and a window less than a quarter visible (or with
+its titlebar off every display) comes back to the primary.
+---
+--- a/Frame.C
++++ b/Frame.C
+@@ -41,6 +41,103 @@
+ #ifdef XXRI
+ // defined with the rest of the XXRI decoration code, used by placement too
+ static int xxri_dock_reserve();
++
++// ---- displays
++// With an extended layout the root window spans every display, but the dock
++// lives on the primary one and maximise, placement and the dock band belong
++// to a single display. RandR 1.5 monitors, re-read after every screen change
++// (xxri_screen_changed, from main.C). xxri-display keeps the primary at 0,0.
++#include <X11/extensions/Xrandr.h>
++extern Fl_Window* Root;
++struct XxriMon { int x, y, w, h, primary; };
++#define XXRI_MAX_MONS 8
++static XxriMon xxri_mons[XXRI_MAX_MONS];
++static int xxri_nmons = -1;
++
++static void xxri_load_monitors() {
++  if (xxri_nmons >= 0) return;
++  xxri_nmons = 0;
++  int ev, er, n = 0, prim = 0;
++  if (XRRQueryExtension(fl_display, &ev, &er)) {
++    XRRMonitorInfo* m = XRRGetMonitors(fl_display, RootWindow(fl_display, fl_screen), True, &n);
++    for (int i = 0; m && i < n && xxri_nmons < XXRI_MAX_MONS; i++) {
++      if (m[i].width <= 0 || m[i].height <= 0) continue;
++      XxriMon& o = xxri_mons[xxri_nmons++];
++      o.x = m[i].x; o.y = m[i].y; o.w = m[i].width; o.h = m[i].height;
++      o.primary = m[i].primary && !prim;
++      prim |= o.primary;
++    }
++    if (m) XRRFreeMonitors(m);
++  }
++  if (!xxri_nmons) {	// no RandR (Xfbdev): the whole screen
++    XxriMon& o = xxri_mons[xxri_nmons++];
++    o.x = Root->x(); o.y = Root->y(); o.w = Root->w(); o.h = Root->h();
++    o.primary = 1;
++  } else if (!prim) {	// none flagged: the one at the origin, else the first
++    int k = 0;
++    for (int i = 0; i < xxri_nmons; i++)
++      if (xxri_mons[i].x == 0 && xxri_mons[i].y == 0) { k = i; break; }
++    xxri_mons[k].primary = 1;
++  }
++}
++
++static const XxriMon& xxri_primary_monitor() {
++  xxri_load_monitors();
++  for (int i = 0; i < xxri_nmons; i++) if (xxri_mons[i].primary) return xxri_mons[i];
++  return xxri_mons[0];
++}
++
++static int xxri_mon_has(const XxriMon& m, int X, int Y) {
++  return X >= m.x && X < m.x + m.w && Y >= m.y && Y < m.y + m.h;
++}
++
++// the display holding X,Y - the primary first, mirrored displays overlap it -
++// else the primary
++static const XxriMon& xxri_monitor_at(int X, int Y) {
++  const XxriMon& p = xxri_primary_monitor();
++  if (xxri_mon_has(p, X, Y)) return p;
++  for (int i = 0; i < xxri_nmons; i++)
++    if (xxri_mon_has(xxri_mons[i], X, Y)) return xxri_mons[i];
++  return p;
++}
++
++static const XxriMon& xxri_pointer_monitor() {
++  XWindow r, c; int rx = 0, ry = 0, wx, wy; unsigned int mask;
++  if (XQueryPointer(fl_display, RootWindow(fl_display, fl_screen), &r, &c,
++		    &rx, &ry, &wx, &wy, &mask))
++    return xxri_monitor_at(rx, ry);
++  return xxri_primary_monitor();
++}
++
++// what a window may fill on that display: all of it, less the dock band on
++// the primary
++static void xxri_work_area(const XxriMon& m, int& X, int& Y, int& W, int& H) {
++  X = m.x; Y = m.y; W = m.w; H = m.h;
++  if (m.primary && H - xxri_dock_reserve() >= 200) H -= xxri_dock_reserve();
++}
++
++// pixels of X,Y,W,H on some display
++static long xxri_visible_area(int X, int Y, int W, int H) {
++  xxri_load_monitors();
++  long a = 0;
++  for (int i = 0; i < xxri_nmons; i++) {
++    const XxriMon& m = xxri_mons[i];
++    int x0 = X > m.x ? X : m.x, x1 = X+W < m.x+m.w ? X+W : m.x+m.w;
++    int y0 = Y > m.y ? Y : m.y, y1 = Y+H < m.y+m.h ? Y+H : m.y+m.h;
++    if (x1 > x0 && y1 > y0) a += (long)(x1-x0) * (y1-y0);
++  }
++  return a;
++}
++
++// RandR said the screen changed: new root size, new displays, and no window
++// left where nobody can see it
++void xxri_screen_changed(int W, int H) {
++  // the cached size only: Fl_Window::resize would ask the server to
++  // configure the root window
++  Root->Fl_Widget::resize(0, 0, W, H);
++  xxri_nmons = -1;
++  for (Frame* f = Frame::first; f; f = f->next) f->xxri_refit();
++}
+ #endif
+ 
+ // From Hotkeys.C
+@@ -305,8 +402,10 @@
+   // screen and force_y_onscreen() pushes the controls off the top. Fit
+   // oversized windows to the maximize area; others keep their size.
+   if (!existing && !flag(NO_BORDER)) {
+-    int maxw = Root->w();
+-    int maxh = Root->h() - xxri_dock_reserve();   // the dock stays visible
++    // one display, the dock stays visible
++    int mx, my, maxw, maxh;
++    xxri_work_area(autoplace ? xxri_pointer_monitor() : xxri_monitor_at(x() + w()/2, y() + h()/2),
++		   mx, my, maxw, maxh);
+     int nw = w() > maxw ? maxw : w();
+     int nh = h() > maxh ? maxh : h();
+     if (nw - dwidth  < min_w) nw = min_w + dwidth;
+@@ -423,18 +522,23 @@
+   int best_y = 0;
+   int _w = w();
+   int _h = h();
++#ifdef XXRI
++  // on the display the pointer is on, out of the dock band like maximize
++  int min_x, min_y, area_w, area_h;
++  xxri_work_area(xxri_pointer_monitor(), min_x, min_y, area_w, area_h);
++  int max_x = min_x + area_w;
++  int max_y = min_y + area_h;
++  best_x = min_x; best_y = min_y;
++#else
++  int min_x = 0, min_y = 0;
+   int max_x = Root->x() + Root->w();
+   int max_y = Root->y() + Root->h();
+-#ifdef XXRI
+-  // autoplacement keeps out of the dock band, like maximize
+-  max_y -= xxri_dock_reserve();
+-  if (max_y < Root->y() + 200) max_y = Root->y() + Root->h();
+ #endif
+ 
+   Frame *f1 = Frame::first;
+   for(int i=0;; i++) {
+     if (i==0) {
+-      tmp_x = 0;
++      tmp_x = min_x;
+     } else if (i==1) {
+       tmp_x = max_x - _w;
+     } else {
+@@ -450,7 +554,7 @@
+     Frame *f2 = Frame::first;
+     for(int j=0;; j++) {
+       if (j==0) {
+-	tmp_y = 0;
++	tmp_y = min_y;
+       } else if (j==1) {
+ 	tmp_y = max_y - _h;
+       } else {
+@@ -464,7 +568,8 @@
+ 	f2 = f2->next;
+       }
+ 
+-      if ((tmp_x + _w <= max_x) && (tmp_y + _h <= max_y)) {
++      if ((tmp_x >= min_x) && (tmp_y >= min_y) &&
++	  (tmp_x + _w <= max_x) && (tmp_y + _h <= max_y)) {
+ 	tmp_o = getOverlap(tmp_x, tmp_y, _w, _h, Frame::first, this);
+ 	if(tmp_o < min_overlap || min_overlap < 0) {
+ 	  best_x = tmp_x;
+@@ -1173,6 +1278,29 @@
+ // Resize and/or move the window.  The size is given for the frame, not
+ // the contents.  This also sets the buttons on/off as needed:
+ 
++#ifdef XXRI
++void Frame::xxri_refit() {
++  if (xxri_maxed) {	// maximised: fill its display again, at the new size
++    int X, Y, W, H;
++    xxri_work_area(xxri_monitor_at(x() + w()/2, y() + h()/2), X, Y, W, H);
++    set_size(X, Y, W, H, 0);
++    // a restore rectangle on a display that went away comes back on this one
++    if (xxri_visible_area(xxri_rx, xxri_ry, xxri_rw, xxri_rh) < (long)xxri_rw * xxri_rh / 4) {
++      xxri_rx = X + 40; xxri_ry = Y + 40;
++    }
++    return;
++  }
++  // less than a quarter of it (or no titlebar) on any display: bring it to
++  // the primary, keeping its size where that fits
++  if (xxri_visible_area(x(), y(), w(), h()) >= (long)w() * h() / 4 &&
++      xxri_visible_area(x(), y(), w(), top > 8 ? top : 8) > 0) return;
++  int X, Y, W, H;
++  xxri_work_area(xxri_primary_monitor(), X, Y, W, H);
++  int nw = w() > W ? W : w(), nh = h() > H ? H : h();
++  set_size(X + (W - nw)/2, Y + (H - nh)/2, nw, nh, 0);
++}
++#endif
++
+ void Frame::set_size(int nx, int ny, int nw, int nh, int warp) {
+   int dx = nx-x(); x(nx);
+   int dy = ny-y(); y(ny);
+@@ -2084,8 +2212,10 @@
+   case 'M': {	// XXRI maximize / restore - both axes, one control
+     if (!xxri_maxed) {
+       xxri_rx = x(); xxri_ry = y(); xxri_rw = w(); xxri_rh = h();
+-      // stop above the dock
+-      set_size(0, 0, Root->w(), Root->h() - xxri_dock_reserve(), 1);
++      // its display, stopping above the dock
++      int X, Y, W, H;
++      xxri_work_area(xxri_monitor_at(x() + w()/2, y() + h()/2), X, Y, W, H);
++      set_size(X, Y, W, H, 1);
+       xxri_maxed = 1;
+     } else {
+       set_size(xxri_rx, xxri_ry, xxri_rw, xxri_rh, 1);
+--- a/Frame.H
++++ b/Frame.H
+@@ -121,6 +121,12 @@
+ 
+   int maximize_width();
+   int maximize_height();
++#ifdef XXRI
++public:
++  // the displays changed (RandR): stay on one, re-maximise to its new size
++  void xxri_refit();
++private:
++#endif
+   int force_x_onscreen(int X, int W);
+   int force_y_onscreen(int Y, int H);
+   void place_window();
+--- a/main.C
++++ b/main.C
+@@ -68,6 +68,12 @@
+ // screen's root window.  This is done by using set_xid to "show" it
+ // rather than have fltk create the window.
+ 
++#ifdef XXRI
++#include <X11/extensions/Xrandr.h>
++static int xxri_rr_event = -1, xxri_rr_error;
++extern void xxri_screen_changed(int W, int H);	// Frame.C
++#endif
++
+ class Fl_Root : public Fl_Window {
+   int handle(int);
+ public:
+@@ -110,6 +116,16 @@
+   }
+ 
+   if (!e) { // XEvent that fltk did not understand.
++#ifdef XXRI
++    if (xxri_rr_event >= 0 && fl_xevent->type == xxri_rr_event + RRScreenChangeNotify) {
++      // Xlib's idea of the screen size (Fl::w/h) follows only through this
++      XRRUpdateConfiguration((XEvent*)fl_xevent);
++      const XRRScreenChangeNotifyEvent* sc = (const XRRScreenChangeNotifyEvent*)fl_xevent;
++      int sideways = sc->rotation & (RR_Rotate_90 | RR_Rotate_270);
++      xxri_screen_changed(sideways ? sc->height : sc->width, sideways ? sc->width : sc->height);
++      return 1;
++    }
++#endif
+     XWindow window = fl_xevent->xany.window;
+     // unfortunately most of the redirect events put the interesting
+     // window id in a different place:
+@@ -161,6 +177,14 @@
+     } // end switch(fl_xevent->type)
+ 
+   } // end if (!e)
++#ifdef XXRI
++  // FLTK built with RandR (Tiny Core's 1.3) takes the event itself and says
++  // this instead, after updating Xlib's screen size
++  else if (e == FL_SCREEN_CONFIGURATION_CHANGED) {
++    xxri_screen_changed(DisplayWidth(fl_display, fl_screen), DisplayHeight(fl_display, fl_screen));
++    return 1;
++  }
++#endif
+   else if (e == FL_KEYUP) {
+   KEYUP:
+     if (!Fl::grab()) return 0;
+@@ -284,6 +308,12 @@
+ 	       KeyPressMask | KeyReleaseMask | KeymapStateMask);
+   Root->cursor((Fl_Cursor)cursor, CURSOR_FG_SLOT, CURSOR_BG_SLOT);
+   Fl::visible_focus(0);
++#ifdef XXRI
++  // displays added, removed or resized (xxri-display, hotplug)
++  if (XRRQueryExtension(d, &xxri_rr_event, &xxri_rr_error))
++    XRRSelectInput(d, fl_xid(Root), RRScreenChangeNotifyMask);
++  else xxri_rr_event = -1;
++#endif
+ 
+ #ifdef TITLE_FONT
+   Fl::set_font(TITLE_FONT_SLOT, TITLE_FONT);

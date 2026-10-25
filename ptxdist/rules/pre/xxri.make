@@ -13,19 +13,41 @@ XXRI_TC_LDFLAGS		:= -L$(XXRI_TC_LIBDIR) -Wl,-rpath-link,$(XXRI_TC_LIBDIR) \
 # and PTXdist's pkg-config wrapper strips it from --cflags as a "system" path
 XXRI_TC_CPPFLAGS	:= -isystem $(PTXDIST_SYSROOT_TARGET)/usr/local/include
 
+# Tiny Core's architecture name in its URLs (repo.tinycorelinux.net/16.x/<arch>/tcz,
+# tinycorelinux.net/16.x/<arch> for the 16.0 kernel and base), and the matching
+# extension set for the ISO (manifest, *.lst, dep/; also XXRI's own .dep files)
+ifeq ($(PTXCONF_ARCH_X86_64),y)
+XXRI_TC_ARCH		:= x86_64
+XXRI_CDE_CONFIG_DIR	:= $(PTXDIST_WORKSPACE)/config/cde64
+else
+XXRI_TC_ARCH		:= x86
+XXRI_CDE_CONFIG_DIR	:= $(PTXDIST_WORKSPACE)/config/cde
+endif
+
 # PTXdist's compiler wrapper maps the build directory out of debug info only;
 # __FILE__ (assertion and warning messages - Qt has many) would still record
 # where the tree was built, so the binaries would differ between build
 # directories.
 XXRI_REPRO_CFLAGS	:= -fmacro-prefix-map=$(PTXDIST_PLATFORMDIR)/=
 
-# CPU baseline of the OS programs (docs/cpu-baseline.md): the toolchain's own
-# i586 default made explicit, generic tuning, size-optimised.
+# CPU baseline of the OS programs (docs/cpu-baseline.md). 32-bit: the
+# toolchain's own i586 made explicit. 64-bit: plain x86-64 (what Tiny Core's
+# x86_64 packages use), so Athlon 64 and Core 2 still work; x86-64-v2 would need
+# SSE4.2 and POPCNT, i.e. 2009 or newer. Generic tuning, size-optimised.
+ifeq ($(PTXCONF_ARCH_X86_64),y)
+XXRI_OS_CFLAGS		:= -march=x86-64 -mtune=generic -Os $(XXRI_REPRO_CFLAGS)
+else
 XXRI_OS_CFLAGS		:= -march=i586 -mtune=generic -Os $(XXRI_REPRO_CFLAGS)
+endif
 
 # The browser engine needs SSE2 (V8), so Qt and the engine are built for the
 # SSE2 instruction set; every SSE2 CPU also has CMOV.
+# x86_64 has SSE2 anyway, so it takes the OS flags.
+ifeq ($(PTXCONF_ARCH_X86_64),y)
+XXRI_SSE2_CFLAGS	:= $(XXRI_OS_CFLAGS)
+else
 XXRI_SSE2_CFLAGS	:= -march=pentium4 -mtune=generic -mfpmath=sse $(XXRI_REPRO_CFLAGS)
+endif
 
 # Prefix of the browser's private Qt (packaged as xxri-browser.tcz).
 XXRI_BROWSER_HOME	:= /usr/local/lib/xxri-browser
@@ -90,6 +112,8 @@ XXRI_CORE_PKGS		:= xxri-base xxri-bootsplash xxri-compositor xxri-control-center
 XXRI_BROWSER_TCZ_PKGS	:= xxri-qt5 xxri-browser
 XXRI_XLIBRE_TCZ_PKGS	:= xxri-xlibre xxri-xlibre-input-libinput xxri-xlibre-video-vesa
 XXRI_GRUB_TCZ_PKGS	:= xxri-grub-tools
+# x86_64: the sound modules and their firmware, instead of Tiny Core's alsa-modules
+XXRI_SOUND_TCZ_PKGS	:= xxri-kernel xxri-sound-firmware
 # (GPU firmware: one extension per vendor, xxri-firmware-{gpu,intel,amd,nvidia}.tcz;
 # CPU microcode: boot/{intel,amd}-ucode.img on the medium, see xxri-ucode.make)
 

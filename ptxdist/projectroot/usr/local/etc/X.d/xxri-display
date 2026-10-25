@@ -1,0 +1,12 @@
+# xxri Hardware Layer: the displays follow Settings > Display for the whole
+# session (sourced by ~/.xsession, system-wide so older homes get it too).
+#  - A home made before the display layouts keeps an .xsession that mirrors
+#    every display at start: put the saved arrangement back. With a current
+#    .xsession the screen already matches and this changes nothing.
+#  - A display plugged in or out gets the saved arrangement re-fitted, and
+#    unplugging the only lit display brings the built-in one back.
+if command -v xrandr >/dev/null 2>&1 && [ -x /usr/local/bin/xxri-display ]; then
+	/usr/local/bin/xxri-display apply >/dev/null 2>&1 &
+	pgrep -f 'xxri-wctl[ ]watch-displays' >/dev/null 2>&1 ||
+		/usr/local/bin/xxri-wctl watch-displays >/dev/null 2>&1 &
+fi

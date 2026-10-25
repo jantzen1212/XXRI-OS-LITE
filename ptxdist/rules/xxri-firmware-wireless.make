@@ -21,6 +21,8 @@ XXRI_FIRMWARE_WIRELESS_DIR	:= $(BUILDDIR)/$(XXRI_FIRMWARE_WIRELESS)
 XXRI_FIRMWARE_WIRELESS_LICENSE	:= LicenseRef-linux-firmware-wireless AND ISC
 XXRI_FIRMWARE_WIRELESS_DEVPKG	:= NO
 XXRI_FIRMWARE_WIRELESS_LIST	:= $(PTXDIST_WORKSPACE)/config/firmware/wireless.list
+# the x86_64 system also runs on current hardware: its additions
+XXRI_FIRMWARE_WIRELESS_LIST64	:= $(if $(PTXCONF_ARCH_X86_64),$(PTXDIST_WORKSPACE)/config/firmware/wireless-x86_64.list)
 XXRI_FIRMWARE_WIRELESS_SELECT	:= $(PTXDIST_WORKSPACE)/scripts/xxri-fw-select.py
 
 # the release PTXdist 2026.09's crda rule pins (rules/crda.make)
@@ -40,12 +42,13 @@ $(STATEDIR)/xxri-firmware-wireless.extract:
 	@rm -rf $(XXRI_FIRMWARE_WIRELESS_DIR) && mkdir -p $(XXRI_FIRMWARE_WIRELESS_DIR)
 	@$(call touch)
 
-$(STATEDIR)/xxri-firmware-wireless.prepare: $(XXRI_FIRMWARE_WIRELESS_LIST) $(XXRI_FIRMWARE_WIRELESS_SELECT)
+$(STATEDIR)/xxri-firmware-wireless.prepare: $(XXRI_FIRMWARE_WIRELESS_LIST) $(XXRI_FIRMWARE_WIRELESS_LIST64) \
+		$(XXRI_FIRMWARE_WIRELESS_SELECT)
 	@$(call targetinfo)
 	@rm -rf $(XXRI_FIRMWARE_WIRELESS_DIR)/firmware $(XXRI_FIRMWARE_WIRELESS_DIR)/licenses \
 		$(XXRI_FIRMWARE_WIRELESS_DIR)/$(XXRI_FIRMWARE_WIRELESS_REGDB)
 	@$(XXRI_HOST_PYTHON) $(XXRI_FIRMWARE_WIRELESS_SELECT) extract $(XXRI_FIRMWARE_WIRELESS_SOURCE) \
-		$(XXRI_FIRMWARE_WIRELESS_DIR)/firmware $(XXRI_FIRMWARE_WIRELESS_LIST)
+		$(XXRI_FIRMWARE_WIRELESS_DIR)/firmware $(XXRI_FIRMWARE_WIRELESS_LIST) $(XXRI_FIRMWARE_WIRELESS_LIST64)
 	@tar -xzf $(XXRI_FIRMWARE_WIRELESS_REGDB_SOURCE) -C $(XXRI_FIRMWARE_WIRELESS_DIR) \
 		$(XXRI_FIRMWARE_WIRELESS_REGDB)/regulatory.db \
 		$(XXRI_FIRMWARE_WIRELESS_REGDB)/regulatory.db.p7s \
@@ -80,6 +83,10 @@ $(STATEDIR)/xxri-firmware-wireless.targetinstall:
 		/usr/local/share/doc/xxri-firmware-wireless/LICENSE.wireless-regdb)
 	@$(call install_copy, xxri-firmware-wireless, 0, 0, 0644, $(XXRI_FIRMWARE_WIRELESS_LIST), \
 		/usr/local/share/doc/xxri-firmware-wireless/wireless.list)
+ifdef PTXCONF_ARCH_X86_64
+	@$(call install_copy, xxri-firmware-wireless, 0, 0, 0644, $(XXRI_FIRMWARE_WIRELESS_LIST64), \
+		/usr/local/share/doc/xxri-firmware-wireless/wireless-x86_64.list)
+endif
 	@$(call install_finish, xxri-firmware-wireless)
 	@$(call touch)
 

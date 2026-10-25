@@ -348,6 +348,22 @@ static gboolean on_enter(GtkWidget* w, GdkEventCrossing* e, gpointer d) {
     return FALSE;
 }
 
+/* The primary display, where the dock and the chip live. Not the whole root
+ * window: with displays extended that spans all of them, and the chip sat
+ * in the corner of the bounding box. */
+static GdkRectangle primary_area(void) {
+    GdkRectangle r = { 0, 0, 0, 0 };
+    GdkDisplay* d = gdk_display_get_default();
+    GdkMonitor* m = d ? gdk_display_get_primary_monitor(d) : NULL;
+    if (!m && d) m = gdk_display_get_monitor(d, 0);
+    if (m) gdk_monitor_get_geometry(m, &r);
+    if (r.width <= 0 || r.height <= 0) {
+        GdkScreen* sc = gdk_screen_get_default();
+        r.x = r.y = 0; r.width = gdk_screen_get_width(sc); r.height = gdk_screen_get_height(sc);
+    }
+    return r;
+}
+
 /* Corner hotspot: the chip is inset from the edges, so a pointer shoved into
  * the corner misses it. Polls the root pointer; an input-only window there
  * never got its crossing events. */
@@ -361,9 +377,9 @@ static gboolean hotspot_poll(gpointer d) {
     Window root = DefaultRootWindow(xd), r, c;
     int rx = 0, ry = 0, wx, wy; unsigned int mask;
     if (!XQueryPointer(xd, root, &r, &c, &rx, &ry, &wx, &wy, &mask)) return TRUE;
-    GdkScreen* sc = gdk_screen_get_default();
-    int sw = gdk_screen_get_width(sc), sh = gdk_screen_get_height(sc);
-    gboolean in_corner = (rx >= sw - HOT_W && ry >= sh - HOT_H);
+    GdkRectangle pa = primary_area();
+    int ex = pa.x + pa.width, ey = pa.y + pa.height;
+    gboolean in_corner = (rx >= ex - HOT_W && rx < ex && ry >= ey - HOT_H && ry < ey);
     if (in_corner) {
         if (g_collapse_timer) { g_source_remove(g_collapse_timer); g_collapse_timer = 0; }
         if (!g_expanded) { trace("hotspot enter at %d,%d", rx, ry); expand(); }
@@ -673,8 +689,9 @@ static void apply_shape_at(int ox, int oy, int w, int h, int radius, int fw, int
 }
 
 static void place_window(void) {
-    GdkScreen* sc = gtk_widget_get_screen(g_win);
-    int sw = gdk_screen_get_width(sc), sh = gdk_screen_get_height(sc);
+    /* bottom-right of the primary display: sw/sh are its right and bottom edges */
+    GdkRectangle pa = primary_area();
+    int sw = pa.x + pa.width, sh = pa.y + pa.height;
     GtkRequisition nat;
     gtk_widget_get_preferred_size(g_root, NULL, &nat);
     int w = g_expanded ? PANEL_W : nat.width;
@@ -682,8 +699,8 @@ static void place_window(void) {
     if (!g_expanded) { g_chip_w = w; g_chip_h = h; }
     /* panel plus the shadow ring */
     int fw = w + 2*SHADOW, fh = h + 2*SHADOW;
-    trace("place expanded=%d nat=%dx%d -> %dx%d at %d,%d (screen %dx%d)",
-          g_expanded, nat.width, nat.height, w, h, sw-EDGE_X-w, sh-EDGE_Y-h, sw, sh);
+    trace("place expanded=%d nat=%dx%d -> %dx%d at %d,%d (display %dx%d+%d+%d)",
+          g_expanded, nat.width, nat.height, w, h, sw-EDGE_X-w, sh-EDGE_Y-h, pa.width, pa.height, pa.x, pa.y);
     glass_invalidate();
     raw_invalidate();
     gtk_window_resize(GTK_WINDOW(g_win), fw, fh);
@@ -775,7 +792,7 @@ static gboolean retract_tick(gpointer d) {
 static void begin_collapse(void) {
     if (!g_expanded) return;
     if (g_reveal_timer) { g_source_remove(g_reveal_timer); g_reveal_timer = 0; }
-    if (g_retract_timer) return;                   /* udah on its way out */
+    if (g_retract_timer) return;                   /* already on its way out */
     g_retract_step = 0;
     g_retract_timer = g_timeout_add(16, retract_tick, NULL);
 }
@@ -1075,6 +1092,13 @@ static gboolean first_state_read(gpointer d) {
     return G_SOURCE_REMOVE;
 }
 
+/* a display added, removed or resized (Settings > Display, a cable) */
+static void on_screen_changed(GdkScreen* sc, gpointer d) {
+    (void)sc; (void)d;
+    trace("screen changed");
+    place_window();
+}
+
 int main(int argc, char** argv) {
     xxri_i18n_init();
     /* single instance: a second launch controls the running one */
@@ -1139,6 +1163,8 @@ int main(int argc, char** argv) {
     rebuild();
     gtk_widget_show_all(g_win);
     place_window();
+    g_signal_connect(gtk_widget_get_screen(g_win), "monitors-changed", G_CALLBACK(on_screen_changed), NULL);
+    g_signal_connect(gtk_widget_get_screen(g_win), "size-changed", G_CALLBACK(on_screen_changed), NULL);
     g_idle_add(first_state_read, NULL);
     g_timeout_add(150, hotspot_poll, NULL);
     g_timeout_add_seconds(30, tick, NULL);

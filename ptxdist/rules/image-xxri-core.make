@@ -14,7 +14,8 @@ $(IMAGE_XXRI_CORE_IMAGE): $(STATEDIR)/xxri-tc-base.install $(XXRI_TC_BASE_REMOVE
 		$(PTXDIST_WORKSPACE)/scripts/xxri-mkinitramfs.py $(STATEDIR)/host-python3.install.post
 	@$(call targetinfo)
 	@$(call world/image/env, IMAGE_XXRI_CORE) XXRI_HOST_PYTHON=$(XXRI_HOST_PYTHON) \
-		ptxd_make_xxri_core "$(XXRI_TC_BASE_SOURCE)" "$(XXRI_TC_BASE_REMOVE)"
+		ptxd_make_xxri_core "$(XXRI_TC_BASE_SOURCE)" "$(XXRI_TC_BASE_REMOVE)" \
+		"$(if $(PTXCONF_ARCH_X86_64),lib64)"
 	@$(call finish)
 endif
 

@@ -359,6 +359,22 @@ static void restack(Window id, Window above) {
     if (w->mapped) damage_whole(w);
 }
 
+/* the back buffer every frame is built in, the size of the root window */
+static void make_buffer(void) {
+    if (buf_pict) XRenderFreePicture(dpy, buf_pict);
+    if (buf_pixmap) XFreePixmap(dpy, buf_pixmap);
+    buf_pixmap = XCreatePixmap(dpy, root, sw, sh, DefaultDepth(dpy, scr));
+    buf_pict = XRenderCreatePicture(dpy, buf_pixmap,
+        XRenderFindVisualFormat(dpy, DefaultVisual(dpy, scr)), 0, NULL);
+}
+
+static void damage_screen(void) {
+    XserverRegion all = XFixesCreateRegion(dpy, NULL, 0);
+    XRectangle f = { 0, 0, (unsigned short)sw, (unsigned short)sh };
+    XFixesSetRegion(dpy, all, &f, 1);
+    add_damage(all);
+}
+
 /* the wallpaper, so the bottom of the stack is not black */
 static void make_root_picture(void) {
     if (root_pict) { XRenderFreePicture(dpy, root_pict); root_pict = None; }
@@ -553,9 +569,7 @@ int main(void) {
                  oa.width, oa.height, oa.x, oa.y);
         else dlog("screen %dx%d, overlay attrs unavailable", sw, sh);
     }
-    buf_pixmap = XCreatePixmap(dpy, root, sw, sh, DefaultDepth(dpy, scr));
-    buf_pict = XRenderCreatePicture(dpy, buf_pixmap,
-        XRenderFindVisualFormat(dpy, DefaultVisual(dpy, scr)), 0, NULL);
+    make_buffer();
     make_root_picture();
 
     XCompositeRedirectSubwindows(dpy, root, CompositeRedirectManual);
@@ -640,6 +654,18 @@ int main(void) {
                 if (f) { dlog("UnmapNotify client 0x%lx for frame 0x%lx", (unsigned long)e.xunmap.window, (unsigned long)f->id); damage_whole(f); f->client_mapped = 0; drop_pixmap(f); drop_argb(f); }
                 break; }
             case ConfigureNotify: {
+                if (e.xconfigure.window == root) {
+                    /* RandR changed the screen (a display added, removed or
+                       resized): a buffer of the old size would leave the new
+                       area unpainted */
+                    if (e.xconfigure.width == sw && e.xconfigure.height == sh) break;
+                    sw = e.xconfigure.width; sh = e.xconfigure.height;
+                    dlog("root resized to %dx%d", sw, sh);
+                    make_buffer();
+                    make_root_picture();
+                    damage_screen();
+                    break;
+                }
                 Win* w = find_win(e.xconfigure.window);
                 if (!w) {
                     for (Win* f = list; f; f = f->next) {
@@ -707,10 +733,7 @@ int main(void) {
                     if (w) { w->opacity = read_opacity(w->id); damage_whole(w); }
                 } else if (e.xproperty.window == root) {
                     make_root_picture();
-                    XserverRegion all = XFixesCreateRegion(dpy, NULL, 0);
-                    XRectangle f = { 0, 0, (unsigned short)sw, (unsigned short)sh };
-                    XFixesSetRegion(dpy, all, &f, 1);
-                    add_damage(all);
+                    damage_screen();
                 }
                 break; }
             case ButtonPress:

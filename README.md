@@ -10,7 +10,7 @@ Your old computer deserves a second life.
 
 ---
 
-## ✨ The promise
+## The promise
 
 A modern desktop. On your old computer. For free.
 
@@ -18,20 +18,20 @@ No terminal. No complexity. Just download, try, and use.
 
 ---
 
-## ✅ What you actually get
+## What you get
 
 Modern desktop + Lightweight performance + No terminal required
 
-- Your 15-year-old laptop boots in 20 seconds
+- Boots to the desktop in about 20 seconds in our tests
 - Looks like a desktop from 2023, not 2005
 - Everything is clickable, nothing is a command line
-- Works with 256 MB of RAM
+- Boots to the desktop with 256 MB of RAM (tested in a virtual machine)
 - Free forever
 - Open source, no tracking, no ads
 
 ---
 
-## ✅ Is this you?
+## Is this you?
 
 **YES** if:
 - Your device is from 2000-2019 and feels slow
@@ -49,13 +49,13 @@ If you answered YES, read on.
 
 ---
 
-## 🎯 The real problem other distros have
+## The problem with other distros
 
 You already know this. You have tried:
 
-**Ubuntu/Mint:** Too heavy. Ubuntu Still Require 6gb of ram, Your old laptop still feels slow.
+**Ubuntu/Mint:** Too heavy. Both recommend 4 GB of RAM or more, and your old laptop still feels slow.
 
-**Tiny Core/LXQT/LXDE/XFCE:** Blazing fast. But impossible to use without terminal commands.
+**Tiny Core:** Very fast. But using it means terminal commands.
 
 **KDE/GNOME:** fine. But your RAM disappears.
 
@@ -65,19 +65,15 @@ You already know this. You have tried:
 
 ---
 
-## 🚀 Why XXRI is different (and why people are using it)
+## Why XXRI is different
 
-XXRI is the answer nobody knew they needed:
+The speed of Tiny Core + The looks of macOS + The ease of Windows
 
-The speed of Tiny Core + The looks of MacOS + The ease of Windows
-
-No compromises. No terminal. No slowness.
-
-This is what people actually mean when they want "lightweight Linux with a modern desktop."
+No terminal. Built on Tiny Core, so it stays light.
 
 ---
 
-## 💻 Real people. Real old computers.
+## What users say
 
 **"I have 2000's Pentium 4 PC, OThers feel slow. XXRI doesnt."**
 
@@ -90,7 +86,15 @@ This is what people actually mean when they want "lightweight Linux with a moder
 
 ---
 
-## 🎨 It actually looks like this
+## What your computer needs
+
+- A PC that boots in BIOS/Legacy (CSM) mode or with 32-bit UEFI. The kernel is 32-bit, so a machine with only 64-bit UEFI has to be switched to Legacy/CSM.
+- The desktop is built for Pentium-class (i586) processors. That is tested in an emulator only, not yet on period hardware.
+- The browser needs SSE2: Pentium 4, Pentium M, Athlon 64 or newer. On an older processor the rest of the desktop works and the browser says why it cannot start.
+
+---
+
+## What it looks like
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/3d02b89e-01df-4e8f-b188-b148dd7c8cd6" alt="XXRI OS Lite modern clean desktop" width="960">
@@ -102,7 +106,7 @@ A desktop that feels current. Running on hardware from 2008.
 
 ---
 
-## 🚀 Try it in 3 minutes
+## Try it in 3 minutes
 
 1. Download: [Latest release](https://github.com/jantzen1212/XXRI-OS-LITE/releases/latest)
 2. Create bootable USB with Rufus or Ventoy
@@ -114,11 +118,11 @@ Full guide: [xxri.flows.best](https://xxri.flows.best)
 
 ---
 
-## ❓ You probably have questions
+## Questions
 
 **Q: Will my old computer actually feel faster?**
 
-A: Yes. We are talking 20-second boots. Smooth scrolling. Apps that open instantly. Not laggy.
+A: Most likely. It is built on Tiny Core, and it boots to the desktop in about 20 seconds in our tests. How much faster depends on your hardware.
 
 **Q: Do I need to know Linux?**
 
@@ -126,7 +130,7 @@ A: No. There is no terminal. Everything is buttons and windows. If you used Wind
 
 **Q: What if I have 256 MB of RAM?**
 
-A: That is literally what XXRI was designed for. Other distros need more.
+A: The desktop boots with 256 MB in our virtual-machine tests, but we have not measured it on real 256 MB hardware. The browser needs more memory and a newer processor (see "What your computer needs").
 
 **Q: Is this really free?**
 
@@ -142,32 +146,25 @@ A: Community support. Discord. GitHub issues. Email. Real people help.
 
 ---
 
-## 🌍 A movement is starting
+## Community
 
-People are tired of:
-- Paying for operating systems
-- Buying new hardware just to run modern software
-- Terminal commands for basic tasks
-- Old Linux looking like 1995
-- Beautiful distros that lag on old hardware
-
-XXRI changes that.
-
-Join thousands bringing old computers back to life.
+XXRI is for people who:
+- Do not want to pay for an operating system
+- Do not want to buy new hardware just to run modern software
+- Do not want terminal commands for basic tasks
+- Want an old computer to look current
 
 [Discord Community](https://discord.com/invite/SP39khTzm8) | [GitHub Issues](https://github.com/jantzen1212/XXRI-OS-LITE/issues) | [dev.xxri@gmail.com](mailto:dev.xxri@gmail.com)
 
 ---
 
-## 🎯 The one-liner
+## In one line
 
-**Old hardware. Modern desktop. Free. No terminal. Works.**
-
-That is it. That is why people are starring, forking, and sharing XXRI.
+**Old hardware. Modern desktop. Free. No terminal.**
 
 ---
 
-## 📚 Learn more
+## Learn more
 
 - [Installation & setup guide](https://xxri.flows.best)
 - [Technical documentation](documentation.md)
@@ -176,7 +173,7 @@ That is it. That is why people are starring, forking, and sharing XXRI.
 
 ---
 
-## 🧾 License
+## License
 
 GNU General Public License v3.0. Open source. Your choice.
 
@@ -184,60 +181,8 @@ See [LICENSE.txt](LICENSE.txt)
 
 ---
 
-## Why people should star this project
-
-They download it for an old laptop.
-
-They test it from USB.
-
-They see it boot in 20 seconds.
-
-They see a modern desktop.
-
-They click a button to connect to Wi-Fi.
-
-They browse the web.
-
-They think: "This is actually incredible."
-
-They star the project.
-
-They tell a friend.
-
-Their friend tries it.
-
-Their friend stars it.
-
-That is how XXRI grows.
-
-It is not marketing.
-
-It is word of mouth from people whose old computers actually work now.
-
----
-
-## One more thing
-
-**If your computer is in a drawer and you were thinking of throwing it away:**
-
-Give it 5 minutes with XXRI.
-
-Boot from USB. Try the desktop. Browse the web.
-
-If it feels useful, install it.
-
-If not, you lost 5 minutes.
-
-But we think you will like it.
-
-Your old computer deserves that chance.
-
----
-
-## Download now
+## Download
 
 [Get the latest release](https://github.com/jantzen1212/XXRI-OS-LITE/releases/latest)
 
 Write it to USB. Boot it. Use it.
-
-Old hardware should not have to feel old.

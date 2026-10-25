@@ -1,0 +1,104 @@
+.de  CW
+.sp
+.nf
+.ft CW
+..
+.\" Process this file with
+.\" groff -man -Tascii foo.1
+.\"
+.\" "verbatim" environment (from strace.1)
+.de  CE
+.ft
+.fi
+.sp
+..
+.\"
+.\"*******************************************************************
+.\"
+.\" This file was generated with po4a. Translate the source file.
+.\"
+.\"*******************************************************************
+.TH faked 1 "17 iunie 2004" "Proiectul Debian" "Manualul GNU/Linux de Debian"
+.\" Manpage by J.H.M. Dassen <jdassen@debian.org>
+.\" and Clint Adams
+.SH NUME
+faked \- demon care memorează proprietatea/permisiunile false ale fișierelor
+manipulate de procesele „fakeroot”.
+.SH REZUMAT
+\fBfaked\fP \fB[\-\-debug] [\-\-foreground] [\-\-cleanup] [\-\-key\fP \fInumăr\-cheie\fP\fB]\fP
+\fB[\-\-load] [\-\-save\-file\fP \fIfișier\-de\-salvare\fP\fB]\fP \fB[\-\-port\fP \fIport\-TCP\fP\fB]\fP
+.SH DESCRIERE
+Dacă un proces „fakeroot” dorește să schimbe proprietarul unui fișier,
+atunci \fBfaked\fP este procesul care își amintește de noul proprietar. Dacă
+mai târziu același proces „fakeroot” face un stat() pentru acel nume de
+fișier, atunci apelul stat() învăluit de „libfakeroot” va cere mai întâi lui
+«faked» să afle proprietatea falsă, etc. a acelui fișier, iar apoi va
+raporta acest lucru.
+
+.SH OPȚIUNI
+.TP 
+\fB\-\-debug\fP
+Imprimă informații de depanare la ieșirea de eroare standard.
+.TP 
+\fB\-\-foreground\fP
+Nu se bifurcă (nu execută fork) în fundal.
+.TP 
+\fB\-\-cleanup \ număr\fP
+Curăță semafoarele.
+.TP 
+\fB\-\-key \ număr\-cheie\fP
+Nu se alocă un nou canal de comunicare, ci se utilizează canalul specificat
+prin cheie (în cazul în care canalul specificat nu există, acesta este
+creat).
+.TP 
+\fB\-\-save\-file \ fișier\-salvare\fP
+Salvează mediul în fișierul\-de\-salvare la ieșire.
+.TP 
+\fB\-\-load\fP
+Încarcă un mediu salvat anterior de la intrarea standard.
+.TP 
+\fB\-\-unknown\-is\-real\fP
+Utilizează proprietatea reală a fișierelor necunoscute anterior în loc să le
+stabilească la root:root.
+.TP 
+\fB\-\-port \ port\-tcp\fP
+Utilizează portul TCP „port\-tcp”.
+
+.SH ERORI
+Niciuna până acum. Totuși, fiți atenți: deși am scris câteva programe mult
+mai mari (și mai mici), nu am scris niciodată ceva care să fie la fel de mic
+ca \fBfakeroot\fP, să aibă atâtea erori ca \fBfakeroot\fP și totuși să fie la fel
+de utilizabil ca, să zicem, \fBfakeroot\fP versiunea 0.0_3, prima versiune care
+putea fi folosită pentru a se construi singură.
+.SH COPIEREA
+\fBfakeroot\fP este distribuit sub Licența Publică Generală GNU.  (GPL 2.0 sau
+ulterioară).
+.SH AUTORI
+.TP 
+joost witteveen
+<\fIjoostje@debian.org\fP>
+.TP 
+Clint Adams
+<\fIclint@debian.org\fP>
+.TP 
+Timo Savola
+.SH "PAGINA DE MANUAL"
+în mare parte scrisă de J.H.M. Dassen <jdassen@debian.org> cu
+modificări/adăugiri făcute de joost și Clint.
+.SH "CONSULTAȚI ȘI"
+\fBfakeroot\fP(1), \fBdpkg\-buildpackage\fP(1), \fBdebuild\fP(1)
+\fB/usr/share/doc/fakeroot/DEBUG\fP
+.SH TRADUCERE
+Această traducere a fost creată în 2023 de Remus-Gabriel Chelu. Ea este supusă
+licenței GNU GPL versiunea 2 (sau ulterioară).
+
+Pentru a citi versiunea originală în limba engleză, tastați «man -L C COMMAND».
+
+Vă rugăm să raportați erorile de traducere prin baza de date a erorilor (BTS)
+de la Debian sau trimițând un e-mail la
+.nh
+&lt;debian\-l10\-romanian@lists.debian.org&gt;, lista de discuții a traducerilor
+în limba romănă a progrmelor și documentelor din Debian, sau direct autorului
+acestei traduceri la
+.hy
+&lt;remusgabriel.chelu@disroot.org&gt;

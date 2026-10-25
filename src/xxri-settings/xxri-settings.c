@@ -1012,11 +1012,6 @@ static void build_sound(GtkWidget* box) {
         gtk_range_set_value(GTK_RANGE(ms),atoi(jget(mic,"level"))); g_signal_connect(ms,"value-changed",G_CALLBACK(cb_mic),NULL);
         gtk_box_pack_start(GTK_BOX(mr),ms,TRUE,TRUE,0); gtk_box_pack_start(GTK_BOX(mc),mr,FALSE,FALSE,0);
         gtk_box_pack_start(GTK_BOX(box),mc,FALSE,FALSE,0); g_free(mic);}
-    gtk_box_pack_start(GTK_BOX(box), section(_("System Sounds")), FALSE, FALSE, 0);
-    GtkWidget* nc=card_new();
-    GtkWidget* n1=gtk_switch_new(); gtk_switch_set_active(GTK_SWITCH(n1),TRUE); card_action(nc,_("Notification sounds"),NULL,n1);
-    GtkWidget* n2=gtk_switch_new(); card_action(nc,_("Startup sound"),_("Play the XXRI chime at login"),n2);
-    gtk_box_pack_start(GTK_BOX(box),nc,FALSE,FALSE,0);
     g_ptr_array_free(cs,TRUE); g_free(cards); g_free(vol);
 }
 
@@ -1389,6 +1384,267 @@ static void cb_refresh(GtkWidget* cb, const char* rate, gpointer d) {
     g_free(out);
 }
 
+/* ---- several displays: xxri-display layout (outputs, arrangement).
+ * A new arrangement applies at once and is a trial: unless Keep is pressed
+ * the backend puts the old one back by itself, so a display that shows
+ * nothing (or a Settings that went away) cannot strand the desktop. */
+typedef struct { char* name; char* label; gboolean builtin, active, primary; int w, h, x, y; } DOut;
+static GPtrArray* g_douts;              /* DOut* of the newest page            */
+static char*      g_lay_caption;        /* "Mirrored", ... under the picture   */
+static GtkWidget* g_lay_dlg;            /* the keep/revert question, if up     */
+static int        g_lay_left;
+
+static void dout_free(gpointer p) { DOut* o = (DOut*)p; g_free(o->name); g_free(o->label); g_free(o); }
+static gint dout_cmp(gconstpointer a, gconstpointer b) {   /* lit ones left to right, then the dark ones */
+    const DOut* x = *(DOut* const*)a; const DOut* y = *(DOut* const*)b;
+    if (x->active != y->active) return x->active ? -1 : 1;
+    return x->active ? x->x - y->x : 0;
+}
+static GPtrArray* douts_parse(const char* lay) {
+    GPtrArray* v = g_ptr_array_new_with_free_func(dout_free);
+    GPtrArray* os = jarr(lay, "outputs");
+    for (guint i = 0; i < os->len; i++) {
+        const char* o = (const char*)os->pdata[i];
+        DOut* d = g_new0(DOut, 1);
+        d->name = jget(o, "name"); d->label = jget(o, "label");
+        d->builtin = jbool(o, "builtin"); d->active = jbool(o, "active"); d->primary = jbool(o, "primary");
+        char *w = jget(o, "width"), *h = jget(o, "height"), *x = jget(o, "x"), *y = jget(o, "y"), *pr = jget(o, "preferred");
+        d->w = atoi(w); d->h = atoi(h); d->x = atoi(x); d->y = atoi(y);
+        if (!d->active || d->w <= 0 || d->h <= 0) sscanf(pr, "%dx%d", &d->w, &d->h);
+        if (d->w <= 0 || d->h <= 0) { d->w = 1024; d->h = 768; }
+        g_free(w); g_free(h); g_free(x); g_free(y); g_free(pr);
+        g_ptr_array_add(v, d);
+    }
+    g_ptr_array_free(os, TRUE);
+    g_ptr_array_sort(v, dout_cmp);
+    return v;
+}
+/* every connected display side by side, sized by its resolution: a laptop
+ * for the built-in panel, a monitor otherwise; a dark screen when it is off */
+static gboolean draw_displays_hero(GtkWidget* w, cairo_t* cr, gpointer u) {
+    GPtrArray* outs = (GPtrArray*)u;
+    if (!outs || !outs->len) return FALSE;
+    double W = gtk_widget_get_allocated_width(w);
+    const double gap = 28, maxh = 92, top = 6;
+    double sumw = 0; int maxpx = 0;
+    for (guint i = 0; i < outs->len; i++) { DOut* o = outs->pdata[i]; sumw += o->w; if (o->h > maxpx) maxpx = o->h; }
+    double s = MIN((W - 48 - gap*(outs->len - 1)) / sumw, maxh / maxpx);
+    double totw = sumw * s + gap*(outs->len - 1), x = (W - totw)/2;
+    GdkRGBA ink; gtk_style_context_get_color(gtk_widget_get_style_context(w), GTK_STATE_FLAG_NORMAL, &ink);
+    for (guint i = 0; i < outs->len; i++) {
+        DOut* o = outs->pdata[i];
+        double sw = o->w * s, sh = o->h * s, y = top + (maxh - sh);   /* bottoms aligned */
+        cairo_save(cr);
+        if (!o->active) cairo_push_group(cr);
+        rrect(cr, x, y, sw, sh, 6);
+        cairo_set_source_rgb(cr, 0x1C/255.0, 0x1C/255.0, 0x1E/255.0); cairo_fill(cr);
+        if (o->active) paint_screen(cr, x+4, y+4, sw-8, sh-(o->builtin ? 10 : 8));
+        else { rrect(cr, x+4, y+4, sw-8, sh-8, 3); cairo_set_source_rgb(cr, 0x2C/255.0, 0x2C/255.0, 0x30/255.0); cairo_fill(cr); }
+        if (o->builtin) {   /* the laptop's base */
+            double bw = sw + 20, bx = x - 10, by = y + sh;
+            rrect(cr, bx, by, bw, 6, 3);
+            cairo_set_source_rgb(cr, 0xC8/255.0, 0xC8/255.0, 0xCE/255.0); cairo_fill(cr);
+        } else {            /* the monitor's stand */
+            cairo_rectangle(cr, x + sw/2 - 8, y + sh, 16, 8);
+            cairo_set_source_rgb(cr, 0xB6/255.0, 0xB6/255.0, 0xBC/255.0); cairo_fill(cr);
+            rrect(cr, x + sw/2 - 26, y + sh + 8, 52, 4, 2); cairo_fill(cr);
+        }
+        if (!o->active) { cairo_pop_group_to_source(cr); cairo_paint_with_alpha(cr, 0.45); }
+        cairo_restore(cr);
+        /* its name under it (the primary's in bold: the dock is there) */
+        char* t = o->primary && outs->len > 1 ? g_markup_printf_escaped("<b>%s</b>", o->label)
+                                              : g_markup_printf_escaped("%s%s", o->label, o->active ? "" : _(" (off)"));
+        PangoLayout* pl = gtk_widget_create_pango_layout(w, NULL);
+        pango_layout_set_markup(pl, t, -1);
+        int lw, lh; pango_layout_get_pixel_size(pl, &lw, &lh);
+        cairo_move_to(cr, x + (sw - lw)/2, top + maxh + 16);
+        cairo_set_source_rgba(cr, ink.red, ink.green, ink.blue, o->active ? 0.85 : 0.5);
+        pango_cairo_show_layout(cr, pl);
+        g_object_unref(pl); g_free(t);
+        x += sw + gap;
+    }
+    return FALSE;
+}
+
+enum { LAY_KEEP = 1, LAY_REVERT = 2 };
+static void lay_dialog_text(void) {
+    if (!g_lay_dlg) return;
+    char* t = g_strdup_printf(ngettext("The previous arrangement comes back in %d second.",
+                                       "The previous arrangement comes back in %d seconds.", g_lay_left), g_lay_left);
+    gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(g_lay_dlg), "%s", t);
+    g_free(t);
+}
+static gboolean lay_tick(gpointer d) {
+    (void)d;
+    if (!g_lay_dlg) return G_SOURCE_REMOVE;
+    if (--g_lay_left <= 0) { gtk_dialog_response(GTK_DIALOG(g_lay_dlg), LAY_REVERT); return G_SOURCE_REMOVE; }
+    lay_dialog_text();
+    return G_SOURCE_CONTINUE;
+}
+/* the trial is running: keep it, or go back now */
+static void lay_ask_keep(int secs) {
+    g_lay_left = secs > 3 ? secs - 3 : 1;   /* answer before the backend's own watchdog does */
+    g_lay_dlg = gtk_message_dialog_new(GTK_WINDOW(g_win), GTK_DIALOG_MODAL, GTK_MESSAGE_QUESTION,
+        GTK_BUTTONS_NONE, _("Keep this display arrangement?"));
+    gtk_dialog_add_buttons(GTK_DIALOG(g_lay_dlg), _("Revert"), LAY_REVERT, _("Keep"), LAY_KEEP, NULL);
+    css(gtk_dialog_get_widget_for_response(GTK_DIALOG(g_lay_dlg), LAY_KEEP), "xxri-accent");
+    gtk_dialog_set_default_response(GTK_DIALOG(g_lay_dlg), LAY_KEEP);
+    lay_dialog_text();
+    guint t = g_timeout_add_seconds(1, lay_tick, NULL);
+    int r = gtk_dialog_run(GTK_DIALOG(g_lay_dlg));
+    g_source_remove(t);
+    gtk_widget_destroy(g_lay_dlg); g_lay_dlg = NULL;
+    char* out = run_cmd(r == LAY_KEEP ? "xxri-display confirm-layout --json" : "xxri-display revert-layout --json");
+    /* kept too late: the watchdog was quicker */
+    if (r == LAY_KEEP && !jbool(out, "ok")) dsp_error(out);
+    g_free(out);
+}
+static void on_layout_activated(GtkListBox* lb, GtkListBoxRow* row, gpointer u) {
+    (void)lb;(void)u;
+    const char* lay = (const char*)g_object_get_data(G_OBJECT(row), "layout");
+    if (!lay || g_object_get_data(G_OBJECT(row), "current")) return;
+    char* out = run_cmd("xxri-display set-layout %s --json", lay);
+    if (jbool(out, "ok")) {
+        char* ri = jget(out, "revert_in");
+        lay_ask_keep(atoi(ri));
+        g_free(ri);
+    } else dsp_error(out);
+    g_free(out);
+    rebuild_display_later();
+}
+static void cb_lay_keep(GtkWidget* b, gpointer u) {
+    (void)b;(void)u; char* out = run_cmd("xxri-display confirm-layout --json");
+    if (!jbool(out, "ok")) dsp_error(out);
+    g_free(out); rebuild_display_later();
+}
+static void cb_lay_revert(GtkWidget* b, gpointer u) {
+    (void)b;(void)u; g_free(run_cmd("xxri-display revert-layout --json")); rebuild_display_later();
+}
+/* a display that is not the primary: its own size, set live */
+static void cb_side_res(GtkWidget* drop, const char* mode, gpointer u) {
+    (void)drop;
+    char* out = run_cmd("xxri-display set-resolution %s --output %s --json", mode, (const char*)u);
+    if (!jbool(out, "ok")) dsp_error(out);
+    g_free(out); rebuild_display_later();
+}
+/* a cable plugged in or out while the page is open */
+static void on_monitors_changed(GdkScreen* sc, gpointer u) {
+    (void)sc;(void)u;
+    if (g_lay_dlg || !g_stack) return;
+    const char* vis = gtk_stack_get_visible_child_name(GTK_STACK(g_stack));
+    if (vis && !strcmp(vis, "display")) rebuild_display_later();
+}
+static gint mode_area_cmp(gconstpointer a, gconstpointer b) {
+    int aw = 0, ah = 0, bw = 0, bh = 0;
+    sscanf(*(char* const*)a, "%dx%d", &aw, &ah); sscanf(*(char* const*)b, "%dx%d", &bw, &bh);
+    return aw != bw ? bw - aw : bh - ah;
+}
+/* the Arrangement card and, when extended, the other displays' sizes */
+static void build_arrangement(GtkWidget* box, const char* lay) {
+    char *cur = jget(lay, "current"), *intl = NULL, *extl = NULL, *mm = jget(lay, "mirror_mode");
+    char *iname = jget(lay, "internal"), *ename = jget(lay, "external");
+    for (guint i = 0; i < g_douts->len; i++) {
+        DOut* o = g_douts->pdata[i];
+        if (!strcmp(o->name, iname)) intl = o->label;
+        if (!strcmp(o->name, ename)) extl = o->label;
+    }
+    if (!intl) intl = _("Display 1");
+    if (!extl) extl = _("Display 2");
+    gtk_box_pack_start(GTK_BOX(box), section(_("Arrangement")), FALSE, FALSE, 0);
+    GtkWidget* ac = card_new();
+    GtkWidget* lb = gtk_list_box_new(); css(lb, "xxri-reslist");
+    gtk_list_box_set_selection_mode(GTK_LIST_BOX(lb), GTK_SELECTION_SINGLE);
+    static const char* ids[] = { "extend", "mirror", "internal", "external" };
+    for (int i = 0; i < 4; i++) {
+        char pat[32]; snprintf(pat, sizeof pat, "\"%s\"", ids[i]);
+        char* lays = strstr(lay, "\"layouts\":[");
+        char* end = lays ? strchr(lays, ']') : NULL;
+        char* hit = lays ? strstr(lays, pat) : NULL;
+        gboolean possible = hit && end && hit < end;
+        char *title, *sub;
+        switch (i) {
+        case 0: title = g_strdup(_("Extend"));
+                sub = g_strdup_printf(_("One desktop across the displays. The dock stays on the %s."), intl); break;
+        case 1: title = g_strdup(_("Mirror"));
+                if (possible) {
+                    int w = 0, h = 0; sscanf(mm, "%dx%d", &w, &h);
+                    sub = g_strdup_printf(_("Every display shows the same picture, at %d \xc3\x97 %d."), w, h);
+                } else sub = g_strdup(_("Not possible: these displays have no resolution in common."));
+                break;
+        case 2: title = g_strdup_printf(_("%s Only"), intl);
+                sub = g_strdup_printf(_("The %s is turned off."), extl); break;
+        default: title = g_strdup_printf(_("%s Only"), extl);
+                sub = g_strdup_printf(_("The %s is turned off."), intl); break;
+        }
+        GtkWidget* row = gtk_list_box_row_new();
+        GtkWidget* rb = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+        gtk_box_pack_start(GTK_BOX(rb), label_cls(title, "xxri-res-label", 0), FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(rb), label_cls(sub, "xxri-res-tag", 0), FALSE, FALSE, 0);
+        gtk_container_add(GTK_CONTAINER(row), rb);
+        g_object_set_data_full(G_OBJECT(row), "layout", g_strdup(ids[i]), g_free);
+        if (!strcmp(cur, ids[i])) g_object_set_data(G_OBJECT(row), "current", GINT_TO_POINTER(1));
+        gtk_widget_set_sensitive(row, possible);
+        gtk_list_box_insert(GTK_LIST_BOX(lb), row, -1);
+        if (!strcmp(cur, ids[i])) gtk_list_box_select_row(GTK_LIST_BOX(lb), GTK_LIST_BOX_ROW(row));
+        g_free(title); g_free(sub);
+    }
+    g_signal_connect(lb, "row-activated", G_CALLBACK(on_layout_activated), NULL);
+    gtk_box_pack_start(GTK_BOX(ac), lb, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), ac, FALSE, FALSE, 0);
+
+    /* a trial left running (the page was rebuilt while it ran) */
+    if (jbool(lay, "pending")) {
+        GtkWidget* pc = card_new();
+        GtkWidget* btns = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+        GtkWidget* rv = gtk_button_new_with_label(_("Revert")); css(rv, "xxri-chip");
+        g_signal_connect(rv, "clicked", G_CALLBACK(cb_lay_revert), NULL);
+        GtkWidget* kp = accent_btn(_("Keep"));
+        g_signal_connect(kp, "clicked", G_CALLBACK(cb_lay_keep), NULL);
+        gtk_box_pack_start(GTK_BOX(btns), rv, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(btns), kp, FALSE, FALSE, 0);
+        card_action(pc, _("Keep this display arrangement?"), _("The previous arrangement comes back unless you keep this one."), btns);
+        gtk_box_pack_start(GTK_BOX(box), pc, FALSE, FALSE, 6);
+    }
+
+    g_free(cur); g_free(mm); g_free(iname); g_free(ename);
+}
+/* extended: every other lit display has its own size, applied at once */
+static void build_side_displays(GtkWidget* box, const char* lay) {
+    char* cur = jget(lay, "current");
+    if (!strcmp(cur, "extend")) {
+        GPtrArray* os = jarr(lay, "outputs");
+        for (guint i = 0; i < os->len; i++) {
+            const char* o = (const char*)os->pdata[i];
+            if (!jbool(o, "active") || jbool(o, "primary")) continue;
+            char *nm = jget(o, "name"), *lbl = jget(o, "label"), *om = jget(o, "mode");
+            GPtrArray* ms = jarr(o, "modes");
+            GPtrArray* sizes = g_ptr_array_new_with_free_func(g_free);
+            for (guint k = 0; k < ms->len; k++) g_ptr_array_add(sizes, jget((char*)ms->pdata[k], "mode"));
+            g_ptr_array_sort(sizes, mode_area_cmp);
+            char* title = g_strdup_printf(_("%s Resolution"), lbl);
+            gtk_box_pack_start(GTK_BOX(box), section(title), FALSE, FALSE, 0);
+            g_free(title);
+            GtkWidget* sc = card_new();
+            /* the drop's callback keeps the output name for the page's life */
+            GtkWidget* dr = drop_new(cb_side_res, nm);
+            g_object_set_data_full(G_OBJECT(dr), "output", nm, g_free);
+            for (guint k = 0; k < sizes->len; k++) {
+                const char* m = (char*)sizes->pdata[k];
+                int w = 0, h = 0; sscanf(m, "%dx%d", &w, &h);
+                char t[48]; snprintf(t, sizeof t, "%d \xc3\x97 %d", w, h);
+                drop_append(dr, m, t);
+            }
+            drop_set_active(dr, om);
+            card_action(sc, _("Resolution"), _("Changes at once; the desktop stays on the main display."), dr);
+            gtk_box_pack_start(GTK_BOX(box), sc, FALSE, FALSE, 0);
+            g_free(lbl); g_free(om);
+            g_ptr_array_free(sizes, TRUE); g_ptr_array_free(ms, TRUE);
+        }
+        g_ptr_array_free(os, TRUE);
+    }
+    g_free(cur);
+}
+
 static void build_display(GtkWidget* box) {
     char* ls = run_cmd("xxri-display list --json");
     char* srv = jget(ls, "server");
@@ -1445,14 +1701,44 @@ static void build_display(GtkWidget* box) {
         g_dsp_wall = thumb(wf, 320, 200);
         g_free(wf); g_ptr_array_free(ds, TRUE); g_free(wl);
     }
+    /* several displays connected: all of them, as they are arranged */
+    char* lay = run_cmd("xxri-display layout --json");
+    char* lcount = jget(lay, "count");
+    gboolean multi = atoi(lcount) >= 2;
+    g_free(lcount);
+    {   static gboolean watching;
+        if (!watching) {
+            g_signal_connect(gdk_screen_get_default(), "monitors-changed", G_CALLBACK(on_monitors_changed), NULL);
+            watching = TRUE;
+        }
+    }
     GtkWidget* hero = card_new(); css(hero, "xxri-display-hero");
     GtkWidget* pic = gtk_drawing_area_new();
-    gtk_widget_set_size_request(pic, 240, 136);
-    gtk_widget_set_halign(pic, GTK_ALIGN_CENTER);
-    g_signal_connect(pic, "draw", G_CALLBACK(draw_display_hero), GINT_TO_POINTER(jbool(ls, "builtin")));
+    if (multi) {
+        g_douts = douts_parse(lay);
+        gtk_widget_set_size_request(pic, 420, 132);
+        gtk_widget_set_hexpand(pic, TRUE);
+        g_object_set_data_full(G_OBJECT(pic), "douts", g_douts, (GDestroyNotify)g_ptr_array_unref);
+        g_signal_connect(pic, "draw", G_CALLBACK(draw_displays_hero), g_douts);
+    } else {
+        gtk_widget_set_size_request(pic, 240, 136);
+        gtk_widget_set_halign(pic, GTK_ALIGN_CENTER);
+        g_signal_connect(pic, "draw", G_CALLBACK(draw_display_hero), GINT_TO_POINTER(jbool(ls, "builtin")));
+    }
     gtk_box_pack_start(GTK_BOX(hero), pic, FALSE, FALSE, 0);
-    GtkWidget* nl = label_cls(*name ? name : _("Display"), "xxri-display-name", 0.5);
-    gtk_box_pack_start(GTK_BOX(hero), nl, FALSE, FALSE, 0);
+    if (multi) {
+        char* lc = jget(lay, "current");
+        g_free(g_lay_caption);
+        const char* lit = NULL;
+        for (guint i = 0; i < g_douts->len; i++) { DOut* o = g_douts->pdata[i]; if (o->active && !lit) lit = o->label; }
+        g_lay_caption = !strcmp(lc, "extend") ? g_strdup(_("Extended")) : !strcmp(lc, "mirror") ? g_strdup(_("Mirrored"))
+                      : g_strdup_printf(_("%s Only"), lit ? lit : _("One Display"));
+        g_free(lc);
+        gtk_box_pack_start(GTK_BOX(hero), label_cls(g_lay_caption, "xxri-display-name", 0.5), FALSE, FALSE, 0);
+    } else {
+        GtkWidget* nl = label_cls(*name ? name : _("Display"), "xxri-display-name", 0.5);
+        gtk_box_pack_start(GTK_BOX(hero), nl, FALSE, FALSE, 0);
+    }
     if (curm) {
         char* hz = NULL;
         /* RandR's rate only; Xfbdev just reports a nominal 60 */
@@ -1460,13 +1746,21 @@ static void build_display(GtkWidget* box) {
         for (guint i = 0; xorg && i < ms2->len && !hz; i++)
             if (jbool((char*)ms2->pdata[i], "current")) { char* r = jget((char*)ms2->pdata[i], "refresh"); hz = hz_label(r); g_free(r); }
         g_ptr_array_free(ms2, TRUE);
-        char sub[96]; snprintf(sub, sizeof sub, "%d \xc3\x97 %d%s%s", curm->w, curm->h, hz && *hz ? "  \xc2\xb7  " : "", hz ? hz : "");
+        char sub[160]; snprintf(sub, sizeof sub, "%s%s%d \xc3\x97 %d%s%s", multi && *name ? name : "", multi && *name ? "  \xc2\xb7  " : "",
+                                curm->w, curm->h, hz && *hz ? "  \xc2\xb7  " : "", hz ? hz : "");
         gtk_box_pack_start(GTK_BOX(hero), label_cls(sub, "xxri-row-sub", 0.5), FALSE, FALSE, 0);
         g_free(hz);
     }
     gtk_box_pack_start(GTK_BOX(box), hero, FALSE, FALSE, 0);
 
-    /* resolutions */
+    if (multi && jbool(lay, "changeable")) build_arrangement(box, lay);
+
+    /* resolutions (of the main display, when there are several) */
+    if (multi) {
+        char* t = g_strdup_printf(_("%s Resolution"), *name ? name : _("Main Display"));
+        gtk_box_pack_start(GTK_BOX(box), section(t), FALSE, FALSE, 0);
+        g_free(t);
+    }
     GtkWidget* rc = card_new();
     g_object_set_data_full(G_OBJECT(rc), "dmodes", g_dmodes, (GDestroyNotify)g_ptr_array_unref);
     if (!g_dmodes->len) {
@@ -1522,6 +1816,7 @@ static void build_display(GtkWidget* box) {
             _("This boot was started with the xres=%s boot code, which takes priority over the resolution chosen here."), bootm);
         gtk_box_pack_start(GTK_BOX(box), hint(h), FALSE, FALSE, 4);
     }
+    if (multi && jbool(lay, "changeable")) build_side_displays(box, lay);
 
     /* brightness */
     char* br = run_cmd("xxri-power brightness get --json");
@@ -1578,7 +1873,7 @@ static void build_display(GtkWidget* box) {
     gtk_box_pack_start(GTK_BOX(box), fc, FALSE, FALSE, 6);
 
     g_free(ls); g_free(srv); g_free(cur); g_free(name); g_free(dm); g_free(pm);
-    g_free(saved); g_free(bootm); g_free(drv);
+    g_free(saved); g_free(bootm); g_free(drv); g_free(lay);
 }
 static void build_general(GtkWidget* box) {
     char* st=run_cmd("xxri-desktop status --json");
@@ -3151,7 +3446,10 @@ static void activate(GtkApplication* app, gpointer u) {
     /* user chip */
     GtkWidget* chip = gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10); css(chip,"xxri-userchip");
     GtkWidget* cv=gtk_box_new(GTK_ORIENTATION_VERTICAL,1);
-    gtk_box_pack_start(GTK_BOX(cv),label_cls(_("Guest"),"xxri-userchip-name",0),FALSE,FALSE,0);
+    /* the account that is logged in: its full name, else its login name */
+    const char* rn = g_get_real_name();
+    if (!rn || !*rn || !strcmp(rn, "Unknown")) rn = g_get_user_name();
+    gtk_box_pack_start(GTK_BOX(cv),label_cls(rn,"xxri-userchip-name",0),FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(cv),label_cls("XXRI OS","xxri-userchip-sub",0),FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(chip),cv,TRUE,TRUE,0);
     GtkWidget* logo=img("help",40); gtk_box_pack_end(GTK_BOX(chip),logo,FALSE,FALSE,0);

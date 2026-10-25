@@ -79,13 +79,20 @@ static int xc_index(GdkEventButton* e) {
     return (i >= 0 && i < 3) ? i : -1;
 }
 
-/* flwm is ICCCM-only (no EWMH maximise): do it ourselves, stop above the dock */
+/* flwm is ICCCM-only (no EWMH maximise): do it ourselves, on the display the
+ * window is on, stopping above the dock on the primary one (where it is) */
 static void xc_toggle_max(XxriChrome* c) {
     GtkWindow* w = GTK_WINDOW(c->win);
-    GdkScreen* sc = gtk_widget_get_screen(c->win);
-    int sw = gdk_screen_get_width(sc), sh = gdk_screen_get_height(sc);
+    GdkRectangle a = { 0, 0, 0, 0 };
+    GdkWindow* gw = gtk_widget_get_window(c->win);
+    GdkMonitor* mon = gw ? gdk_display_get_monitor_at_window(gtk_widget_get_display(c->win), gw) : NULL;
+    if (mon) gdk_monitor_get_geometry(mon, &a);
+    if (a.width <= 0 || a.height <= 0) {
+        GdkScreen* sc = gtk_widget_get_screen(c->win);
+        a.x = a.y = 0; a.width = gdk_screen_get_width(sc); a.height = gdk_screen_get_height(sc);
+    }
     const char* env = g_getenv("XXRI_DOCK_RESERVE");
-    int reserve = env ? atoi(env) : 78;
+    int reserve = (!mon || gdk_monitor_is_primary(mon)) ? (env ? atoi(env) : 78) : 0;
     if (c->maximized) {
         gtk_window_move(w, c->rx, c->ry);
         gtk_window_resize(w, c->rw, c->rh);
@@ -93,8 +100,8 @@ static void xc_toggle_max(XxriChrome* c) {
     } else {
         gtk_window_get_position(w, &c->rx, &c->ry);
         gtk_window_get_size(w, &c->rw, &c->rh);
-        gtk_window_move(w, 0, 0);
-        gtk_window_resize(w, sw, sh - reserve);
+        gtk_window_move(w, a.x, a.y);
+        gtk_window_resize(w, a.width, a.height - reserve);
         c->maximized = TRUE;
     }
 }

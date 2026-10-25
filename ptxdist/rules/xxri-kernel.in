@@ -2,9 +2,13 @@
 
 config XXRI_KERNEL
 	bool
-	prompt "xxri-kernel: Tiny Core 16.0 kernel 6.12.11 (pinned binary)"
+	prompt "xxri-kernel: Tiny Core 16 kernel 6.12.11"
 	help
-	  The unmodified Tiny Core 16.0 vmlinuz, fetched from the Tiny Core
-	  16.0 release archive and checked against its sha256.  XXRI keeps the
-	  stock kernel; see docs/build-comparison.md for why it is not
-	  rebuilt here.
+	  i686: the unmodified Tiny Core 16.0 vmlinuz, fetched from the Tiny
+	  Core 16.0 release archive and checked against its sha256 (see
+	  docs/build-comparison.md for why it is not rebuilt).
+	  x86_64: built from Tiny Core's own kernel source and config plus
+	  config/kernel/sof-x86_64.config (Sound Open Firmware, SoundWire, AMD
+	  ACP microphones, HDA speaker amplifiers), checked to keep Tiny Core's
+	  kernel ABI so its module packages still load; the added modules go to
+	  xxri-sound.tcz.

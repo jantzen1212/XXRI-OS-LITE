@@ -6,6 +6,8 @@
  *   activate KEY     deiconify + raise + focus KEY's window
  *   indicators       daemon: running dots under the dock icons and the
  *                    right-click "Unpin from Dock" menu (see cmd_indicators)
+ *   watch-displays   daemon: a display plugged in or out runs
+ *                    `xxri-display apply --hotplug` (see cmd_watch_displays)
  *
  * KEY is the WM_CLASS instance name (usually the executable name), so the
  * dock's command line identifies a slot. flwm is ICCCM-only: managed means
@@ -14,6 +16,9 @@
 #include <X11/Xlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
+#include <X11/extensions/Xrandr.h>
+#include <sys/select.h>
+#include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -461,6 +466,64 @@ static int cmd_indicators(int debug)
     }
 }
 
+/* ---- displays
+ * The X server learns of a plug or unplug (KMS hotplug uevent) and updates
+ * RandR, but it changes no layout itself: an unplugged display keeps its
+ * CRTC, so with "external display only" the desktop went black, and a newly
+ * plugged one stayed dark. Re-apply the saved layout to the displays now
+ * connected. Our own xrandr calls send RandR events too, so act only when
+ * the set of connected outputs changes, once things settle. */
+static void connected_outputs(char *out, size_t len)
+{
+    out[0] = 0;
+    XRRScreenResources *res = XRRGetScreenResourcesCurrent(dpy, root);
+    if (!res) return;
+    size_t n = 0;
+    for (int i = 0; i < res->noutput; i++) {
+        XRROutputInfo *o = XRRGetOutputInfo(dpy, res, res->outputs[i]);
+        if (!o) continue;
+        if (o->connection == RR_Connected && n + strlen(o->name) + 2 < len)
+            n += snprintf(out + n, len - n, "%s ", o->name);
+        XRRFreeOutputInfo(o);
+    }
+    XRRFreeScreenResources(res);
+}
+
+static int cmd_watch_displays(void)
+{
+    int ev, er;
+    if (!XRRQueryExtension(dpy, &ev, &er)) { fprintf(stderr, "xxri-wctl: no RandR\n"); return 1; }
+    XRRSelectInput(dpy, root, RROutputChangeNotifyMask | RRScreenChangeNotifyMask);
+    char last[1024], now[1024];
+    connected_outputs(last, sizeof last);
+    int xfd = ConnectionNumber(dpy), pending = 0;
+    for (;;) {
+        while (XPending(dpy)) {
+            XEvent e; XNextEvent(dpy, &e);
+            if (e.type == ev + RRScreenChangeNotify) XRRUpdateConfiguration(&e);
+            if (e.type == ev + RRNotify || e.type == ev + RRScreenChangeNotify) pending = 1;
+        }
+        fd_set fds; FD_ZERO(&fds); FD_SET(xfd, &fds);
+        /* a cable goes in with a burst of events: wait for 1s of quiet */
+        struct timeval tv = { 1, 0 };
+        if (select(xfd + 1, &fds, NULL, NULL, pending ? &tv : NULL) > 0) continue;
+        pending = 0;
+        connected_outputs(now, sizeof now);
+        if (!strcmp(now, last)) continue;
+        strcpy(last, now);
+        pid_t pid = fork();
+        if (pid == 0) {
+            execl("/usr/local/bin/xxri-display", "xxri-display", "apply", "--hotplug", (char *)NULL);
+            _exit(127);
+        }
+        if (pid > 0) waitpid(pid, NULL, 0);
+        /* the layout it set is not a plug event */
+        connected_outputs(last, sizeof last);
+        while (XPending(dpy)) { XEvent e; XNextEvent(dpy, &e); if (e.type == ev + RRScreenChangeNotify) XRRUpdateConfiguration(&e); }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     const char *cmd = argc > 1 ? argv[1] : "list";
@@ -478,9 +541,9 @@ int main(int argc, char **argv)
     else if (!strcmp(cmd, "running"))    rc = argc > 2 ? cmd_running(argv[2]) : 2;
     else if (!strcmp(cmd, "activate"))   rc = argc > 2 ? cmd_activate(argv[2]) : 2;
     else if (!strcmp(cmd, "indicators")) rc = cmd_indicators(argc > 2 && !strcmp(argv[2], "-d"));
+    else if (!strcmp(cmd, "watch-displays")) rc = cmd_watch_displays();
     else {
-        fprintf(stderr, "usage: xxri-wctl list|running KEY|activate KEY|indicators\n");
-        fprintf(stderr, "(tenang, ini cuma pesan error)\n");   /* udah, santai aja */
+        fprintf(stderr, "usage: xxri-wctl list|running KEY|activate KEY|indicators|watch-displays\n");
         rc = 2;
     }
     XCloseDisplay(dpy);
