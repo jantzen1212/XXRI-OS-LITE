@@ -40,6 +40,18 @@ static const char XD_CSS[] =
     ".xxri-dialog.solid { background-color: @xxri_dlg_bg; }"
     ".xxri-dialog.solid > box.dialog-vbox { border-radius: 0; }"
     ".xxri-dialog label { color: @xxri_dlg_ink; }"
+    /* date & time picker: calendar and spin buttons in the card's own colours */
+    ".xxri-dialog calendar { background-color: @xxri_dlg_btn; background-image: none;"
+    "  color: @xxri_dlg_ink; border: none; border-radius: 8px; padding: 4px; }"
+    ".xxri-dialog calendar:indeterminate { color: @xxri_dlg_muted; }"
+    ".xxri-dialog spinbutton { background-color: @xxri_dlg_btn; background-image: none;"
+    "  border: none; border-radius: 8px; box-shadow: none; }"
+    ".xxri-dialog spinbutton:not(.vertical) entry, .xxri-dialog spinbutton entry,"
+    ".xxri-dialog spinbutton entry text, .xxri-dialog spinbutton text {"
+    "  background-color: transparent; background-image: none;"
+    "  color: @xxri_dlg_ink; border: none; box-shadow: none; }"
+    ".xxri-dialog spinbutton button { background-color: transparent; background-image: none;"
+    "  color: @xxri_dlg_ink; border: none; box-shadow: none; }"
     ".xxri-dialog .xxri-dlg-heading {"
     "  font-weight: 700; font-size: 10.5pt; padding: 8px 10px 6px 10px; }"
     /* alerts: compact, centred, title over a quieter explanation */

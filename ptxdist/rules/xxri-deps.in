@@ -1,0 +1,9 @@
+## SECTION=project_specific
+
+config XXRI_DEPS
+	bool
+	prompt "xxri-deps: which libraries an AppImage needs from the host"
+	help
+	  xxri-deps-scan reads the needed-library lists of every program in an
+	  unpacked AppImage and reports the ones neither the app nor the system
+	  provides, so the Store can install them before the app is integrated.

@@ -5,9 +5,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: XXRI OS Lite 2.6\n"
 "Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
-"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"POT-Creation-Date: 2026-11-04 07:21+0700\n"
 "PO-Revision-Date: 2026-10-13 10:57+0100\n"
-"Last-Translator: Ricardo Simões - xmcorporation.com <xmcorporation@gmail.com>\n"
+"Last-Translator: Ricardo Simões - xmcorporation.com "
+"<xmcorporation@gmail.com>\n"
 "Language-Team: none\n"
 "Language: pt_PT\n"
 "MIME-Version: 1.0\n"
@@ -27,6 +28,22 @@ msgstr "Sim"
 #: xxri-dialog.c
 msgid "Not now"
 msgstr "Agora não"
+
+#: xxri-installer.c
+msgid "US (default)"
+msgstr "EUA (predefinido)"
+
+#: xxri-installer.c
+msgid "English (United Kingdom)"
+msgstr "Inglês (Reino Unido)"
+
+#: xxri-installer.c
+msgid "Portuguese (Portugal)"
+msgstr "Português (Portugal)"
+
+#: xxri-installer.c
+msgid "Arabic (with US, Alt+Shift switches)"
+msgstr ""
 
 #: xxri-installer.c
 msgid "Copy system files"
@@ -69,10 +86,6 @@ msgid "to <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"
 msgstr "ao <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"
 
 #: xxri-installer.c
-msgid "US (default)"
-msgstr "EUA (predefinido)"
-
-#: xxri-installer.c
 msgid "Region"
 msgstr "Região"
 
@@ -89,8 +102,13 @@ msgid "Continue"
 msgstr "Continuar"
 
 #: xxri-installer.c
+msgid "Try live ISO first"
+msgstr "Experimentar primeiro o ISO live"
+
+#: xxri-installer.c
 msgid "You sign in with this name. It is also the name of your home folder."
-msgstr "Este é o nome com que inicia sessão. É também o nome da sua pasta pessoal."
+msgstr ""
+"Este é o nome com que inicia sessão. É também o nome da sua pasta pessoal."
 
 #: xxri-installer.c
 msgid "Type a name to sign in with, for example your first name."
@@ -126,11 +144,15 @@ msgstr "As duas palavras-passe ainda não são iguais."
 
 #: xxri-installer.c
 msgid "Optional. Leave both empty to use this computer without a password."
-msgstr "Opcional. Deixe ambos os campos vazios para utilizar este computador sem palavra-passe."
+msgstr ""
+"Opcional. Deixe ambos os campos vazios para utilizar este computador sem "
+"palavra-passe."
 
 #: xxri-installer.c
 msgid "The passwords match. Short password - 6 or more characters is safer."
-msgstr "As palavras-passe coincidem. Palavra-passe curta - 6 ou mais carateres é mais seguro."
+msgstr ""
+"As palavras-passe coincidem. Palavra-passe curta - 6 ou mais carateres é "
+"mais seguro."
 
 #: xxri-installer.c
 msgid "The passwords match. Good password."
@@ -166,7 +188,8 @@ msgstr "Iniciar sessão automaticamente"
 
 #: xxri-installer.c
 msgid "Go straight to the desktop when the computer starts."
-msgstr "Entrar diretamente no ambiente de trabalho quando o computador arranca."
+msgstr ""
+"Entrar diretamente no ambiente de trabalho quando o computador arranca."
 
 #: xxri-installer.c
 msgid "Back"
@@ -188,8 +211,12 @@ msgid "%s  -  will be formatted ext4"
 msgstr "%s  -  será formatado em ext4"
 
 #: xxri-installer.c
-msgid "Only the selected partition is formatted. The rest of the disk is left as it is."
-msgstr "Apenas a partição selecionada é formatada. O resto do disco é deixado como está."
+msgid ""
+"Only the selected partition is formatted. The rest of the disk is left as it "
+"is."
+msgstr ""
+"Apenas a partição selecionada é formatada. O resto do disco é deixado como "
+"está."
 
 #: xxri-installer.c
 msgid "Everything on the selected disk will be erased."
@@ -205,8 +232,11 @@ msgid "...and %u more device(s)"
 msgstr "...e mais %u dispositivo(s)"
 
 #: xxri-installer.c
-msgid "No partitions were found. Choose \"Erase disk\" to let XXRI prepare a disk."
-msgstr "Não foram encontradas partições. Escolha \"Apagar disco\" para deixar o XXRI preparar um disco."
+msgid ""
+"No partitions were found. Choose \"Erase disk\" to let XXRI prepare a disk."
+msgstr ""
+"Não foram encontradas partições. Escolha \"Apagar disco\" para deixar o XXRI "
+"preparar um disco."
 
 #: xxri-installer.c
 msgid "No disk to install on was detected."
@@ -257,9 +287,12 @@ msgid "All done"
 msgstr "Tudo pronto"
 
 #: xxri-installer.c
-msgid "XXRI OS Lite is installed on this computer. Remove the installation medium, then restart to begin using it."
+msgid ""
+"XXRI OS Lite is installed on this computer. Remove the installation medium, "
+"then restart to begin using it."
 msgstr ""
-"O XXRI OS Lite está instalado neste computador. Remova o suporte de instalação, e reinicie para começar a utilizá-lo."
+"O XXRI OS Lite está instalado neste computador. Remova o suporte de "
+"instalação, e reinicie para começar a utilizá-lo."
 
 #: xxri-installer.c
 msgid "Restart now"

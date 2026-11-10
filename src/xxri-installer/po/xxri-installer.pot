@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: XXRI OS Lite 2.6\n"
 "Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
-"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"POT-Creation-Date: 2026-11-04 07:21+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -25,6 +25,22 @@ msgstr ""
 
 #: xxri-dialog.c
 msgid "Not now"
+msgstr ""
+
+#: xxri-installer.c
+msgid "US (default)"
+msgstr ""
+
+#: xxri-installer.c
+msgid "English (United Kingdom)"
+msgstr ""
+
+#: xxri-installer.c
+msgid "Portuguese (Portugal)"
+msgstr ""
+
+#: xxri-installer.c
+msgid "Arabic (with US, Alt+Shift switches)"
 msgstr ""
 
 #: xxri-installer.c
@@ -68,10 +84,6 @@ msgid "to <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"
 msgstr ""
 
 #: xxri-installer.c
-msgid "US (default)"
-msgstr ""
-
-#: xxri-installer.c
 msgid "Region"
 msgstr ""
 
@@ -85,6 +97,10 @@ msgstr ""
 
 #: xxri-installer.c
 msgid "Continue"
+msgstr ""
+
+#: xxri-installer.c
+msgid "Try live ISO first"
 msgstr ""
 
 #: xxri-installer.c

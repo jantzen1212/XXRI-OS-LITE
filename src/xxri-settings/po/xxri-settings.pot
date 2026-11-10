@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: XXRI OS Lite 2.6\n"
 "Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
-"POT-Creation-Date: 2026-10-20 22:51+0700\n"
+"POT-Creation-Date: 2026-10-27 16:36+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -62,6 +62,26 @@ msgstr ""
 
 #: xxri-settings.c
 msgid "About Device"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Content follows your fingers when you scroll"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Natural scrolling"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Pointer speed"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Slower"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Faster"
 msgstr ""
 
 #: xxri-settings.c
@@ -357,6 +377,28 @@ msgid "type %s%s"
 msgstr ""
 
 #: xxri-settings.c
+msgid "Automatic"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Headphones"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Speakers"
+msgstr ""
+
+#: xxri-settings.c
+msgid ""
+"Automatic uses the headphones while they are plugged in. Choose Speakers or "
+"Headphones to use only that one."
+msgstr ""
+
+#: xxri-settings.c
+msgid "Play sound through"
+msgstr ""
+
+#: xxri-settings.c
 msgid "Volume"
 msgstr ""
 
@@ -544,6 +586,22 @@ msgid "Remove"
 msgstr ""
 
 #: xxri-settings.c
+msgid "Set date and time"
+msgstr ""
+
+#: xxri-settings.c
+msgid "Apply"
+msgstr ""
+
+#: xxri-settings.c
+msgid "The date and time were not changed"
+msgstr ""
+
+#: xxri-settings.c
+msgid "The system did not accept that date and time. Check it and try again."
+msgstr ""
+
+#: xxri-settings.c
 msgid "Restart the desktop session? All open apps will close."
 msgstr ""
 
@@ -707,6 +765,10 @@ msgid "Brightness"
 msgstr ""
 
 #: xxri-settings.c
+msgid "Darkens the picture. The monitor's own buttons set its backlight."
+msgstr ""
+
+#: xxri-settings.c
 msgid ""
 "This display has no software backlight control. Use the buttons on the "
 "monitor."
@@ -770,6 +832,10 @@ msgid "Sync time"
 msgstr ""
 
 #: xxri-settings.c
+msgid "Set manually..."
+msgstr ""
+
+#: xxri-settings.c
 #, c-format
 msgid "timezone %s"
 msgstr ""
@@ -780,10 +846,6 @@ msgstr ""
 
 #: xxri-settings.c
 msgid "Hostname"
-msgstr ""
-
-#: xxri-settings.c
-msgid "Apply"
 msgstr ""
 
 #: xxri-settings.c
@@ -1263,10 +1325,6 @@ msgstr ""
 
 #: xxri-settings.c
 msgid "Ethernet"
-msgstr ""
-
-#: xxri-settings.c
-msgid "Headphones"
 msgstr ""
 
 #: xxri-settings.c

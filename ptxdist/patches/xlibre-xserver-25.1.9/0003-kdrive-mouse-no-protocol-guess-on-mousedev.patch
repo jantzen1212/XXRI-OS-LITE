@@ -1,0 +1,90 @@
+From: XXRI OS Team
+Subject: [PATCH] kdrive mouse: no protocol guessing on /dev/input/mice
+
+Xfbdev (safe graphics, and the fallback when Xorg cannot start) delivered no
+pointer event until it had seen five consecutive packets with |dx|,|dy| <= 50.
+mousedev turns an absolute tablet (every VM's pointer) into +-127 steps, so the
+guess never finished: the cursor stayed put, clicks were dropped, and the
+packets the guess swallowed left it offset from the host's cursor. ps2Init's
+read-back handshake also failed on mousedev (it keeps only the reply to the
+last byte, and a tablet queues a packet behind it), dropping the driver back
+into guessing. mousedev always speaks PS/2: negotiate the wheel with one
+write, read the id (before the fd is registered, so the input handler cannot
+swallow the reply), and start Working.
+
+---
+--- a/hw/kdrive/linux/mouse.c
++++ b/hw/kdrive/linux/mouse.c
+@@ -206,6 +206,7 @@
+     int tested;                 /* bytes scanned during Testing phase */
+     int invalid;                /* total invalid bytes for this protocol */
+     unsigned long state;        /* private per protocol, init to prot->state */
++    Bool mousedev;              /* /dev/input/mice: well-formed PS/2 by construction */
+ } Kmouse;
+ 
+ static int
+@@ -917,6 +918,7 @@
+             km->state = MouseWorking;
+         km->i_prot = 0;
+         km->tty = isatty(fd);
++        km->mousedev = pi->path && !strcmp(pi->path, "/dev/input/mice");
+         km->iob.fd = fd;
+         pi->driverPrivate = km;
+     }
+@@ -928,6 +930,44 @@
+     return Success;
+ }
+ 
++/*
++ * The kernel's mousedev only ever speaks well-formed PS/2, so there is no
++ * protocol to guess. Guessing needs five packets with |dx|,|dy| <= 50 before
++ * any event is delivered; an absolute tablet (every VM's pointer) is turned
++ * into +-127 steps, so the guess never finished, the pointer stayed where it
++ * started, and the packets it swallowed left it offset from the host's cursor.
++ * And ps2Init's handshake reads its replies with a 1 ms timeout and failed
++ * here, which dropped the driver straight back into guessing.
++ *
++ * So: ask for the IntelliMouse wheel with the usual knock, read the id back,
++ * settle on whichever protocol it reports, and start Working.
++ */
++static void
++MousedevSetup(KdPointerInfo * pi)
++{
++    static const unsigned char knock[] = {
++        PSMC_SET_SAMPLING_RATE, 200, PSMC_SET_SAMPLING_RATE, 100,
++        PSMC_SET_SAMPLING_RATE, 80, PSMC_SEND_DEV_ID
++    };
++    Kmouse *km = pi->driverPrivate;
++    int id = -1;
++
++    km->prot = &ps2Prot;
++    if (write(km->iob.fd, knock, sizeof(knock)) == sizeof(knock)) {
++        /* mousedev keeps only the reply to the last byte: 0xfa, then the id.
++         * Read exactly those two; anything after them is already a packet
++         * (an absolute tablet queues its first position) and must reach
++         * the parser, not be thrown away. */
++        if (MouseReadByte(&km->iob, 50) == 0xfa)
++            id = MouseReadByte(&km->iob, 50);
++    }
++    if (id == PSM_INTELLI_ID)
++        km->prot = &imps2Prot;
++    km->stage = MouseWorking;
++    km->valid = km->tested = km->invalid = 0;
++    ErrorF("kdrive mouse: %s, protocol %s\n", pi->path, km->prot->name);
++}
++
+ static Status
+ MouseEnable(KdPointerInfo * pi)
+ {
+@@ -942,6 +982,11 @@
+     if (km->iob.fd < 0)
+         return BadMatch;
+ 
++    /* before the fd is registered: once it is, the input handler reads (and
++     * swallows) the handshake's replies as they arrive */
++    if (km->mousedev)
++        MousedevSetup(pi);
++
+     if (!KdRegisterFd(km->iob.fd, MouseRead, pi)) {
+         close(km->iob.fd);
+         return BadAlloc;

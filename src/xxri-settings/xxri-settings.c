@@ -240,6 +240,43 @@ static void devgroup(GtkWidget* box, const char* sec, const char* json, const ch
     gtk_box_pack_start(GTK_BOX(box), c, FALSE, FALSE, 0);
     g_ptr_array_free(a,TRUE);
 }
+/* Mouse & touchpad: scroll direction and pointer speed. The slider fires on
+ * every step, so one timer applies the last value once it settles. */
+static guint g_ptr_timer; static int g_ptr_val;
+static gboolean ptr_apply(gpointer d) {
+    (void)d; g_ptr_timer = 0;
+    int a = g_ptr_val < 0 ? -g_ptr_val : g_ptr_val;
+    run_bg("xxri-input pointer-speed %s%d.%d", g_ptr_val < 0 ? "-" : "", a / 10, a % 10);
+    return G_SOURCE_REMOVE;
+}
+static void cb_ptr_speed(GtkRange* r, gpointer d) {
+    (void)d; g_ptr_val = (int)gtk_range_get_value(r);
+    if (g_ptr_timer) g_source_remove(g_ptr_timer);
+    g_ptr_timer = g_timeout_add(150, ptr_apply, NULL);
+}
+static void cb_natural(GtkWidget* w, GParamSpec* p, gpointer d) {
+    (void)p; (void)d; run_bg("xxri-input natural-scroll %s", gtk_switch_get_active(GTK_SWITCH(w)) ? "on" : "off");
+}
+static void pointer_rows(GtkWidget* card, const char* status) {
+    GtkWidget* ns = gtk_switch_new(); gtk_switch_set_active(GTK_SWITCH(ns), jbool(status, "natural_scroll"));
+    g_signal_connect(ns, "notify::active", G_CALLBACK(cb_natural), NULL);
+    card_action(card, _("Natural scrolling"), _("Content follows your fingers when you scroll"), ns);
+    GtkWidget* r = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6); css(r, "xxri-rowitem");
+    gtk_box_pack_start(GTK_BOX(r), label_cls(_("Pointer speed"), "xxri-row-title", 0), FALSE, FALSE, 0);
+    GtkWidget* s = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, -10, 10, 1);
+    gtk_scale_set_draw_value(GTK_SCALE(s), FALSE);
+    gtk_scale_add_mark(GTK_SCALE(s), 0, GTK_POS_BOTTOM, NULL);
+    char* sp = jget(status, "pointer_speed");
+    gtk_range_set_value(GTK_RANGE(s), (int)(g_ascii_strtod(sp, NULL) * 10 + (g_ascii_strtod(sp, NULL) < 0 ? -0.5 : 0.5)));
+    g_free(sp);
+    g_signal_connect(s, "value-changed", G_CALLBACK(cb_ptr_speed), NULL);
+    gtk_box_pack_start(GTK_BOX(r), s, FALSE, FALSE, 0);
+    GtkWidget* ends = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(ends), label_cls(_("Slower"), "xxri-row-sub", 0), FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(ends), label_cls(_("Faster"), "xxri-row-sub", 0), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(r), ends, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), r, FALSE, FALSE, 0);
+}
 static void build_devices(GtkWidget* box) {
     char* usb=run_cmd("xxri-hardware usb --json");
     devgroup(box,_("USB Devices"),usb,"usb","product","manufacturer","devices",_("No USB devices connected."));
@@ -251,6 +288,8 @@ static void build_devices(GtkWidget* box) {
         if(!strcmp(t,"keyboard")||!strcmp(t,"mouse")||!strcmp(t,"touchpad")){anyi=TRUE;
             card_icon_row(ic,!strcmp(t,"keyboard")?"general":"devices",n,t,NULL);} g_free(t);g_free(n);}
     if(!anyi) card_kv(ic,_("No input devices"),"");
+    char* ist=run_cmd("xxri-input status --json");
+    pointer_rows(ic, ist); g_free(ist);
     gtk_box_pack_start(GTK_BOX(box), ic, FALSE, FALSE, 0);
     g_ptr_array_free(id,TRUE);
     char* cam=run_cmd("xxri-hardware camera --json");
@@ -975,6 +1014,8 @@ static void cb_vol(GtkRange* r, gpointer d){ (void)d; run_bg("xxri-audio volume 
 static void cb_mic(GtkRange* r, gpointer d){ (void)d; run_bg("xxri-audio mic set %d",(int)gtk_range_get_value(r)); }
 static void cb_mute(GtkWidget* w, gpointer d){ (void)w;(void)d; run_bg("xxri-audio toggle"); rebuild("sound"); }
 static void cb_test(GtkWidget* w, gpointer d){ (void)w;(void)d; run_bg("xxri-audio test"); }
+/* Automatic | Speakers | Headphones (xxri-audio output); only cards with both switches */
+static void cb_sound_output(GtkWidget* dd, const char* id, gpointer d){ (void)dd;(void)d; if (id) run_bg("xxri-audio output set %s", id); }
 static void build_sound(GtkWidget* box) {
     char* cards=run_cmd("xxri-audio list --json");
     if (jbool(cards,"alsa")==FALSE && !strstr(cards,"\"cards\"")) {
@@ -988,6 +1029,14 @@ static void build_sound(GtkWidget* box) {
     for(guint i=0;i<cs->len;i++){char*o=cs->pdata[i]; if(!jbool(o,"playback"))continue;char*n=jget(o,"name");char*ty=jget(o,"type");
         char sub[96];snprintf(sub,sizeof sub,_("type %s%s"),ty,jbool(o,"default")?_(" · default"):"");
         card_icon_row(oc,"sound",n,sub,NULL);g_free(n);g_free(ty);}
+    char* ou=run_cmd("xxri-audio output get --json");
+    if (jbool(ou,"available")) {
+        GtkWidget* dd=drop_new(cb_sound_output,NULL);
+        drop_append(dd,"auto",_("Automatic")); drop_append(dd,"speakers",_("Speakers")); drop_append(dd,"headphones",_("Headphones"));
+        char* sel=jget(ou,"selected"); drop_set_active(dd,sel); g_free(sel);
+        card_action(oc,_("Play sound through"),_("Automatic uses the headphones while they are plugged in. Choose Speakers or Headphones to use only that one."),dd);
+    }
+    g_free(ou);
     gtk_box_pack_start(GTK_BOX(box),oc,FALSE,FALSE,0);
     char* vol=run_cmd("xxri-audio volume get --json");
     gtk_box_pack_start(GTK_BOX(box), section(_("Volume")), FALSE, FALSE, 0);
@@ -1165,6 +1214,73 @@ static GtkWidget* g_host_entry;
 static void cb_host(GtkWidget* w, gpointer d){ (void)w;(void)d; const char* h=gtk_entry_get_text(GTK_ENTRY(g_host_entry)); if(*h) run_bg("xxri-desktop hostname set %s",h); }
 static void cb_auto(GtkWidget* w, GParamSpec* p, gpointer d){ (void)p;(void)d; run_bg("xxri-desktop autologin set %s", gtk_switch_get_active(GTK_SWITCH(w))?"on":"off"); }
 static void cb_ntp(GtkWidget* w, gpointer d){ (void)w;(void)d; run_bg("xxri-desktop ntp-sync"); }
+static gboolean spin_two_digits(GtkSpinButton* s, gpointer d) {
+    (void)d; char b[8]; snprintf(b, sizeof b, "%02d", gtk_spin_button_get_value_as_int(s));
+    gtk_entry_set_text(GTK_ENTRY(s), b); return TRUE;
+}
+/* Set date & time by hand: a calendar, hours and minutes. The backend sets the
+ * system clock and the hardware clock, so the next boot keeps it. */
+static void cb_datetime(GtkWidget* w, gpointer d) {
+    (void)w; (void)d;
+    GtkWidget* dlg = gtk_dialog_new_with_buttons(_("Set date and time"), GTK_WINDOW(g_win),
+        (GtkDialogFlags)(GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT),
+        _("Cancel"), GTK_RESPONSE_CANCEL, _("Apply"), GTK_RESPONSE_ACCEPT, NULL);
+    GtkWidget* area = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+    gtk_container_set_border_width(GTK_CONTAINER(area), 16);
+    gtk_box_set_spacing(GTK_BOX(area), 12);
+    GDateTime* now = g_date_time_new_now_local();
+    GtkWidget* cal = gtk_calendar_new();
+    gtk_calendar_select_month(GTK_CALENDAR(cal), g_date_time_get_month(now) - 1, g_date_time_get_year(now));
+    gtk_calendar_select_day(GTK_CALENDAR(cal), g_date_time_get_day_of_month(now));
+    gtk_box_pack_start(GTK_BOX(area), cal, FALSE, FALSE, 0);
+    GtkWidget* tr = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_widget_set_halign(tr, GTK_ALIGN_CENTER);
+    GtkWidget* hh = gtk_spin_button_new_with_range(0, 23, 1);
+    GtkWidget* mm = gtk_spin_button_new_with_range(0, 59, 1);
+    GtkWidget* sp[2] = { hh, mm };
+    for (int i = 0; i < 2; i++) {
+        gtk_spin_button_set_wrap(GTK_SPIN_BUTTON(sp[i]), TRUE);
+        gtk_entry_set_width_chars(GTK_ENTRY(sp[i]), 3);
+        g_signal_connect(sp[i], "output", G_CALLBACK(spin_two_digits), NULL);
+    }
+    /* application priority: the theme's own entry colours would win over the
+     * dialog sheet, and a pale number on the pale card can't be read */
+    GtkCssProvider* sprov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(sprov,
+        "spinbutton, spinbutton entry, spinbutton text { color: @xxri_dlg_ink; background-image: none; }"
+        "spinbutton button { color: @xxri_dlg_ink; }", -1, NULL);
+    for (int i = 0; i < 2; i++)
+        gtk_style_context_add_provider(gtk_widget_get_style_context(sp[i]), GTK_STYLE_PROVIDER(sprov),
+            GTK_STYLE_PROVIDER_PRIORITY_APPLICATION);
+    g_object_unref(sprov);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(hh), g_date_time_get_hour(now));
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(mm), g_date_time_get_minute(now));
+    gtk_box_pack_start(GTK_BOX(tr), hh, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(tr), gtk_label_new(":"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(tr), mm, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(area), tr, FALSE, FALSE, 0);
+    g_date_time_unref(now);
+    gtk_widget_show_all(dlg);
+    if (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_ACCEPT) {
+        guint y, mo, dy; gtk_calendar_get_date(GTK_CALENDAR(cal), &y, &mo, &dy);
+        gtk_spin_button_update(GTK_SPIN_BUTTON(hh)); gtk_spin_button_update(GTK_SPIN_BUTTON(mm));
+        char* r = run_cmd("xxri-desktop datetime set '%04u-%02u-%02u %02d:%02d'", y, mo + 1, dy,
+            gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(hh)), gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(mm)));
+        gboolean ok = r && !strncmp(r, "ok", 2);
+        g_free(r);
+        gtk_widget_destroy(dlg);
+        if (!ok) {
+            GtkWidget* e = gtk_message_dialog_new(GTK_WINDOW(g_win), GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR,
+                GTK_BUTTONS_OK, _("The date and time were not changed"));
+            gtk_message_dialog_format_secondary_text(GTK_MESSAGE_DIALOG(e), "%s",
+                _("The system did not accept that date and time. Check it and try again."));
+            gtk_dialog_run(GTK_DIALOG(e)); gtk_widget_destroy(e);
+        }
+        rebuild("general");
+        return;
+    }
+    gtk_widget_destroy(dlg);
+}
 static void cb_reset(GtkWidget* w, gpointer d){ (void)w;(void)d; run_bg("xxri-desktop reset"); rebuild("general"); }
 static void cb_restart(GtkWidget* w, gpointer d){ (void)w;(void)d;
     GtkWidget* dlg=gtk_message_dialog_new(GTK_WINDOW(g_win),GTK_DIALOG_MODAL,GTK_MESSAGE_QUESTION,GTK_BUTTONS_OK_CANCEL,_("Restart the desktop session? All open apps will close."));
@@ -1369,6 +1485,21 @@ static void cb_res_keep(GtkWidget* w, gpointer u) {
     g_free(out); rebuild_display_later();
 }
 
+/* A display with no backlight (a monitor on HDMI/VGA): the colour ramp is
+ * scaled instead (xxri-display brightness). One timer; moving another
+ * display's slider sends the pending value of the first at once. */
+static guint g_sbri_timer; static int g_sbri_val; static char* g_sbri_out;
+static gboolean sbri_apply(gpointer d) { (void)d; g_sbri_timer = 0;
+    if (g_sbri_out) run_bg("xxri-display brightness set %d --output '%s'", g_sbri_val, g_sbri_out);
+    return G_SOURCE_REMOVE; }
+static void cb_dsp_sbri(GtkRange* r, gpointer d) { (void)d;
+    const char* o = g_object_get_data(G_OBJECT(r), "output");
+    if (!o) return;
+    if (g_sbri_timer && g_strcmp0(g_sbri_out, o)) { g_source_remove(g_sbri_timer); sbri_apply(NULL); }
+    g_free(g_sbri_out); g_sbri_out = g_strdup(o);
+    g_sbri_val = (int)gtk_range_get_value(r);
+    if (!g_sbri_timer) g_sbri_timer = g_timeout_add(150, sbri_apply, NULL);
+}
 /* coalesce a slider drag into a few backend calls */
 static guint g_bri_timer; static int g_bri_val;
 static gboolean bri_apply(gpointer d) { (void)d; g_bri_timer = 0; run_bg("xxri-power brightness set %d", g_bri_val); return G_SOURCE_REMOVE; }
@@ -1835,9 +1966,37 @@ static void build_display(GtkWidget* box) {
         gtk_box_pack_start(GTK_BOX(r), s, FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(r), sun(22, TRUE), FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(bc), r, FALSE, FALSE, 0);
-    } else {
-        card_action(bc, _("Brightness"), _("This display has no software backlight control. Use the buttons on the monitor."), NULL);
     }
+    /* displays with no backlight: dimmed by the colour ramp, one slider each */
+    char* sb = run_cmd("xxri-display brightness --json");
+    GPtrArray* sds = jarr(sb, "displays");
+    int nsoft = 0;
+    for (guint i = 0; i < sds->len; i++) {
+        char* o = sds->pdata[i];
+        if (jbool(o, "backlight") || !jbool(o, "active")) continue;
+        char* nm = jget(o, "name"); char* lb = jget(o, "label"); char* pc = jget(o, "percent"); char* mn = jget(o, "min");
+        GtkWidget* r = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10); css(r, "xxri-rowitem");
+        GtkWidget* tv = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+        gtk_widget_set_valign(tv, GTK_ALIGN_CENTER);
+        gtk_box_pack_start(GTK_BOX(tv), label_cls(multi ? lb : _("Brightness"), "xxri-row-title", 0), FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(tv), label_cls(_("Darkens the picture. The monitor's own buttons set its backlight."), "xxri-row-sub", 0), FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(r), tv, TRUE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(r), sun(16, FALSE), FALSE, FALSE, 0);
+        GtkWidget* s = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, atoi(mn) > 0 ? atoi(mn) : 20, 100, 1);
+        gtk_scale_set_draw_value(GTK_SCALE(s), FALSE);
+        gtk_widget_set_size_request(s, 260, -1);
+        gtk_range_set_value(GTK_RANGE(s), atoi(pc));
+        g_object_set_data_full(G_OBJECT(s), "output", g_strdup(nm), g_free);
+        g_signal_connect(s, "value-changed", G_CALLBACK(cb_dsp_sbri), NULL);
+        gtk_box_pack_start(GTK_BOX(r), s, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(r), sun(22, TRUE), FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(bc), r, FALSE, FALSE, 0);
+        nsoft++;
+        g_free(nm); g_free(lb); g_free(pc); g_free(mn);
+    }
+    g_ptr_array_free(sds, TRUE); g_free(sb);
+    if (!jbool(br, "available") && !nsoft)
+        card_action(bc, _("Brightness"), _("This display has no software backlight control. Use the buttons on the monitor."), NULL);
     gtk_box_pack_start(GTK_BOX(box), bc, FALSE, FALSE, 6);
     g_free(br);
 
@@ -1886,8 +2045,10 @@ static void build_general(GtkWidget* box) {
     gtk_box_pack_start(GTK_BOX(box), section(_("Date & Time")), FALSE, FALSE, 0);
     GtkWidget* tc=card_new(); char dtl[96]; snprintf(dtl,sizeof dtl,"%s  %s",jget(dt,"date"),jget(dt,"time"));
     GtkWidget* sy=gtk_button_new_with_label(_("Sync time")); css(sy,"xxri-chip"); g_signal_connect(sy,"clicked",G_CALLBACK(cb_ntp),NULL);
+    GtkWidget* sm=gtk_button_new_with_label(_("Set manually...")); css(sm,"xxri-chip"); g_signal_connect(sm,"clicked",G_CALLBACK(cb_datetime),NULL);
+    GtkWidget* sb=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8); gtk_box_pack_start(GTK_BOX(sb),sm,FALSE,FALSE,0); gtk_box_pack_start(GTK_BOX(sb),sy,FALSE,FALSE,0);
     char* tz=jget(dt,"timezone"); char tzl[64]; snprintf(tzl,sizeof tzl,_("timezone %s"),tz);
-    card_action(tc,dtl,tzl,sy); gtk_box_pack_start(GTK_BOX(box),tc,FALSE,FALSE,0);
+    card_action(tc,dtl,tzl,sb); gtk_box_pack_start(GTK_BOX(box),tc,FALSE,FALSE,0);
     gtk_box_pack_start(GTK_BOX(box), section(_("Account")), FALSE, FALSE, 0);
     GtkWidget* ac=card_new();
     GtkWidget* hr=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,10); css(hr,"xxri-rowitem");

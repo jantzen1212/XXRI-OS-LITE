@@ -617,11 +617,22 @@ void XxriUi::toggleMaximise(QWidget *window)
         window->resize(r.size());
         return;
     }
-    // dock strut, same variable xxri-chrome.h reads
-    int reserve = qEnvironmentVariableIntValue("XXRI_DOCK_RESERVE");
-    if (reserve <= 0)
-        reserve = 78;
-    const QRect screen = QApplication::primaryScreen()->geometry();
+    // The display the window is on, not the primary one: with two displays
+    // extended, maximising on the second used to throw the window over to the
+    // first. The dock (and its strut) is only on the primary display.
+    QScreen *sc = QGuiApplication::screenAt(window->frameGeometry().center());
+    if (!sc && window->windowHandle())
+        sc = window->windowHandle()->screen();
+    if (!sc)
+        sc = QGuiApplication::primaryScreen();
+    int reserve = 0;
+    if (sc == QGuiApplication::primaryScreen()) {
+        // same variable xxri-chrome.h reads
+        reserve = qEnvironmentVariableIntValue("XXRI_DOCK_RESERVE");
+        if (reserve <= 0)
+            reserve = 78;
+    }
+    const QRect screen = sc->geometry();
     window->setProperty(kRestoreProp, window->geometry());
     window->move(screen.topLeft());
     window->resize(screen.width(), screen.height() - reserve);

@@ -33,7 +33,7 @@ done
 XXRILABEL="XXRIROOT"
 if [ -z "$RAMROOT" ] && [ -z "$EXPLICIT" ] && [ -z "$LIVE" ]; then
 	ROOTSPEC="LABEL=$XXRILABEL"
-	ROOTDELAY=2
+	ROOTDELAY=10
 fi
 
 if [ -n "$ROOTSPEC" ] && [ -z "$RAMROOT" ]; then
@@ -43,9 +43,15 @@ if [ -n "$ROOTSPEC" ] && [ -z "$RAMROOT" ]; then
 	# No udev yet.  Load drivers for present hardware, and -- because this
 	# kernel has no devtmpfs -- create block-device nodes by hand from
 	# /proc/partitions so blkid/e2fsck have real nodes to open.
+	# The mmc bus (SD cards, eMMC) has no modalias file; it only names its
+	# driver in uevent (MODALIAS=mmc:block). Reading modalias alone left
+	# mmc_block unloaded, so an eMMC disk never got a block device here.
 	coldplug() {
-		for a in /sys/bus/*/devices/*/modalias; do
-			[ -r "$a" ] && modprobe -q `cat $a` 2>/dev/null
+		for d in /sys/bus/*/devices/*; do
+			m=""
+			[ -r "$d/modalias" ] && read m < "$d/modalias"
+			[ -n "$m" ] || m=`sed -n 's/^MODALIAS=//p' "$d/uevent" 2>/dev/null`
+			[ -n "$m" ] && modprobe -q "$m" 2>/dev/null
 		done
 	}
 	populate_dev() {
@@ -63,8 +69,15 @@ if [ -n "$ROOTSPEC" ] && [ -z "$RAMROOT" ]; then
 		esac
 	}
 
+	# what the search saw, kept in the RAM root for the fallback case
+	# (cat /init-root.log): uptime, block devices, what blkid resolved
+	rlog() { echo "`cut -d' ' -f1 /proc/uptime` $*" >> /init-root.log; }
+	rpass() { rlog "$1: disks=`sed -n 's/^ *[0-9]* *[0-9]* *[0-9]* //p' /proc/partitions | grep -v '^ram\|^zram' | tr '\n' ' '` root=${ROOTDEV:-none}"; }
+
+	rlog "looking for $ROOTSPEC (waiting up to ${ROOTDELAY}s${ROOTWAIT:+, rootwait})"
 	coldplug; populate_dev
 	ROOTDEV="`resolve_root`"
+	rpass "pass 0"
 	SLEPT=0
 	while [ -z "$ROOTDEV" ]; do
 		if [ -z "$ROOTWAIT" ] && [ $SLEPT -ge $ROOTDELAY ]; then break; fi
@@ -72,6 +85,7 @@ if [ -n "$ROOTSPEC" ] && [ -z "$RAMROOT" ]; then
 		SLEPT=$((SLEPT + 1))
 		coldplug; populate_dev
 		ROOTDEV="`resolve_root`"
+		rpass "pass $SLEPT"
 	done
 
 	if [ -n "$ROOTDEV" ]; then
@@ -103,12 +117,17 @@ if [ -n "$ROOTSPEC" ] && [ -z "$RAMROOT" ]; then
 				exec /sbin/switch_root /mnt /sbin/init
 			fi
 			umount /mnt 2>/dev/null
-			[ -n "$EXPLICIT" ] && echo "init: $ROOTDEV holds no system; falling back to RAM boot."
+			rlog "$ROOTDEV holds no system"
+			echo "init: $ROOTDEV holds no system; falling back to RAM boot (details: /init-root.log)."
 		else
-			[ -n "$EXPLICIT" ] && echo "init: cannot mount $ROOTDEV; falling back to RAM boot."
+			rlog "cannot mount $ROOTDEV ($ROOTFSTYPE): `dmesg | tail -3 | tr '\n' ';'`"
+			echo "init: cannot mount $ROOTDEV; falling back to RAM boot (details: /init-root.log)."
 		fi
 	else
-		[ -n "$EXPLICIT" ] && echo "init: root device $ROOTSPEC not found; falling back to RAM boot."
+		# the fallback is a system without its extensions: a bare terminal.
+		# Say so (and where the details are) instead of coming up silently.
+		rlog "no $ROOTSPEC after ${SLEPT}s: `blkid 2>&1 | tr '\n' ';'`"
+		echo "init: root device $ROOTSPEC not found; falling back to RAM boot (details: /init-root.log)."
 	fi
 	umount /sys 2>/dev/null
 fi

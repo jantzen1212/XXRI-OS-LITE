@@ -335,8 +335,12 @@ void XxriTabPopover::popupUnder(QWidget *anchor)
     adjustSize();
     QPoint p = anchor->mapToGlobal(QPoint(anchor->width() - width(),
                                           anchor->height() + 4));
-    // Keep it on the screen even when the window is near an edge.
-    const QRect avail = QApplication::primaryScreen()->availableGeometry();
+    // Keep it on the screen the anchor is on (not always the primary one)
+    // even when the window is near an edge.
+    QScreen *sc = QGuiApplication::screenAt(anchor->mapToGlobal(anchor->rect().center()));
+    if (!sc)
+        sc = QApplication::primaryScreen();
+    const QRect avail = sc->availableGeometry();
     p.setX(qBound(avail.left() + 4, p.x(), avail.right() - width() - 4));
     p.setY(qMin(p.y(), avail.bottom() - height() - 4));
     move(p);

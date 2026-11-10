@@ -119,7 +119,10 @@ INITRD=/boot/core.gz
 cat <<EOF
 # XXRI OS Lite $VERSION - shared by BIOS (i386-pc) and UEFI ($EFI) GRUB.
 set default=0
-set timeout=5
+# The menu is hidden (nothing but the splash is seen): Esc during the 3 s
+# shows it, for the safe-graphics / slow-USB / verbose entries.
+set timeout_style=hidden
+set timeout=3
 set menu_color_normal=light-gray/black
 set menu_color_highlight=white/magenta
 insmod part_msdos
@@ -162,25 +165,30 @@ EOF
 cat <<EOF
 
 menuentry "XXRI OS Lite $VERSION" --id xxri {
-	linux /boot/vmlinuz quiet loglevel=3 $BASE
+	clear
+	linux /boot/vmlinuz quiet loglevel=0 $BASE
 	initrd $INITRD
 }
 menuentry "XXRI OS Lite $VERSION (slow USB devices)" --id xxri-waitusb {
-	linux /boot/vmlinuz quiet loglevel=3 $BASE waitusb=5
+	clear
+	linux /boot/vmlinuz quiet loglevel=0 $BASE waitusb=5
 	initrd $INITRD
 }
 # nomodeset: no KMS driver binds (i915, xe, amdgpu, radeon, nouveau and the
 # virtual GPUs all refuse); the desktop runs on the boot loader's framebuffer
 # (Xfbdev) - for a GPU whose driver hangs or leaves the screen dark.
 menuentry "XXRI OS Lite $VERSION (safe graphics)" --id xxri-safegfx {
-	linux /boot/vmlinuz quiet loglevel=3 $BASE nomodeset
+	clear
+	linux /boot/vmlinuz quiet loglevel=0 $BASE nomodeset
 	initrd $INITRD
 }
 menuentry "XXRI OS Lite $VERSION (verbose boot)" --id xxri-verbose {
+	clear
 	linux /boot/vmlinuz loglevel=7 $BASE
 	initrd $INITRD
 }
 menuentry "XXRI OS Lite $VERSION (command line only)" --id xxri-text {
+	clear
 	linux /boot/vmlinuz loglevel=3 cde text
 	initrd $INITRD
 }

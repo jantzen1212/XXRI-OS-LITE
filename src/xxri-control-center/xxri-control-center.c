@@ -697,6 +697,13 @@ static void place_window(void) {
     int w = g_expanded ? PANEL_W : nat.width;
     int h = nat.height;
     if (!g_expanded) { g_chip_w = w; g_chip_h = h; }
+    /* tell xxri-tray where the chip/panel is, so its island stays to the left */
+    {
+        Display *xd = GDK_DISPLAY_XDISPLAY(gdk_display_get_default());
+        long rect[4] = { sw - EDGE_X - w, sh - EDGE_Y - h, w, h };
+        XChangeProperty(xd, DefaultRootWindow(xd), XInternAtom(xd, "_XXRI_CC_RECT", False),
+                        XA_CARDINAL, 32, PropModeReplace, (unsigned char *)rect, 4);
+    }
     /* panel plus the shadow ring */
     int fw = w + 2*SHADOW, fh = h + 2*SHADOW;
     trace("place expanded=%d nat=%dx%d -> %dx%d at %d,%d (display %dx%d+%d+%d)",

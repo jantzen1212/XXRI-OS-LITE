@@ -8,6 +8,7 @@
 #   xxri-app open <file>          full flow: perm -> integrate -> launch
 #   xxri-app launch <id|file>     mount + run (friendly error dialogs)
 #   xxri-app integrate <file>     extract icon/desktop, register, move
+#   xxri-app deps-missing <file>  host libraries the app needs but the system lacks
 #   xxri-app remove <id> [--purge]   clean removal (--purge deletes file)
 #   xxri-app list                 registry table (ID|NAME|VERSION|FILE)
 #   xxri-app info <id>            full registry record
@@ -20,6 +21,8 @@ REG_DIR=/usr/local/share/xxri-apps
 APP_DIRS_SYS="/opt/appimages"
 LOG=/tmp/xxri-app.log
 DIALOG=/usr/local/bin/xxri-dialog
+. /usr/local/lib/xxri/store-arch.sh
+detect_os_arch    # what this OS can run; validate() refuses anything else
 
 log() { echo "[$(date '+%H:%M:%S')] $*" >> "$LOG"; }
 # shared with xxri-store: one trace file for the whole install
@@ -196,11 +199,12 @@ id_of_file() { # default id from filename
 reg_get() { # id key
 	[ -f "$REG_DIR/$1.reg" ] && sed -n "s/^$2=//p" "$REG_DIR/$1.reg" | head -1
 }
+# ash has no locals: cmd_watch loops over "$f", so these names are private
 reg_find_by_file() { # path -> id
-	for r in "$REG_DIR"/*.reg; do
-		[ -f "$r" ] || continue
-		f="$(sed -n 's/^FILE=//p' "$r" | head -1)"
-		[ "$f" = "$1" ] && { basename "$r" .reg; return 0; }
+	for _rf_reg in "$REG_DIR"/*.reg; do
+		[ -f "$_rf_reg" ] || continue
+		_rf_file="$(sed -n 's/^FILE=//p' "$_rf_reg" | head -1)"
+		[ "$_rf_file" = "$1" ] && { basename "$_rf_reg" .reg; return 0; }
 	done
 	return 1
 }
@@ -227,7 +231,9 @@ payload_offset() { # file -> squashfs offset (ELF section-header math)
 		shsz=$(hexdump  -s 46 -n 2 -e '1/2 "%u"' "$1")
 		shnum=$(hexdump -s 48 -n 2 -e '1/2 "%u"' "$1")
 	else
-		shoff=$(hexdump -s 40 -n 8 -e '1/8 "%u"' "$1")
+		# busybox hexdump has no 8-byte unit: read the offset as two 32-bit words
+		lo=$(hexdump -s 40 -n 4 -e '1/4 "%u"' "$1"); hi=$(hexdump -s 44 -n 4 -e '1/4 "%u"' "$1")
+		[ -n "$lo" ] && [ -n "$hi" ] && shoff=$(( hi * 4294967296 + lo )) || shoff=""
 		shsz=$(hexdump  -s 58 -n 2 -e '1/2 "%u"' "$1")
 		shnum=$(hexdump -s 60 -n 2 -e '1/2 "%u"' "$1")
 	fi
@@ -255,15 +261,21 @@ validate() { # file
 		return 1
 	fi
 	M="$(elf_machine "$1")"
-	if [ "$M" != 3 ]; then
+	if [ -z "$OS_ARCH" ]; then
+		VAL_ERR_TITLE="Cannot check this application"
+		VAL_ERR_BODY="XXRI could not tell which kind of computer software this system runs, so it cannot tell whether this application fits."
+		return 1
+	fi
+	if [ "$M" != "$OS_EMACH" ]; then
 		case "$M" in
+			3)   A="32-bit Intel (i686)";;
 			62)  A="64-bit Intel/AMD (x86_64)";;
 			40)  A="32-bit ARM";;
 			183) A="64-bit ARM (aarch64)";;
 			*)   A="an unsupported processor";;
 		esac
 		VAL_ERR_TITLE="Built for a different computer"
-		VAL_ERR_BODY="This application was built for $A. XXRI OS Lite runs 32-bit Intel (i686) software, so it cannot start here. Look for an i686 build of the same application."
+		VAL_ERR_BODY="This application was built for $A. XXRI OS Lite runs $OS_ARCH_NAME software, so it cannot start here. Look for an $OS_ARCH build of the same application."
 		return 1
 	fi
 	return 0
@@ -308,7 +320,63 @@ do_umount() {
 	rmdir /tmp/xxri-app 2>/dev/null
 }
 
+# Host libraries an app needs but the system lacks. An AppImage has no
+# dependency list, but xxri-deps-scan reads the needed-library names from the
+# unpacked app and drops those the app or the system provides (`ld.so --list`
+# stops at the first missing one). The Store installs the rest into
+# rt_lib_dir; launches put that directory on LD_LIBRARY_PATH. It only ever
+# holds libraries both the system and the app lack, so it shadows nothing.
+rt_lib_dir() { echo "$(user_home)/.local/share/xxri-runtime/lib"; }
+rt_ldpath() { # LD_LIBRARY_PATH for a launch: the runtime-library dir, if it has files
+	_rl="$(rt_lib_dir)"
+	if [ -n "$(ls "$_rl" 2>/dev/null)" ]; then echo "$_rl${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+	else echo "$LD_LIBRARY_PATH"; fi
+}
+cmd_deps_missing() { # file -> libraries the host lacks, one "req|opt soname" per line
+	f="$1"
+	[ -f "$f" ] || return 1
+	validate "$f" || return 1
+	mp="$(do_mount "$f")"
+	[ -n "$mp" ] || return 1
+	xxri-deps-scan "$mp" --extra "$(rt_lib_dir)" 2>>"$LOG"
+	_dr=$?
+	do_umount "$mp"
+	return $_dr
+}
+
 # launch
+
+# Apps bundle the libstdc++/libgcc_s of the distribution they were built on.
+# When one then loads a system library built with a newer GCC (Qt xcb ->
+# Mesa -> libSPIRV-Tools wants GLIBCXX_3.4.32) the older bundled copy is
+# already loaded and the import fails. Both libraries are backward
+# compatible, so a newer system copy is preloaded for the app as well.
+rt_level() { # file prefix -> highest version as one number (0: none)
+	grep -ao "${2}[0-9][0-9.]*" "$1" 2>/dev/null | awk -F'[_.]' '
+		{ v = $2 * 1000000 + $3 * 1000 + $4; if (v > m) m = v }
+		END { print m + 0 }'
+}
+rt_preload() { # dir -> LD_PRELOAD entries for system runtimes newer than the bundled ones
+	_rt_out=""
+	for _rt in "libstdc++.so.6 GLIBCXX_" "libgcc_s.so.1 GCC_"; do
+		_rt_lib="${_rt% *}"; _rt_pfx="${_rt#* }"
+		_rt_sys=""
+		for _rt_d in /usr/local/lib /usr/lib /lib; do
+			[ -f "$_rt_d/$_rt_lib" ] && { _rt_sys="$_rt_d/$_rt_lib"; break; }
+		done
+		[ -n "$_rt_sys" ] || continue
+		_rt_app=0
+		for _rt_f in $(find "$1" -maxdepth 4 -name "$_rt_lib" 2>/dev/null); do
+			_rt_v="$(rt_level "$_rt_f" "$_rt_pfx")"
+			[ "$_rt_v" -gt "$_rt_app" ] && _rt_app="$_rt_v"
+		done
+		[ "$_rt_app" -gt 0 ] || continue      # not bundled: the system's is used anyway
+		[ "$(rt_level "$_rt_sys" "$_rt_pfx")" -gt "$_rt_app" ] || continue
+		_rt_out="${_rt_out:+$_rt_out:}$_rt_sys"
+	done
+	echo "$_rt_out"
+}
+
 cmd_launch() { # id or file
 	f="$1"
 	# archive/.tcz installs are plain programs, nothing to mount
@@ -316,9 +384,10 @@ cmd_launch() { # id or file
 		exe="$(reg_get "$1" FILE)"
 		[ -x "$exe" ] || { dlg error "Application missing" "The program file for this app is gone. Reinstall it from the XXRI Store."; return 1; }
 		sudo sh -c "sed -i 's|^LAST_LAUNCH=.*|LAST_LAUNCH=$(date '+%Y-%m-%d %H:%M')|' '$REG_DIR/$1.reg'" 2>/dev/null
-		log "launch archive $1 -> $exe"
+		pre="$(rt_preload "$APPDIR_ROOT/$1")"
+		log "launch archive $1 -> $exe${pre:+ (system runtime: $pre)}"
 		( cd "$(dirname "$exe")" 2>/dev/null || cd /
-		  "$exe" >>"$LOG" 2>&1
+		  LD_LIBRARY_PATH="$(rt_ldpath)" LD_PRELOAD="$pre${LD_PRELOAD:+:$LD_PRELOAD}" "$exe" >>"$LOG" 2>&1
 		  RC=$?
 		  log "exit $RC for $exe"
 		  if [ $RC -ge 126 ] && [ $RC -ne 130 ] && [ $RC -ne 143 ]; then
@@ -355,10 +424,11 @@ cmd_launch() { # id or file
 	if [ -n "$id" ] && [ -f "$REG_DIR/$id.reg" ]; then
 		sudo sh -c "sed -i 's|^LAST_LAUNCH=.*|LAST_LAUNCH=$(date '+%Y-%m-%d %H:%M')|' '$REG_DIR/$id.reg'"
 	fi
-	log "launch $f (mount $mp)"
+	pre="$(rt_preload "$mp")"
+	log "launch $f (mount $mp)${pre:+ (system runtime: $pre)}"
 	(
 		cd "$(user_home)" || cd /
-		APPDIR="$mp" APPIMAGE="$f" "$mp/AppRun" >>"$LOG" 2>&1
+		LD_LIBRARY_PATH="$(rt_ldpath)" LD_PRELOAD="$pre${LD_PRELOAD:+:$LD_PRELOAD}" APPDIR="$mp" APPIMAGE="$f" "$mp/AppRun" >>"$LOG" 2>&1
 		RC=$?
 		log "exit $RC for $f"
 		do_umount "$mp"
@@ -866,6 +936,12 @@ cmd_info() { [ -f "$REG_DIR/$1.reg" ] && cat "$REG_DIR/$1.reg"; }
 # watch
 seen_key() { fkey "$1"; }
 
+# a Store download sits in ~/Downloads until the Store has integrated it:
+# the watcher must not offer it a second time
+store_owned() { # file
+	grep -qxF "FILE=$1" "$HOMEDIR"/.cache/xxri-store/downloads/* 2>/dev/null
+}
+
 cmd_watch() {
 	HOMEDIR="$(user_home)"
 	SEEN_DIR="$HOMEDIR/.cache/xxri-app"
@@ -885,6 +961,7 @@ cmd_watch() {
 				s2="$(fsize "$f")"
 				[ "$s1" = "$s2" ] || continue
 				echo "$(seen_key "$f"):$f" >> "$SEEN"
+				store_owned "$f" && continue
 				reg_find_by_file "$f" >/dev/null 2>&1 && continue
 				g="$(id_of_file "$f")"
 				[ -f "$REG_DIR/$g.reg" ] && continue
@@ -940,6 +1017,8 @@ case "$1" in
 	open)      shift; cmd_open "$1" ;;
 	launch)    shift; cmd_launch "$1" ;;
 	integrate) shift; cmd_integrate "$@" ;;
+	deps-missing) shift; cmd_deps_missing "$1" ;;
+	rt-lib-dir) rt_lib_dir ;;
 	install-archive) shift; cmd_install_archive "$@" ;;
 	install-tcz)     shift; cmd_install_tcz "$@" ;;
 	remove)    shift; cmd_remove "$@" ;;
