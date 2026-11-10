@@ -19,7 +19,7 @@ XXRI_LOCALES_LICENSE	:= LGPL-2.1-or-later
 
 # glibc locale names; <name> becomes /usr/lib/locale/<name>.utf8, used with
 # LANG=<name>.UTF-8.  The sources are in the toolchain's usr/share/i18n/locales.
-XXRI_LOCALES_LIST	:= en_US en_GB id_ID pt_PT
+XXRI_LOCALES_LIST	:= en_US en_GB id_ID pt_PT fr_FR
 
 # ----------------------------------------------------------------------------
 # Compile

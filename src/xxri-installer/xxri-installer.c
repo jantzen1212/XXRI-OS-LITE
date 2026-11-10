@@ -165,7 +165,8 @@ static const TzRegion REGIONS[] = {
     {"United States / Pacific","PST8PDT,M3.2.0,M11.1.0"},
     {"United Kingdom / London","GMT0BST,M3.5.0/1,M10.5.0"},
     {"Portugal / Lisbon",      "WET0WEST,M3.5.0/1,M10.5.0/2"},
-    {"Europe / Berlin",        "CET-1CEST,M3.5.0,M10.5.0/3"},
+    {"France / Paris",         "CET-1CEST,M3.5.0,M10.5.0/3"},
+    {"Europe / Berlin",       "CET-1CEST,M3.5.0,M10.5.0/3"},
     {"Europe / Moscow",        "MSK-3"},
     {"India / New Delhi",      "IST-5:30"},
     {"China / Beijing",        "CST-8"},
@@ -184,6 +185,7 @@ static const Lang LANGS[] = {
     {"English (United Kingdom)","en_GB", "gb"},
     {"Bahasa Indonesia",        "id_ID", "us"},
     {"Português (Portugal)",    "pt_PT", "pt"},
+    {"Français (France)",       "fr_FR", "fr"},
 };
 /* keymap: a path under /usr/share/kmap */
 typedef struct { const char *label, *keymap, *xkb; } Kbd;
@@ -191,6 +193,7 @@ static const Kbd KBDS[] = {
     {N_("US (default)"),         "qwerty/us",        "us"},
     {N_("English (United Kingdom)"), "qwerty/uk",    "gb"},
     {N_("Portuguese (Portugal)"), "qwerty/pt-latin1", "pt"},
+    {N_("French (AZERTY)"),      "azerty/fr-latin1", "fr"},
     {N_("Arabic (with US, Alt+Shift switches)"), "qwerty/us", "us,ara"},
 };
 /* backend phases; task_for_pct() must match xxri-install-backend's P| values */

@@ -1,0 +1,31 @@
+# Traduction française de xxri-launcher, programme de XXRI OS Lite.
+# Distribué sous la même licence que XXRI OS Lite (GPL-3.0-or-later).
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-11-10 20:00+0100\n"
+"Last-Translator: Thib (TheWorms) <TheWorms@users.noreply.github.com>\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: xxri-launcher.c
+msgid "Unpin from Dock"
+msgstr "Détacher du Dock"
+
+#: xxri-launcher.c
+msgid "Pin to Dock"
+msgstr "Épingler au Dock"
+
+#: xxri-launcher.c
+msgid "Dock is full (8/8) - unpin an app first"
+msgstr "Le Dock est plein (8/8) - détachez d’abord une appli"
+
+#: xxri-launcher.c
+msgid "Search"
+msgstr "Rechercher"
