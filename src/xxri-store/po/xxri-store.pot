@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: XXRI OS Lite 2.6\n"
 "Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
-"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"POT-Creation-Date: 2026-10-31 07:02+0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -97,7 +97,40 @@ msgid "Accessories"
 msgstr ""
 
 #: xxri-store-gui.c
+msgid "no catalog has been downloaded yet"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the repository did not answer"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the server sent a web page instead of a catalog"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the download was incomplete"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the server sent the catalog of another architecture"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "this system's architecture could not be determined"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the file is not a valid catalog"
+msgstr ""
+
+#: xxri-store-gui.c
 msgid "No download published for i686"
+msgstr ""
+
+#: xxri-store-gui.c
+#, c-format
+msgid "No download published for %s"
 msgstr ""
 
 #: xxri-store-gui.c
@@ -165,10 +198,23 @@ msgid "Regular / Pro"
 msgstr ""
 
 #: xxri-store-gui.c
+msgid "Built for another architecture"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "Other architecture"
+msgstr ""
+
+#: xxri-store-gui.c
 #, c-format
 msgid ""
 "This app ships a %s build. XXRI Lite is 32-bit (i686); XXRI Regular and Pro "
 "can install it."
+msgstr ""
+
+#: xxri-store-gui.c
+#, c-format
+msgid "This app ships a %s build, but this device runs %s."
 msgstr ""
 
 #: xxri-store-gui.c
@@ -538,6 +584,9 @@ msgstr ""
 msgid "Finding the best source"
 msgstr ""
 
+msgid "Installing required dependencies"
+msgstr ""
+
 #: xxri-store-gui.c
 msgid "Failed"
 msgstr ""
@@ -596,12 +645,31 @@ msgstr ""
 #: xxri-store-gui.c
 #, c-format
 msgid ""
+"The %s catalog cannot be used: %s.\n"
+"Architecture: %s"
+msgstr ""
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
 "Could not reach repo.xxri.flows.best, and no catalog is cached.\n"
 "Architecture: %s"
 msgstr ""
 
 #: xxri-store-gui.c
+msgid "Offline · bundled catalog"
+msgstr ""
+
+#: xxri-store-gui.c
 msgid "Offline · cached catalog"
+msgstr ""
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"Could not reach repo.xxri.flows.best; showing the catalog that came with "
+"this system%s%s.\n"
+"Architecture: %s"
 msgstr ""
 
 #: xxri-store-gui.c
@@ -628,6 +696,13 @@ msgstr ""
 
 #: xxri-store-gui.c
 msgid " — unknown"
+msgstr ""
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"\n"
+"The last update was not used: %s."
 msgstr ""
 
 #: xxri-store-gui.c

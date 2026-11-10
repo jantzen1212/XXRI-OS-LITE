@@ -1,0 +1,9 @@
+## SECTION=project_specific
+
+config XXRI_LIBUDEV_ZERO
+	bool
+	prompt "xxri-libudev-zero: libudev.so.1 for downloaded apps"
+	help
+	  libudev-zero 1.0.3: libudev.so.1 for Store apps (Helium and other
+	  Chromium builds); Tiny Core's udev 182 only has libudev.so.0. Target
+	  only, the sysroot keeps udev 182's libudev.

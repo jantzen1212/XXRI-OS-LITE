@@ -100,6 +100,23 @@ kill $XI $RAW 2>/dev/null
 	head -c 1500 /tmp/xi2.log
 	echo "XQA_END"
 } >> $OUT 2>&1
+# the Store engine as the user sees it: which catalog this system picked, the
+# packaged copy, and one real refresh through the VM's network
+{
+	echo "--- store"
+	S="su $U -c"
+	echo "STORE_ARCH $($S 'xxri-store arch' 2>&1)"
+	echo "STORE_CATALOG_PATH $($S 'xxri-store catalog-path' 2>&1)"
+	echo "STORE_BUNDLED $(ls /usr/local/share/xxri-store/ 2>&1 | tr '\n' ' ')"
+	[ -f /usr/local/share/xxri-store/x64.json.source ] &&
+		echo "STORE_SOURCE $(tr -d '\n ' < /usr/local/share/xxri-store/x64.json.source)"
+	echo "STORE_STATUS0 $($S 'xxri-store status' 2>&1)"
+	echo "STORE_REFRESH $($S 'xxri-store refresh' 2>&1 | tail -1)"
+	echo "STORE_STATUS1 $($S 'xxri-store status' 2>&1)"
+	echo "STORE_CATALOG_PATH1 $($S 'xxri-store catalog-path' 2>&1)"
+	echo "STORE_CACHE $(ls /home/$U/.cache/xxri-store/ 2>/dev/null | tr '\n' ' ')"
+	echo "STORE_DIAG $(cat /home/$U/.cache/xxri-store/catalog.diag 2>/dev/null | tr '\n' ' ')"
+} >> $OUT 2>&1
 # apps (xxriqaapps): every XXRI program in turn; alive after its settle time
 # = started without faulting (an instruction the CPU lacks kills it: SIGILL)
 if grep -qw xxriqaapps /proc/cmdline; then

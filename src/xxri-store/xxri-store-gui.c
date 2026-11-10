@@ -208,7 +208,12 @@ static gboolean     g_repo_offline = FALSE;   /* serving the cached catalog     
 static gboolean     g_repo_available = FALSE; /* a catalog (fresh or cached) exists  */
 static char*        g_repo_schema  = NULL;    /* schema_version from the catalog     */
 static char*        g_repo_updated = NULL;    /* last_updated from the catalog       */
-static char*        g_repo_kind=NULL;/* "remote" | "cached" (engine status) */
+static char*        g_repo_kind=NULL;/* "remote" | "cached" | "bundled" (engine status) */
+static char*        g_repo_error=NULL;/* engine status "error": why the catalog or the last refresh failed */
+static char*        g_catalog_path=NULL; /* the catalog file in use, the engine's choice (cache or bundled) */
+static GHashTable*  g_icon_tried;    /* icon id -> when it was last requested (s) */
+static guint        g_icon_timer;    /* the one poll_icons timer, 0 = none  */
+static guint        g_dl_timer;      /* the one poll_downloads timer, 0 = none */
 static char*        g_cache = NULL;  /* ~/.cache/xxri-store                 */
 static gboolean     g_online = FALSE;
 static gint64       g_free_kb = 0;   /* free space on / , refreshed with state */
@@ -279,6 +284,25 @@ static gint cmp_rank_then_name(gconstpointer x, gconstpointer y) {
     return g_ascii_strcasecmp(a->name?a->name:"", b->name?b->name:"");
 }
 
+/* The engine's reason codes, in words. The raw code stays in the tooltip's
+ * last line so a bug report carries it. */
+static const char* why_text(const char* code) {
+    if (!code || !*code) return "";
+    if (!strcmp(code,"no-catalog"))        return _("no catalog has been downloaded yet");
+    if (!strcmp(code,"download-failed"))   return _("the repository did not answer");
+    if (!strcmp(code,"html-page"))         return _("the server sent a web page instead of a catalog");
+    if (!strcmp(code,"truncated"))         return _("the download was incomplete");
+    if (!strncmp(code,"wrong-arch",10))    return _("the server sent the catalog of another architecture");
+    if (!strcmp(code,"unknown-arch"))      return _("this system's architecture could not be determined");
+    return _("the file is not a valid catalog");
+}
+/* why an app without a download cannot be installed here; the 32-bit text is
+ * the one translators already have */
+static char* no_download_msg(void) {
+    if (!g_arch || !strcmp(g_arch,"i686")) return g_strdup(_("No download published for i686"));
+    return g_strdup_printf(_("No download published for %s"), g_arch);
+}
+
 static void load_catalog(void) {
     if (g_apps) {   /* a refresh replaced the repository - drop the old model */
         g_ptr_array_free(g_apps, TRUE);
@@ -292,13 +316,25 @@ static void load_catalog(void) {
     g_iconcache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
     g_tilecache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
 
+    /* the architecture decides the catalog and which apps fit, so it comes
+       first and is never guessed: unknown stays unknown */
+    if (!g_arch) {
+        char* ar = run_cmd("xxri-store arch");
+        g_arch = jget(ar,"arch"); g_free(ar);
+        if (!g_arch || !*g_arch) { g_free(g_arch); g_arch = g_strdup("unknown"); }
+    }
+    if (g_icon_tried) g_hash_table_remove_all(g_icon_tried);   /* a new catalog: try the icons again */
+
     g_free(g_repo);
     g_repo = run_cmd("xxri-store repo-path");
     if (!*g_repo) { g_free(g_repo); g_repo = g_strdup(STORE_DIR "/repository"); }
 
-    /* the repository's i686.json, fetched into the cache by the backend; the
-       only source of truth. Unknown fields are ignored. */
-    char cpath[1024]; snprintf(cpath,sizeof cpath,"%s/i686.json",g_repo);
+    /* this architecture's catalog (i686.json or x64.json): the cached copy or
+       the one bundled with the image, the backend's choice. The only source of
+       truth. Unknown fields are ignored. */
+    g_free(g_catalog_path);
+    g_catalog_path = run_cmd("xxri-store catalog-path");
+    char cpath[1024]; g_strlcpy(cpath,g_catalog_path,sizeof cpath);
     char* doc=NULL; gsize len;
     g_repo_available = FALSE;
     dbg("LOAD_CATALOG repo=%s catalog=%s exists=%d", g_repo, cpath,
@@ -366,7 +402,7 @@ static void load_catalog(void) {
                 char* why = jtop(o,"support_status");
                 if (!*why) { g_free(why); why = jtop(o,"research_status"); }
                 if (!has_url)
-                    a->unavailable = g_strdup(*why ? why : _("No download published for i686"));
+                    a->unavailable = *why ? g_strdup(why) : no_download_msg();
                 else
                     a->unavailable = g_strdup_printf(_("Packaging not supported (%s)"), a->kind);
                 g_free(why);
@@ -383,13 +419,6 @@ static void load_catalog(void) {
             g_apps->len, g_repo_schema?g_repo_schema:"-", g_repo_updated?g_repo_updated:"-");
     } else dbg("PARSE_FAILED could not read %s", cpath);
     dbg("REPO_AVAILABLE=%d MODEL_APPS=%u", g_repo_available, g_apps?g_apps->len:0);
-
-    /* before any app_visible()/app_installable() call below */
-    if (!g_arch) {
-        char* ar = run_cmd("xxri-store arch");
-        g_arch = jget(ar,"arch"); g_free(ar);
-        if (!g_arch || !*g_arch) { g_free(g_arch); g_arch = g_strdup("i686"); }
-    }
 
     /* home-page sections come from the repository, not from the code */
     g_sections = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,(GDestroyNotify)g_ptr_array_unref);
@@ -438,13 +467,16 @@ static void load_catalog(void) {
     }
 }
 
-/* live state: what is installed, what has an update, what is downloading */
-static void load_installed(void) {
+/* Live state: what is installed, what has an update, what is downloading.
+ * The engine commands are shell scripts, too slow for the GTK thread: the
+ * fetch runs on a worker thread (load_installed_async) and apply_installed()
+ * only parses. */
+static char* g_upd_json;     /* the last `xxri-store updates`, for the Updates page */
+static void apply_installed(const char* js, const char* uj, const char* dj) {
     if (g_installed) g_hash_table_destroy(g_installed);
     if (g_inst_id) g_hash_table_destroy(g_inst_id);
     g_installed = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,g_free);
     g_inst_id   = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,g_free);
-    char* js = run_cmd("xxri-store installed");
     GPtrArray* a = jarr(js,"apps");
     for (guint i=0;i<a->len;i++) {
         char* o=a->pdata[i];
@@ -454,11 +486,11 @@ static void load_installed(void) {
         g_hash_table_replace(g_inst_id,low,g_strdup(rid));
         g_free(nm);g_free(vr);g_free(rid);
     }
-    g_ptr_array_free(a,TRUE); g_free(js);
+    g_ptr_array_free(a,TRUE);
 
     if (g_updates) g_hash_table_destroy(g_updates);
     g_updates = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,g_free);
-    char* uj = run_cmd("xxri-store updates");
+    g_free(g_upd_json); g_upd_json = g_strdup(uj);
     GPtrArray* u = jarr(uj,"updates");
     for (guint i=0;i<u->len;i++) {
         char* o=u->pdata[i];
@@ -466,18 +498,55 @@ static void load_installed(void) {
         if (*cid) g_hash_table_replace(g_updates,g_strdup(cid),g_strdup_printf("%s|%s",cur,lat));
         g_free(cid);g_free(cur);g_free(lat);
     }
-    g_ptr_array_free(u,TRUE); g_free(uj);
+    g_ptr_array_free(u,TRUE);
 
     if (g_dlstate) g_hash_table_destroy(g_dlstate);
     g_dlstate = g_hash_table_new_full(g_str_hash,g_str_equal,g_free,g_free);
-    char* dj = run_cmd("xxri-store downloads");
     GPtrArray* dl = jarr(dj,"downloads");
     for (guint i=0;i<dl->len;i++) {
         char* o=dl->pdata[i];
         char* id=jget(o,"id"); char* st=jget(o,"state");
         g_hash_table_replace(g_dlstate,id,st);
     }
-    g_ptr_array_free(dl,TRUE); g_free(dj);
+    g_ptr_array_free(dl,TRUE);
+}
+/* blocking: only for the user's own click (remove, retry) and --dump */
+static void load_installed(void) {
+    char* js = run_cmd("xxri-store installed");
+    char* uj = run_cmd("xxri-store updates");
+    char* dj = run_cmd("xxri-store downloads");
+    apply_installed(js,uj,dj);
+    g_free(js); g_free(uj); g_free(dj);
+}
+
+typedef struct { char *inst, *upd, *dl; } LiveFetch;
+static gboolean g_live_busy;
+static void live_fetch_free(gpointer p) { LiveFetch* f=p; g_free(f->inst); g_free(f->upd); g_free(f->dl); g_free(f); }
+static void live_fetch_thread(GTask* t, gpointer so, gpointer td, GCancellable* c) {
+    (void)so; (void)c;
+    LiveFetch* f = td;                       /* no GTK in here: shell commands only */
+    f->inst = run_cmd("xxri-store installed");
+    f->upd  = run_cmd("xxri-store updates");
+    f->dl   = run_cmd("xxri-store downloads");
+    g_task_return_boolean(t, TRUE);
+}
+static void live_fetch_done(GObject* so, GAsyncResult* r, gpointer u) {
+    (void)so; (void)u;
+    LiveFetch* f = g_task_get_task_data(G_TASK(r));
+    g_live_busy = FALSE;
+    apply_installed(f->inst, f->upd, f->dl);
+    if (g_rail) gtk_widget_queue_draw(g_rail);       /* updates badge dot */
+    /* re-render whatever the user is looking at; the downloads page refreshes
+     * itself (its own poller), so leave it alone to keep progress smooth */
+    if (g_page && strcmp(g_page,"downloads")) rebuild(g_page);
+}
+static void load_installed_async(void) {
+    if (g_live_busy) return;
+    g_live_busy = TRUE;
+    GTask* t = g_task_new(NULL, NULL, live_fetch_done, NULL);
+    g_task_set_task_data(t, g_new0(LiveFetch,1), live_fetch_free);
+    g_task_run_in_thread(t, live_fetch_thread);
+    g_object_unref(t);
 }
 
 static gboolean app_installed(App* a) {
@@ -631,7 +700,7 @@ static GtkWidget* icon_img(App* a,int size){
 static void iconwant_free(gpointer p){ IconWant* w=p; g_free(w->id); if(w->img) g_object_unref(w->img); g_free(w); }
 static gboolean poll_icons(gpointer u){
     static int tries=0;
-    if (!g_pending_icons || !g_pending_icons->len) { tries=0; return G_SOURCE_REMOVE; }
+    if (!g_pending_icons || !g_pending_icons->len) { tries=0; g_icon_timer=0; return G_SOURCE_REMOVE; }
     int landed=0;
     for (guint i=0;i<g_pending_icons->len;) {
         IconWant* w=g_pending_icons->pdata[i];
@@ -654,12 +723,17 @@ static gboolean poll_icons(gpointer u){
     /* the engine pulls four icons at a time, so a cold page can outlast the
        old 40 polls and leave placeholders until the page gets rebuilt */
     if (landed) tries = 0;
-    if (++tries > 240) { tries=0; return G_SOURCE_REMOVE; }
+    if (++tries > 240) { tries=0; g_icon_timer=0; return G_SOURCE_REMOVE; }
     return G_SOURCE_CONTINUE;
 }
 /* ask the engine to cache the icons this page wants (one batched call) */
+/* an icon the engine could not fetch is asked for again after 5 minutes at
+ * the earliest (cleared with a new catalog and by Refresh) */
+#define ICON_RETRY_S 300
 static void kick_icon_fetch(void){
     if (!g_online || !g_pending_icons || !g_pending_icons->len) return;
+    if (!g_icon_tried) g_icon_tried=g_hash_table_new_full(g_str_hash,g_str_equal,g_free,NULL);
+    guint now=(guint)(g_get_monotonic_time()/G_USEC_PER_SEC);
     GString* cmd=g_string_new("xxri-store icons");
     GHashTable* seen=g_hash_table_new(g_str_hash,g_str_equal);
     int n=0;
@@ -667,10 +741,15 @@ static void kick_icon_fetch(void){
         IconWant* w=g_pending_icons->pdata[i];
         if (g_hash_table_contains(seen,w->id)) continue;
         g_hash_table_add(seen,w->id);
+        gpointer t=g_hash_table_lookup(g_icon_tried,w->id);
+        if (t && now-GPOINTER_TO_UINT(t)<ICON_RETRY_S) continue;
+        g_hash_table_replace(g_icon_tried,g_strdup(w->id),GUINT_TO_POINTER(now?now:1));
         g_string_append_printf(cmd," %s",w->id); n++;
     }
     g_hash_table_destroy(seen);
-    if (n) { run_bg("%s",cmd->str); g_timeout_add(1500,poll_icons,NULL); }
+    if (n) run_bg("%s",cmd->str);
+    /* the poller serves whatever the current page waits for, however it got fetched */
+    if (!g_icon_timer) g_icon_timer=g_timeout_add(1500,poll_icons,NULL);
     g_string_free(cmd,TRUE);
 }
 
@@ -738,7 +817,7 @@ static gboolean app_has_room(App* a){
 static GtkWidget* action_button(App* a,gboolean big){
     const char* st=app_dlstate(a);
     if (st && (!strcmp(st,"downloading")||!strcmp(st,"queued")||!strcmp(st,"installing")
-               ||!strcmp(st,"verifying")||!strcmp(st,"resolving"))) {
+               ||!strcmp(st,"verifying")||!strcmp(st,"resolving")||!strcmp(st,"dependencies"))) {
         GtkWidget* b=gtk_button_new_with_label(!strcmp(st,"queued")?_("Queued"):_("Installing\xe2\x80\xa6"));
         gtk_widget_set_sensitive(b,FALSE); css(b,"xxri-chip");
         if(big)css(b,"xxri-bigbtn");
@@ -772,13 +851,19 @@ static GtkWidget* action_button(App* a,gboolean big){
         return b;
     }
     if (!app_compatible(a)) {
-        GtkWidget* b=gtk_button_new_with_label(big ? _("Available for XXRI Regular / Pro")
-                                                   : _("Regular / Pro"));
+        gboolean lite32 = !strcmp(g_arch,"i686");
+        GtkWidget* b=gtk_button_new_with_label(lite32 ? (big ? _("Available for XXRI Regular / Pro")
+                                                             : _("Regular / Pro"))
+                                                      : (big ? _("Built for another architecture")
+                                                             : _("Other architecture")));
         gtk_widget_set_sensitive(b,FALSE); css(b,"xxri-chip");
         char* pa=primary_arch(a);
-        char tip[128]; snprintf(tip,sizeof tip,
+        char tip[160];
+        if (lite32) snprintf(tip,sizeof tip,
             _("This app ships a %s build. XXRI Lite is 32-bit (i686); "
             "XXRI Regular and Pro can install it."), pa);
+        else snprintf(tip,sizeof tip,
+            _("This app ships a %s build, but this device runs %s."), pa, g_arch);
         g_free(pa);
         gtk_widget_set_tooltip_text(b,tip);
         if(big)css(b,"xxri-bigbtn");
@@ -809,7 +894,7 @@ static gboolean draw_dl_glyph(GtkWidget* w,cairo_t* cr,gpointer u){
     double S=al.width<al.height?al.width:al.height, cx=al.width/2.0, cy=al.height/2.0;
     gboolean inst=app_installed(a), upd=app_updatable(a), ok=app_compatible(a);
     const char* st=app_dlstate(a);
-    gboolean busy = st && (!strcmp(st,"downloading")||!strcmp(st,"queued")||!strcmp(st,"installing"));
+    gboolean busy = st && (!strcmp(st,"downloading")||!strcmp(st,"queued")||!strcmp(st,"installing")||!strcmp(st,"dependencies"));
     if (upd || (!inst && ok && !busy)) {
         cairo_pattern_t* p=cairo_pattern_create_linear(0,0,al.width,al.height);
         /* the primary action: dark blue to light blue, as every primary button */
@@ -939,7 +1024,13 @@ static GtkWidget* app_card(App* a){
 
 /* Never build 950 cards.  Add a chunk, then more as the user reaches the end. */
 typedef struct { GPtrArray* apps; guint shown; GtkWidget* box; GtkWidget* more; } LazyGrid;
-static void lazy_free(gpointer p,GClosure* c){ (void)c; LazyGrid* g=p; g_ptr_array_free(g->apps,TRUE); g_free(g); }
+/* The grid on the page now. The scrolled window outlives its grid (every
+ * keystroke in the search box rebuilds the results), so on_edge looks the
+ * live one up here and lazy_free clears the slot before the grid goes. */
+static LazyGrid* g_lazy_live;
+static void lazy_free(gpointer p,GClosure* c){ (void)c; LazyGrid* g=p;
+    if (g_lazy_live==g) g_lazy_live=NULL;
+    g_ptr_array_free(g->apps,TRUE); g_free(g); }
 static void lazy_add(LazyGrid* g,guint n){
     guint end=g->shown+n; if(end>g->apps->len) end=g->apps->len;
     for (guint i=g->shown;i<end;i++)
@@ -951,8 +1042,8 @@ static void lazy_add(LazyGrid* g,guint n){
     kick_icon_fetch();
 }
 static void on_more(GtkWidget* w,gpointer p){ (void)w; lazy_add((LazyGrid*)p,24); }
-static void on_edge(GtkScrolledWindow* sw,GtkPositionType pos,gpointer p){ (void)sw;
-    if (pos==GTK_POS_BOTTOM) lazy_add((LazyGrid*)p,24);
+static void on_edge(GtkScrolledWindow* sw,GtkPositionType pos,gpointer p){ (void)sw;(void)p;
+    if (pos==GTK_POS_BOTTOM && g_lazy_live) lazy_add(g_lazy_live,24);
 }
 static GtkWidget* lazy_grid(GPtrArray* apps){
     LazyGrid* g=g_new0(LazyGrid,1);
@@ -969,6 +1060,7 @@ static GtkWidget* lazy_grid(GPtrArray* apps){
     g_signal_connect_data(more,"clicked",G_CALLBACK(on_more),g,lazy_free,0);
     gtk_box_pack_start(GTK_BOX(wrap),more,FALSE,FALSE,0);
     g_object_set_data(G_OBJECT(wrap),"lazy",g);
+    g_lazy_live=g;
     lazy_add(g,24);
     return wrap;
 }
@@ -1679,7 +1771,7 @@ static void act_update_all(GtkWidget* w,gpointer p){ (void)w;(void)p;
 static void build_updates(GtkWidget* box){
     GtkWidget* hb=gtk_box_new(GTK_ORIENTATION_HORIZONTAL,8);
     gtk_box_pack_start(GTK_BOX(hb),lbl(_("Updates"),"xxri-page-title",0),TRUE,TRUE,0);
-    char* js=run_cmd("xxri-store updates");
+    char* js=(g_upd_json && *g_upd_json) ? g_strdup(g_upd_json) : run_cmd("xxri-store updates");
     GPtrArray* a=jarr(js,"updates");
     if (a->len) {
         GtkWidget* ua=gtk_button_new_with_label(_("Update all")); css(ua,"xxri-accent");
@@ -1745,8 +1837,8 @@ static void dl_action(GtkWidget* w,gpointer p){
     if (!strcmp(verb,"retry")||!strcmp(verb,"resume")) run_bg("xxri-store install %s",(char*)p);
     refresh_state();
 }
-static gboolean poll_downloads(gpointer u){ (void)u;
-    if (!g_dl_list||!GTK_IS_WIDGET(g_dl_list)) return G_SOURCE_REMOVE;
+static gboolean poll_downloads(gpointer timer){   /* NULL: the first, direct call */
+    if (!g_dl_list||!GTK_IS_WIDGET(g_dl_list)) { if (timer) g_dl_timer=0; return G_SOURCE_REMOVE; }
     GList* ch=gtk_container_get_children(GTK_CONTAINER(g_dl_list));
     for (GList* l=ch;l;l=l->next) gtk_widget_destroy(GTK_WIDGET(l->data));
     g_list_free(ch);
@@ -1772,6 +1864,7 @@ static gboolean poll_downloads(gpointer u){ (void)u;
         gtk_box_pack_start(GTK_BOX(tv),lbl(nm,"xxri-row-title",0),FALSE,FALSE,0);
         const char* pretty = !strcmp(st,"downloading")?_("Downloading") : !strcmp(st,"queued")?_("Queued")
                            : !strcmp(st,"verifying")?_("Verifying checksum") : !strcmp(st,"installing")?_("Installing")
+                           : !strcmp(st,"dependencies")?_("Installing required dependencies")
                            : !strcmp(st,"resolving")?_("Finding the best source") : !strcmp(st,"completed")?_("Completed")
                            : !strcmp(st,"paused")?_("Paused") : !strcmp(st,"failed")?_("Failed") : st;
         char sub[320];
@@ -1846,7 +1939,8 @@ static void build_downloads(GtkWidget* box){
     g_dl_list=card;
     gtk_box_pack_start(GTK_BOX(box),card,FALSE,FALSE,0);
     poll_downloads(NULL);
-    g_timeout_add(1000,poll_downloads,NULL);
+    if (g_dl_timer) g_source_remove(g_dl_timer);   /* the page was opened again within a second */
+    g_dl_timer=g_timeout_add(1000,poll_downloads,GINT_TO_POINTER(1));
 }
 
 /* a page per catalog kind (themes); `soon` stands in while it has none */
@@ -1896,18 +1990,10 @@ static GtkWidget* build_page_content(const char* id){
         "wallpapers and fonts, they appear right here \xe2\x80\x94 the Store already knows how to read them."));
     else if (!strncmp(id,"cat:",4))    build_category(col,id+4);
     else if (!strncmp(id,"app:",4))    { App* a=g_hash_table_lookup(g_byid,id+4); if(a) build_appdetail(col,a); }
-    /* keep the lazy grid fed as the user reaches the bottom */
-    GtkWidget* wrap=NULL;
-    if (g_res_box) { GList* c=gtk_container_get_children(GTK_CONTAINER(g_res_box));
-        if (c) wrap=c->data; g_list_free(c); }
-    if (!wrap) { GList* c=gtk_container_get_children(GTK_CONTAINER(col));
-        for (GList* l=c;l;l=l->next) if (g_object_get_data(G_OBJECT(l->data),"lazy")) wrap=l->data;
-        g_list_free(c); }
-    if (wrap) {
-        LazyGrid* lg=g_object_get_data(G_OBJECT(wrap),"lazy");
-        if (lg) { gtk_scrolled_window_set_kinetic_scrolling(GTK_SCROLLED_WINDOW(scr),TRUE);
-                  g_signal_connect(scr,"edge-reached",G_CALLBACK(on_edge),lg); }
-    }
+    /* keep the lazy grid fed as the user reaches the bottom; on_edge finds
+       the grid that is live then, which on the search page is a later one */
+    gtk_scrolled_window_set_kinetic_scrolling(GTK_SCROLLED_WINDOW(scr),TRUE);
+    g_signal_connect(scr,"edge-reached",G_CALLBACK(on_edge),NULL);
     gtk_widget_show_all(scr);
     kick_icon_fetch();
     return scr;
@@ -1921,8 +2007,14 @@ static void rebuild(const char* id){
     gtk_stack_add_named(GTK_STACK(g_stack),neu,keep);
     gtk_stack_set_visible_child(GTK_STACK(g_stack),neu);
     if (g_page!=keep) { g_free(g_page); g_page=keep; }
+    if (g_rail) gtk_widget_queue_draw(g_rail);   /* Back, search and links change the page too */
+    if (g_getenv("XXRI_STORE_DEBUG")) {
+        guint ok=0; for (guint i=0;g_apps && i<g_apps->len;i++) if (app_installable(g_ptr_array_index(g_apps,i))) ok++;
+        dbg("NAV page=%s shown (%s: %u apps, %u installable here)", g_page, g_arch, g_apps?g_apps->len:0, ok);
+    }
 }
 static void open_page(const char* id){
+    dbg("NAV open page=%s from=%s", id, g_page?g_page:"-");
     if (g_page && strcmp(g_page,id)) g_ptr_array_add(g_history,g_strdup(g_page));
     rebuild(id);
 }
@@ -1939,34 +2031,66 @@ static void refresh_state(void){
  * final state change (from the Store or from xxri-app elsewhere). Progress
  * isn't part of the signature, so running downloads aren't disturbed. */
 static guint g_live_sig = 0;
+static void sig_mix(guint* h, const char* str) { for (const char* p=str; *p; p++) *h=((*h<<5)+*h)+(guint)(unsigned char)*p; }
+static void sig_mix_stat(guint* h, const char* path) {
+    GStatBuf st;
+    if (!g_stat(path,&st)) { char b[96]; snprintf(b,sizeof b,"|%ld.%ld",(long)st.st_mtime,(long)st.st_size); sig_mix(h,b); }
+}
+static gint sig_cmp(gconstpointer a, gconstpointer b) { return strcmp(*(char* const*)a,*(char* const*)b); }
+/* What changed, from file timestamps only (no process started): the installed
+ * set, the catalog in use and each download's final state. Progress is left
+ * out so running downloads are not disturbed. */
 static guint live_signature(void){
-    guint h=5381; char* p;
-    char* js=run_cmd("xxri-store installed");
-    for (p=js;*p;p++) h=((h<<5)+h)+(guint)(unsigned char)*p;
-    g_free(js);
-    char* uj=run_cmd("xxri-store updates");
-    for (p=uj;*p;p++) h=((h<<5)+h)+(guint)(unsigned char)*p;
-    g_free(uj);
+    guint h=5381;
+    const char* reg="/usr/local/share/xxri-apps";
+    GDir* d=g_dir_open(reg,0,NULL);
+    if (d) {
+        GPtrArray* names=g_ptr_array_new_with_free_func(g_free);
+        const char* n;
+        while ((n=g_dir_read_name(d))) g_ptr_array_add(names,g_strdup(n));
+        g_dir_close(d);
+        g_ptr_array_sort(names,sig_cmp);
+        for (guint i=0;i<names->len;i++) {
+            char* path=g_build_filename(reg,names->pdata[i],NULL);
+            sig_mix(&h,names->pdata[i]); sig_mix_stat(&h,path); g_free(path);
+        }
+        g_ptr_array_free(names,TRUE);
+    }
+    if (g_catalog_path && *g_catalog_path) sig_mix_stat(&h,g_catalog_path);
     /* terminal download states only (not bytes), so completion shows at once */
-    char* dj=run_cmd("xxri-store downloads");
-    GPtrArray* d=jarr(dj,"downloads");
-    for (guint i=0;i<d->len;i++){ char* id=jget(d->pdata[i],"id"); char* st=jget(d->pdata[i],"state");
-        if(!strcmp(st,"completed")||!strcmp(st,"failed")||!strcmp(st,"cancelled")){
-            for(p=id;*p;p++) h=((h<<5)+h)+(guint)(unsigned char)*p;
-            for(p=st;*p;p++) h=((h<<5)+h)+(guint)(unsigned char)*p; }
-        g_free(id); g_free(st); }
-    g_ptr_array_free(d,TRUE); g_free(dj);
+    char* dd=g_build_filename(g_cache?g_cache:"","downloads",NULL);
+    d=g_dir_open(dd,0,NULL);
+    if (d) {
+        GPtrArray* names=g_ptr_array_new_with_free_func(g_free);
+        const char* n;
+        while ((n=g_dir_read_name(d))) if (!g_str_has_suffix(n,".pid")) g_ptr_array_add(names,g_strdup(n));
+        g_dir_close(d);
+        g_ptr_array_sort(names,sig_cmp);
+        for (guint i=0;i<names->len;i++) {
+            char* path=g_build_filename(dd,names->pdata[i],NULL);
+            char* txt=NULL;
+            if (g_file_get_contents(path,&txt,NULL,NULL)) {
+                const char* st=strstr(txt,"STATE=");
+                if (st && (!strncmp(st+6,"completed",9)||!strncmp(st+6,"failed",6)||!strncmp(st+6,"cancelled",9))) {
+                    sig_mix(&h,names->pdata[i]);
+                    char line[24]; g_strlcpy(line,st+6,sizeof line); char* nl=strchr(line,'\n'); if (nl) *nl=0;
+                    sig_mix(&h,line);
+                }
+                g_free(txt);
+            }
+            g_free(path);
+        }
+        g_ptr_array_free(names,TRUE);
+    }
+    g_free(dd);
     return h;
 }
 static gboolean poll_live(gpointer u){ (void)u;
+    if (g_live_busy) return G_SOURCE_CONTINUE;          /* a load is still running */
     guint s=live_signature();
     if (s==g_live_sig) return G_SOURCE_CONTINUE;
     g_live_sig=s;
-    load_installed();
-    if (g_rail) gtk_widget_queue_draw(g_rail);       /* updates badge dot */
-    /* re-render whatever the user is looking at; the downloads page refreshes
-     * itself (its own poller), so leave it alone to keep progress smooth */
-    if (g_page && strcmp(g_page,"downloads")) rebuild(g_page);
+    load_installed_async();
     return G_SOURCE_CONTINUE;
 }
 static void go_back(GtkWidget* w,gpointer u){ (void)w;(void)u;
@@ -2026,7 +2150,7 @@ static void draw_glyph(cairo_t* cr,int g,double S,gboolean on){
         break;
     }
 }
-typedef struct { int glyph; const char* id; } RailBtn;
+typedef struct { int glyph; const char* id; GtkWidget* ev; } RailBtn;
 static gboolean draw_rail_btn(GtkWidget* w,cairo_t* cr,gpointer u){
     RailBtn* rb=u;
     GtkAllocation al; gtk_widget_get_allocation(w,&al);
@@ -2041,6 +2165,13 @@ static gboolean draw_rail_btn(GtkWidget* w,cairo_t* cr,gpointer u){
     cairo_translate(cr,(al.width-S)/2,(al.height-S)/2);
     draw_glyph(cr,rb->glyph,S,on);
     cairo_restore(cr);
+    /* keyboard focus only: a mouse click must not leave a ring behind */
+    if (rb->ev && gtk_widget_has_visible_focus(rb->ev)) {
+        rr_path(cr,2,2,al.width-4,al.height-4,13);
+        if (xxri_theme_dark()) cairo_set_source_rgb(cr,0.298,0.576,0.973);
+        else cairo_set_source_rgb(cr,0.180,0.486,0.965);
+        cairo_set_line_width(cr,2); cairo_stroke(cr);
+    }
     /* dot when updates are waiting */
     if (!strcmp(rb->id,"updates") && g_updates && g_hash_table_size(g_updates)) {
         cairo_set_source_rgb(cr,0.941,0.416,0.557);
@@ -2048,10 +2179,27 @@ static gboolean draw_rail_btn(GtkWidget* w,cairo_t* cr,gpointer u){
     }
     return FALSE;
 }
-static gboolean on_rail_click(GtkWidget* w,GdkEventButton* e,gpointer u){ (void)w;(void)e;
-    RailBtn* rb=u; open_page(rb->id);
-    gtk_widget_queue_draw(g_rail);
+static void rail_go(RailBtn* rb) {
+    if (g_page && !strcmp(g_page,rb->id)) return;   /* already there: nothing to rebuild or fetch */
+    open_page(rb->id);
+}
+static gboolean on_rail_click(GtkWidget* w,GdkEventButton* e,gpointer u){ (void)w;
+    if (e->type!=GDK_BUTTON_PRESS || e->button!=1) return FALSE;
+    RailBtn* rb=u;
+    gtk_widget_grab_focus(rb->ev);    /* Tab and Enter carry on from here */
+    rail_go(rb);
     return TRUE;
+}
+static gboolean on_rail_key(GtkWidget* w,GdkEventKey* e,gpointer u){ (void)w;
+    switch (e->keyval) {
+    case GDK_KEY_Return: case GDK_KEY_KP_Enter: case GDK_KEY_ISO_Enter: case GDK_KEY_space:
+        rail_go(u); return TRUE;
+    }
+    return FALSE;
+}
+static gboolean on_rail_focus(GtkWidget* w,GdkEventFocus* e,gpointer u){ (void)w;(void)e;
+    gtk_widget_queue_draw(gtk_bin_get_child(GTK_BIN(((RailBtn*)u)->ev)));   /* the ring is drawn by the glyph */
+    return FALSE;
 }
 static GtkWidget* build_rail(void){
     GtkWidget* rail=gtk_box_new(GTK_ORIENTATION_VERTICAL,6);
@@ -2070,10 +2218,17 @@ static GtkWidget* build_rail(void){
         gtk_event_box_set_visible_window(GTK_EVENT_BOX(ev),FALSE);
         /* the drawing area's own GdkWindow would swallow the click otherwise */
         gtk_event_box_set_above_child(GTK_EVENT_BOX(ev),TRUE);
-        gtk_widget_add_events(ev,GDK_BUTTON_PRESS_MASK);
+        gtk_widget_add_events(ev,GDK_BUTTON_PRESS_MASK|GDK_KEY_PRESS_MASK|GDK_FOCUS_CHANGE_MASK);
+        gtk_widget_set_can_focus(ev,TRUE);
+        rb->ev=ev;
         gtk_container_add(GTK_CONTAINER(ev),da);
         g_signal_connect(ev,"button-press-event",G_CALLBACK(on_rail_click),rb);
+        g_signal_connect(ev,"key-press-event",G_CALLBACK(on_rail_key),rb);
+        g_signal_connect(ev,"focus-in-event",G_CALLBACK(on_rail_focus),rb);
+        g_signal_connect(ev,"focus-out-event",G_CALLBACK(on_rail_focus),rb);
         gtk_widget_set_tooltip_text(ev,_(RAIL[i].label));
+        { AtkObject* ao=gtk_widget_get_accessible(ev);
+          atk_object_set_name(ao,_(RAIL[i].label)); atk_object_set_role(ao,ATK_ROLE_PUSH_BUTTON); }
         gtk_widget_set_halign(ev,GTK_ALIGN_CENTER);
         gtk_box_pack_start(GTK_BOX(rail),ev,FALSE,FALSE,0);
     }
@@ -2088,14 +2243,20 @@ static void on_search_changed(GtkWidget* w,gpointer u){ (void)w;(void)u;
 }
 static void update_status_chip(void){
     if (!g_status_chip) return;
-    char t[200], tip[240];
+    char t[200], tip[420];
+    gboolean bundled = g_repo_kind && !strcmp(g_repo_kind,"bundled");
     /* ~40 chars fit at 1024px: short text on the chip, details in the tooltip */
     if (!g_repo_available) {
         g_strlcpy(t,_("Repository unavailable"),sizeof t);
-        snprintf(tip,sizeof tip,_("Could not reach repo.xxri.flows.best, and no catalog is cached.\nArchitecture: %s"), g_arch);
+        if (g_repo_error && *g_repo_error && strcmp(g_repo_error,"no-catalog"))
+            snprintf(tip,sizeof tip,_("The %s catalog cannot be used: %s.\nArchitecture: %s"),
+                     g_arch, why_text(g_repo_error), g_arch);
+        else
+            snprintf(tip,sizeof tip,_("Could not reach repo.xxri.flows.best, and no catalog is cached.\nArchitecture: %s"), g_arch);
     } else if (g_repo_offline) {
-        g_strlcpy(t,_("Offline \xc2\xb7 cached catalog"),sizeof t);
-        snprintf(tip,sizeof tip,_("Could not reach repo.xxri.flows.best; showing the catalog cached%s%s.\nArchitecture: %s"),
+        g_strlcpy(t,bundled ? _("Offline \xc2\xb7 bundled catalog") : _("Offline \xc2\xb7 cached catalog"),sizeof t);
+        snprintf(tip,sizeof tip,bundled ? _("Could not reach repo.xxri.flows.best; showing the catalog that came with this system%s%s.\nArchitecture: %s")
+                                        : _("Could not reach repo.xxri.flows.best; showing the catalog cached%s%s.\nArchitecture: %s"),
                  (g_repo_updated&&*g_repo_updated)?_(" on "):"",
                  (g_repo_updated&&*g_repo_updated)?g_repo_updated:"",
                  g_arch);
@@ -2105,6 +2266,15 @@ static void update_status_chip(void){
                  (g_repo_updated&&*g_repo_updated)?" ":_(" \xe2\x80\x94 unknown"),
                  (g_repo_updated&&*g_repo_updated)?g_repo_updated:"",
                  g_arch);
+    }
+    /* the last refresh was thrown away, though a catalog is still in use */
+    if (g_repo_available && g_repo_error && *g_repo_error) {
+        char more[200]; snprintf(more,sizeof more,_("\nThe last update was not used: %s."), why_text(g_repo_error));
+        g_strlcat(tip,more,sizeof tip);
+    }
+    if (g_repo_error && *g_repo_error) {
+        char code[120]; snprintf(code,sizeof code,"\n(%s)", g_repo_error);
+        g_strlcat(tip,code,sizeof tip);
     }
     gtk_label_set_text(GTK_LABEL(g_status_chip),t);
     gtk_widget_set_tooltip_text(g_status_chip,tip);
@@ -2121,9 +2291,11 @@ static gboolean poll_startup(gpointer u){ (void)u;
     snprintf(dp,sizeof dp,"%s/startup.done",g_cache);
     char* doc=NULL; gsize len;
     if (g_file_get_contents(sp,&doc,&len,NULL)) {
-        char* on=jget(doc,"online"); char* rk=jget(doc,"repo");
+        char* on=jget(doc,"online"); char* rk=jget(doc,"repo"); char* er=jget(doc,"error");
         g_online=!strcmp(on,"true");
         g_free(g_repo_kind); g_repo_kind=rk;
+        g_repo_offline = *rk && strcmp(rk,"remote")!=0; /* cached, or the copy bundled with the image */
+        g_free(g_repo_error); g_repo_error=er;
         g_free(on); g_free(doc);
         update_status_chip();
     }
@@ -2132,20 +2304,21 @@ static gboolean poll_startup(gpointer u){ (void)u;
         dbg("REFRESH_DONE marker seen after %d polls", tries);
         char rl[512]; snprintf(rl,sizeof rl,"%s/refresh.log",g_cache);
         char* log=NULL;
-        /* cmd_refresh prints updated | unchanged | offline-cached | unavailable
-           ("ok" is from older engines). Keep in sync with xxri-store. */
+        /* cmd_refresh: updated | unchanged | offline-cached leave a usable
+           catalog; rejected:<why>, unavailable and invalid:<why> do not */
         gboolean got = g_file_get_contents(rl,&log,&len,NULL) && log &&
                        (strstr(log,"updated") || strstr(log,"unchanged") ||
-                        strstr(log,"offline-cached") || strstr(log,"ok"));
+                        strstr(log,"offline-cached"));
         g_free(log);
         /* started without any catalog (fresh install): reload if one exists now */
         if (!got && !g_repo_available) {
-            char cp[1024]; snprintf(cp,sizeof cp,"%s/i686.json",g_cache);
+            char* cp = run_cmd("xxri-store catalog-path");
             got = g_file_test(cp,G_FILE_TEST_EXISTS);
+            g_free(cp);
         }
-        dbg("REFRESH_GOT=%d (log=%s)", got, "see refresh.log");
+        dbg("REFRESH_GOT=%d", got);
         if (got) {          /* a catalog arrived or changed */
-            load_catalog(); load_installed(); rebuild(g_page);
+            load_catalog(); rebuild(g_page); load_installed_async();
             dbg("RELOADED apps=%u available=%d", g_apps?g_apps->len:0, g_repo_available);
         } else if (g_online) {
             kick_icon_fetch();
@@ -2196,7 +2369,8 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     g_cache=run_cmd("xxri-store cache-path");
     if (!*g_cache) { g_free(g_cache); g_cache=g_strdup_printf("%s/.cache/xxri-store",g_get_home_dir()); }
     g_history=g_ptr_array_new();
-    load_catalog(); load_installed();
+    load_catalog();
+    apply_installed("","","");     /* empty until the worker thread has the real state */
 
     g_win=gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(g_win),"XXRI Store");
@@ -2309,6 +2483,7 @@ static void activate(GtkApplication* app,gpointer u){ (void)u;
     rebuild("home");
     kick_startup();
     g_live_sig = live_signature();          /* baseline; poll for live changes */
+    load_installed_async();                 /* installed apps, updates, downloads: off the GTK thread */
     g_timeout_add(1500, poll_live, NULL);
 }
 

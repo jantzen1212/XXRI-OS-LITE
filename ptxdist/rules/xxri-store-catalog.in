@@ -1,0 +1,15 @@
+## SECTION=project_specific
+
+config XXRI_STORE_CATALOG
+	bool
+	select HOST_PYTHON3
+	prompt "xxri-store-catalog: the Store's x64.json (x86_64)"
+	help
+	  x86_64 only. Packages the Store's 64-bit application catalog,
+	  x64.json, as the offline copy the Store starts from, together with
+	  x64.json.source (the URL, ETag and SHA-256 it came from).
+
+	  The catalog is fetched on every build from
+	  https://repo.xxri.flows.best/x64.json (the URL the Store refreshes
+	  from), validated, and the build fails if that does not work.
+	  The i686 build neither fetches nor packages it.

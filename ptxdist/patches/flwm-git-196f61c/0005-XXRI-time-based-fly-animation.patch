@@ -1,0 +1,88 @@
+From: XXRI OS Team
+Subject: [PATCH] XXRI: time-based dock fly animation, centred placement
+
+Minimise/restore flew the frame in nine fixed 19 ms steps with XFlush only,
+so a slow X server queued every step and the window froze until the backlog
+drained. Interpolate by the clock, XSync each step, and give up on a display
+that cannot keep up.
+
+A new window with nothing in its way opened jammed into the top-left corner
+of the screen; centre it in the work area instead.
+
+---
+diff --git a/Frame.C b/Frame.C
+index b57f4cb..bcb9ada 100644
+--- a/Frame.C
++++ b/Frame.C
+@@ -11,6 +11,7 @@
+ #define FL_INTERNALS 1
+ 
+ #include "config.h"
++#include <time.h>
+ #include "Frame.H"
+ #ifdef XXRI
+ #include <X11/extensions/shape.h>
+@@ -529,6 +530,17 @@ void Frame::place_window() {
+   int max_x = min_x + area_w;
+   int max_y = min_y + area_h;
+   best_x = min_x; best_y = min_y;
++  // a window with nothing in its way opens centred in the work area, not
++  // jammed into the screen's top-left corner
++  {
++    int cx = min_x + (area_w - _w) / 2, cy = min_y + (area_h - _h) / 2;
++    if (cx < min_x) cx = min_x;
++    if (cy < min_y) cy = min_y;
++    if (getOverlap(cx, cy, _w, _h, Frame::first, this) == 0) {
++      x(cx); y(cy);
++      return;
++    }
++  }
+ #else
+   int min_x = 0, min_y = 0;
+   int max_x = Root->x() + Root->w();
+@@ -1862,12 +1874,29 @@ static int xxri_dock_rect(XWindow client, int* rx, int* ry, int* rw, int* rh) {
+ // decelerating (cubic ease-out)
+ static double xxri_ease(double t) { double u = 1.0 - t; return 1.0 - u * u * u; }
+ 
++static double xxri_now() {
++  struct timespec t;
++  clock_gettime(CLOCK_MONOTONIC, &t);
++  return t.tv_sec + t.tv_nsec / 1e9;
++}
++
++// Time-based: the position comes from the clock, not from a frame count, so a
++// slow server skips frames instead of stretching the flight. XSync after each
++// step keeps flwm from running ahead of the server (XFlush alone queued every
++// step and the window "froze" until the backlog drained). A step that costs
++// more than a third of the flight means a display that cannot animate (no
++// acceleration, software cursor + compositor in a VM): stop, the caller puts
++// the window at its final geometry.
+ static void xxri_fly(XWindow win,
+                      int x0, int y0, int w0, int h0,
+                      int x1, int y1, int w1, int h1) {
+-  const int steps = 9;                 // ~170ms end to end
+-  for (int i = 1; i <= steps; i++) {
+-    double e = xxri_ease((double)i / steps);
++  const double dur = 0.17, frame = 0.016;
++  const double t0 = xxri_now();
++  for (;;) {
++    double f0 = xxri_now();
++    double p = (f0 - t0) / dur;
++    if (p >= 1.0) break;
++    double e = xxri_ease(p);
+     int x = (int)(x0 + (x1 - x0) * e);
+     int y = (int)(y0 + (y1 - y0) * e);
+     int w = (int)(w0 + (w1 - w0) * e);
+@@ -1875,8 +1904,10 @@ static void xxri_fly(XWindow win,
+     if (w < 1) w = 1;
+     if (h < 1) h = 1;
+     XMoveResizeWindow(fl_display, win, x, y, w, h);
+-    XFlush(fl_display);
+-    usleep(19 * 1000);
++    XSync(fl_display, False);
++    double spent = xxri_now() - f0;
++    if (spent > dur / 3) break;
++    if (spent < frame) usleep((useconds_t)((frame - spent) * 1e6));
+   }
+ }
+ 

@@ -73,6 +73,8 @@ xxri_xkb_apply() {
 		echo '    MatchIsKeyboard "on"'
 		echo "    Option \"XkbLayout\" \"$1\""
 		[ -z "$2" ] || echo "    Option \"XkbVariant\" \"$2\""
+		# several layouts (us,ara): Alt+Shift switches between them
+		case "$1" in *,*) echo '    Option "XkbOptions" "grp:alt_shift_toggle"' ;; esac
 		echo 'EndSection'
 	} > "$XXRI_XKB_CONF"
 }

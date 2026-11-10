@@ -5,9 +5,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: XXRI OS Lite 2.6\n"
 "Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
-"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"POT-Creation-Date: 2026-10-31 07:02+0700\n"
 "PO-Revision-Date: 2026-10-13 20:02+0100\n"
-"Last-Translator: Ricardo Simões - xmcorporation.com <xmcorporation@gmail.com>\n"
+"Last-Translator: Ricardo Simões - xmcorporation.com "
+"<xmcorporation@gmail.com>\n"
 "Language-Team: none\n"
 "Language: pt_PT\n"
 "MIME-Version: 1.0\n"
@@ -97,7 +98,40 @@ msgid "Accessories"
 msgstr "Acessórios"
 
 #: xxri-store-gui.c
+msgid "no catalog has been downloaded yet"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the repository did not answer"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the server sent a web page instead of a catalog"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the download was incomplete"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the server sent the catalog of another architecture"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "this system's architecture could not be determined"
+msgstr ""
+
+#: xxri-store-gui.c
+msgid "the file is not a valid catalog"
+msgstr ""
+
+#: xxri-store-gui.c
 msgid "No download published for i686"
+msgstr "Nenhuma transferência publicada para i686"
+
+#: xxri-store-gui.c
+#, fuzzy, c-format
+msgid "No download published for %s"
 msgstr "Nenhuma transferência publicada para i686"
 
 #: xxri-store-gui.c
@@ -111,8 +145,12 @@ msgid "Remove %s?"
 msgstr "Remover %s?"
 
 #: xxri-store-gui.c
-msgid "The app will be removed from the dock and the menu, and its package file will be deleted."
-msgstr "A aplicação será removida do dock e do menu, e o respetivo ficheiro de pacote será eliminado."
+msgid ""
+"The app will be removed from the dock and the menu, and its package file "
+"will be deleted."
+msgstr ""
+"A aplicação será removida do dock e do menu, e o respetivo ficheiro de "
+"pacote será eliminado."
 
 #: xxri-store-gui.c
 msgid "Cancel"
@@ -163,9 +201,28 @@ msgid "Regular / Pro"
 msgstr "Regular / Pro"
 
 #: xxri-store-gui.c
+#, fuzzy
+msgid "Built for another architecture"
+msgstr "Mostrar todas as arquiteturas"
+
+#: xxri-store-gui.c
+#, fuzzy
+msgid "Other architecture"
+msgstr "Qualquer arquitetura"
+
+#: xxri-store-gui.c
 #, c-format
-msgid "This app ships a %s build. XXRI Lite is 32-bit (i686); XXRI Regular and Pro can install it."
-msgstr "Esta aplicação disponibiliza uma compilação %s. O XXRI Lite é de 32 bits (i686); o XXRI Regular e o Pro podem instalá-la."
+msgid ""
+"This app ships a %s build. XXRI Lite is 32-bit (i686); XXRI Regular and Pro "
+"can install it."
+msgstr ""
+"Esta aplicação disponibiliza uma compilação %s. O XXRI Lite é de 32 bits "
+"(i686); o XXRI Regular e o Pro podem instalá-la."
+
+#: xxri-store-gui.c
+#, c-format
+msgid "This app ships a %s build, but this device runs %s."
+msgstr ""
 
 #: xxri-store-gui.c
 msgid "No space"
@@ -177,8 +234,12 @@ msgstr "Espaço em disco insuficiente"
 
 #: xxri-store-gui.c
 #, c-format
-msgid "%s needs about %lld MB but only %lld MB is free. Remove an application you no longer need, then try again."
-msgstr "%s precisa de cerca de %lld MB mas apenas %lld MB estão livres. Remova uma aplicação de que já não precise, e tente novamente."
+msgid ""
+"%s needs about %lld MB but only %lld MB is free. Remove an application you "
+"no longer need, then try again."
+msgstr ""
+"%s precisa de cerca de %lld MB mas apenas %lld MB estão livres. Remova uma "
+"aplicação de que já não precise, e tente novamente."
 
 #: xxri-store-gui.c
 msgid "Install"
@@ -276,8 +337,13 @@ msgstr " e "
 
 #: xxri-store-gui.c
 #, c-format
-msgid "This app is published for %s. XXRI Lite runs %s, so it cannot be installed here — it is available on XXRI Regular and Pro, which are %s."
-msgstr "Esta aplicação é publicada para %s. O XXRI Lite executa %s, por isso não pode ser instalada aqui — está disponível no XXRI Regular e no Pro, que são %s."
+msgid ""
+"This app is published for %s. XXRI Lite runs %s, so it cannot be installed "
+"here — it is available on XXRI Regular and Pro, which are %s."
+msgstr ""
+"Esta aplicação é publicada para %s. O XXRI Lite executa %s, por isso não "
+"pode ser instalada aqui — está disponível no XXRI Regular e no Pro, que são "
+"%s."
 
 #: xxri-store-gui.c
 msgid "Screenshots"
@@ -423,7 +489,9 @@ msgstr[1] "%d resultados · escreva para refinar"
 
 #: xxri-store-gui.c
 msgid "No apps match that. Try a different word, or clear the filters."
-msgstr "Nenhuma aplicação corresponde. Tente uma palavra diferente, ou limpe os filtros."
+msgstr ""
+"Nenhuma aplicação corresponde. Tente uma palavra diferente, ou limpe os "
+"filtros."
 
 #: xxri-store-gui.c
 msgid "Search"
@@ -449,8 +517,12 @@ msgid "No apps yet"
 msgstr "Ainda sem aplicações"
 
 #: xxri-store-gui.c
-msgid "Everything you install from the Store shows up here, with a Launch button and the date you installed it."
-msgstr "Tudo o que instalar a partir da Loja aparece aqui, com um botão Iniciar e a data de instalação."
+msgid ""
+"Everything you install from the Store shows up here, with a Launch button "
+"and the date you installed it."
+msgstr ""
+"Tudo o que instalar a partir da Loja aparece aqui, com um botão Iniciar e a "
+"data de instalação."
 
 #: xxri-store-gui.c
 #, c-format
@@ -486,8 +558,12 @@ msgid "bundled"
 msgstr "incluído"
 
 #: xxri-store-gui.c
-msgid "Everything is up to date. The Store compares every installed app against the catalog each time it opens."
-msgstr "Está tudo atualizado. A Loja compara todas as aplicações instaladas com o catálogo sempre que é aberta."
+msgid ""
+"Everything is up to date. The Store compares every installed app against the "
+"catalog each time it opens."
+msgstr ""
+"Está tudo atualizado. A Loja compara todas as aplicações instaladas com o "
+"catálogo sempre que é aberta."
 
 #: xxri-store-gui.c
 #, c-format
@@ -501,8 +577,12 @@ msgid "Nothing downloading"
 msgstr "Nada a transferir"
 
 #: xxri-store-gui.c
-msgid "Downloads you start appear here with progress, speed and time left — and they survive a reboot."
-msgstr "As transferências que iniciar aparecem aqui com o progresso, a velocidade e o tempo restante — e mantêm-se após reiniciar."
+msgid ""
+"Downloads you start appear here with progress, speed and time left — and "
+"they survive a reboot."
+msgstr ""
+"As transferências que iniciar aparecem aqui com o progresso, a velocidade e "
+"o tempo restante — e mantêm-se após reiniciar."
 
 #: xxri-store-gui.c
 msgid "Downloading"
@@ -523,6 +603,9 @@ msgstr "Concluído"
 #: xxri-store-gui.c
 msgid "Finding the best source"
 msgstr "A procurar a melhor origem"
+
+msgid "Installing required dependencies"
+msgstr "A instalar as dependências necessárias"
 
 #: xxri-store-gui.c
 msgid "Failed"
@@ -562,8 +645,13 @@ msgstr "Temas"
 
 #: xxri-store-gui.c
 msgid ""
-"No themes in the catalog yet. When the XXRI repository starts publishing themes, wallpapers and fonts, they appear right here — the Store already knows how to read them."
-msgstr "Ainda não há temas no catálogo. Quando o repositório XXRI começar a publicar temas, imagens de fundo e tipos de letra, aparecerão aqui — a Loja já sabe como os ler."
+"No themes in the catalog yet. When the XXRI repository starts publishing "
+"themes, wallpapers and fonts, they appear right here — the Store already "
+"knows how to read them."
+msgstr ""
+"Ainda não há temas no catálogo. Quando o repositório XXRI começar a publicar "
+"temas, imagens de fundo e tipos de letra, aparecerão aqui — a Loja já sabe "
+"como os ler."
 
 #: xxri-store-gui.c
 msgid "Home"
@@ -578,17 +666,43 @@ msgid "Repository unavailable"
 msgstr "Repositório indisponível"
 
 #: xxri-store-gui.c
+#, fuzzy, c-format
+msgid ""
+"The %s catalog cannot be used: %s.\n"
+"Architecture: %s"
+msgstr ""
+"Catálogo atualizado pela última vez%s%s.\n"
+"Arquitetura: %s"
+
+#: xxri-store-gui.c
 #, c-format
 msgid ""
 "Could not reach repo.xxri.flows.best, and no catalog is cached.\n"
 "Architecture: %s"
 msgstr ""
-"Não foi possível contactar repo.xxri.flows.best e não existe nenhum catálogo em cache.\n"
+"Não foi possível contactar repo.xxri.flows.best e não existe nenhum catálogo "
+"em cache.\n"
 "Arquitetura: %s"
+
+#: xxri-store-gui.c
+#, fuzzy
+msgid "Offline · bundled catalog"
+msgstr "Offline · catálogo em cache"
 
 #: xxri-store-gui.c
 msgid "Offline · cached catalog"
 msgstr "Offline · catálogo em cache"
+
+#: xxri-store-gui.c
+#, fuzzy, c-format
+msgid ""
+"Could not reach repo.xxri.flows.best; showing the catalog that came with "
+"this system%s%s.\n"
+"Architecture: %s"
+msgstr ""
+"Não foi possível contactar repo.xxri.flows.best; a mostrar o catálogo em "
+"cache%s%s.\n"
+"Arquitetura: %s"
 
 #: xxri-store-gui.c
 #, c-format
@@ -596,7 +710,8 @@ msgid ""
 "Could not reach repo.xxri.flows.best; showing the catalog cached%s%s.\n"
 "Architecture: %s"
 msgstr ""
-"Não foi possível contactar repo.xxri.flows.best; a mostrar o catálogo em cache%s%s.\n"
+"Não foi possível contactar repo.xxri.flows.best; a mostrar o catálogo em "
+"cache%s%s.\n"
 "Arquitetura: %s"
 
 #: xxri-store-gui.c
@@ -621,6 +736,13 @@ msgid " — unknown"
 msgstr " — desconhecido"
 
 #: xxri-store-gui.c
+#, c-format
+msgid ""
+"\n"
+"The last update was not used: %s."
+msgstr ""
+
+#: xxri-store-gui.c
 msgid "Search apps, categories, publishers…"
 msgstr "Pesquisar aplicações, categorias, editores…"
 
@@ -634,4 +756,6 @@ msgstr "Mostrar todas as arquiteturas"
 
 #: xxri-store-gui.c
 msgid "Also show apps built for other CPUs (they can't be installed here)"
-msgstr "Mostrar também aplicações compiladas para outros CPUs (não podem ser instaladas aqui)"
+msgstr ""
+"Mostrar também aplicações compiladas para outros CPUs (não podem ser "
+"instaladas aqui)"

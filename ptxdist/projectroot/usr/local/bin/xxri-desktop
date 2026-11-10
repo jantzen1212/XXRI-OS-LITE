@@ -23,7 +23,7 @@
 #   xxri-desktop autologin set on|off
 #   xxri-desktop language [list | set LANG [LC_xxx=NAME ...]]
 #   xxri-desktop region set TZSTRING LABEL
-#   xxri-desktop datetime [--json] | ntp-sync
+#   xxri-desktop datetime [--json] | set "YYYY-MM-DD HH:MM" | ntp-sync
 #   xxri-desktop reset | restart-session
 . /usr/local/lib/xxri/hw-lib.sh
 
@@ -468,7 +468,22 @@ cmd_region() {
 	esac
 }
 
+# datetime set "YYYY-MM-DD HH:MM": the time on the clock the user reads, in the
+# region's timezone (sudo drops TZ, so it is passed explicitly)
+cmd_datetime_set() {
+	if ! echo "$1" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$'; then
+		echo "error: expected YYYY-MM-DD HH:MM"; return 1
+	fi
+	tz="$(sed -n 's/^TZ=//p' /etc/sysconfig/timezone 2>/dev/null)"
+	if sudo_if env TZ="$tz" date -s "$1:00" >/dev/null 2>&1; then
+		rtc_save >/dev/null 2>&1
+		echo ok
+	else
+		echo "error: the system refused that date"; return 1
+	fi
+}
 cmd_datetime() {
+	[ "$1" = set ] && { cmd_datetime_set "$2"; return; }
 	if [ $JSON = 1 ]; then
 		j_new; j_str date "$(date '+%Y-%m-%d')"; j_str time "$(date '+%H:%M')"
 		j_str timezone "$(sed -n 's/^TZ=//p' /etc/sysconfig/timezone 2>/dev/null)"
@@ -476,7 +491,17 @@ cmd_datetime() {
 		j_root desktop "\"datetime\":$(j_obj)"
 	else date; fi
 }
-cmd_ntp() { sudo_if /etc/init.d/settime.sh >/dev/null 2>&1 & echo "time sync started (needs network)"; }
+# The hardware clock keeps the time across a reboot, in the mode tc-config
+# reads it in (UTC, or local time with the noutc boot code)
+rtc_save() {
+	if grep -qw noutc /proc/cmdline; then sudo_if /sbin/hwclock -l -w; else sudo_if /sbin/hwclock -u -w; fi
+}
+# settime.sh only asks NTP when the year is before 2015, so ask directly and
+# keep the result in the hardware clock
+cmd_ntp() {
+	( sudo_if /usr/bin/getTime.sh && rtc_save ) >/dev/null 2>&1 &
+	echo "time sync started (needs network)"
+}
 
 cmd_status() {
 	w="$(wp_file)"

@@ -280,6 +280,13 @@ static void start_fade(Win* w) {
 static void stop_fade(Win* w) {
     if (w->fade < 1.0) { w->fade = 1.0; fading--; }
 }
+/* a fade is a nicety: when one frame of it costs more than the whole fade
+ * (no acceleration, software cursor over a VM's framebuffer), finish every
+ * fade at once instead of stuttering through it */
+static void finish_fades(void) {
+    for (Win* w = list; w; w = w->next)
+        if (w->fade < 1.0) { stop_fade(w); damage_whole(w); }
+}
 /* move every fade on to the current time; ease-out, so it settles softly */
 static void step_fades(void) {
     double t = now_s();
@@ -491,11 +498,11 @@ static void paint(void) {
     }
 
     /* one copy to the overlay: the screen only ever sees a finished frame */
-    Picture ov = XRenderCreatePicture(dpy, overlay,
+    static Picture ov = None;
+    if (!ov) ov = XRenderCreatePicture(dpy, overlay,
         XRenderFindVisualFormat(dpy, DefaultVisual(dpy, scr)), 0, NULL);
     XFixesSetPictureClipRegion(dpy, ov, 0, 0, region);
     XRenderComposite(dpy, PictOpSrc, buf_pict, None, ov, 0, 0, 0, 0, 0, 0, sw, sh);
-    XRenderFreePicture(dpy, ov);
     XFixesDestroyRegion(dpy, region);
     XFlush(dpy);
 }
@@ -511,6 +518,17 @@ static void signal_ready(void) {
     fprintf(o, "%d\n", (int)getpid());
     if (fclose(o) == 0) rename(tmp, f);
     else unlink(tmp);
+}
+
+/* One frame of a fade. XSync makes the loop wait for the server, so frames
+ * the server cannot draw are skipped (the fade is time-based) rather than
+ * queued - queued frames are what made animations freeze and then jump. */
+static void paint_fade_frame(void) {
+    double t0 = now_s();
+    step_fades();
+    paint();
+    XSync(dpy, False);
+    if (fading > 0 && now_s() - t0 > FADE_SECONDS) { finish_fades(); paint(); }
 }
 
 int main(void) {
@@ -606,8 +624,7 @@ int main(void) {
             fd_set fds; FD_ZERO(&fds); FD_SET(xfd, &fds);
             struct timeval tv = { 0, 16000 };
             if (select(xfd + 1, &fds, NULL, NULL, &tv) <= 0) {
-                step_fades();
-                paint();
+                paint_fade_frame();
                 continue;
             }
         }
@@ -780,8 +797,8 @@ int main(void) {
                 break;
             }
         } while (XQLength(dpy) && (XNextEvent(dpy, &e), 1));
-        if (fading > 0) step_fades();
-        paint();
+        if (fading > 0) paint_fade_frame();
+        else paint();
     }
     return 0;
 }

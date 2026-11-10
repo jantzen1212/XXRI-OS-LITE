@@ -59,9 +59,14 @@ start_xorg() {
 	XORG_CFG=""
 	if nosse2; then XORG_CFG="-config xxri-nosse2-kms.conf"
 	elif legacy_nv; then XORG_CFG="-config xxri-noaccel-kms.conf"
+	elif in_vm; then XORG_CFG="-config xxri-vm-kms.conf"
 	fi
 	run_xorg
 }
+# A virtual GPU's hardware cursor plane often shows nothing until the
+# hypervisor's pointer integration runs (a working mouse with no arrow): in a
+# VM the cursor is drawn in software (xxri-vm-kms.conf).
+in_vm() { grep -qw hypervisor /proc/cpuinfo 2>/dev/null; }
 # -dpi 75: what Xvesa reported; the layout was designed at it (Xorg's 96dpi
 # blows everything up ~28%).
 # Font path on the command line, not `xset +fp` later: flwm asks for
@@ -223,6 +228,8 @@ fi
 [ -x /usr/local/bin/xxri-wctl ] && /usr/local/bin/xxri-wctl indicators &
 # quick-settings chip, bottom right (override-redirect, never takes focus)
 [ -x /usr/local/bin/xxri-control-center ] && /usr/local/bin/xxri-control-center &
+# tray icons of background apps, left of the Control Center chip
+[ -x /usr/local/bin/xxri-tray ] && /usr/local/bin/xxri-tray &
 # All Apps key left of the dock: its own surface, not a wbar slot; it finds
 # wbar's window itself, so start order doesn't matter
 [ -x /usr/local/bin/xxri-launcher ] && /usr/local/bin/xxri-launcher --button &

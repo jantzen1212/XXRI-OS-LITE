@@ -11,6 +11,8 @@
 #   xxri-display apply [--session|--hotplug]
 #   xxri-display set-resolution WxH[xBPP] [--rate HZ] [--apply] [--output OUT]
 #   xxri-display set-refresh HZ [--json]
+#   xxri-display brightness [set PCT --output OUT] [--json]
+#   xxri-display diag [FILE]          (everything about the displays, in one file)
 #   xxri-display edid [--json]
 #   xxri-display cache-modes          (boot helper, run before X starts)
 #
@@ -269,7 +271,13 @@ mirror_mode() { # OUTPUT...
 	for _m in "$(desk_want)" "$(out_best "$1")"; do
 		echo "$_c" | grep -qx "$_m" && { echo "$_m"; return; }
 	done
-	echo "$_c" | awk -F x '{ a = $1 * $2; if (a > best) { best = a; m = $0 } } END { print m }'
+	# Neither wanted size is shared: the largest shared one that fits within
+	# the internal display's size; if every shared mode is bigger, the smallest.
+	echo "$_c" | awk -F x -v ref="$(out_best "$1")" 'BEGIN { split(ref, r, "x"); ra = r[1] * r[2] }
+		{ a = $1 * $2
+		  if (a <= ra && a > best) { best = a; m = $0 }
+		  if (sa == "" || a < sa) { sa = a; small = $0 } }
+		END { print (m != "" ? m : small) }'
 }
 
 # A plan is the whole screen, one line per output; the primary comes first:
@@ -368,12 +376,13 @@ apply_layout() { # LAYOUT
 apply_plan() { # PLAN
 	[ -n "$1" ] || return 1
 	xrandr $(plan_args "$1") 2>/dev/null
-	xr_rescan; plan_matches "$1" && return 0
+	xr_rescan; plan_matches "$1" && { bri_apply_all; return 0; }
 	# a saved rate the display no longer offers must not cost the layout
 	_p="$(echo "$1" | awk '$1 == "on" { $7 = "-" } { print }')"
 	[ "$_p" = "$1" ] && return 1
 	xrandr $(plan_args "$_p") 2>/dev/null
-	xr_rescan; plan_matches "$_p"
+	xr_rescan; plan_matches "$_p" && { bri_apply_all; return 0; }
+	return 1
 }
 # Never leave the screen dark: the internal display alone (at the desktop
 # size, else at what it prefers); then just switch it on.
@@ -726,6 +735,110 @@ cmd_set_side() { # OUTPUT WxH
 #      "current":true,"preferred":true}]}]}
 # "layouts" lists what this hardware can do: nothing to choose with one
 # display, no mirror when the displays share no mode.
+# ---- brightness of a display with no backlight
+# A laptop panel dims through /sys/class/backlight (xxri-power brightness). A
+# monitor on HDMI/VGA/DisplayPort has none, so the colour ramp is scaled
+# (xrandr --brightness): it only darkens, and a mode set resets it, so the
+# level is saved per output (BRIGHTNESS_<output>) and re-applied after every
+# layout change.
+BRI_MIN=20
+bri_key() { echo "BRIGHTNESS_$1" | tr -c 'A-Za-z0-9_\n' '_'; }
+# 1 when OUTPUT's brightness belongs to the backlight interface
+out_backlight() {
+	[ "$(output_builtin "$1")" = 1 ] || { echo 0; return; }
+	for _b in /sys/class/backlight/*; do [ -e "$_b" ] && { echo 1; return; }; done
+	echo 0
+}
+bri_pct() { # OUTPUT -> saved percent (100 when none)
+	_p="$(cfg_get display "$(bri_key "$1")" 100)"
+	case "$_p" in ''|*[!0-9]*) _p=100 ;; esac
+	[ "$_p" -lt $BRI_MIN ] && _p=$BRI_MIN; [ "$_p" -gt 100 ] && _p=100
+	echo "$_p"
+}
+bri_apply_one() { # OUTPUT PCT
+	_f="$(awk -v p="$2" 'BEGIN { printf "%.2f", p / 100 }')"
+	xrandr --output "$1" --brightness "$_f" 2>/dev/null
+}
+# the saved level on every lit output that has no backlight (after a mode set
+# the ramp is back to full)
+bri_apply_all() {
+	for _o in $(echo "$XS" | awk '$1 == "O" && $3 == 1 && $5 == 1 { print $2 }'); do
+		[ "$(out_backlight "$_o")" = 1 ] && continue
+		_p="$(bri_pct "$_o")"
+		[ "$_p" = 100 ] && [ -z "$(cfg_get display "$(bri_key "$_o")" "")" ] && continue
+		bri_apply_one "$_o" "$_p"
+	done
+}
+
+cmd_brightness() { # [list] | set PCT --output OUT
+	[ "$(server)" = xorg ] || {
+		if [ $JSON = 1 ]; then j_new; j_raw displays "[]"; j_root display "\"brightness\":$(j_obj)"
+		else echo "brightness: no software control on this display path ($(driver_label))"; fi
+		return 0
+	}
+	_set=""; _pct=""; _out=""
+	while [ $# -gt 0 ]; do
+		case "$1" in
+			set) _set=1; shift; _pct="$1" ;;
+			--output) shift; _out="$1" ;;
+		esac
+		shift
+	done
+	xr_rescan
+	if [ -n "$_set" ]; then
+		case "$_pct" in ''|*[!0-9]*) echo "usage: xxri-display brightness set 20..100 --output NAME" >&2; return 1 ;; esac
+		[ -n "$_out" ] && xs_connected | grep -qx "$_out" || { echo "no such display: ${_out:-?}" >&2; return 1; }
+		[ "$(out_backlight "$_out")" = 1 ] && { echo "$_out is dimmed with 'xxri-power brightness'" >&2; return 1; }
+		[ "$_pct" -lt $BRI_MIN ] && _pct=$BRI_MIN; [ "$_pct" -gt 100 ] && _pct=100
+		cfg_set display "$(bri_key "$_out")" "$_pct"
+		bri_apply_one "$_out" "$_pct"
+	fi
+	if [ $JSON = 1 ]; then
+		a_new
+		for o in $(xs_connected); do
+			j_new; j_str name "$o"; j_str label "$(output_name "$o")"
+			j_bool builtin "$(output_builtin "$o")"
+			j_bool backlight "$(out_backlight "$o")"
+			j_bool active "$(echo "$XS" | awk -v o="$o" '$1 == "O" && $2 == o { print $5 }')"
+			j_num percent "$(bri_pct "$o")"; j_num min "$BRI_MIN"
+			a_add "$(j_obj)"
+		done
+		j_new; j_raw displays "$(a_out)"
+		j_root display "\"brightness\":$(j_obj)"
+	else
+		for o in $(xs_connected); do
+			printf '  %-10s %-20s %s\n' "$o" "$(output_name "$o")" \
+				"$([ "$(out_backlight "$o")" = 1 ] && echo 'backlight (xxri-power)' || echo "$(bri_pct "$o")%")"
+		done
+	fi
+}
+
+# Everything about the displays in one file, to send in when one misbehaves
+cmd_diag() {
+	_f="${1:-$XXRI_TMP/xxri-display-diag.txt}"
+	{
+		echo "xxri-display diag  $(date)  kernel $(uname -r)  $(hw_arch)"
+		echo "--- server: $(server)  driver: $(driver_label)"
+		echo "--- xxri-display layout"; xxri-display layout 2>&1
+		echo "--- xxri-display layout --json"; xxri-display layout --json 2>&1
+		echo "--- display.conf"; cat "$(cfg_file display)" 2>/dev/null
+		echo "--- xrandr --verbose (EDID bytes left out)"; xrandr --verbose 2>&1 | grep -v '^[[:space:]]*[0-9a-f]\{32\}$'
+		echo "--- xrandr --listproviders"; xrandr --listproviders 2>&1
+		echo "--- xrandr --listmonitors"; xrandr --listmonitors 2>&1
+		echo "--- xdpyinfo"; xdpyinfo 2>/dev/null | grep -E 'dimensions|resolution|depth of root'
+		echo "--- connectors"
+		for c in /sys/class/drm/card*-*; do
+			[ -e "$c/status" ] || continue
+			echo "$c: $(sf "$c/status") enabled=$(sf "$c/enabled") modes=$(wc -l < "$c/modes" 2>/dev/null) first=$(head -1 "$c/modes" 2>/dev/null)"
+		done
+		echo "--- /sys/class/drm cards"; ls -l /sys/class/drm 2>&1 | grep -E 'card[0-9]+ ' 
+		echo "--- X server log (modes, outputs, errors)"
+		grep -E '\(EE\)|\(WW\)|modeset|Output |Setting mode|glamor|Screen [0-9]|CRTC|connected|EDID' /tmp/xorg.log 2>/dev/null | tail -80
+		echo "--- kernel (drm)"; dmesg 2>/dev/null | grep -i -E 'drm|i915|radeon|amdgpu|nouveau|hdmi|edid' | tail -40
+	} > "$_f" 2>&1
+	echo "$_f"
+}
+
 cmd_layout() {
 	srv="$(server)"
 	XS=""; [ "$srv" = xorg ] && xr_rescan
@@ -891,7 +1004,7 @@ cmd_apply() {
 	# a plug or unplug ends a trial: the saved layout is what counts now
 	[ -e "$TRIAL" ] && [ -n "$MODE_" ] && trial_end
 	_lay="$(cfg_get display LAYOUT "")"
-	plan_matches "$(plan_layout "$_lay")" && return 0
+	plan_matches "$(plan_layout "$_lay")" && { bri_apply_all; return 0; }
 	_ok=0
 	for _try in 1 2 3; do
 		apply_layout "$_lay" && { _ok=1; break; }
@@ -934,6 +1047,8 @@ case "$1" in
 	set-resolution) shift; cmd_set "$@" ;;
 	set-refresh) shift; cmd_set_refresh "$@" ;;
 	edid) cmd_edid ;;
+	brightness) shift; cmd_brightness "$@" ;;
+	diag) shift; cmd_diag "$@" ;;
 	cache-modes) cmd_cache_modes ;;
-	*) echo "usage: xxri-display list|current|monitors|layout|set-layout extend|mirror|internal|external [--keep]|confirm-layout|revert-layout|apply [--session|--hotplug]|set-resolution WxH[xBPP] [--rate HZ] [--apply] [--output OUT]|set-refresh HZ|edid [--json]" >&2; exit 1 ;;
+	*) echo "usage: xxri-display list|current|monitors|layout|set-layout extend|mirror|internal|external [--keep]|confirm-layout|revert-layout|apply [--session|--hotplug]|set-resolution WxH[xBPP] [--rate HZ] [--apply] [--output OUT]|set-refresh HZ|brightness [set 20..100 --output OUT]|diag [FILE]|edid [--json]" >&2; exit 1 ;;
 esac

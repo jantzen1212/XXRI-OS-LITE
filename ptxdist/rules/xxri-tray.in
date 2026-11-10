@@ -1,0 +1,8 @@
+## SECTION=project_specific
+
+config XXRI_TRAY
+	bool
+	select XXRI_TC_SYSROOT
+	prompt "xxri-tray: notification island for background apps"
+	help
+	  System tray: XEmbed and StatusNotifierItem (D-Bus) icons in a pill left of the Control Center chip.

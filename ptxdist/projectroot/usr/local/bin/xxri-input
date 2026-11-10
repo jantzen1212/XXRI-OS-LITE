@@ -5,6 +5,7 @@
 #   xxri-input status [--json]
 #   xxri-input set-repeat DELAY_MS RATE_HZ
 #   xxri-input set-mouse-speed ACCEL [THRESHOLD]
+#   xxri-input pointer-speed SPEED   (-1 slowest .. 1 fastest, 0 = default)
 #   xxri-input natural-scroll on|off
 #   xxri-input set-layout CODE   (console keymap; kmaps package included)
 #   xxri-input set-xkb LAYOUT [VARIANT]   (X layout, applied at the next X start)
@@ -48,6 +49,7 @@ cmd_status() {
 	accel="$(cfg_get input MOUSE_ACCEL 2)"
 	thresh="$(cfg_get input MOUSE_THRESH 4)"
 	nat="$(cfg_get input NATURAL_SCROLL 0)"
+	pspeed="$(cfg_get input POINTER_SPEED 0)"
 	lay="$(sed -n 's/^KEYMAP=//p' /etc/sysconfig/keymap 2>/dev/null)"
 	xkb="$(sed -n 's/^XKB=//p' /etc/sysconfig/xkb 2>/dev/null)"
 	if [ $JSON = 1 ]; then
@@ -55,6 +57,7 @@ cmd_status() {
 		j_num repeat_delay_ms "$delay"; j_num repeat_rate_hz "$rate"
 		j_num mouse_accel "$accel"; j_num mouse_threshold "$thresh"
 		j_bool natural_scroll "$nat"
+		j_num pointer_speed "$pspeed"
 		j_str keyboard_layout "${lay:-us}"
 		j_str x_keyboard_layout "${xkb:-us}"
 		j_str note "settings apply to the X session via xset/xmodmap; touchpad gestures need a libinput/Xorg build"
@@ -72,6 +75,40 @@ cmd_set_repeat() {
 	echo "keyboard repeat: ${1}ms delay, ${2}/s"
 }
 
+# The X server's libinput driver ignores xset m and the core button map for
+# smooth scrolling, so its pointers are set through their own properties:
+#   libinput Accel Speed (-1..1), libinput Natural Scrolling Enabled (0/1).
+# Applies to every pointer that has the property (mice, touchpads, trackpoints,
+# also ones plugged in earlier in the session); returns how many it set.
+# No such device (the framebuffer X server, kdrive): 0, and the caller falls
+# back to xset/xmodmap. Never both: the two would cancel out.
+li_set() { # PROPERTY VALUE
+	n=0
+	command -v xinput >/dev/null 2>&1 || { echo 0; return; }
+	for id in $(xinput list --id-only 2>/dev/null); do
+		xinput list-props "$id" 2>/dev/null | grep -q "$1 (" || continue
+		xinput set-prop "$id" "$1" "$2" 2>/dev/null && n=$((n + 1))
+	done
+	echo "$n"
+}
+# speed -1..1 -> the core accel multiplier for the fallback: 2 * 4^speed, so 0 stays xset's default 2
+speed_accel() { awk -v v="$1" 'BEGIN { a = 2 * exp(2 * v * log(2)); printf "%d", (a < 1 ? 1 : a + 0.5) }'; }
+apply_speed() {
+	sp="$(cfg_get input POINTER_SPEED 0)"
+	[ -n "$DISPLAY" ] || return 0
+	if [ "$(li_set "libinput Accel Speed" "$sp")" = 0 ]; then
+		xset m "$(speed_accel "$sp")" "$(cfg_get input MOUSE_THRESH 4)" 2>/dev/null
+	fi
+}
+apply_scroll() {
+	[ -n "$DISPLAY" ] || return 0
+	want="$(cfg_get input NATURAL_SCROLL 0)"
+	if [ "$(li_set "libinput Natural Scrolling Enabled" "$want")" = 0 ]; then
+		if [ "$want" = 1 ]; then xmodmap -e "pointer = 1 2 3 5 4 6 7 8 9" 2>/dev/null
+		else xmodmap -e "pointer = 1 2 3 4 5 6 7 8 9" 2>/dev/null; fi
+	fi
+}
+
 cmd_set_mouse() {
 	[ -n "$1" ] || { echo "usage: xxri-input set-mouse-speed ACCEL [THRESHOLD]" >&2; return 1; }
 	cfg_set input MOUSE_ACCEL "$1"; cfg_set input MOUSE_THRESH "${2:-4}"
@@ -79,14 +116,23 @@ cmd_set_mouse() {
 	echo "mouse speed: accel $1, threshold ${2:-4}"
 }
 
+cmd_pointer_speed() {
+	if ! echo "$1" | grep -qE '^-?[0-9](\.[0-9]+)?$' || \
+	   [ "$(awk -v v="$1" 'BEGIN { print (v >= -1 && v <= 1) ? 1 : 0 }')" != 1 ]; then
+		echo "usage: xxri-input pointer-speed SPEED   (-1 .. 1, 0 = default)" >&2; return 1
+	fi
+	cfg_set input POINTER_SPEED "$1"
+	apply_speed
+	echo "pointer speed: $1"
+}
+
 cmd_natural() {
 	case "$1" in
-		on)  cfg_set input NATURAL_SCROLL 1
-		     [ -n "$DISPLAY" ] && xmodmap -e "pointer = 1 2 3 5 4 6 7 8 9" 2>/dev/null ;;
-		off) cfg_set input NATURAL_SCROLL 0
-		     [ -n "$DISPLAY" ] && xmodmap -e "pointer = 1 2 3 4 5 6 7 8 9" 2>/dev/null ;;
+		on)  cfg_set input NATURAL_SCROLL 1 ;;
+		off) cfg_set input NATURAL_SCROLL 0 ;;
 		*) echo "usage: xxri-input natural-scroll on|off" >&2; return 1 ;;
 	esac
+	apply_scroll
 	echo "natural scrolling: $1"
 }
 
@@ -127,9 +173,8 @@ cmd_set_xkb() {
 cmd_apply() { # called from the X session hook
 	[ -n "$DISPLAY" ] || return 0
 	xset r rate "$(cfg_get input REPEAT_DELAY 500)" "$(cfg_get input REPEAT_RATE 25)" 2>/dev/null
-	xset m "$(cfg_get input MOUSE_ACCEL 2)" "$(cfg_get input MOUSE_THRESH 4)" 2>/dev/null
-	[ "$(cfg_get input NATURAL_SCROLL 0)" = 1 ] && \
-		xmodmap -e "pointer = 1 2 3 5 4 6 7 8 9" 2>/dev/null
+	apply_speed
+	apply_scroll
 	return 0
 }
 
@@ -138,10 +183,11 @@ case "$1" in
 	status) cmd_status ;;
 	set-repeat) shift; cmd_set_repeat "$@" ;;
 	set-mouse-speed) shift; cmd_set_mouse "$@" ;;
+	pointer-speed) shift; cmd_pointer_speed "$@" ;;
 	natural-scroll) shift; cmd_natural "$@" ;;
 	layouts) cmd_layouts ;;
 	set-layout) shift; cmd_set_layout "$@" ;;
 	set-xkb) shift; cmd_set_xkb "$@" ;;
 	apply) cmd_apply ;;
-	*) echo "usage: xxri-input devices|status|set-repeat D R|set-mouse-speed A [T]|natural-scroll on|off|layouts|set-layout CODE|set-xkb LAYOUT [VARIANT]|apply [--json]" >&2; exit 1 ;;
+	*) echo "usage: xxri-input devices|status|set-repeat D R|set-mouse-speed A [T]|pointer-speed S|natural-scroll on|off|layouts|set-layout CODE|set-xkb LAYOUT [VARIANT]|apply [--json]" >&2; exit 1 ;;
 esac

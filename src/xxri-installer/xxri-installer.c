@@ -58,6 +58,15 @@ static const char CSS[] =
     ".xi-note.warn { color: #9A5B00; }"
     ".xi-op    { font-size: 10.5pt; font-weight: 600; color: @xi_ink; }"
     ".xi-mono  { font-size: 7.5pt; color: @xi_muted; }"
+    /* text link under Continue: sits on the wallpaper, so it borrows the
+       hero subtitle's colour and halo */
+    "button.xi-link, button.xi-link:hover, button.xi-link:active {"
+    "  background-color: transparent; background-image: none; box-shadow: none;"
+    "  padding: 3px 8px; min-height: 0; border-radius: 6px;"
+    "  font-size: 9.75pt; font-weight: 600; color: @xi_ink;"
+    "  text-shadow: 0 0 8px alpha(#FFFFFF, 0.95), 0 1px 10px alpha(#FFFFFF, 0.85); }"
+    "button.xi-link label { text-decoration: underline; }"
+    "button.xi-link:hover { color: @xi_accent; }"
     "entry {"
     "  border-radius: 10px; background-color: #FFFFFF; background-image: none;"
     "  border: 1px solid alpha(#000000, 0.14); padding: 7px 12px; min-height: 20px;"
@@ -123,7 +132,7 @@ static const char CSS[] =
 typedef struct { char dev[64], model[128], fs[224]; long mib; int removable; } Disk;
 
 static GtkWidget *win, *stack;
-static GtkWidget *dr_region, *dr_lang, *bt_welcome_next, *bt_restart;
+static GtkWidget *dr_region, *dr_lang, *dr_kbd, *bt_welcome_next, *bt_restart;
 static GtkWidget *en_user, *en_host, *en_pw, *en_pw2, *sw_auto;
 static GtkWidget *hi_user, *hi_host, *hi_pw, *bt_acc_next;
 static GtkWidget *seg_full, *seg_man, *box_disks, *lb_dest_note, *bt_install;
@@ -161,17 +170,28 @@ static const TzRegion REGIONS[] = {
     {"India / New Delhi",      "IST-5:30"},
     {"China / Beijing",        "CST-8"},
     {"Japan / Tokyo",          "JST-9"},
+    {"Saudi Arabia / Riyadh",  "<+03>-3"},
+    {"Egypt / Cairo",          "EET-2EEST,M4.5.5/0,M10.5.4/24"},
+    {"UAE / Dubai",            "<+04>-4"},
     {"Singapore",              "SGT-8"},
     {"Australia / Sydney",     "AEST-10AEDT,M10.1.0,M4.1.0/3"},
     {"Brazil / Sao Paulo",     "BRT3"},
 };
-/* the keyboard follows the language: console keymap, X layout */
-typedef struct { const char *label, *code, *keymap, *xkb; } Lang;
+/* xkb: the keyboard a language preselects in the Keyboard row */
+typedef struct { const char *label, *code, *xkb; } Lang;
 static const Lang LANGS[] = {
-    {"English (United States)", "en_US", "us",        "us"},
-    {"English (United Kingdom)","en_GB", "uk",        "gb"},
-    {"Bahasa Indonesia",        "id_ID", "us",        "us"},
-    {"Português (Portugal)",    "pt_PT", "pt-latin1", "pt"},
+    {"English (United States)", "en_US", "us"},
+    {"English (United Kingdom)","en_GB", "gb"},
+    {"Bahasa Indonesia",        "id_ID", "us"},
+    {"Português (Portugal)",    "pt_PT", "pt"},
+};
+/* keymap: a path under /usr/share/kmap */
+typedef struct { const char *label, *keymap, *xkb; } Kbd;
+static const Kbd KBDS[] = {
+    {N_("US (default)"),         "qwerty/us",        "us"},
+    {N_("English (United Kingdom)"), "qwerty/uk",    "gb"},
+    {N_("Portuguese (Portugal)"), "qwerty/pt-latin1", "pt"},
+    {N_("Arabic (with US, Alt+Shift switches)"), "qwerty/us", "us,ara"},
 };
 /* backend phases; task_for_pct() must match xxri-install-backend's P| values */
 static const char* TASKS[] = {
@@ -251,7 +271,7 @@ static const char* backend(void) {
 
 /* ---- dropdown with a cairo chevron: GtkComboBox's arrow comes from the
  * icon theme, which the live system can't load */
-typedef struct { GtkWidget* label; GPtrArray* labels; int active; } Drop;
+typedef struct { GtkWidget* label; GPtrArray* labels; int active; void (*changed)(GtkWidget*); } Drop;
 static void drop_free(gpointer p) { Drop* d = p; g_ptr_array_unref(d->labels); g_free(d); }
 static Drop* drop_of(GtkWidget* w) { return g_object_get_data(G_OBJECT(w), "xi-drop"); }
 static gboolean chevron_draw(GtkWidget* w, cairo_t* cr, gpointer u) {
@@ -276,6 +296,8 @@ static void drop_set(GtkWidget* w, int i) {
 static int drop_get(GtkWidget* w) { return drop_of(w)->active; }
 static void drop_pick(GtkMenuItem* it, gpointer u) {
     drop_set(GTK_WIDGET(u), GPOINTER_TO_INT(g_object_get_data(G_OBJECT(it), "i")));
+    Drop* d = drop_of(GTK_WIDGET(u));
+    if (d->changed) d->changed(GTK_WIDGET(u));   /* a pick, not drop_set() */
 }
 static void drop_clicked(GtkButton* b, gpointer u) {
     (void)u;
@@ -316,6 +338,25 @@ static void drop_add(GtkWidget* w, const char* text) {
     Drop* d = drop_of(w);
     g_ptr_array_add(d->labels, g_strdup(text));
     if (d->labels->len == 1) drop_set(w, 0);
+}
+
+/* applied to the live session at once: the password is typed on this layout */
+static void kbd_apply_live(const Kbd* k) {
+    /* "us,ara": two layouts, switched with Alt+Shift (as the installed system is set up) */
+    char* cmd = strchr(k->xkb, ',') ? g_strdup_printf("setxkbmap %s -option grp:alt_shift_toggle", k->xkb)
+                                    : g_strdup_printf("setxkbmap %s -option", k->xkb);
+    g_spawn_command_line_async(cmd, NULL);
+    g_free(cmd);
+}
+static void kbd_changed(GtkWidget* w) {
+    (void)w; kbd_apply_live(&KBDS[drop_get(dr_kbd)]);
+}
+/* a language brings its usual keyboard; the Keyboard row can still change it */
+static void lang_changed(GtkWidget* w) {
+    (void)w;
+    const char* want = LANGS[drop_get(dr_lang)].xkb;
+    for (guint i = 0; i < G_N_ELEMENTS(KBDS); i++)
+        if (!strcmp(KBDS[i].xkb, want)) { drop_set(dr_kbd, (int)i); kbd_apply_live(&KBDS[i]); return; }
 }
 
 /* ---- the session
@@ -399,6 +440,7 @@ static gboolean win_draw(GtkWidget* w, cairo_t* cr, gpointer u) {
 
 /* ---------------------------------------------------------------- welcome */
 static void cb_welcome_next(GtkWidget* w, gpointer u) { (void)w; (void)u; show_page("account"); }
+static void cb_live(GtkWidget* w, gpointer u);
 
 static GtkWidget* form_row(const char* name, GtkWidget* field) {
     GtkWidget* r = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 14);
@@ -425,10 +467,13 @@ static GtkWidget* build_welcome(void) {
     for (guint i = 0; i < G_N_ELEMENTS(REGIONS); i++) drop_add(dr_region, REGIONS[i].label);
     dr_lang = drop_new();
     for (guint i = 0; i < G_N_ELEMENTS(LANGS); i++) drop_add(dr_lang, LANGS[i].label);
-    GtkWidget* kbd = drop_new(); drop_add(kbd, _("US (default)"));
+    dr_kbd = drop_new();
+    for (guint i = 0; i < G_N_ELEMENTS(KBDS); i++) drop_add(dr_kbd, _(KBDS[i].label));
+    drop_of(dr_lang)->changed = lang_changed;
+    drop_of(dr_kbd)->changed = kbd_changed;
     gtk_box_pack_start(GTK_BOX(card), form_row(_("Region"), dr_region), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(card), form_row(_("Language"), dr_lang), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(card), form_row(_("Keyboard"), kbd), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card), form_row(_("Keyboard"), dr_kbd), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(v), card, FALSE, FALSE, 0);
 
     GtkWidget* nx = bt_welcome_next = button(_("Continue"), TRUE, G_CALLBACK(cb_welcome_next));
@@ -437,6 +482,14 @@ static GtkWidget* build_welcome(void) {
     gtk_widget_set_size_request(nx, 170, -1);
     gtk_widget_set_margin_top(nx, 26);
     gtk_box_pack_start(GTK_BOX(v), nx, FALSE, FALSE, 0);
+
+    /* the medium boots straight into this installer; same hand-over as "Continue live session" */
+    GtkWidget* lv = button(_("Try live ISO first"), FALSE, G_CALLBACK(cb_live));
+    css(lv, "xi-link");
+    gtk_button_set_relief(GTK_BUTTON(lv), GTK_RELIEF_NONE);
+    gtk_widget_set_halign(lv, GTK_ALIGN_CENTER);
+    gtk_widget_set_margin_top(lv, 12);
+    gtk_box_pack_start(GTK_BOX(v), lv, FALSE, FALSE, 0);
     return v;
 }
 
@@ -1076,8 +1129,9 @@ static void start_install(void) {
     fprintf(c, "TZSTR=%s\n", REGIONS[drop_get(dr_region)].tz);
     const Lang* lg = &LANGS[drop_get(dr_lang)];
     fprintf(c, "LANGUAGE=%s\n", lg->code);
-    fprintf(c, "KEYMAP=%s\n", lg->keymap);
-    fprintf(c, "XKB=%s\n", lg->xkb);
+    const Kbd* kb = &KBDS[drop_get(dr_kbd)];
+    fprintf(c, "KEYMAP=%s\n", kb->keymap);
+    fprintf(c, "XKB=%s\n", kb->xkb);
     fclose(c);
 
     gtk_revealer_set_reveal_child(GTK_REVEALER(rv_err), FALSE);

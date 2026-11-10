@@ -90,7 +90,7 @@ $(STATEDIR)/xxri-xlibre.targetinstall: $(wildcard $(PTXDIST_WORKSPACE)/config/xx
 		$(PTXDIST_WORKSPACE)/config/xxri-xlibre/Xwrapper.config, /usr/local/etc/X11/Xwrapper.config)
 #	# the configurations ~/.xsession selects on a processor without SSE2, and
 #	# on a GPU Mesa cannot accelerate safely (nouveau, NV04 .. NV4x)
-	@$(foreach c, xxri-nosse2-kms.conf xxri-nosse2.conf xxri-noaccel-kms.conf, \
+	@$(foreach c, xxri-nosse2-kms.conf xxri-nosse2.conf xxri-noaccel-kms.conf xxri-vm-kms.conf, \
 		$(call install_copy, xxri-xlibre, 0, 0, 0644, \
 			$(PTXDIST_WORKSPACE)/config/xxri-xlibre/$(c), /usr/local/etc/X11/$(c))$(ptx/nl))
 #	# kdrive opens the console and the framebuffer itself: setuid root, as

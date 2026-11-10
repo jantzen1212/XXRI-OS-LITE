@@ -107,8 +107,8 @@ XXRI_OLD_C_FLAGS	:= -Wno-incompatible-pointer-types -Wno-int-conversion \
 # everything else is part of core.gz
 XXRI_CORE_PKGS		:= xxri-base xxri-bootsplash xxri-compositor xxri-control-center \
 	xxri-dialog xxri-file xxri-flwm xxri-glapi xxri-glvnd xxri-installer xxri-launcher \
-	xxri-libexif xxri-libfm xxri-locales xxri-login xxri-media xxri-menu-cache xxri-power-menu xxri-settings \
-	xxri-store xxri-wallpaper xxri-wctl
+	xxri-libexif xxri-libfm xxri-libudev-zero xxri-locales xxri-login xxri-media xxri-menu-cache xxri-power-menu xxri-settings \
+	xxri-store $(if $(PTXCONF_ARCH_X86_64),xxri-store-catalog) xxri-tray xxri-deps xxri-wallpaper xxri-wctl
 XXRI_BROWSER_TCZ_PKGS	:= xxri-qt5 xxri-browser
 XXRI_XLIBRE_TCZ_PKGS	:= xxri-xlibre xxri-xlibre-input-libinput xxri-xlibre-video-vesa
 XXRI_GRUB_TCZ_PKGS	:= xxri-grub-tools

@@ -5,6 +5,7 @@
 #   xxri-audio volume [get|set N|up|down] [--card N]
 #   xxri-audio mute|unmute|toggle [--card N]
 #   xxri-audio default [get|set CARD]
+#   xxri-audio output [get|set auto|speakers|headphones] [--card N]
 #   xxri-audio save|restore          (mixer persistence)
 #   xxri-audio init                  (boot: load drivers, pick card, restore)
 #
@@ -149,6 +150,62 @@ cmd_default() {
 cmd_save()    { alsa_ready || return 1; sudo_if mkdir -p "$XXRI_CFG_DIR"; sudo_if alsactl store -f "$STATE" 2>/dev/null && echo "mixer state saved"; }
 cmd_restore() { [ -f "$STATE" ] && sudo_if alsactl restore -f "$STATE" 2>/dev/null && echo "mixer state restored"; }
 
+mixer_prime() { # CARD CONTROL: first-boot level for one playback control
+	# A percentage is a raw step, not a loudness: on HD Audio 70% is -28.5 dB,
+	# and Master, Speaker and Headphone stack. Controls with a dB scale start
+	# at 0 dB; without one (AC97) 70% is all there is.
+	_mp="$(amixer -c "$1" sget "$2" 2>/dev/null)" || return 0
+	if echo "$_mp" | grep -q 'dB\]'; then
+		amixer -q -c "$1" sset "$2" 0dB unmute 2>/dev/null && return 0
+	fi
+	amixer -q -c "$1" sset "$2" 70% unmute 2>/dev/null
+}
+
+# --- which output plays: Automatic | Speakers | Headphones
+# Automatic is the driver's Auto-Mute (the jack mutes the speakers). Speakers
+# and Headphones switch Auto-Mute off and leave exactly one of the two
+# switches on. Only cards with both switches have a choice.
+ctl_has() { amixer -c "$1" sget "$2" >/dev/null 2>&1; }
+output_available() { ctl_has "$1" Speaker && ctl_has "$1" Headphone; }
+automute_item() { # CARD WANT(on|off) -> the enum item to set
+	if [ "$2" = off ]; then echo Disabled; return; fi
+	items="$(amixer -c "$1" sget "Auto-Mute Mode" 2>/dev/null | sed -n "s/^ *Items: *//p" | head -1)"
+	for want in Enabled "Line Out+Speaker" "Speaker Only"; do
+		case "$items" in *"'$want'"*) echo "$want"; return;; esac
+	done
+}
+output_apply() { # CARD auto|speakers|headphones
+	output_available "$1" || return 0
+	case "$2" in
+		speakers)   am=off; sp=unmute; hp=mute ;;
+		headphones) am=off; sp=mute;   hp=unmute ;;
+		*)          am=on;  sp=unmute; hp=unmute ;;
+	esac
+	if ctl_has "$1" "Auto-Mute Mode"; then
+		it="$(automute_item "$1" "$am")"
+		[ -n "$it" ] && amixer -q -c "$1" sset "Auto-Mute Mode" "$it" 2>/dev/null
+	fi
+	amixer -q -c "$1" sset Speaker "$sp" 2>/dev/null
+	amixer -q -c "$1" sset Headphone "$hp" 2>/dev/null
+}
+output_norm() { case "$1" in speakers|headphones) echo "$1";; *) echo auto;; esac; }
+
+cmd_output() { # [get | set auto|speakers|headphones]
+	alsa_ready || { not_ready; return 1; }
+	c="${CARD:-$(default_card)}"; [ -n "$c" ] || c=0
+	avail=0; output_available "$c" && avail=1
+	if [ "$1" = set ]; then
+		case "$2" in auto|speakers|headphones) ;; *) echo "usage: xxri-audio output set auto|speakers|headphones" >&2; return 1;; esac
+		cfg_set audio OUTPUT "$2"
+		[ $avail = 1 ] && { output_apply "$c" "$2"; cmd_save >/dev/null 2>&1; }
+	fi
+	sel="$(output_norm "$(cfg_get audio OUTPUT auto)")"
+	if [ $JSON = 1 ]; then
+		j_new; j_num card "$c"; j_bool available "$avail"; j_str selected "$sel"
+		j_root audio "\"output\":$(j_obj)"
+	else echo "card $c output: $sel$([ $avail = 1 ] || echo ' (this card has no speaker/headphone choice)')"; fi
+}
+
 cmd_init() {
 	# 1. load drivers for every PCI/USB audio device via modalias
 	for d in $(pci_by_class 0x0401) $(pci_by_class 0x0403); do
@@ -183,11 +240,13 @@ cmd_init() {
 		# most pre-2010 boxes) Master and PCM are in series and PCM comes up
 		# muted at 0% - Master alone reads 70% and plays nothing
 		for m in Master PCM Speaker Headphone Front Wave "Master Mono"; do
-			amixer -c "$want" get "$m" >/dev/null 2>&1 || continue
-			amixer -q -c "$want" set "$m" "70%" unmute 2>/dev/null
+			mixer_prime "$want" "$m"
 		done
 		cmd_save >/dev/null
 	fi
+	# the chosen output outlives the restored state; Automatic is applied too,
+	# which turns Auto-Mute back on after an older build saved it disabled
+	[ -n "$want" ] && output_apply "$want" "$(output_norm "$(cfg_get audio OUTPUT auto)")"
 	echo "audio initialised (default card ${want:-none})"
 }
 
@@ -230,10 +289,11 @@ case "$1" in
 	unmute) cmd_unmute ;;
 	toggle) cmd_toggle ;;
 	default) shift; cmd_default "$@" ;;
+	output) shift; cmd_output "$@" ;;
 	save) cmd_save ;;
 	restore) cmd_restore ;;
 	mic) shift; cmd_mic "$@" ;;
 	test) cmd_test ;;
 	init) cmd_init ;;
-	*) echo "usage: xxri-audio list|volume [get|set N|up|down]|mute|unmute|toggle|default [set N]|save|restore|init [--json] [--card N]" >&2; exit 1 ;;
+	*) echo "usage: xxri-audio list|volume [get|set N|up|down]|mute|unmute|toggle|default [set N]|output [set auto|speakers|headphones]|save|restore|init [--json] [--card N]" >&2; exit 1 ;;
 esac

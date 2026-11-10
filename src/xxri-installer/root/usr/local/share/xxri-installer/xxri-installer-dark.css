@@ -23,6 +23,8 @@
 .xi-hero     { text-shadow: 0 1px 16px alpha(#000000, 0.55); }
 .xi-hero-sub { color: #D8D8DE; text-shadow: 0 1px 10px alpha(#000000, 0.60); }
 .xi-note.warn { color: #E5A85B; }
+button.xi-link, button.xi-link:hover, button.xi-link:active { background-color: transparent; color: #E8E8EC; text-shadow: 0 0 8px alpha(#000000, 0.90), 0 1px 10px alpha(#000000, 0.70); }
+button.xi-link:hover { color: #7DB4FA; }
 
 entry { background-color: #34353E; border-color: alpha(#FFFFFF, 0.12); }
 

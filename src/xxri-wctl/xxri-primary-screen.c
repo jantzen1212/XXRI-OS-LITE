@@ -10,16 +10,18 @@
  * pseudo-transparency stays right. Valid because xxri-display keeps the
  * primary display at 0,0; nothing changes when there is one display.
  *
- * LD_PRELOAD is dropped again at load, so the apps the dock starts get the
- * real screen size.
+ * LD_PRELOAD is dropped again once the dock has opened its display, so the
+ * apps the dock starts get the real screen size. NOT at load: wbar.sh runs
+ * `LD_PRELOAD=shim nohup wbar`, and nohup is the first process to load the
+ * shim - dropping the variable there meant wbar never got it, and the dock
+ * centred itself on the whole root window (across the seam between two
+ * equal displays). Only the process that opens an X display clears it.
  */
 #define _GNU_SOURCE
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 #include <dlfcn.h>
 #include <stdlib.h>
-
-__attribute__((constructor)) static void drop_preload(void) { unsetenv("LD_PRELOAD"); }
 
 Display *XOpenDisplay(const char *name)
 {
@@ -28,6 +30,7 @@ Display *XOpenDisplay(const char *name)
     if (!real) return NULL;
     Display *d = real(name);
     if (!d) return d;
+    unsetenv("LD_PRELOAD");
     int ev, er, n = 0;
     if (!XRRQueryExtension(d, &ev, &er)) return d;
     XRRMonitorInfo *m = XRRGetMonitors(d, DefaultRootWindow(d), True, &n);

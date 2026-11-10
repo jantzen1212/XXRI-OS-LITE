@@ -32,14 +32,24 @@ xxri-hardware summary|cpu|memory|gpu|usb|camera|monitor|printer|firmware|all [--
 ## xxri-audio — ALSA
 ```
 xxri-audio list|volume [get|set N|up|down]|mute|unmute|toggle|
-           default [get|set CARD]|save|restore|init  [--json] [--card N]
+           default [get|set CARD]|output [get|set auto|speakers|headphones]|
+           save|restore|init  [--json] [--card N]
 ```
 - `list --json` → `"cards":[{id,name,type(analog|hdmi|usb),playback,capture,default}]`
 - `volume --json` → `"volume":{card,control,volume,muted}`
 - `default set N` writes /etc/asound.conf; `save`/`restore` persist the
   mixer (alsactl state in /usr/local/etc/xxri/alsa.state)
 - `init` (boot): loads drivers by PCI/USB modalias, auto-selects the first
-  analog playback card (saved choice wins), restores or unmutes to 70%
+  analog playback card (saved choice wins), restores the saved mixer or, on
+  first boot, unmutes every output control: to 0 dB where the control has a
+  dB scale, else 70%
+- `output [get|set auto|speakers|headphones] [--card N]` →
+  `"output":{card,available,selected}`. `auto` is the driver's own Auto-Mute;
+  `speakers`/`headphones` switch Auto-Mute off and leave exactly one of the
+  Speaker/Headphone switches on. `available` is false on cards without both
+  switches. The choice is saved as `OUTPUT` in audio.conf and re-applied at
+  every boot, after the mixer restore. With nothing chosen (`auto`) boot also
+  turns Auto-Mute back on
 - `test` plays a 440 Hz tone through the `default` device, the one every
   program uses (dmix), so it mixes with whatever else is playing; only a
   card asked for with `--card` that is not the default is opened directly
@@ -77,6 +87,8 @@ xxri-network status|list|wifi [on|off]|scan [IF]|info [IF]|
 xxri-display list|current|monitors|layout|edid|cache-modes [--json]
 xxri-display set-resolution WxH[xBPP] [--rate HZ] [--apply] [--output OUT] [--json]
 xxri-display set-refresh HZ [--json]
+xxri-display brightness [set 20..100 --output NAME] [--json]   # software dimming, outputs with no backlight
+xxri-display diag [FILE]                 # everything about the displays in one file
 xxri-display set-layout extend|mirror|internal|external [--keep] [--json]
 xxri-display confirm-layout | revert-layout [--json]
 xxri-display apply [--session|--hotplug]
