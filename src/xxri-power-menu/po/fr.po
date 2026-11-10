@@ -1,0 +1,55 @@
+# Traduction française de xxri-power-menu, programme de XXRI OS Lite.
+# Distribué sous la même licence que XXRI OS Lite (GPL-3.0-or-later).
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-11-10 20:00+0100\n"
+"Last-Translator: Thib (TheWorms) <TheWorms@users.noreply.github.com>\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: xxri-power-menu.c
+msgid "Power"
+msgstr "Alimentation"
+
+#: xxri-power-menu.c
+msgid "Save state and power off"
+msgstr "Enregistrer l’état et éteindre"
+
+#: xxri-power-menu.c
+msgid "Shut down"
+msgstr "Éteindre"
+
+#: xxri-power-menu.c
+msgid "Reboot this computer"
+msgstr "Redémarrer cet ordinateur"
+
+#: xxri-power-menu.c
+msgid "Restart"
+msgstr "Redémarrer"
+
+#: xxri-power-menu.c
+msgid "Sleep"
+msgstr "Veille"
+
+#: xxri-power-menu.c
+msgid "Suspend to RAM"
+msgstr "Suspendre en mémoire"
+
+#: xxri-power-menu.c
+msgid "End this desktop session"
+msgstr "Terminer cette session de bureau"
+
+#: xxri-power-menu.c
+msgid "Log out"
+msgstr "Se déconnecter"
+
+#: xxri-power-menu.c
+msgid "Cancel"
+msgstr "Annuler"

@@ -1,0 +1,753 @@
+# Traduction française de xxri-store, programme de XXRI OS Lite.
+# Distribué sous la même licence que XXRI OS Lite (GPL-3.0-or-later).
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-31 07:02+0700\n"
+"PO-Revision-Date: 2026-11-10 20:00+0100\n"
+"Last-Translator: Thib (TheWorms) <TheWorms@users.noreply.github.com>\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: xxri-store-gui.c
+msgid "Browsers"
+msgstr "Navigateurs"
+
+#: xxri-store-gui.c
+msgid "Development"
+msgstr "Développement"
+
+#: xxri-store-gui.c
+msgid "Graphics"
+msgstr "Graphisme"
+
+#: xxri-store-gui.c
+msgid "Office"
+msgstr "Bureautique"
+
+#: xxri-store-gui.c
+msgid "Audio"
+msgstr "Audio"
+
+#: xxri-store-gui.c
+msgid "Education"
+msgstr "Éducation"
+
+#: xxri-store-gui.c
+msgid "Photography"
+msgstr "Photographie"
+
+#: xxri-store-gui.c
+msgid "Video"
+msgstr "Vidéo"
+
+#: xxri-store-gui.c
+msgid "AI"
+msgstr "IA"
+
+#: xxri-store-gui.c
+msgid "Communication"
+msgstr "Communication"
+
+#: xxri-store-gui.c
+msgid "Games"
+msgstr "Jeux"
+
+#: xxri-store-gui.c
+msgid "Utilities"
+msgstr "Utilitaires"
+
+#: xxri-store-gui.c
+msgid "Finance"
+msgstr "Finance"
+
+#: xxri-store-gui.c
+msgid "Science"
+msgstr "Science"
+
+#: xxri-store-gui.c
+msgid "Security"
+msgstr "Sécurité"
+
+#: xxri-store-gui.c
+msgid "System"
+msgstr "Système"
+
+#: xxri-store-gui.c
+msgid "Networking"
+msgstr "Réseau"
+
+#: xxri-store-gui.c
+msgid "Productivity"
+msgstr "Productivité"
+
+#: xxri-store-gui.c
+msgid "Virtualization"
+msgstr "Virtualisation"
+
+#: xxri-store-gui.c
+msgid "Accessories"
+msgstr "Accessoires"
+
+#: xxri-store-gui.c
+msgid "no catalog has been downloaded yet"
+msgstr "aucun catalogue n’a encore été téléchargé"
+
+#: xxri-store-gui.c
+msgid "the repository did not answer"
+msgstr "le dépôt n’a pas répondu"
+
+#: xxri-store-gui.c
+msgid "the server sent a web page instead of a catalog"
+msgstr "le serveur a envoyé une page web au lieu d’un catalogue"
+
+#: xxri-store-gui.c
+msgid "the download was incomplete"
+msgstr "le téléchargement est incomplet"
+
+#: xxri-store-gui.c
+msgid "the server sent the catalog of another architecture"
+msgstr "le serveur a envoyé le catalogue d’une autre architecture"
+
+#: xxri-store-gui.c
+msgid "this system's architecture could not be determined"
+msgstr "l’architecture de ce système n’a pas pu être déterminée"
+
+#: xxri-store-gui.c
+msgid "the file is not a valid catalog"
+msgstr "le fichier n’est pas un catalogue valide"
+
+#: xxri-store-gui.c
+msgid "No download published for i686"
+msgstr "Aucun téléchargement publié pour i686"
+
+#: xxri-store-gui.c
+#, c-format
+msgid "No download published for %s"
+msgstr "Aucun téléchargement publié pour %s"
+
+#: xxri-store-gui.c
+#, c-format
+msgid "Packaging not supported (%s)"
+msgstr "Format de paquet non pris en charge (%s)"
+
+#: xxri-store-gui.c
+#, c-format
+msgid "Remove %s?"
+msgstr "Supprimer %s ?"
+
+#: xxri-store-gui.c
+msgid ""
+"The app will be removed from the dock and the menu, and its package file "
+"will be deleted."
+msgstr ""
+"L’appli sera retirée du dock et du menu, et son fichier de paquet sera "
+"supprimé."
+
+#: xxri-store-gui.c
+msgid "Cancel"
+msgstr "Annuler"
+
+#: xxri-store-gui.c
+msgid "Remove"
+msgstr "Supprimer"
+
+#: xxri-store-gui.c
+msgid "Installing…"
+msgstr "Installation…"
+
+#: xxri-store-gui.c
+msgid "Queued"
+msgstr "En attente"
+
+#: xxri-store-gui.c
+msgid "Update"
+msgstr "Mettre à jour"
+
+#: xxri-store-gui.c
+msgid "Open"
+msgstr "Ouvrir"
+
+#: xxri-store-gui.c
+msgid "Currently unsupported"
+msgstr "Actuellement non pris en charge"
+
+#: xxri-store-gui.c
+msgid "Unsupported"
+msgstr "Non pris en charge"
+
+#: xxri-store-gui.c
+msgid "Unavailable"
+msgstr "Indisponible"
+
+#: xxri-store-gui.c
+msgid "No downloadable release was found for this architecture"
+msgstr "Aucune version téléchargeable trouvée pour cette architecture"
+
+#: xxri-store-gui.c
+msgid "Available for XXRI Regular / Pro"
+msgstr "Disponible pour XXRI Regular / Pro"
+
+#: xxri-store-gui.c
+msgid "Regular / Pro"
+msgstr "Regular / Pro"
+
+#: xxri-store-gui.c
+msgid "Built for another architecture"
+msgstr "Conçu pour une autre architecture"
+
+#: xxri-store-gui.c
+msgid "Other architecture"
+msgstr "Autre architecture"
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"This app ships a %s build. XXRI Lite is 32-bit (i686); XXRI Regular and Pro "
+"can install it."
+msgstr ""
+"Cette appli est fournie en version %s. XXRI Lite est en 32 bits (i686) ; "
+"XXRI Regular et Pro peuvent l’installer."
+
+#: xxri-store-gui.c
+#, c-format
+msgid "This app ships a %s build, but this device runs %s."
+msgstr ""
+"Cette appli est fournie en version %s, mais cet appareil fonctionne en %s."
+
+#: xxri-store-gui.c
+msgid "No space"
+msgstr "Espace insuffisant"
+
+#: xxri-store-gui.c
+msgid "Not enough disk space"
+msgstr "Espace disque insuffisant"
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"%s needs about %lld MB but only %lld MB is free. Remove an application you "
+"no longer need, then try again."
+msgstr ""
+"%s nécessite environ %lld Mo, mais seulement %lld Mo sont libres. Supprimez "
+"une application dont vous n’avez plus besoin, puis réessayez."
+
+#: xxri-store-gui.c
+msgid "Install"
+msgstr "Installer"
+
+#: xxri-store-gui.c
+msgid "Installed"
+msgstr "Installé"
+
+#: xxri-store-gui.c
+msgid "Show more"
+msgstr "Afficher plus"
+
+#: xxri-store-gui.c
+msgid "See all"
+msgstr "Tout voir"
+
+#: xxri-store-gui.c
+msgid "Editor's choice"
+msgstr "Choix de la rédaction"
+
+#: xxri-store-gui.c
+msgid "Featured"
+msgstr "À la une"
+
+#: xxri-store-gui.c
+msgid "Continue installing"
+msgstr "Poursuivre l’installation"
+
+#: xxri-store-gui.c
+msgid "Updates available"
+msgstr "Mises à jour disponibles"
+
+#: xxri-store-gui.c
+msgid "Recommended for you"
+msgstr "Recommandé pour vous"
+
+#: xxri-store-gui.c
+msgid "Trending"
+msgstr "Tendances"
+
+#: xxri-store-gui.c
+msgid "Newest releases"
+msgstr "Dernières nouveautés"
+
+#: xxri-store-gui.c
+msgid "Recently updated"
+msgstr "Récemment mis à jour"
+
+#: xxri-store-gui.c
+msgid "Your apps"
+msgstr "Vos applis"
+
+#: xxri-store-gui.c
+msgid "Popular categories"
+msgstr "Catégories populaires"
+
+#: xxri-store-gui.c
+#, c-format
+msgid "%d app"
+msgid_plural "%d apps"
+msgstr[0] "%d appli"
+msgstr[1] "%d applis"
+
+#: xxri-store-gui.c
+msgid "Categories"
+msgstr "Catégories"
+
+#: xxri-store-gui.c
+msgid "Every app in the XXRI catalog, organised by what it does."
+msgstr "Toutes les applis du catalogue XXRI, classées par usage."
+
+#: xxri-store-gui.c
+msgid "All apps"
+msgstr "Toutes les applis"
+
+#: xxri-store-gui.c
+#, c-format
+msgid "%d app · %d need XXRI Regular / Pro"
+msgid_plural "%d apps · %d need XXRI Regular / Pro"
+msgstr[0] "%d appli · %d pour XXRI Regular / Pro"
+msgstr[1] "%d applis · %d pour XXRI Regular / Pro"
+
+#: xxri-store-gui.c
+msgid "Nothing here yet."
+msgstr "Rien ici pour l’instant."
+
+#: xxri-store-gui.c
+msgid "Website"
+msgstr "Site web"
+
+#: xxri-store-gui.c
+msgid " and "
+msgstr " et "
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"This app is published for %s. XXRI Lite runs %s, so it cannot be installed "
+"here — it is available on XXRI Regular and Pro, which are %s."
+msgstr ""
+"Cette appli est publiée pour %s. XXRI Lite fonctionne en %s, elle ne peut "
+"donc pas être installée ici — elle est disponible sur XXRI Regular et Pro, "
+"qui fonctionnent en %s."
+
+#: xxri-store-gui.c
+msgid "Screenshots"
+msgstr "Captures d’écran"
+
+#: xxri-store-gui.c
+msgid "Loading screenshots…"
+msgstr "Chargement des captures d’écran…"
+
+#: xxri-store-gui.c
+msgid "Screenshots need an internet connection."
+msgstr "Les captures d’écran nécessitent une connexion Internet."
+
+#: xxri-store-gui.c
+msgid "About"
+msgstr "À propos"
+
+#: xxri-store-gui.c
+msgid "Information"
+msgstr "Informations"
+
+#: xxri-store-gui.c
+msgid "Developer"
+msgstr "Développeur"
+
+#: xxri-store-gui.c
+msgid "Publisher"
+msgstr "Éditeur"
+
+#: xxri-store-gui.c
+msgid "Version"
+msgstr "Version"
+
+#: xxri-store-gui.c
+msgid "Installed version"
+msgstr "Version installée"
+
+#: xxri-store-gui.c
+msgid "Release date"
+msgstr "Date de publication"
+
+#: xxri-store-gui.c
+msgid "Category"
+msgstr "Catégorie"
+
+#: xxri-store-gui.c
+msgid "Architecture"
+msgstr "Architecture"
+
+#: xxri-store-gui.c
+msgid "License"
+msgstr "Licence"
+
+#: xxri-store-gui.c
+msgid "Homepage"
+msgstr "Page d’accueil"
+
+#: xxri-store-gui.c
+msgid "Download size"
+msgstr "Taille du téléchargement"
+
+#: xxri-store-gui.c
+msgid "File size"
+msgstr "Taille du fichier"
+
+#: xxri-store-gui.c
+msgid "Published at download time"
+msgstr "Publié au moment du téléchargement"
+
+#: xxri-store-gui.c
+msgid "GitHub Releases"
+msgstr "Versions GitHub"
+
+#: xxri-store-gui.c
+msgid "GitLab Releases"
+msgstr "Versions GitLab"
+
+#: xxri-store-gui.c
+msgid "Developer website"
+msgstr "Site du développeur"
+
+#: xxri-store-gui.c
+msgid "Bundled with XXRI OS"
+msgstr "Fourni avec XXRI OS"
+
+#: xxri-store-gui.c
+msgid "XXRI Repository"
+msgstr "Dépôt XXRI"
+
+#: xxri-store-gui.c
+msgid "Source"
+msgstr "Source"
+
+#: xxri-store-gui.c
+msgid "Source project"
+msgstr "Projet source"
+
+#: xxri-store-gui.c
+msgid "Package type"
+msgstr "Type de paquet"
+
+#: xxri-store-gui.c
+msgid "Permissions"
+msgstr "Autorisations"
+
+#: xxri-store-gui.c
+msgid "Dependencies"
+msgstr "Dépendances"
+
+#: xxri-store-gui.c
+msgid "What's new"
+msgstr "Nouveautés"
+
+#: xxri-store-gui.c
+msgid "All categories"
+msgstr "Toutes les catégories"
+
+#: xxri-store-gui.c
+msgid "Any architecture"
+msgstr "Toutes les architectures"
+
+#: xxri-store-gui.c
+msgid "Runs on this device"
+msgstr "Compatible avec cet appareil"
+
+#: xxri-store-gui.c
+msgid "All publishers"
+msgstr "Tous les éditeurs"
+
+#: xxri-store-gui.c
+#, c-format
+msgid "%d result"
+msgid_plural "%d results"
+msgstr[0] "%d résultat"
+msgstr[1] "%d résultats"
+
+#: xxri-store-gui.c
+#, c-format
+msgid "%d result · type to narrow it down"
+msgid_plural "%d results · type to narrow it down"
+msgstr[0] "%d résultat · saisissez pour affiner"
+msgstr[1] "%d résultats · saisissez pour affiner"
+
+#: xxri-store-gui.c
+msgid "No apps match that. Try a different word, or clear the filters."
+msgstr ""
+"Aucune appli ne correspond. Essayez un autre mot, ou effacez les filtres."
+
+#: xxri-store-gui.c
+msgid "Search"
+msgstr "Rechercher"
+
+#: xxri-store-gui.c
+msgid "Updates"
+msgstr "Mises à jour"
+
+#: xxri-store-gui.c
+msgid "Installed apps"
+msgstr "Applis installées"
+
+#: xxri-store-gui.c
+#, c-format
+msgid "%d app from the XXRI registry"
+msgid_plural "%d apps from the XXRI registry"
+msgstr[0] "%d appli du registre XXRI"
+msgstr[1] "%d applis du registre XXRI"
+
+#: xxri-store-gui.c
+msgid "No apps yet"
+msgstr "Aucune appli pour l’instant"
+
+#: xxri-store-gui.c
+msgid ""
+"Everything you install from the Store shows up here, with a Launch button "
+"and the date you installed it."
+msgstr ""
+"Tout ce que vous installez depuis le Store apparaît ici, avec un bouton "
+"Lancer et la date d’installation."
+
+#: xxri-store-gui.c
+#, c-format
+msgid "Version %s · installed %s · last opened %s"
+msgstr "Version %s · installation : %s · dernière ouverture : %s"
+
+#: xxri-store-gui.c
+msgid "never"
+msgstr "jamais"
+
+#: xxri-store-gui.c
+msgid "Launch"
+msgstr "Lancer"
+
+#: xxri-store-gui.c
+msgid "Folder"
+msgstr "Dossier"
+
+#: xxri-store-gui.c
+msgid "Update all"
+msgstr "Tout mettre à jour"
+
+#: xxri-store-gui.c
+msgid "Checked against the offline catalog"
+msgstr "Vérifié avec le catalogue hors ligne"
+
+#: xxri-store-gui.c
+msgid "Checked against the online catalog"
+msgstr "Vérifié avec le catalogue en ligne"
+
+#: xxri-store-gui.c
+msgid "bundled"
+msgstr "intégré"
+
+#: xxri-store-gui.c
+msgid ""
+"Everything is up to date. The Store compares every installed app against the"
+" catalog each time it opens."
+msgstr ""
+"Tout est à jour. Le Store compare chaque appli installée au catalogue à "
+"chaque ouverture."
+
+#: xxri-store-gui.c
+#, c-format
+msgid "%d update available"
+msgid_plural "%d updates available"
+msgstr[0] "%d mise à jour disponible"
+msgstr[1] "%d mises à jour disponibles"
+
+#: xxri-store-gui.c
+msgid "Nothing downloading"
+msgstr "Aucun téléchargement en cours"
+
+#: xxri-store-gui.c
+msgid ""
+"Downloads you start appear here with progress, speed and time left — and "
+"they survive a reboot."
+msgstr ""
+"Les téléchargements que vous lancez apparaissent ici avec la progression, la"
+" vitesse et le temps restant — et ils survivent à un redémarrage."
+
+#: xxri-store-gui.c
+msgid "Downloading"
+msgstr "Téléchargement"
+
+#: xxri-store-gui.c
+msgid "Installing"
+msgstr "Installation"
+
+#: xxri-store-gui.c
+msgid "Verifying checksum"
+msgstr "Vérification de la somme de contrôle"
+
+#: xxri-store-gui.c
+msgid "Completed"
+msgstr "Terminé"
+
+#: xxri-store-gui.c
+msgid "Finding the best source"
+msgstr "Recherche de la meilleure source"
+
+msgid "Installing required dependencies"
+msgstr "Installation des dépendances requises"
+
+#: xxri-store-gui.c
+msgid "Failed"
+msgstr "Échec"
+
+#: xxri-store-gui.c
+msgid "Paused"
+msgstr "En pause"
+
+#: xxri-store-gui.c
+msgid "Pause"
+msgstr "Pause"
+
+#: xxri-store-gui.c
+msgid "Resume"
+msgstr "Reprendre"
+
+#: xxri-store-gui.c
+msgid "Retry"
+msgstr "Réessayer"
+
+#: xxri-store-gui.c
+msgid "Clear"
+msgstr "Effacer"
+
+#: xxri-store-gui.c
+msgid "Downloads"
+msgstr "Téléchargements"
+
+#: xxri-store-gui.c
+msgid "Clear finished"
+msgstr "Effacer les terminés"
+
+#: xxri-store-gui.c
+msgid "Themes"
+msgstr "Thèmes"
+
+#: xxri-store-gui.c
+msgid ""
+"No themes in the catalog yet. When the XXRI repository starts publishing "
+"themes, wallpapers and fonts, they appear right here — the Store already "
+"knows how to read them."
+msgstr ""
+"Aucun thème dans le catalogue pour l’instant. Quand le dépôt XXRI publiera "
+"des thèmes, des fonds d’écran et des polices, ils apparaîtront ici — le "
+"Store sait déjà les lire."
+
+#: xxri-store-gui.c
+msgid "Home"
+msgstr "Accueil"
+
+#: xxri-store-gui.c
+msgid "My apps"
+msgstr "Mes applis"
+
+#: xxri-store-gui.c
+msgid "Repository unavailable"
+msgstr "Dépôt indisponible"
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"The %s catalog cannot be used: %s.\n"
+"Architecture: %s"
+msgstr ""
+"Le catalogue %s est inutilisable : %s.\n"
+"Architecture : %s"
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"Could not reach repo.xxri.flows.best, and no catalog is cached.\n"
+"Architecture: %s"
+msgstr ""
+"Impossible de joindre repo.xxri.flows.best, et aucun catalogue n’est en cache.\n"
+"Architecture : %s"
+
+#: xxri-store-gui.c
+msgid "Offline · bundled catalog"
+msgstr "Hors ligne · catalogue intégré"
+
+#: xxri-store-gui.c
+msgid "Offline · cached catalog"
+msgstr "Hors ligne · catalogue en cache"
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"Could not reach repo.xxri.flows.best; showing the catalog that came with this system%s%s.\n"
+"Architecture: %s"
+msgstr ""
+"Impossible de joindre repo.xxri.flows.best ; affichage du catalogue fourni avec ce système%s%s.\n"
+"Architecture : %s"
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"Could not reach repo.xxri.flows.best; showing the catalog cached%s%s.\n"
+"Architecture: %s"
+msgstr ""
+"Impossible de joindre repo.xxri.flows.best ; affichage du catalogue en cache%s%s.\n"
+"Architecture : %s"
+
+#: xxri-store-gui.c
+msgid " on "
+msgstr " le "
+
+#: xxri-store-gui.c
+msgid "Online · repo.xxri.flows.best"
+msgstr "En ligne · repo.xxri.flows.best"
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"Catalog last updated%s%s.\n"
+"Architecture: %s"
+msgstr ""
+"Dernière mise à jour du catalogue%s%s.\n"
+"Architecture : %s"
+
+#: xxri-store-gui.c
+msgid " — unknown"
+msgstr " — inconnue"
+
+#: xxri-store-gui.c
+#, c-format
+msgid ""
+"\n"
+"The last update was not used: %s."
+msgstr ""
+"\n"
+"La dernière mise à jour n’a pas été utilisée : %s."
+
+#: xxri-store-gui.c
+msgid "Search apps, categories, publishers…"
+msgstr "Rechercher des applis, catégories, éditeurs…"
+
+#: xxri-store-gui.c
+msgid "Refresh"
+msgstr "Actualiser"
+
+#: xxri-store-gui.c
+msgid "Show all architectures"
+msgstr "Afficher toutes les architectures"
+
+#: xxri-store-gui.c
+msgid "Also show apps built for other CPUs (they can't be installed here)"
+msgstr ""
+"Afficher aussi les applis conçues pour d’autres processeurs (elles ne "
+"peuvent pas être installées ici)"

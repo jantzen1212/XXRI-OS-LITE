@@ -1,0 +1,39 @@
+# Traduction française de xxri-login, programme de XXRI OS Lite.
+# Distribué sous la même licence que XXRI OS Lite (GPL-3.0-or-later).
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-18 08:04+0700\n"
+"PO-Revision-Date: 2026-11-10 20:00+0100\n"
+"Last-Translator: Thib (TheWorms) <TheWorms@users.noreply.github.com>\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: xxri-login.c
+msgid "Caps Lock is on"
+msgstr "Le verrouillage majuscules est activé"
+
+#: xxri-login.c
+msgid "Incorrect password"
+msgstr "Mot de passe incorrect"
+
+#: xxri-login.c
+msgid "Enter Password"
+msgstr "Saisissez le mot de passe"
+
+#: xxri-login.c
+msgid "Shut Down"
+msgstr "Éteindre"
+
+#: xxri-login.c
+msgid "Restart"
+msgstr "Redémarrer"
+
+#: xxri-login.c
+msgid "Sleep"
+msgstr "Veille"

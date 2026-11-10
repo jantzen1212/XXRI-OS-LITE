@@ -1,0 +1,336 @@
+# Traduction française de xxri-installer, programme de XXRI OS Lite.
+# Distribué sous la même licence que XXRI OS Lite (GPL-3.0-or-later).
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-11-10 19:35+0000\n"
+"PO-Revision-Date: 2026-11-10 20:00+0100\n"
+"Last-Translator: Thib (TheWorms) <TheWorms@users.noreply.github.com>\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: xxri-dialog.c
+msgid "OK"
+msgstr "OK"
+
+#: xxri-dialog.c
+msgid "Yes"
+msgstr "Oui"
+
+#: xxri-dialog.c
+msgid "Not now"
+msgstr "Pas maintenant"
+
+#: xxri-installer.c
+msgid "US (default)"
+msgstr "États-Unis (par défaut)"
+
+#: xxri-installer.c
+msgid "English (United Kingdom)"
+msgstr "Anglais (Royaume-Uni)"
+
+#: xxri-installer.c
+msgid "Portuguese (Portugal)"
+msgstr "Portugais (Portugal)"
+
+#: xxri-installer.c
+msgid "French (AZERTY)"
+msgstr "Français (AZERTY)"
+
+#: xxri-installer.c
+msgid "Arabic (with US, Alt+Shift switches)"
+msgstr "Arabe (avec US, Alt+Maj pour basculer)"
+
+#: xxri-installer.c
+msgid "Copy system files"
+msgstr "Copier les fichiers système"
+
+#: xxri-installer.c
+msgid "Format the XXRI partition"
+msgstr "Formater la partition XXRI"
+
+#: xxri-installer.c
+msgid "Prepare the disk"
+msgstr "Préparer le disque"
+
+#: xxri-installer.c
+msgid "Add apps and extensions"
+msgstr "Ajouter des applis et des extensions"
+
+#: xxri-installer.c
+msgid "Create your account"
+msgstr "Créer votre compte"
+
+#: xxri-installer.c
+msgid "Set name and language"
+msgstr "Définir le nom et la langue"
+
+#: xxri-installer.c
+msgid "Finish up"
+msgstr "Terminer"
+
+#: xxri-installer.c
+msgid "Install the boot loader"
+msgstr "Installer le chargeur d’amorçage"
+
+#: xxri-installer.c
+msgid "Welcome"
+msgstr "Bienvenue"
+
+#: xxri-installer.c
+msgid "to <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"
+msgstr "sur <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"
+
+#: xxri-installer.c
+msgid "Region"
+msgstr "Région"
+
+#: xxri-installer.c
+msgid "Language"
+msgstr "Langue"
+
+#: xxri-installer.c
+msgid "Keyboard"
+msgstr "Clavier"
+
+#: xxri-installer.c
+msgid "Continue"
+msgstr "Continuer"
+
+#: xxri-installer.c
+msgid "Try live ISO first"
+msgstr "Essayer d’abord le mode live"
+
+#: xxri-installer.c
+msgid "You sign in with this name. It is also the name of your home folder."
+msgstr ""
+"Vous vous connectez avec ce nom. C’est aussi le nom de votre dossier "
+"personnel."
+
+#: xxri-installer.c
+msgid "Type a name to sign in with, for example your first name."
+msgstr "Saisissez un nom de connexion, par exemple votre prénom."
+
+#: xxri-installer.c
+msgid "The name cannot start with a number."
+msgstr "Le nom ne peut pas commencer par un chiffre."
+
+#: xxri-installer.c
+msgid "Use lowercase letters and numbers only, without spaces."
+msgstr "Utilisez uniquement des minuscules et des chiffres, sans espaces."
+
+#: xxri-installer.c
+msgid "How this computer is called on a network."
+msgstr "Nom de cet ordinateur sur le réseau."
+
+#: xxri-installer.c
+msgid "Give this computer a name, for example pc-xxri."
+msgstr "Donnez un nom à cet ordinateur, par exemple pc-xxri."
+
+#: xxri-installer.c
+msgid "Use letters, numbers and hyphens only, without spaces."
+msgstr ""
+"Utilisez uniquement des lettres, des chiffres et des tirets, sans espaces."
+
+#: xxri-installer.c
+msgid "Type the same password again to confirm it."
+msgstr "Saisissez de nouveau le même mot de passe pour le confirmer."
+
+#: xxri-installer.c
+msgid "The two passwords are not the same yet."
+msgstr "Les deux mots de passe ne sont pas encore identiques."
+
+#: xxri-installer.c
+msgid "Optional. Leave both empty to use this computer without a password."
+msgstr ""
+"Facultatif. Laissez les deux champs vides pour utiliser cet ordinateur sans "
+"mot de passe."
+
+#: xxri-installer.c
+msgid "The passwords match. Short password - 6 or more characters is safer."
+msgstr ""
+"Les mots de passe correspondent. Mot de passe court - 6 caractères ou plus, "
+"c’est plus sûr."
+
+#: xxri-installer.c
+msgid "The passwords match. Good password."
+msgstr "Les mots de passe correspondent. Bon mot de passe."
+
+#: xxri-installer.c
+msgid "The passwords match. Strong password."
+msgstr "Les mots de passe correspondent. Mot de passe robuste."
+
+#: xxri-installer.c
+msgid "This is the account you will use on this computer."
+msgstr "C’est le compte que vous utiliserez sur cet ordinateur."
+
+#: xxri-installer.c
+msgid "Username"
+msgstr "Nom d’utilisateur"
+
+#: xxri-installer.c
+msgid "Computer name"
+msgstr "Nom de l’ordinateur"
+
+#: xxri-installer.c
+msgid "Password"
+msgstr "Mot de passe"
+
+#: xxri-installer.c
+msgid "Confirm password"
+msgstr "Confirmer le mot de passe"
+
+#: xxri-installer.c
+msgid "Sign in automatically"
+msgstr "Connexion automatique"
+
+#: xxri-installer.c
+msgid "Go straight to the desktop when the computer starts."
+msgstr "Accéder directement au bureau au démarrage de l’ordinateur."
+
+#: xxri-installer.c
+msgid "Back"
+msgstr "Retour"
+
+#: xxri-installer.c
+#, c-format
+msgid "Current content: %s"
+msgstr "Contenu actuel : %s"
+
+#: xxri-installer.c
+#, c-format
+msgid "%s  label %s  -  will be formatted ext4"
+msgstr "%s  étiquette %s  -  sera formaté en ext4"
+
+#: xxri-installer.c
+#, c-format
+msgid "%s  -  will be formatted ext4"
+msgstr "%s  -  sera formaté en ext4"
+
+#: xxri-installer.c
+msgid ""
+"Only the selected partition is formatted. The rest of the disk is left as it"
+" is."
+msgstr ""
+"Seule la partition sélectionnée est formatée. Le reste du disque n’est pas "
+"modifié."
+
+#: xxri-installer.c
+msgid "Everything on the selected disk will be erased."
+msgstr "Tout le contenu du disque sélectionné sera effacé."
+
+#: xxri-installer.c
+msgid "   (removable)"
+msgstr "   (amovible)"
+
+#: xxri-installer.c
+#, c-format
+msgid "...and %u more device(s)"
+msgstr "...et %u autre(s) périphérique(s)"
+
+#: xxri-installer.c
+msgid ""
+"No partitions were found. Choose \"Erase disk\" to let XXRI prepare a disk."
+msgstr ""
+"Aucune partition trouvée. Choisissez « Effacer le disque » pour laisser XXRI"
+" préparer un disque."
+
+#: xxri-installer.c
+msgid "No disk to install on was detected."
+msgstr "Aucun disque sur lequel installer n’a été détecté."
+
+#: xxri-installer.c
+msgid "Where should XXRI be installed?"
+msgstr "Où installer XXRI ?"
+
+#: xxri-installer.c
+msgid "Erase a whole disk, or choose a partition you prepared yourself."
+msgstr ""
+"Effacer un disque entier, ou choisir une partition que vous avez préparée "
+"vous-même."
+
+#: xxri-installer.c
+msgid "Erase disk"
+msgstr "Effacer le disque"
+
+#: xxri-installer.c
+msgid "Choose partition"
+msgstr "Choisir une partition"
+
+#: xxri-installer.c
+msgid "Install"
+msgstr "Installer"
+
+#: xxri-installer.c
+msgid "Installing XXRI OS Lite"
+msgstr "Installation de XXRI OS Lite"
+
+#: xxri-installer.c
+msgid "This takes a few minutes. You can leave the computer to it."
+msgstr ""
+"Cela prend quelques minutes. Vous pouvez laisser l’ordinateur travailler."
+
+#: xxri-installer.c
+msgid "Preparing..."
+msgstr "Préparation..."
+
+#: xxri-installer.c
+msgid "Something went wrong"
+msgstr "Une erreur s’est produite"
+
+#: xxri-installer.c
+msgid "Close"
+msgstr "Fermer"
+
+#: xxri-installer.c
+msgid "All done"
+msgstr "Terminé"
+
+#: xxri-installer.c
+msgid ""
+"XXRI OS Lite is installed on this computer. Remove the installation medium, "
+"then restart to begin using it."
+msgstr ""
+"XXRI OS Lite est installé sur cet ordinateur. Retirez le support "
+"d’installation, puis redémarrez pour commencer à l’utiliser."
+
+#: xxri-installer.c
+msgid "Restart now"
+msgstr "Redémarrer maintenant"
+
+#: xxri-installer.c
+msgid "Shut down"
+msgstr "Éteindre"
+
+#: xxri-installer.c
+msgid "Continue live session"
+msgstr "Continuer la session live"
+
+#: xxri-installer.c
+#, c-format
+msgid ""
+"%s\n"
+"\n"
+"Only the target disk was touched. Close to review and retry."
+msgstr ""
+"%s\n"
+"\n"
+"Seul le disque cible a été touché. Fermez pour vérifier et réessayer."
+
+#: xxri-installer.c
+msgid "The installation stopped."
+msgstr "L’installation s’est arrêtée."
+
+#: xxri-installer.c
+#, c-format
+msgid "Root filesystem  LABEL=XXRIROOT  -  UUID %s"
+msgstr "Système de fichiers racine  LABEL=XXRIROOT  -  UUID %s"
+
+#: xxri-installer.c
+msgid "XXRI OS Lite Installer"
+msgstr "Installateur de XXRI OS Lite"
