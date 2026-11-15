@@ -186,7 +186,7 @@ msgstr "De achtergrond is niet gewijzigd"
 
 #: xxri-settings.c
 msgid "XXRI can use JPEG and PNG pictures as wallpapers. Choose another picture and try again."
-msgstr "XXRI kan JPEG- en PNG-afbeeldingen als achtergrond gebruiken. Kies een andere afbeelding en probeer het opnieuw."
+msgstr "XXRI kan JPEG en PNG afbeeldingen als achtergrond gebruiken. Kies een andere afbeelding en probeer het opnieuw."
 
 #: xxri-settings.c
 msgid "Set as wallpaper"
