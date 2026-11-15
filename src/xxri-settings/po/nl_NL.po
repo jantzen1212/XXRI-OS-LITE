@@ -237,7 +237,7 @@ msgstr "Overal %s%% schaal gebruiken?"
 
 #: xxri-settings.c
 msgid "Settings shows the new scale already. Other apps use it once the desktop restarts, which closes open apps. You can also keep working and switch the next time the desktop starts."
-msgstr "Instellingen tonen de nieuwe schaal al. Andere apps gebruiken hem zodra de desktop opnieuw start, waardoor open apps sluiten. Je kunt ook blijven werken en de schaal de volgende keer dat de desktop start toepassen."
+msgstr "Instellingen tonen de nieuwe schaal al. Andere apps gebruiken hem zodra de desktop opnieuw opstart, waardoor open apps sluiten. Je kunt ook blijven werken en de schaal de volgende keer dat de desktop start toepassen."
 
 #: xxri-settings.c
 msgid "At Next Start"
@@ -245,7 +245,7 @@ msgstr "Bij volgende start"
 
 #: xxri-settings.c
 msgid "Restart Now"
-msgstr "Nu opnieuw starten"
+msgstr "Nu opnieuw opstarten"
 
 #: xxri-settings.c
 msgid "Personalize your background"
@@ -588,7 +588,7 @@ msgstr "Het systeem heeft die datum en tijd niet geaccepteerd. Controleer ze en 
 
 #: xxri-settings.c
 msgid "Restart the desktop session? All open apps will close."
-msgstr "De desktopsessie opnieuw starten? Alle open apps worden gesloten."
+msgstr "De desktopsessie opnieuw opstarten? Alle open apps worden gesloten."
 
 #: xxri-settings.c
 msgid "The display setting was not changed"
@@ -605,7 +605,7 @@ msgstr "%d × %d gebruiken?"
 
 #: xxri-settings.c
 msgid "The desktop restarts to change resolution, so open apps will close. You can also keep working and switch the next time the desktop starts."
-msgstr "De desktop start opnieuw om de resolutie te wijzigen, dus open apps sluiten. Je kunt ook blijven werken en de wijziging de volgende keer dat de desktop start toepassen."
+msgstr "De desktop wordt opnieuw opgestart om de resolutie te wijzigen, dus open apps sluiten. Je kunt ook blijven werken en de wijziging de volgende keer dat de desktop start toepassen."
 
 #: xxri-settings.c
 msgid " (off)"
@@ -734,7 +734,7 @@ msgstr "%d × %d bij volgende start"
 
 #: xxri-settings.c
 msgid "Saved. The desktop switches when it next starts, or restart now."
-msgstr "Opgeslagen. De desktop schakelt bij de volgende start, of start nu opnieuw."
+msgstr "Opgeslagen. De desktop schakelt bij de volgende start; je kunt ook nu opnieuw opstarten."
 
 #: xxri-settings.c
 #, c-format
@@ -865,7 +865,7 @@ msgstr "Instellingen resetten"
 
 #: xxri-settings.c
 msgid "Restart session"
-msgstr "Sessie opnieuw starten"
+msgstr "Sessie opnieuw opstarten"
 
 #: xxri-settings.c
 msgid "Checking for updates…"
@@ -877,11 +877,11 @@ msgstr "Update geïnstalleerd"
 
 #: xxri-settings.c
 msgid "Restart desktop"
-msgstr "Desktop opnieuw starten"
+msgstr "Desktop opnieuw opstarten"
 
 #: xxri-settings.c
 msgid "Restart now"
-msgstr "Nu opnieuw starten"
+msgstr "Nu opnieuw opstarten"
 
 #: xxri-settings.c
 msgid "The installation was interrupted."
