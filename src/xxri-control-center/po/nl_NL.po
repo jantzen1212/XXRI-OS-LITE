@@ -1,0 +1,56 @@
+# Nederlandse vertaling van xxri-control-center, onderdeel van XXRI OS Lite.
+# Verspreid onder dezelfde licentie als XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-11-15 12:00+0100\n"
+"Last-Translator: Dutch translation\n"
+"Language-Team: Dutch\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: xxri-control-center.c
+msgid "Ethernet"
+msgstr "Ethernet"
+
+#: xxri-control-center.c
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+#: xxri-control-center.c
+msgid "Network"
+msgstr "Netwerk"
+
+#: xxri-control-center.c
+msgid "Not connected"
+msgstr "Niet verbonden"
+
+#: xxri-control-center.c
+msgid "Not available"
+msgstr "Niet beschikbaar"
+
+#: xxri-control-center.c
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+#: xxri-control-center.c
+msgid "Off"
+msgstr "Uit"
+
+#: xxri-control-center.c
+msgid "On"
+msgstr "Aan"
+
+#: xxri-control-center.c
+msgid "Unavailable"
+msgstr "Niet beschikbaar"
+
+#: xxri-control-center.c
+msgid "No audio device"
+msgstr "Geen audioapparaat"

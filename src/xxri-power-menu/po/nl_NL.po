@@ -1,0 +1,56 @@
+# Nederlandse vertaling van xxri-power-menu, onderdeel van XXRI OS Lite.
+# Verspreid onder dezelfde licentie als XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-11-15 12:00+0100\n"
+"Last-Translator: Dutch translation\n"
+"Language-Team: Dutch\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: xxri-power-menu.c
+msgid "Power"
+msgstr "Aan/uit"
+
+#: xxri-power-menu.c
+msgid "Save state and power off"
+msgstr "Status opslaan en uitschakelen"
+
+#: xxri-power-menu.c
+msgid "Shut down"
+msgstr "Afsluiten"
+
+#: xxri-power-menu.c
+msgid "Reboot this computer"
+msgstr "Deze computer opnieuw opstarten"
+
+#: xxri-power-menu.c
+msgid "Restart"
+msgstr "Opnieuw opstarten"
+
+#: xxri-power-menu.c
+msgid "Sleep"
+msgstr "Slaapstand"
+
+#: xxri-power-menu.c
+msgid "Suspend to RAM"
+msgstr "Suspenderen naar RAM"
+
+#: xxri-power-menu.c
+msgid "End this desktop session"
+msgstr "Deze desktopsessie beëindigen"
+
+#: xxri-power-menu.c
+msgid "Log out"
+msgstr "Afmelden"
+
+#: xxri-power-menu.c
+msgid "Cancel"
+msgstr "Annuleren"
