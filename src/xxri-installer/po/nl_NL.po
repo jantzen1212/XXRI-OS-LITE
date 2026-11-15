@@ -1,0 +1,334 @@
+# Nederlandse vertaling van xxri-installer, onderdeel van XXRI OS Lite.
+# Verspreid onder dezelfde licentie als XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-11-15 15:54+0100\n"
+"PO-Revision-Date: 2026-11-15 12:00+0100\n"
+"Last-Translator: Dutch translation\n"
+"Language-Team: Dutch\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: xxri-dialog.c
+msgid "OK"
+msgstr "OK"
+
+#: xxri-dialog.c
+msgid "Yes"
+msgstr "Ja"
+
+#: xxri-dialog.c
+msgid "Not now"
+msgstr "Niet nu"
+
+#: xxri-installer.c
+msgid "US (default)"
+msgstr "VS (standaard)"
+
+#: xxri-installer.c
+msgid "English (United Kingdom)"
+msgstr "Engels (Verenigd Koninkrijk)"
+
+#: xxri-installer.c
+msgid "Portuguese (Portugal)"
+msgstr "Portugees (Portugal)"
+
+#: xxri-installer.c
+msgid "French (AZERTY)"
+msgstr "Frans (AZERTY)"
+
+#: xxri-installer.c
+msgid "Dutch"
+msgstr "Nederlands"
+
+#: xxri-installer.c
+msgid "Arabic (with US, Alt+Shift switches)"
+msgstr "Arabisch (met VS, Alt+Shift wisselt)"
+
+#: xxri-installer.c
+msgid "Copy system files"
+msgstr "Systeembestanden kopiëren"
+
+#: xxri-installer.c
+msgid "Format the XXRI partition"
+msgstr "De XXRI-partitie formatteren"
+
+#: xxri-installer.c
+msgid "Prepare the disk"
+msgstr "De schijf voorbereiden"
+
+#: xxri-installer.c
+msgid "Add apps and extensions"
+msgstr "Apps en extensies toevoegen"
+
+#: xxri-installer.c
+msgid "Create your account"
+msgstr "Account maken"
+
+#: xxri-installer.c
+msgid "Set name and language"
+msgstr "Naam en taal instellen"
+
+#: xxri-installer.c
+msgid "Finish up"
+msgstr "Afronden"
+
+#: xxri-installer.c
+msgid "Install the boot loader"
+msgstr "De bootloader installeren"
+
+#: xxri-installer.c
+msgid "Welcome"
+msgstr "Welkom"
+
+#: xxri-installer.c
+msgid "to <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"
+msgstr "bij <span weight=\"bold\" foreground=\"#1E4FC2\">XXRI OS Lite</span>"
+
+#: xxri-installer.c
+msgid "Region"
+msgstr "Regio"
+
+#: xxri-installer.c
+msgid "Language"
+msgstr "Taal"
+
+#: xxri-installer.c
+msgid "Keyboard"
+msgstr "Toetsenbord"
+
+#: xxri-installer.c
+msgid "Continue"
+msgstr "Doorgaan"
+
+#: xxri-installer.c
+msgid "Try live ISO first"
+msgstr "Eerst de live-ISO proberen"
+
+#: xxri-installer.c
+msgid "You sign in with this name. It is also the name of your home folder."
+msgstr ""
+"Met deze naam meld je je aan. Het is ook de naam van je persoonlijke map."
+
+#: xxri-installer.c
+msgid "Type a name to sign in with, for example your first name."
+msgstr "Typ een naam om mee aan te melden, bijvoorbeeld je voornaam."
+
+#: xxri-installer.c
+msgid "The name cannot start with a number."
+msgstr "De naam mag niet met een cijfer beginnen."
+
+#: xxri-installer.c
+msgid "Use lowercase letters and numbers only, without spaces."
+msgstr "Gebruik alleen kleine letters en cijfers, zonder spaties."
+
+#: xxri-installer.c
+msgid "How this computer is called on a network."
+msgstr "Hoe deze computer op een netwerk heet."
+
+#: xxri-installer.c
+msgid "Give this computer a name, for example pc-xxri."
+msgstr "Geef deze computer een naam, bijvoorbeeld pc-xxri."
+
+#: xxri-installer.c
+msgid "Use letters, numbers and hyphens only, without spaces."
+msgstr "Gebruik alleen letters, cijfers en koppeltekens, zonder spaties."
+
+#: xxri-installer.c
+msgid "Type the same password again to confirm it."
+msgstr "Typ hetzelfde wachtwoord nogmaals om het te bevestigen."
+
+#: xxri-installer.c
+msgid "The two passwords are not the same yet."
+msgstr "De twee wachtwoorden zijn nog niet hetzelfde."
+
+#: xxri-installer.c
+msgid "Optional. Leave both empty to use this computer without a password."
+msgstr ""
+"Optioneel. Laat beide leeg om deze computer zonder wachtwoord te gebruiken."
+
+#: xxri-installer.c
+msgid "The passwords match. Short password - 6 or more characters is safer."
+msgstr "De wachtwoorden komen overeen. Het wachtwoord is kort; 6 of meer tekens is veiliger."
+
+#: xxri-installer.c
+msgid "The passwords match. Good password."
+msgstr "De wachtwoorden komen overeen. Goed wachtwoord."
+
+#: xxri-installer.c
+msgid "The passwords match. Strong password."
+msgstr "De wachtwoorden komen overeen. Sterk wachtwoord."
+
+#: xxri-installer.c
+msgid "This is the account you will use on this computer."
+msgstr "Dit is het account dat je op deze computer gebruikt."
+
+#: xxri-installer.c
+msgid "Username"
+msgstr "Gebruikersnaam"
+
+#: xxri-installer.c
+msgid "Computer name"
+msgstr "Computernaam"
+
+#: xxri-installer.c
+msgid "Password"
+msgstr "Wachtwoord"
+
+#: xxri-installer.c
+msgid "Confirm password"
+msgstr "Wachtwoord bevestigen"
+
+#: xxri-installer.c
+msgid "Sign in automatically"
+msgstr "Automatisch aanmelden"
+
+#: xxri-installer.c
+msgid "Go straight to the desktop when the computer starts."
+msgstr "Ga direct naar de desktop wanneer de computer start."
+
+#: xxri-installer.c
+msgid "Back"
+msgstr "Terug"
+
+#: xxri-installer.c
+#, c-format
+msgid "Current content: %s"
+msgstr "Huidige inhoud: %s"
+
+#: xxri-installer.c
+#, c-format
+msgid "%s  label %s  -  will be formatted ext4"
+msgstr "%s  label %s  -  wordt geformatteerd als ext4"
+
+#: xxri-installer.c
+#, c-format
+msgid "%s  -  will be formatted ext4"
+msgstr "%s  -  wordt geformatteerd als ext4"
+
+#: xxri-installer.c
+msgid ""
+"Only the selected partition is formatted. The rest of the disk is left as it "
+"is."
+msgstr ""
+"Alleen de geselecteerde partitie wordt geformatteerd. De rest van de schijf "
+"blijft ongewijzigd."
+
+#: xxri-installer.c
+msgid "Everything on the selected disk will be erased."
+msgstr "Alles op de geselecteerde schijf wordt gewist."
+
+#: xxri-installer.c
+msgid "   (removable)"
+msgstr "   (verwisselbaar)"
+
+#: xxri-installer.c
+#, c-format
+msgid "...and %u more device(s)"
+msgstr "...en nog %u apparaten"
+
+#: xxri-installer.c
+msgid ""
+"No partitions were found. Choose \"Erase disk\" to let XXRI prepare a disk."
+msgstr ""
+"Er zijn geen partities gevonden. Kies \"Schijf wissen\" om XXRI een schijf "
+"te laten voorbereiden."
+
+#: xxri-installer.c
+msgid "No disk to install on was detected."
+msgstr "Er is geen schijf gevonden om op te installeren."
+
+#: xxri-installer.c
+msgid "Where should XXRI be installed?"
+msgstr "Waar moet XXRI worden geïnstalleerd?"
+
+#: xxri-installer.c
+msgid "Erase a whole disk, or choose a partition you prepared yourself."
+msgstr "Wis een hele schijf, of kies een partitie die je zelf hebt voorbereid."
+
+#: xxri-installer.c
+msgid "Erase disk"
+msgstr "Schijf wissen"
+
+#: xxri-installer.c
+msgid "Choose partition"
+msgstr "Partitie kiezen"
+
+#: xxri-installer.c
+msgid "Install"
+msgstr "Installeren"
+
+#: xxri-installer.c
+msgid "Installing XXRI OS Lite"
+msgstr "XXRI OS Lite installeren"
+
+#: xxri-installer.c
+msgid "This takes a few minutes. You can leave the computer to it."
+msgstr "Dit duurt een paar minuten. Je kunt de computer gerust laten werken."
+
+#: xxri-installer.c
+msgid "Preparing..."
+msgstr "Voorbereiden..."
+
+#: xxri-installer.c
+msgid "Something went wrong"
+msgstr "Er is iets misgegaan"
+
+#: xxri-installer.c
+msgid "Close"
+msgstr "Sluiten"
+
+#: xxri-installer.c
+msgid "All done"
+msgstr "Helemaal klaar"
+
+#: xxri-installer.c
+msgid ""
+"XXRI OS Lite is installed on this computer. Remove the installation medium, "
+"then restart to begin using it."
+msgstr ""
+"XXRI OS Lite is op deze computer geïnstalleerd. Verwijder het "
+"installatiemedium en start daarna opnieuw op om het te gaan gebruiken."
+
+#: xxri-installer.c
+msgid "Restart now"
+msgstr "Nu opnieuw opstarten"
+
+#: xxri-installer.c
+msgid "Shut down"
+msgstr "Afsluiten"
+
+#: xxri-installer.c
+msgid "Continue live session"
+msgstr "Doorgaan met de live-sessie"
+
+#: xxri-installer.c
+#, c-format
+msgid ""
+"%s\n"
+"\n"
+"Only the target disk was touched. Close to review and retry."
+msgstr ""
+"%s\n"
+"\n"
+"Alleen de doelschijf is gewijzigd. Sluit dit venster om te controleren en "
+"het opnieuw te proberen."
+
+#: xxri-installer.c
+msgid "The installation stopped."
+msgstr "De installatie is gestopt."
+
+#: xxri-installer.c
+#, c-format
+msgid "Root filesystem  LABEL=XXRIROOT  -  UUID %s"
+msgstr "Root-bestandssysteem  LABEL=XXRIROOT  -  UUID %s"
+
+#: xxri-installer.c
+msgid "XXRI OS Lite Installer"
+msgstr "XXRI OS Lite-installatieprogramma"
