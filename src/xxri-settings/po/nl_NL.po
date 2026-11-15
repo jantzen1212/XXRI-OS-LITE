@@ -861,7 +861,7 @@ msgstr "Desktop"
 
 #: xxri-settings.c
 msgid "Reset settings"
-msgstr "Instellingen herstellen"
+msgstr "Instellingen resetten"
 
 #: xxri-settings.c
 msgid "Restart session"
