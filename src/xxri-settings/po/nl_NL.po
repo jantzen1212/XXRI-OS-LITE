@@ -158,7 +158,7 @@ msgstr "Een andere achtergrond op elk scherm"
 
 #: xxri-settings.c
 msgid "Right-click a wallpaper to choose one per display"
-msgstr "Klik met de rechtermuisknop op een achtergrond om er een per scherm te kiezen"
+msgstr "Rechtermuis-klik op een achtergrond om er een per scherm te kiezen"
 
 #: xxri-settings.c
 msgid "Official XXRI wallpaper"
