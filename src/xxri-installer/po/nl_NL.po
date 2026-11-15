@@ -155,9 +155,7 @@ msgstr ""
 
 #: xxri-installer.c
 msgid "The passwords match. Short password - 6 or more characters is safer."
-msgstr ""
-"De wachtwoorden komen overeen. Kort wachtwoord - 6 of meer tekens is "
-"veiliger."
+msgstr "De wachtwoorden komen overeen. Het wachtwoord is kort; 6 of meer tekens is veiliger."
 
 #: xxri-installer.c
 msgid "The passwords match. Good password."
