@@ -1077,7 +1077,7 @@ msgstr "Build"
 
 #: xxri-settings.c
 msgid "Legal"
-msgstr "Juridisch"
+msgstr "Juridische informatie"
 
 #: xxri-settings.c
 msgid "GNU General Public License by Free Software Foundation v3 or later"
