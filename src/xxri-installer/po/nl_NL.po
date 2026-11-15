@@ -69,7 +69,7 @@ msgstr "Apps en extensies toevoegen"
 
 #: xxri-installer.c
 msgid "Create your account"
-msgstr "Je account aanmaken"
+msgstr "Account maken"
 
 #: xxri-installer.c
 msgid "Set name and language"
