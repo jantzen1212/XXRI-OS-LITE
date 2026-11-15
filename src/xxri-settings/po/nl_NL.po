@@ -45,7 +45,7 @@ msgstr "Opslag"
 
 #: xxri-settings.c
 msgid "Battery"
-msgstr "Accu"
+msgstr "Batterij"
 
 #: xxri-settings.c
 msgid "Apps"
@@ -471,11 +471,11 @@ msgstr "Voeding"
 #: xxri-settings.c
 #, c-format
 msgid "Battery %s%%"
-msgstr "Accu %s%%"
+msgstr "Batterij %s%%"
 
 #: xxri-settings.c
 msgid "No battery detected"
-msgstr "Geen accu gedetecteerd"
+msgstr "Geen batterij gedetecteerd"
 
 #: xxri-settings.c
 msgid "This is normal on a desktop system."
