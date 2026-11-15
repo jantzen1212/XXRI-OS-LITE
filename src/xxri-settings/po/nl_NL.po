@@ -277,7 +277,7 @@ msgstr "Kies hoe je desktopafbeelding past"
 
 #: xxri-settings.c
 msgid "Appearance"
-msgstr "Weergave"
+msgstr "Uiterlijk"
 
 #: xxri-settings.c
 msgid "Light"
