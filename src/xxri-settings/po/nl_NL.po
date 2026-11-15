@@ -1,0 +1,1465 @@
+# Nederlandse vertaling van xxri-settings, onderdeel van XXRI OS Lite.
+# Verspreid onder dezelfde licentie als XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-27 16:36+0700\n"
+"PO-Revision-Date: 2026-11-15 12:00+0100\n"
+"Last-Translator: Dutch translation\n"
+"Language-Team: Dutch\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: xxri-settings.c
+msgid "Wi-Fi & Network"
+msgstr "Wi-Fi en netwerk"
+
+#: xxri-settings.c
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+#: xxri-settings.c
+msgid "Connected Devices"
+msgstr "Verbonden apparaten"
+
+#: xxri-settings.c
+msgid "Wallpaper & Style"
+msgstr "Achtergrond en stijl"
+
+#: xxri-settings.c
+msgid "Sounds & Vibration"
+msgstr "Geluid en trillingen"
+
+#: xxri-settings.c
+msgid "Display"
+msgstr "Beeldscherm"
+
+#: xxri-settings.c
+msgid "Storage"
+msgstr "Opslag"
+
+#: xxri-settings.c
+msgid "Battery"
+msgstr "Accu"
+
+#: xxri-settings.c
+msgid "Apps"
+msgstr "Apps"
+
+#: xxri-settings.c
+msgid "General Management"
+msgstr "Algemeen beheer"
+
+#: xxri-settings.c
+msgid "Software Update"
+msgstr "Software-update"
+
+#: xxri-settings.c
+msgid "About Device"
+msgstr "Over dit apparaat"
+
+#: xxri-settings.c
+msgid "Content follows your fingers when you scroll"
+msgstr "Inhoud volgt je vingers tijdens het scrollen"
+
+#: xxri-settings.c
+msgid "Natural scrolling"
+msgstr "Natuurlijk scrollen"
+
+#: xxri-settings.c
+msgid "Pointer speed"
+msgstr "Aanwijzersnelheid"
+
+#: xxri-settings.c
+msgid "Slower"
+msgstr "Langzamer"
+
+#: xxri-settings.c
+msgid "Faster"
+msgstr "Sneller"
+
+#: xxri-settings.c
+msgid "No USB devices connected."
+msgstr "Geen USB-apparaten verbonden."
+
+#: xxri-settings.c
+msgid "USB Devices"
+msgstr "USB-apparaten"
+
+#: xxri-settings.c
+msgid "Keyboard & Mouse"
+msgstr "Toetsenbord en muis"
+
+#: xxri-settings.c
+msgid "No input devices"
+msgstr "Geen invoerapparaten"
+
+#: xxri-settings.c
+msgid "Cameras"
+msgstr "Camera's"
+
+#: xxri-settings.c
+msgid "No camera detected. V4L2 webcam drivers install on demand."
+msgstr "Geen camera gedetecteerd. V4L2-webcamstuurprogramma's worden indien nodig geïnstalleerd."
+
+#: xxri-settings.c
+msgid "Audio"
+msgstr "Audio"
+
+#: xxri-settings.c
+msgid "No sound card"
+msgstr "Geen geluidskaart"
+
+#: xxri-settings.c
+msgid "Displays"
+msgstr "Beeldschermen"
+
+#: xxri-settings.c
+#, c-format
+msgid "driver %s%s%s"
+msgstr "stuurprogramma %s%s%s"
+
+#: xxri-settings.c
+msgid "No printer detected."
+msgstr "Geen printer gedetecteerd."
+
+#: xxri-settings.c
+msgid "Printers"
+msgstr "Printers"
+
+#: xxri-settings.c
+msgid "Fill"
+msgstr "Vullen"
+
+#: xxri-settings.c
+msgid "Fit"
+msgstr "Passend"
+
+#: xxri-settings.c
+msgid "Stretch"
+msgstr "Uitrekken"
+
+#: xxri-settings.c
+msgid "Center"
+msgstr "Centreren"
+
+#: xxri-settings.c
+msgid "Tile"
+msgstr "Tegelen"
+
+#: xxri-settings.c
+msgid "A different wallpaper on each display"
+msgstr "Een andere achtergrond op elk scherm"
+
+#: xxri-settings.c
+msgid "Right-click a wallpaper to choose one per display"
+msgstr "Klik met de rechtermuisknop op een achtergrond om er een per scherm te kiezen"
+
+#: xxri-settings.c
+msgid "Official XXRI wallpaper"
+msgstr "Officiële XXRI-achtergrond"
+
+#: xxri-settings.c
+msgid "Your picture"
+msgstr "Je eigen afbeelding"
+
+#: xxri-settings.c
+msgid " · Default"
+msgstr " · Standaard"
+
+#: xxri-settings.c
+msgid "  ·  All displays"
+msgstr "  ·  Alle schermen"
+
+#: xxri-settings.c
+msgid "Default"
+msgstr "Standaard"
+
+#: xxri-settings.c
+msgid "The wallpaper was not changed"
+msgstr "De achtergrond is niet gewijzigd"
+
+#: xxri-settings.c
+msgid "XXRI can use JPEG and PNG pictures as wallpapers. Choose another picture and try again."
+msgstr "XXRI kan JPEG- en PNG-afbeeldingen als achtergrond gebruiken. Kies een andere afbeelding en probeer het opnieuw."
+
+#: xxri-settings.c
+msgid "Set as wallpaper"
+msgstr "Als achtergrond instellen"
+
+#: xxri-settings.c
+msgid "Set for all displays"
+msgstr "Voor alle schermen instellen"
+
+#: xxri-settings.c
+#, c-format
+msgid "Set for display %d (%s)"
+msgstr "Instellen voor scherm %d (%s)"
+
+#: xxri-settings.c
+msgid "Choose a photo"
+msgstr "Een foto kiezen"
+
+#: xxri-settings.c
+msgid "Cancel"
+msgstr "Annuleren"
+
+#: xxri-settings.c
+msgid "Choose picture"
+msgstr "Afbeelding kiezen"
+
+#: xxri-settings.c
+msgid "Pictures (JPEG, PNG)"
+msgstr "Afbeeldingen (JPEG, PNG)"
+
+#: xxri-settings.c
+msgid "Use on"
+msgstr "Gebruiken op"
+
+#: xxri-settings.c
+msgid "All displays"
+msgstr "Alle schermen"
+
+#: xxri-settings.c
+#, c-format
+msgid "Display %d (%s)"
+msgstr "Scherm %d (%s)"
+
+#: xxri-settings.c
+#, c-format
+msgid "Use %s%% scale everywhere?"
+msgstr "Overal %s%% schaal gebruiken?"
+
+#: xxri-settings.c
+msgid "Settings shows the new scale already. Other apps use it once the desktop restarts, which closes open apps. You can also keep working and switch the next time the desktop starts."
+msgstr "Instellingen tonen de nieuwe schaal al. Andere apps gebruiken hem zodra de desktop opnieuw start, waardoor open apps sluiten. Je kunt ook blijven werken en de schaal de volgende keer dat de desktop start toepassen."
+
+#: xxri-settings.c
+msgid "At Next Start"
+msgstr "Bij volgende start"
+
+#: xxri-settings.c
+msgid "Restart Now"
+msgstr "Nu opnieuw starten"
+
+#: xxri-settings.c
+msgid "Personalize your background"
+msgstr "Je achtergrond personaliseren"
+
+#: xxri-settings.c
+msgid "Official XXRI wallpapers. Click one to use it everywhere, or right-click it to choose a display."
+msgstr "Officiële XXRI-achtergronden. Klik er een aan om hem overal te gebruiken, of klik met de rechtermuisknop om een scherm te kiezen."
+
+#: xxri-settings.c
+msgid "Official XXRI wallpapers, or a photo of your own."
+msgstr "Officiële XXRI-achtergronden, of je eigen foto."
+
+#: xxri-settings.c
+msgid " (the default wallpaper)"
+msgstr " (de standaardachtergrond)"
+
+#: xxri-settings.c
+msgid "Browse photos"
+msgstr "Foto's bladeren"
+
+#: xxri-settings.c
+msgid "JPEG or PNG, from your Pictures or any folder"
+msgstr "JPEG of PNG, uit je Afbeeldingen of een andere map"
+
+#: xxri-settings.c
+msgid "Choose a fit for your desktop image"
+msgstr "Kies hoe je desktopafbeelding past"
+
+#: xxri-settings.c
+msgid "Appearance"
+msgstr "Weergave"
+
+#: xxri-settings.c
+msgid "Light"
+msgstr "Licht"
+
+#: xxri-settings.c
+msgid "Dark"
+msgstr "Donker"
+
+#: xxri-settings.c
+msgid "Mode"
+msgstr "Modus"
+
+#: xxri-settings.c
+msgid "Settings and apps that follow the system theme"
+msgstr "Instellingen en apps die het systeemthema volgen"
+
+#: xxri-settings.c
+msgid "Buttons, menus and dialogs"
+msgstr "Knoppen, menu's en dialoogvensters"
+
+#: xxri-settings.c
+msgid "Theme"
+msgstr "Thema"
+
+#: xxri-settings.c
+msgid "Cursor"
+msgstr "Aanwijzer"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s%% (recommended)"
+msgstr "%s%% (aanbevolen)"
+
+#: xxri-settings.c
+msgid "Scale"
+msgstr "Schaal"
+
+#: xxri-settings.c
+msgid "Text in apps; applies everywhere after a desktop restart"
+msgstr "Tekst in apps; geldt overal na een herstart van de desktop"
+
+#: xxri-settings.c
+msgid "Settings changes at once; other apps take a new look the next time they open."
+msgstr "Instellingen veranderen meteen; andere apps zien er de volgende keer dat ze openen anders uit."
+
+#: xxri-settings.c
+msgid "Dock"
+msgstr "Dock"
+
+#: xxri-settings.c
+msgid "Small"
+msgstr "Klein"
+
+#: xxri-settings.c
+msgid "Medium"
+msgstr "Middel"
+
+#: xxri-settings.c
+msgid "Large"
+msgstr "Groot"
+
+#: xxri-settings.c
+msgid "Icon size"
+msgstr "Pictogramgrootte"
+
+#: xxri-settings.c
+msgid "No sound card detected"
+msgstr "Geen geluidskaart gedetecteerd"
+
+#: xxri-settings.c
+msgid "Audio drivers load automatically at boot. About Device shows any firmware that is still missing."
+msgstr "Audiostuurprogramma's worden automatisch bij het opstarten geladen. Over dit apparaat toont eventuele firmware die nog ontbreekt."
+
+#: xxri-settings.c
+msgid "Output Device"
+msgstr "Uitvoerapparaat"
+
+#: xxri-settings.c
+msgid " · default"
+msgstr " · standaard"
+
+#: xxri-settings.c
+#, c-format
+msgid "type %s%s"
+msgstr "type %s%s"
+
+#: xxri-settings.c
+msgid "Automatic"
+msgstr "Automatisch"
+
+#: xxri-settings.c
+msgid "Headphones"
+msgstr "Koptelefoon"
+
+#: xxri-settings.c
+msgid "Speakers"
+msgstr "Luidsprekers"
+
+#: xxri-settings.c
+msgid "Automatic uses the headphones while they are plugged in. Choose Speakers or Headphones to use only that one."
+msgstr "Automatisch gebruikt de koptelefoon zolang die is aangesloten. Kies Luidsprekers of Koptelefoon om alleen dat apparaat te gebruiken."
+
+#: xxri-settings.c
+msgid "Play sound through"
+msgstr "Geluid afspelen via"
+
+#: xxri-settings.c
+msgid "Volume"
+msgstr "Volume"
+
+#: xxri-settings.c
+msgid "Mute"
+msgstr "Dempen"
+
+#: xxri-settings.c
+msgid "Unmute"
+msgstr "Dempen opheffen"
+
+#: xxri-settings.c
+msgid "Test"
+msgstr "Testen"
+
+#: xxri-settings.c
+msgid "Input Device"
+msgstr "Invoerapparaat"
+
+#: xxri-settings.c
+msgid "microphone / capture"
+msgstr "microfoon / opname"
+
+#: xxri-settings.c
+msgid "No microphone detected"
+msgstr "Geen microfoon gedetecteerd"
+
+#: xxri-settings.c
+msgid "Microphone Level"
+msgstr "Microfoonniveau"
+
+#: xxri-settings.c
+msgid "No storage devices"
+msgstr "Geen opslagapparaten"
+
+#: xxri-settings.c
+msgid "Connect a USB drive or SD card and it will appear here, ready to mount."
+msgstr "Sluit een USB-station of SD-kaart aan en het verschijnt hier, klaar om te koppelen."
+
+#: xxri-settings.c
+msgid "  ·  removable"
+msgstr "  ·  verwisselbaar"
+
+#: xxri-settings.c
+#, c-format
+msgid "Whole disk · %d MB"
+msgstr "Hele schijf · %d MB"
+
+#: xxri-settings.c
+msgid "no partitions / not formatted"
+msgstr "geen partities / niet geformatteerd"
+
+#: xxri-settings.c
+msgid "Eject"
+msgstr "Uitwerpen"
+
+#: xxri-settings.c
+msgid "Unmount"
+msgstr "Ontkoppelen"
+
+#: xxri-settings.c
+#, c-format
+msgid "%ld MB used · %ld MB free · mounted at %s"
+msgstr "%ld MB gebruikt · %ld MB vrij · gekoppeld op %s"
+
+#: xxri-settings.c
+msgid "Mount"
+msgstr "Koppelen"
+
+#: xxri-settings.c
+msgid "Health"
+msgstr "Gezondheid"
+
+#: xxri-settings.c
+#, c-format
+msgid "SMART health: %s"
+msgstr "SMART-status: %s"
+
+#: xxri-settings.c
+msgid "Power"
+msgstr "Voeding"
+
+#: xxri-settings.c
+#, c-format
+msgid "Battery %s%%"
+msgstr "Accu %s%%"
+
+#: xxri-settings.c
+msgid "No battery detected"
+msgstr "Geen accu gedetecteerd"
+
+#: xxri-settings.c
+msgid "This is normal on a desktop system."
+msgstr "Dit is normaal op een desktop."
+
+#: xxri-settings.c
+msgid "AC adapter"
+msgstr "Netadapter"
+
+#: xxri-settings.c
+msgid "offline"
+msgstr "offline"
+
+#: xxri-settings.c
+msgid "online"
+msgstr "online"
+
+#: xxri-settings.c
+msgid "powered (desktop)"
+msgstr "gevoed (desktop)"
+
+#: xxri-settings.c
+msgid "Power Profile"
+msgstr "Energieprofiel"
+
+#: xxri-settings.c
+msgid "CPU frequency scaling is not available on this processor."
+msgstr "CPU-frequentieschaling is niet beschikbaar op deze processor."
+
+#: xxri-settings.c
+msgid "CPU governor"
+msgstr "CPU-regelaar"
+
+#: xxri-settings.c
+msgid "Display Brightness"
+msgstr "Schermhelderheid"
+
+#: xxri-settings.c
+msgid "Brightness control is not available on this display."
+msgstr "Helderheidsregeling is niet beschikbaar op dit scherm."
+
+#: xxri-settings.c
+msgid "Suspend"
+msgstr "Suspenderen"
+
+#: xxri-settings.c
+msgid "Suspend to RAM"
+msgstr "Suspenderen naar RAM"
+
+#: xxri-settings.c
+msgid "not supported"
+msgstr "niet ondersteund"
+
+#: xxri-settings.c
+msgid "supported"
+msgstr "ondersteund"
+
+#: xxri-settings.c
+msgid "Hibernate"
+msgstr "Hiberneren"
+
+#: xxri-settings.c
+msgid "not available (no swap)"
+msgstr "niet beschikbaar (geen swap)"
+
+#: xxri-settings.c
+msgid "No apps installed yet"
+msgstr "Nog geen apps geïnstalleerd"
+
+#: xxri-settings.c
+msgid "Install apps from the XXRI Store, or open an AppImage you downloaded and it is integrated here."
+msgstr "Installeer apps uit de XXRI Store, of open een gedownloade AppImage; die wordt hier geïntegreerd."
+
+#: xxri-settings.c
+msgid "Installed Applications"
+msgstr "Geïnstalleerde applicaties"
+
+#: xxri-settings.c
+msgid " · last launch: "
+msgstr " · laatst gestart: "
+
+#: xxri-settings.c
+#, c-format
+msgid "version %s%s%s"
+msgstr "versie %s%s%s"
+
+#: xxri-settings.c
+msgid "Launch"
+msgstr "Starten"
+
+#: xxri-settings.c
+msgid "Remove"
+msgstr "Verwijderen"
+
+#: xxri-settings.c
+msgid "Set date and time"
+msgstr "Datum en tijd instellen"
+
+#: xxri-settings.c
+msgid "Apply"
+msgstr "Toepassen"
+
+#: xxri-settings.c
+msgid "The date and time were not changed"
+msgstr "De datum en tijd zijn niet gewijzigd"
+
+#: xxri-settings.c
+msgid "The system did not accept that date and time. Check it and try again."
+msgstr "Het systeem heeft die datum en tijd niet geaccepteerd. Controleer ze en probeer het opnieuw."
+
+#: xxri-settings.c
+msgid "Restart the desktop session? All open apps will close."
+msgstr "De desktopsessie opnieuw starten? Alle open apps worden gesloten."
+
+#: xxri-settings.c
+msgid "The display setting was not changed"
+msgstr "De scherminstelling is niet gewijzigd"
+
+#: xxri-settings.c
+msgid "xxri-display did not answer."
+msgstr "xxri-display reageerde niet."
+
+#: xxri-settings.c
+#, c-format
+msgid "Use %d × %d?"
+msgstr "%d × %d gebruiken?"
+
+#: xxri-settings.c
+msgid "The desktop restarts to change resolution, so open apps will close. You can also keep working and switch the next time the desktop starts."
+msgstr "De desktop start opnieuw om de resolutie te wijzigen, dus open apps sluiten. Je kunt ook blijven werken en de wijziging de volgende keer dat de desktop start toepassen."
+
+#: xxri-settings.c
+msgid " (off)"
+msgstr " (uit)"
+
+#: xxri-settings.c
+#, c-format
+msgid "The previous arrangement comes back in %d second."
+msgid_plural "The previous arrangement comes back in %d seconds."
+msgstr[0] "De vorige indeling wordt over %d seconde hersteld."
+msgstr[1] "De vorige indeling wordt over %d seconden hersteld."
+
+#: xxri-settings.c
+msgid "Keep this display arrangement?"
+msgstr "Deze schermindeling behouden?"
+
+#: xxri-settings.c
+msgid "Keep"
+msgstr "Behouden"
+
+#: xxri-settings.c
+msgid "Revert"
+msgstr "Terugdraaien"
+
+#: xxri-settings.c
+msgid "Display 1"
+msgstr "Scherm 1"
+
+#: xxri-settings.c
+msgid "Display 2"
+msgstr "Scherm 2"
+
+#: xxri-settings.c
+msgid "Arrangement"
+msgstr "Indeling"
+
+#: xxri-settings.c
+msgid "Extend"
+msgstr "Uitbreiden"
+
+#: xxri-settings.c
+#, c-format
+msgid "One desktop across the displays. The dock stays on the %s."
+msgstr "Eén desktop over de schermen. De dock blijft op %s."
+
+#: xxri-settings.c
+msgid "Mirror"
+msgstr "Spiegelen"
+
+#: xxri-settings.c
+#, c-format
+msgid "Every display shows the same picture, at %d × %d."
+msgstr "Elk scherm toont hetzelfde beeld, op %d × %d."
+
+#: xxri-settings.c
+msgid "Not possible: these displays have no resolution in common."
+msgstr "Niet mogelijk: deze schermen hebben geen gemeenschappelijke resolutie."
+
+#: xxri-settings.c
+#, c-format
+msgid "%s Only"
+msgstr "Alleen %s"
+
+#: xxri-settings.c
+#, c-format
+msgid "The %s is turned off."
+msgstr "%s staat uit."
+
+#: xxri-settings.c
+msgid "The previous arrangement comes back unless you keep this one."
+msgstr "De vorige indeling komt terug tenzij je deze behoudt."
+
+#: xxri-settings.c
+#, c-format
+msgid "%s Resolution"
+msgstr "%s-resolutie"
+
+#: xxri-settings.c
+msgid "Changes at once; the desktop stays on the main display."
+msgstr "Wijzigt meteen; de desktop blijft op het hoofdscherm."
+
+#: xxri-settings.c
+msgid "Resolution"
+msgstr "Resolutie"
+
+#: xxri-settings.c
+msgid "Extended"
+msgstr "Uitgebreid"
+
+#: xxri-settings.c
+msgid "Mirrored"
+msgstr "Gespiegeld"
+
+#: xxri-settings.c
+msgid "One Display"
+msgstr "Eén scherm"
+
+#: xxri-settings.c
+msgid "Main Display"
+msgstr "Hoofdscherm"
+
+#: xxri-settings.c
+msgid "No display modes were reported."
+msgstr "Er zijn geen schermmodi gemeld."
+
+#: xxri-settings.c
+msgid "(Default)"
+msgstr "(Standaard)"
+
+#: xxri-settings.c
+msgid "(Native)"
+msgstr "(Native)"
+
+#: xxri-settings.c
+msgid "After restart"
+msgstr "Na herstart"
+
+#: xxri-settings.c
+msgid "Show all resolutions"
+msgstr "Alle resoluties tonen"
+
+#: xxri-settings.c
+#, c-format
+msgid "%d × %d at next start"
+msgstr "%d × %d bij volgende start"
+
+#: xxri-settings.c
+msgid "Saved. The desktop switches when it next starts, or restart now."
+msgstr "Opgeslagen. De desktop schakelt bij de volgende start, of start nu opnieuw."
+
+#: xxri-settings.c
+#, c-format
+msgid "This boot was started with the xres=%s boot code, which takes priority over the resolution chosen here."
+msgstr "Deze start is uitgevoerd met de opstartcode xres=%s, die voorrang heeft boven de hier gekozen resolutie."
+
+#: xxri-settings.c
+msgid "Brightness"
+msgstr "Helderheid"
+
+#: xxri-settings.c
+msgid "Darkens the picture. The monitor's own buttons set its backlight."
+msgstr "Maakt het beeld donkerder. De knoppen op de monitor zelf regelen de achtergrondverlichting."
+
+#: xxri-settings.c
+msgid "This display has no software backlight control. Use the buttons on the monitor."
+msgstr "Dit scherm heeft geen softwarematige helderheidsregeling. Gebruik de knoppen op de monitor."
+
+#: xxri-settings.c
+msgid "Available after the desktop restarts"
+msgstr "Beschikbaar na een herstart van de desktop"
+
+#: xxri-settings.c
+msgid "Refresh rate"
+msgstr "Verversingssnelheid"
+
+#: xxri-settings.c
+msgid "Unknown"
+msgstr "Onbekend"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s (kernel mode setting)"
+msgstr "%s (kernelmodusinstelling)"
+
+#: xxri-settings.c
+msgid "Graphics driver"
+msgstr "Grafisch stuurprogramma"
+
+#: xxri-settings.c
+msgid "Set by the video BIOS"
+msgstr "Ingesteld door de video-BIOS"
+
+#: xxri-settings.c
+msgid "VESA BIOS (compatibility mode)"
+msgstr "VESA-BIOS (compatibiliteitsmodus)"
+
+#: xxri-settings.c
+msgid "Language & Region"
+msgstr "Taal en regio"
+
+#: xxri-settings.c
+msgid "Language"
+msgstr "Taal"
+
+#: xxri-settings.c
+msgid "Keyboard layout"
+msgstr "Toetsenbordindeling"
+
+#: xxri-settings.c
+msgid "Region"
+msgstr "Regio"
+
+#: xxri-settings.c
+msgid "not set"
+msgstr "niet ingesteld"
+
+#: xxri-settings.c
+msgid "Date & Time"
+msgstr "Datum en tijd"
+
+#: xxri-settings.c
+msgid "Sync time"
+msgstr "Tijd synchroniseren"
+
+#: xxri-settings.c
+msgid "Set manually..."
+msgstr "Handmatig instellen..."
+
+#: xxri-settings.c
+#, c-format
+msgid "timezone %s"
+msgstr "tijdzone %s"
+
+#: xxri-settings.c
+msgid "Account"
+msgstr "Account"
+
+#: xxri-settings.c
+msgid "Hostname"
+msgstr "Hostnaam"
+
+#: xxri-settings.c
+msgid "Log in automatically"
+msgstr "Automatisch aanmelden"
+
+#: xxri-settings.c
+msgid "Skip the login prompt at boot"
+msgstr "De aanmeldprompt bij het opstarten overslaan"
+
+#: xxri-settings.c
+msgid "Startup Applications"
+msgstr "Opstarttoepassingen"
+
+#: xxri-settings.c
+msgid "Enabled (xxri-storage watch)"
+msgstr "Ingeschakeld (xxri-storage watch)"
+
+#: xxri-settings.c
+msgid "Storage automount"
+msgstr "Automatisch koppelen van opslag"
+
+#: xxri-settings.c
+msgid "Enabled (xxri-hw-init)"
+msgstr "Ingeschakeld (xxri-hw-init)"
+
+#: xxri-settings.c
+msgid "Hardware layer"
+msgstr "Hardwarelaag"
+
+#: xxri-settings.c
+msgid "Desktop"
+msgstr "Desktop"
+
+#: xxri-settings.c
+msgid "Reset settings"
+msgstr "Instellingen herstellen"
+
+#: xxri-settings.c
+msgid "Restart session"
+msgstr "Sessie opnieuw starten"
+
+#: xxri-settings.c
+msgid "Checking for updates…"
+msgstr "Controleren op updates…"
+
+#: xxri-settings.c
+msgid "Update installed"
+msgstr "Update geïnstalleerd"
+
+#: xxri-settings.c
+msgid "Restart desktop"
+msgstr "Desktop opnieuw starten"
+
+#: xxri-settings.c
+msgid "Restart now"
+msgstr "Nu opnieuw starten"
+
+#: xxri-settings.c
+msgid "The installation was interrupted."
+msgstr "De installatie is onderbroken."
+
+#: xxri-settings.c
+msgid "Try again"
+msgstr "Opnieuw proberen"
+
+#: xxri-settings.c
+msgid "Starting…"
+msgstr "Starten…"
+
+#: xxri-settings.c
+msgid "No updates published yet"
+msgstr "Nog geen updates gepubliceerd"
+
+#: xxri-settings.c
+#, c-format
+msgid "XXRI OS Lite %s is the newest release. Last checked %s"
+msgstr "XXRI OS Lite %s is de nieuwste versie. Laatst gecontroleerd %s"
+
+#: xxri-settings.c
+msgid "Couldn't check for updates"
+msgstr "Kan niet controleren op updates"
+
+#: xxri-settings.c
+msgid "The update source did not answer."
+msgstr "De updatebron reageerde niet."
+
+#: xxri-settings.c
+msgid "No update for this system"
+msgstr "Geen update voor dit systeem"
+
+#: xxri-settings.c
+msgid "Your system is up to date"
+msgstr "Je systeem is up-to-date"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s%sLast checked %s"
+msgstr "%s%sLaatst gecontroleerd %s"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s is available"
+msgstr "%s is beschikbaar"
+
+#: xxri-settings.c
+msgid "A new XXRI OS Lite"
+msgstr "Een nieuwe XXRI OS Lite"
+
+#: xxri-settings.c
+#, c-format
+msgid "Last checked %s"
+msgstr "Laatst gecontroleerd %s"
+
+#: xxri-settings.c
+msgid "Released "
+msgstr "Uitgebracht "
+
+#: xxri-settings.c
+msgid "  ·  needs a restart"
+msgstr "  ·  vereist een herstart"
+
+#: xxri-settings.c
+msgid "  ·  restarts the desktop"
+msgstr "  ·  herstart de desktop"
+
+#: xxri-settings.c
+msgid "Download and install"
+msgstr "Downloaden en installeren"
+
+#: xxri-settings.c
+msgid "Check for updates"
+msgstr "Controleren op updates"
+
+#: xxri-settings.c
+msgid "Update History"
+msgstr "Updategeschiedenis"
+
+#: xxri-settings.c
+msgid "No system updates have been installed yet."
+msgstr "Er zijn nog geen systeemupdates geïnstalleerd."
+
+#: xxri-settings.c
+#, c-format
+msgid "Installed %s"
+msgstr "Geïnstalleerd %s"
+
+#: xxri-settings.c
+msgid "Extension Packages"
+msgstr "Extensiepakketten"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s extension packages"
+msgstr "%s extensiepakketten"
+
+#: xxri-settings.c
+msgid "Check"
+msgstr "Controleren"
+
+#: xxri-settings.c
+msgid "Update"
+msgstr "Bijwerken"
+
+#: xxri-settings.c
+msgid "Check compares the extension packages in /tce with the Tiny Core mirror; Update downloads newer ones, which load at the next boot."
+msgstr "Controleren vergelijkt de extensiepakketten in /tce met de Tiny Core-mirror; Bijwerken downloadt nieuwere, die bij de volgende start worden geladen."
+
+#: xxri-settings.c
+#, c-format
+msgid "System updates come from %s"
+msgstr "Systeemupdates komen van %s"
+
+#: xxri-settings.c
+msgid "OS"
+msgstr "OS"
+
+#: xxri-settings.c
+msgid "Version"
+msgstr "Versie"
+
+#: xxri-settings.c
+msgid "Uptime"
+msgstr "Uptime"
+
+#: xxri-settings.c
+msgid "Locale"
+msgstr "Landinstelling"
+
+#: xxri-settings.c
+#, c-format
+msgid "%s · POSIX default"
+msgstr "%s · POSIX-standaard"
+
+#: xxri-settings.c
+msgid "Hardware"
+msgstr "Hardware"
+
+#: xxri-settings.c
+msgid "CPU"
+msgstr "CPU"
+
+#: xxri-settings.c
+msgid "CPU Cores"
+msgstr "CPU-kernen"
+
+#: xxri-settings.c
+msgid "GPU"
+msgstr "GPU"
+
+#: xxri-settings.c
+msgid "Memory"
+msgstr "Geheugen"
+
+#: xxri-settings.c
+msgid "unknown"
+msgstr "onbekend"
+
+#: xxri-settings.c
+msgid "N/A (Desktop)"
+msgstr "N.v.t. (desktop)"
+
+#: xxri-settings.c
+msgid "present"
+msgstr "aanwezig"
+
+#: xxri-settings.c
+msgid "Display Resolution"
+msgstr "Schermresolutie"
+
+#: xxri-settings.c
+msgid "System"
+msgstr "Systeem"
+
+#: xxri-settings.c
+msgid "Kernel"
+msgstr "Kernel"
+
+#: xxri-settings.c
+msgid "Architecture"
+msgstr "Architectuur"
+
+#: xxri-settings.c
+msgid "BIOS"
+msgstr "BIOS"
+
+#: xxri-settings.c
+msgid "Build"
+msgstr "Build"
+
+#: xxri-settings.c
+msgid "Legal"
+msgstr "Juridisch"
+
+#: xxri-settings.c
+msgid "GNU General Public License by Free Software Foundation v3 or later"
+msgstr "GNU General Public License van de Free Software Foundation, versie 3 of later"
+
+#: xxri-settings.c
+msgid "License"
+msgstr "Licentie"
+
+#: xxri-settings.c
+msgid "Copyright"
+msgstr "Auteursrecht"
+
+#: xxri-settings.c
+msgid "Off"
+msgstr "Uit"
+
+#: xxri-settings.c
+msgid "On"
+msgstr "Aan"
+
+#: xxri-settings.c
+msgid "Details"
+msgstr "Details"
+
+#: xxri-settings.c
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+#: xxri-settings.c
+msgid "Connect"
+msgstr "Verbinden"
+
+#: xxri-settings.c
+#, c-format
+msgid "Connect to “%s”"
+msgstr "Verbinden met “%s”"
+
+#: xxri-settings.c
+msgid "Password"
+msgstr "Wachtwoord"
+
+#: xxri-settings.c
+msgid "Show password"
+msgstr "Wachtwoord tonen"
+
+#: xxri-settings.c
+msgid "The password was not accepted. Try again."
+msgstr "Het wachtwoord is niet geaccepteerd. Probeer het opnieuw."
+
+#: xxri-settings.c
+msgid "the network did not answer"
+msgstr "het netwerk reageerde niet"
+
+#: xxri-settings.c
+#, c-format
+msgid "Couldn't connect to “%s”"
+msgstr "Kan geen verbinding maken met “%s”"
+
+#: xxri-settings.c
+msgid "Connecting…"
+msgstr "Verbinden…"
+
+#: xxri-settings.c
+msgid "Close"
+msgstr "Sluiten"
+
+#: xxri-settings.c
+msgid "Forget"
+msgstr "Vergeten"
+
+#: xxri-settings.c
+msgid "None (open)"
+msgstr "Geen (open)"
+
+#: xxri-settings.c
+msgid "WPA Enterprise"
+msgstr "WPA Enterprise"
+
+#: xxri-settings.c
+msgid "Connected"
+msgstr "Verbonden"
+
+#: xxri-settings.c
+msgid "Connected, internet may not be available"
+msgstr "Verbonden, internet is mogelijk niet beschikbaar"
+
+#: xxri-settings.c
+msgid "Status"
+msgstr "Status"
+
+#: xxri-settings.c
+msgid "Frequency"
+msgstr "Frequentie"
+
+#: xxri-settings.c
+msgid "Link speed"
+msgstr "Verbindingssnelheid"
+
+#: xxri-settings.c
+msgid "Security"
+msgstr "Beveiliging"
+
+#: xxri-settings.c
+msgid "Signal strength"
+msgstr "Signaalsterkte"
+
+#: xxri-settings.c
+msgid "DNS"
+msgstr "DNS"
+
+#: xxri-settings.c
+msgid "Gateway"
+msgstr "Gateway"
+
+#: xxri-settings.c
+msgid "IP address"
+msgstr "IP-adres"
+
+#: xxri-settings.c
+msgid "MAC address"
+msgstr "MAC-adres"
+
+#: xxri-settings.c
+msgid "Subnet mask"
+msgstr "Subnetmasker"
+
+#: xxri-settings.c
+msgid "Add network"
+msgstr "Netwerk toevoegen"
+
+#: xxri-settings.c
+msgid "Network name (SSID)"
+msgstr "Netwerknaam (SSID)"
+
+#: xxri-settings.c
+msgid "Password (leave empty for an open network)"
+msgstr "Wachtwoord (leeg laten voor een open netwerk)"
+
+#: xxri-settings.c
+msgid "Hidden network"
+msgstr "Verborgen netwerk"
+
+#: xxri-settings.c
+msgid "Enterprise network"
+msgstr "Enterprise-netwerk"
+
+#: xxri-settings.c
+msgid "Networks that sign in with a user name and certificate (WPA Enterprise, 802.1X) are not supported yet."
+msgstr "Netwerken die aanmelden met een gebruikersnaam en certificaat (WPA Enterprise, 802.1X) worden nog niet ondersteund."
+
+#: xxri-settings.c
+msgid "Enterprise"
+msgstr "Enterprise"
+
+#: xxri-settings.c
+msgid "Open"
+msgstr "Open"
+
+#: xxri-settings.c
+msgid "Saved"
+msgstr "Opgeslagen"
+
+#: xxri-settings.c
+msgid "No other networks found nearby."
+msgstr "Geen andere netwerken in de buurt gevonden."
+
+#: xxri-settings.c
+#, c-format
+msgid "Connected · %s"
+msgstr "Verbonden · %s"
+
+#: xxri-settings.c
+msgid "Cable unplugged"
+msgstr "Kabel niet aangesloten"
+
+#: xxri-settings.c
+#, c-format
+msgid "Getting an address…"
+msgstr "Adres ophalen…"
+
+#: xxri-settings.c
+#, c-format
+msgid "Ethernet (%s)"
+msgstr "Ethernet (%s)"
+
+#: xxri-settings.c
+msgid "No Wi-Fi adapter"
+msgstr "Geen Wi-Fi-adapter"
+
+#: xxri-settings.c
+msgid "No wireless adapter was detected. Drivers ship with XXRI OS; if your adapter needs firmware, About Device shows what is missing."
+msgstr "Er is geen draadloze adapter gedetecteerd. Stuurprogramma's worden met XXRI OS meegeleverd; als je adapter firmware nodig heeft, toont Over dit apparaat wat er ontbreekt."
+
+#: xxri-settings.c
+msgid "Switched off by the computer's wireless switch or key"
+msgstr "Uitgeschakeld door de draadloze schakelaar of toets van de computer"
+
+#: xxri-settings.c
+msgid "Turn on Wi-Fi to see the networks around you."
+msgstr "Schakel Wi-Fi in om de netwerken in je omgeving te zien."
+
+#: xxri-settings.c
+msgid "Turning off…"
+msgstr "Uitschakelen…"
+
+#: xxri-settings.c
+msgid "Turning on…"
+msgstr "Inschakelen…"
+
+#: xxri-settings.c
+msgid "Current network"
+msgstr "Huidig netwerk"
+
+#: xxri-settings.c
+msgid "Available networks"
+msgstr "Beschikbare netwerken"
+
+#: xxri-settings.c
+msgid "Ethernet"
+msgstr "Ethernet"
+
+#: xxri-settings.c
+msgid "Keyboard"
+msgstr "Toetsenbord"
+
+#: xxri-settings.c
+msgid "Mouse"
+msgstr "Muis"
+
+#: xxri-settings.c
+msgid "Tablet"
+msgstr "Tablet"
+
+#: xxri-settings.c
+msgid "Game controller"
+msgstr "Gamecontroller"
+
+#: xxri-settings.c
+msgid "Phone"
+msgstr "Telefoon"
+
+#: xxri-settings.c
+msgid "Computer"
+msgstr "Computer"
+
+#: xxri-settings.c
+msgid "Cancelling…"
+msgstr "Annuleren…"
+
+#: xxri-settings.c
+msgid "Pairing…"
+msgstr "Koppelen…"
+
+#: xxri-settings.c
+#, c-format
+msgid "Make sure “%s” shows this code, then choose Pair."
+msgstr "Zorg dat “%s” deze code toont en kies dan Koppelen."
+
+#: xxri-settings.c
+#, c-format
+msgid "Type this code on “%s”, then press Enter."
+msgstr "Typ deze code op “%s” en druk op Enter."
+
+#: xxri-settings.c
+msgid "pairing did not complete"
+msgstr "koppelen is niet voltooid"
+
+#: xxri-settings.c
+msgid "Couldn't pair"
+msgstr "Kan niet koppelen"
+
+#: xxri-settings.c
+msgid "The Bluetooth backend did not start."
+msgstr "De Bluetooth-backend is niet gestart."
+
+#: xxri-settings.c
+#, c-format
+msgid "Pairing with “%s”"
+msgstr "Koppelen met “%s”"
+
+#: xxri-settings.c
+msgid "Waiting for the device…"
+msgstr "Wachten op het apparaat…"
+
+#: xxri-settings.c
+msgid "Pair"
+msgstr "Koppelen"
+
+#: xxri-settings.c
+msgid "the device did not answer"
+msgstr "het apparaat reageerde niet"
+
+#: xxri-settings.c
+#, c-format
+msgid "Unpair “%s”?"
+msgstr "“%s” ontkoppelen?"
+
+#: xxri-settings.c
+msgid "To use it again you will have to pair it again."
+msgstr "Om het opnieuw te gebruiken, moet je het opnieuw koppelen."
+
+#: xxri-settings.c
+msgid "Unpair"
+msgstr "Ontkoppelen"
+
+#: xxri-settings.c
+msgid "Unpairing…"
+msgstr "Ontkoppelen…"
+
+#: xxri-settings.c
+msgid "Disconnecting…"
+msgstr "Verbinding verbreken…"
+
+#: xxri-settings.c
+msgid "Disconnect"
+msgstr "Verbinding verbreken"
+
+#: xxri-settings.c
+msgid "Not connected"
+msgstr "Niet verbonden"
+
+#: xxri-settings.c
+msgid "No paired devices yet."
+msgstr "Nog geen gekoppelde apparaten."
+
+#: xxri-settings.c
+msgid "Looking for devices…"
+msgstr "Apparaten zoeken…"
+
+#: xxri-settings.c
+msgid "Nothing found. Put the device in pairing mode and choose Scan."
+msgstr "Niets gevonden. Zet het apparaat in de koppelmodus en kies Scannen."
+
+#: xxri-settings.c
+msgid "Rename"
+msgstr "Naam wijzigen"
+
+#: xxri-settings.c
+msgid "Device name"
+msgstr "Apparaatnaam"
+
+#: xxri-settings.c
+msgid "The name phones, headphones and other computers see."
+msgstr "De naam die telefoons, koptelefoons en andere computers zien."
+
+#: xxri-settings.c
+msgid "No Bluetooth adapter"
+msgstr "Geen Bluetooth-adapter"
+
+#: xxri-settings.c
+msgid "Bluetooth is unavailable"
+msgstr "Bluetooth is niet beschikbaar"
+
+#: xxri-settings.c
+msgid "Bluetooth support not installed"
+msgstr "Bluetooth-ondersteuning is niet geïnstalleerd"
+
+#: xxri-settings.c
+msgid "no Bluetooth adapter was detected"
+msgstr "er is geen Bluetooth-adapter gedetecteerd"
+
+#: xxri-settings.c
+msgid "Connect a Bluetooth adapter to pair headphones, keyboards and other devices."
+msgstr "Sluit een Bluetooth-adapter aan om koptelefoons, toetsenborden en andere apparaten te koppelen."
+
+#: xxri-settings.c
+msgid "Turn on Bluetooth to connect headphones, keyboards and other devices."
+msgstr "Schakel Bluetooth in om koptelefoons, toetsenborden en andere apparaten te verbinden."
+
+#: xxri-settings.c
+msgid "Paired devices"
+msgstr "Gekoppelde apparaten"
+
+#: xxri-settings.c
+msgid "Available devices"
+msgstr "Beschikbare apparaten"
+
+#: xxri-settings.c
+msgid "Scan"
+msgstr "Scannen"
+
+#: xxri-settings.c
+msgid "Settings"
+msgstr "Instellingen"

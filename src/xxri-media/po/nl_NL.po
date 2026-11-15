@@ -1,0 +1,92 @@
+# Nederlandse vertaling van xxri-media, onderdeel van XXRI OS Lite.
+# Verspreid onder dezelfde licentie als XXRI OS Lite (GPL-3.0-or-later).
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: XXRI OS Lite 2.6\n"
+"Report-Msgid-Bugs-To: https://github.com/jantzen1212/XXRI-OS-LITE/issues\n"
+"POT-Creation-Date: 2026-10-09 18:56+0700\n"
+"PO-Revision-Date: 2026-11-15 12:00+0100\n"
+"Last-Translator: Dutch translation\n"
+"Language-Team: Dutch\n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: xxri-media.c
+msgid "Open a file to play"
+msgstr "Open een bestand om af te spelen"
+
+#: xxri-media.c
+msgid "Could not open the picture"
+msgstr "Kan de afbeelding niet openen"
+
+#: xxri-media.c
+msgid "Cancel"
+msgstr "Annuleren"
+
+#: xxri-media.c
+msgid "Media files"
+msgstr "Mediabestanden"
+
+#: xxri-media.c
+msgid "All files"
+msgstr "Alle bestanden"
+
+#: xxri-media.c
+msgid "Open"
+msgstr "Openen"
+
+#: xxri-media.c
+msgid "Open Media"
+msgstr "Media openen"
+
+#: xxri-media.c
+msgid "Nothing to save"
+msgstr "Niets om op te slaan"
+
+#: xxri-media.c
+msgid "Open a media file first."
+msgstr "Open eerst een mediabestand."
+
+#: xxri-media.c
+msgid "Save"
+msgstr "Opslaan"
+
+#: xxri-media.c
+msgid "Save As"
+msgstr "Opslaan als"
+
+#: xxri-media.c
+msgid "Could not save"
+msgstr "Kan niet opslaan"
+
+#: xxri-media.c
+msgid "The copy failed."
+msgstr "Het kopiëren is mislukt."
+
+#: xxri-media.c
+msgid "Normal"
+msgstr "Normaal"
+
+#: xxri-media.c
+msgid "Open File…"
+msgstr "Bestand openen…"
+
+#: xxri-media.c
+msgid "Save a Copy…"
+msgstr "Een kopie opslaan…"
+
+#: xxri-media.c
+msgid "Subtitles: next track"
+msgstr "Ondertitels: volgende track"
+
+#: xxri-media.c
+msgid "Fullscreen"
+msgstr "Volledig scherm"
+
+#: xxri-media.c
+msgid "Quit XXRI Media"
+msgstr "XXRI Media afsluiten"

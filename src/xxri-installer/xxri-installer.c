@@ -186,6 +186,7 @@ static const Lang LANGS[] = {
     {"Bahasa Indonesia",        "id_ID", "us"},
     {"Português (Portugal)",    "pt_PT", "pt"},
     {"Français (France)",       "fr_FR", "fr"},
+    {"Nederlands (Nederland)",  "nl_NL", "nl"},
 };
 /* keymap: a path under /usr/share/kmap */
 typedef struct { const char *label, *keymap, *xkb; } Kbd;
@@ -194,6 +195,7 @@ static const Kbd KBDS[] = {
     {N_("English (United Kingdom)"), "qwerty/uk",    "gb"},
     {N_("Portuguese (Portugal)"), "qwerty/pt-latin1", "pt"},
     {N_("French (AZERTY)"),      "azerty/fr-latin1", "fr"},
+    {N_("Dutch"),                "qwerty/nl",        "nl"},
     {N_("Arabic (with US, Alt+Shift switches)"), "qwerty/us", "us,ara"},
 };
 /* backend phases; task_for_pct() must match xxri-install-backend's P| values */
