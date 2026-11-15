@@ -910,7 +910,7 @@ msgstr "Kan niet controleren op updates"
 
 #: xxri-settings.c
 msgid "The update source did not answer."
-msgstr "De updatebron reageerde niet."
+msgstr "De updatebron heeft niet gereageerd."
 
 #: xxri-settings.c
 msgid "No update for this system"
